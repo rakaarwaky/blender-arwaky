@@ -7,7 +7,7 @@ class BLENDERMCP_AddonPreferences(bpy.types.AddonPreferences):
 
     telemetry_consent: BoolProperty(  # type: ignore
         name="Allow Telemetry",
-        description="Allow collection of prompts, code snippets, and screenshots to help improve Blender MCP",
+        description="Allow collection of prompts, code snippets, and screenshots to help improve Blender Arwaky",
         default=False,
     )
 
@@ -48,11 +48,11 @@ class BLENDERMCP_AddonPreferences(bpy.types.AddonPreferences):
 
 
 class BLENDERMCP_PT_Panel(bpy.types.Panel):
-    bl_label = "Blender MCP"
+    bl_label = "Blender Arwaky"
     bl_idname = "BLENDERMCP_PT_Panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "BlenderMCP"
+    bl_category = "BlenderArwaky"
 
     def draw(self, context):
         layout = self.layout

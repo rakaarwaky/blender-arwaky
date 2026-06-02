@@ -1,20 +1,20 @@
 """
-Blender MCP Addon
-==================
+Blender Arwaky Addon
+====================
 Blender-side plugin that runs a TCP server to receive commands from
 an external MCP server (Claude, etc.) and execute them in Blender.
 
 Install:   Edit -> Preferences -> Add-ons -> Install -> select this folder
-Register:  Enable "Interface: Blender MCP"
+Register:  Enable "Interface: Blender Arwaky"
 """
 
 bl_info = {
-    "name": "Blender MCP Addon",
-    "author": "BlenderMCPAddon",
+    "name": "Blender Arwaky Addon",
+    "author": "Raka Arwaky",
     "description": "Connect Blender to Claude (or any MCP client)",
     "version": (1, 6, 2),
     "blender": (3, 0, 0),
-    "location": "View3D -> Sidebar -> BlenderMCP",
+    "location": "View3D -> Sidebar -> BlenderArwaky",
     "category": "Interface",
 }
 
