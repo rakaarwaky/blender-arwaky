@@ -4,12 +4,12 @@ id = "blender_mcp_addon"
 version = "1.6.5"
 name = "Blender MCP"
 tagline = "Connect Blender to Claude (or any MCP client)"
-maintainer = "BlenderMCP <davinci@blendermcp.local>"
+maintainer = "rakaarwaky <arwaky90@gmail.com>"
 type = "add-on"
 
 blender_version_min = "4.2.0"
 
-website = "https://github.com/rakaarwaky/blender-mcp"
+website = "https://github.com/rakaarwaky/blender-arwaky"
 
 tags = ["Interface", "Import-Export"]
 
