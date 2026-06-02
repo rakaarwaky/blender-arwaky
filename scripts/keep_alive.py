@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Lightweight keep-alive script for Blender MCP.
+Lightweight keep-alive script for Blender Arwaky.
 Ensures the server remains running in background mode.
 """
 
@@ -8,7 +8,7 @@ import os
 import sys
 import time
 
-print("\n=== Blender MCP Keep-Alive (v2) ===", flush=True)
+print("\n=== Blender Arwaky Keep-Alive (v2) ===", flush=True)
 
 # 1. Setup Paths
 script_dir = os.path.dirname(os.path.abspath(__file__))

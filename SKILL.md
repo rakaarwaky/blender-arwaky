@@ -1,6 +1,6 @@
-# BlenderMCP — Skill Guide
+# BlenderArwaky — Skill Guide
 
-The skill guide for BlenderMCP. Use `read_skill_context(section="...")` to
+The skill guide for BlenderArwaky. Use `read_skill_context(section="...")` to
 read specific sections. Sections: `setup`, `tools`, `commands`, `workflows`,
 `addon`, `troubleshooting`.
 
@@ -17,7 +17,7 @@ read specific sections. Sections: `setup`, `tools`, `commands`, `workflows`,
 ### 2. Install Project
 
 ```bash
-cd /home/raka/mcp-servers/blender-mcp
+cd /home/raka/mcp-arwaky/blender-arwaky
 uv sync
 uv run pip install -e .
 ```
@@ -38,7 +38,7 @@ Optional: set `BLENDERMCP_CONFIG_PATH` to absolute path of `config.yaml`.
 Option A — Install addon:
 1. Blender → Edit → Preferences → Add-ons
 2. Install `blender_mcp_addon.zip` (or copy `blender_mcp_addon/` to addons dir)
-3. Enable "Interface: Blender MCP"
+3. Enable "Interface: Blender Arwaky"
 
 The addon auto-starts a TCP server on port 9876 within 1-5 seconds.
 
@@ -50,7 +50,7 @@ blender --background --python scripts/run_headless.py &
 ### 5. Start MCP Server
 
 ```bash
-cd /home/raka/mcp-servers/blender-mcp
+cd /home/raka/mcp-arwaky/blender-arwaky
 uv run python -m surfaces.mcp_server_entry
 ```
 
@@ -60,7 +60,7 @@ The server connects to the Blender addon and registers 5 MCP tools.
 
 ## Section: tools
 
-BlenderMCP exposes exactly **5 MCP tools** (Universal Surface Layer design
+BlenderArwaky exposes exactly **5 MCP tools** (Universal Surface Layer design
 to minimize tool bloat):
 
 ### Tool 1: `execute_command`
@@ -218,13 +218,13 @@ commands from the external MCP server.
 - Reads `config.yaml` (env var `BLENDERMCP_CONFIG_PATH` override)
 - Injects environment variables from `.env.blendermcp`
 - Manages API key input via scene properties
-- UI panel in View3D → Sidebar → BlenderMCP
+- UI panel in View3D → Sidebar → BlenderArwaky
 
 **Architecture:**
 | File | Purpose |
 |------|---------|
 | `__init__.py` | Registration, auto-start timer |
-| `server.py` | TCP server (BlenderMCPServer) |
+| `server.py` | TCP server (BlenderArwakyServer) |
 | `operators.py` | Operator buttons (start/stop) |
 | `properties.py` | Scene properties (port, API keys) |
 | `ui.py` | Panel and preferences UI |
@@ -262,7 +262,7 @@ Warning: BLENDERMCP_CONFIG_PATH=... not found
 ```
 **Fix:** Set `BLENDERMCP_CONFIG_PATH` to absolute path of `config.yaml`:
 ```bash
-export BLENDERMCP_CONFIG_PATH=/home/raka/mcp-servers/blender-mcp/config.yaml
+export BLENDERMCP_CONFIG_PATH=/home/raka/mcp-arwaky/blender-arwaky/config.yaml
 ```
 
 ### Tools not showing up

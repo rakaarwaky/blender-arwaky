@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "blender-mcp": {
+    "blender-arwaky": {
       "command": "uv",
       "args": [
         "--directory",
-        "/home/raka/mcp-servers/blender-mcp",
+        "/home/raka/mcp-arwaky/blender-arwaky",
         "run",
-        "blender-mcp"
+        "blender-arwaky"
       ]
     }
   }

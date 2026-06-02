@@ -39,20 +39,20 @@ def _auto_start() -> float | None:
     global _auto_start_attempt, _auto_start_timer
 
     from . import properties
-    from .server import BlenderMCPServer
+    from .server import BlenderArwakyServer
 
     _auto_start_attempt += 1
 
     scn = bpy.context.scene if hasattr(bpy.context, "scene") else None
     if scn is None:
         logger.info(
-            "BlenderMCP: no scene yet (attempt %d/%d)",
+            "BlenderArwaky: no scene yet (attempt %d/%d)",
             _auto_start_attempt,
             _AUTO_START_RETRIES,
         )
         if _auto_start_attempt >= _AUTO_START_RETRIES:
             logger.warning(
-                "BlenderMCP: gave up auto-start (no scene after %d attempts)",
+                "BlenderArwaky: gave up auto-start (no scene after %d attempts)",
                 _AUTO_START_RETRIES,
             )
             _auto_start_timer = None
@@ -63,26 +63,26 @@ def _auto_start() -> float | None:
         properties.inject_env_vars(scn)
 
         if not hasattr(bpy.types, "blendermcp_server") or not bpy.types.blendermcp_server:
-            bpy.types.blendermcp_server = BlenderMCPServer(port=scn.blendermcp_port)
+            bpy.types.blendermcp_server = BlenderArwakyServer(port=scn.blendermcp_port)
 
         if not bpy.types.blendermcp_server.running:
             bpy.types.blendermcp_server.start()
             scn.blendermcp_server_running = True
 
-        logger.info("BlenderMCP server auto-started on port %s", scn.blendermcp_port)
+        logger.info("BlenderArwaky server auto-started on port %s", scn.blendermcp_port)
         _auto_start_attempt = 0
         _auto_start_timer = None
         return None  # stop timer -- success
 
     except Exception as exc:  # pragma: no cover
         logger.error(  # pragma: no cover
-            "BlenderMCP auto-start attempt %d failed: %s",
+            "BlenderArwaky auto-start attempt %d failed: %s",
             _auto_start_attempt,
             exc,
         )
         if _auto_start_attempt >= _AUTO_START_RETRIES:  # pragma: no cover
             logger.warning(  # pragma: no cover
-                "BlenderMCP: gave up auto-start after %d attempts",
+                "BlenderArwaky: gave up auto-start after %d attempts",
                 _AUTO_START_RETRIES,
             )
             _auto_start_timer = None  # pragma: no cover
@@ -113,7 +113,7 @@ def register() -> None:
         first_interval=1.0,
         persistent=True,
     )
-    logger.info("BlenderMCP addon registered (auto-start enabled)")
+    logger.info("BlenderArwaky addon registered (auto-start enabled)")
 
 
 def unregister() -> None:
@@ -140,7 +140,7 @@ def unregister() -> None:
     ui.unregister()
     properties.unregister_properties()
 
-    logger.info("BlenderMCP addon unregistered")
+    logger.info("BlenderArwaky addon unregistered")
 
 
 if __name__ == "__main__":  # pragma: no cover

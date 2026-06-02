@@ -1,11 +1,11 @@
 [project]
-name = "blender-mcp"
+name = "blender-arwaky"
 version = "1.6.5"
 description = "Blender integration through the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "Davinci (BlenderMCP)", email = "davinci@blendermcp.local"}
+    {name = "rakaarwaky", email = "arwaky90@gmail.com"}
 ]
 license = {text = "MIT"}
 classifiers = [
@@ -34,12 +34,12 @@ lint = [
     "bandit>=1.8.0",
 ]
 dev = [
-    "blender-mcp[test]",
-    "blender-mcp[lint]",
+    "blender-arwaky[test]",
+    "blender-arwaky[lint]",
 ]
 
 [project.scripts]
-blender-mcp = "mcp_main_entry:main"
+blender-arwaky = "mcp_main_entry:main"
 blender-cli = "cli_main_entry:main"
 
 [build-system]
@@ -50,8 +50,8 @@ build-backend = "setuptools.build_meta"
 package-dir = {"" = "src"}
 
 [project.urls]
-"Homepage" = "https://github.com/rakaarwaky/blender-mcp"
-"Bug Tracker" = "https://github.com/rakaarwaky/blender-mcp/issues"
+"Homepage" = "https://github.com/rakaarwaky/blender-arwaky"
+"Bug Tracker" = "https://github.com/rakaarwaky/blender-arwaky/issues"
 
 [tool.ruff]
 line-length = 120

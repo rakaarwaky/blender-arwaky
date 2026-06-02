@@ -1,8 +1,8 @@
-# 🎨 BlenderMCP
+# BlenderArwaky
 
 **Connect Blender to AI agents through the Model Context Protocol.**
 
-BlenderMCP bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, generate AI models, and execute Blender Python — all through 5 universal MCP tools.
+BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, generate AI models, and execute Blender Python — all through 5 universal MCP tools.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -48,8 +48,8 @@ taxonomy/        → Foundation: data structures, config, command catalog
 ### 1. Install
 
 ```bash
-git clone https://github.com/rakaarwaky/blender-mcp.git
-cd blender-mcp
+git clone https://github.com/rakaarwaky/blender-arwaky.git
+cd blender-arwaky
 uv sync
 ```
 
@@ -65,7 +65,7 @@ cp .env.blendermcp.example .env.blendermcp
 **Option A — GUI Install:**
 1. Open Blender → Edit → Preferences → Add-ons
 2. Install `blender_mcp_addon.zip` (or point to `blender_mcp_addon/` directory)
-3. Enable **"Interface: Blender MCP"**
+3. Enable **"Interface: Blender Arwaky"**
 
 The addon auto-starts a TCP server on port `9876` within 1–5 seconds.
 
@@ -87,11 +87,11 @@ Add to your client's MCP configuration (e.g. `mcp.json`):
 ```json
 {
   "mcpServers": {
-    "blender-mcp": {
+    "blender-arwaky": {
       "command": "uv",
       "args": [
-        "--directory", "/path/to/blender-mcp",
-        "run", "blender-mcp"
+        "--directory", "/path/to/blender-arwaky",
+        "run", "blender-arwaky"
       ]
     }
   }
@@ -102,7 +102,7 @@ Add to your client's MCP configuration (e.g. `mcp.json`):
 
 ## 🔧 MCP Tools
 
-BlenderMCP exposes exactly **5 MCP tools** (Universal Surface Layer design):
+BlenderArwaky exposes exactly **5 MCP tools** (Universal Surface Layer design):
 
 | Tool | Purpose |
 |------|---------|
@@ -216,7 +216,7 @@ Coverage targets: **100% line coverage** across all layers. See [TEST.md](TEST.m
 ## 📁 Project Structure
 
 ```
-blender-mcp/
+blender-arwaky/
 ├── src/
 │   ├── surfaces/          # MCP tools & entry points
 │   ├── agent/             # DI container & orchestrators

@@ -1,8 +1,8 @@
-# BlenderMCP — AGENT.md
+# BlenderArwaky — AGENT.md
 
 ## Project Overview
 
-BlenderMCP connects **Blender 3D** to any **MCP client** (Claude Desktop, Cursor,
+BlenderArwaky connects **Blender 3D** to any **MCP client** (Claude Desktop, Cursor,
 Continue.dev, or custom agents). It exposes a Universal Surface Layer with 5 MCP
 tools that dispatch to a command catalog of 30+ actions: scene manipulation,
 asset imports (Poly Haven, Sketchfab), AI generation (Hyper3D, Hunyuan3D),

@@ -48,7 +48,7 @@ jobs:
             --cov-report=term \
             -v --tb=short
 
-      - name: Build Blender MCP Addon ZIP
+      - name: Build Blender Arwaky Addon ZIP
         run: uv run python scripts/build_addon.py
 
       - name: Build Python Package Distribution

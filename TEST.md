@@ -1,9 +1,9 @@
-# BlenderMCP — Testing Guide
+# BlenderArwaky — Testing Guide
 
 ## Quick Start
 
 ```bash
-cd /home/raka/mcp-servers/blender-mcp
+cd /home/raka/mcp-arwaky/blender-arwaky
 uv run pytest
 ```
 
@@ -150,7 +150,7 @@ uv run pytest -m "not slow" # skip slow tests
 | `test_utils.py`      | `blender_mcp_addon/utils.py` — AABB, screenshot, GLB import              |
 | `test_properties.py` | `blender_mcp_addon/properties.py` — register/unregister, inject_env_vars |
 | `test_operators.py`  | `blender_mcp_addon/operators.py` — start/stop server operators           |
-| `test_server.py`     | `blender_mcp_addon/server.py` — BlenderMCPServer lifecycle & dispatch    |
+| `test_server.py`     | `blender_mcp_addon/server.py` — BlenderArwakyServer lifecycle & dispatch    |
 | `test_ui.py`         | `blender_mcp_addon/ui.py` — Panel, AddonPreferences draw                 |
 | `test_init.py`       | `blender_mcp_addon/__init__.py` — register, unregister, _auto_start      |
 
@@ -221,7 +221,7 @@ The project uses a self-hosted linter (`auto-lint`) for architecture compliance.
 
 ```bash
 # Run linter
-auto-lint check /home/raka/mcp-servers/blender-mcp
+auto-lint check /home/raka/mcp-arwaky/blender-arwaky
 
 # Run tests with coverage
 uv run pytest --cov=src --cov=blender_mcp_addon --cov-report=term

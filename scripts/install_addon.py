@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Install Blender MCP addon to Blender 5.1 on Fedora.
+Install Blender Arwaky addon to Blender 5.1 on Fedora.
 """
 
 import os
@@ -112,7 +112,7 @@ import bpy
 # Enable the addon
 try:
     bpy.ops.preferences.addon_enable(module="blender_mcp_addon")
-    print("Blender MCP addon enabled successfully")
+    print("Blender Arwaky addon enabled successfully")
 except Exception as e:
     print(f"Failed to enable addon: {e}")
 
@@ -229,7 +229,7 @@ def install_addon(blender_path, addon_source_path, user_install=True, auto_enabl
             if version_major >= 5:
                 print("\nBlender 5.x detected: extension will be auto-discovered.")
                 print(
-                    "Enable it in: Edit > Preferences > Extensions > search 'Blender MCP'"
+                    "Enable it in: Edit > Preferences > Extensions > search 'Blender Arwaky'"
                 )
             else:
                 print("\nEnabling addon automatically...")
@@ -240,13 +240,13 @@ def install_addon(blender_path, addon_source_path, user_install=True, auto_enabl
                 else:
                     print("\nWARNING: Auto-enable failed. Enable manually:")
                     print(
-                        "  Edit > Preferences > Add-ons > search 'Blender MCP' > check the box"
+                        "  Edit > Preferences > Add-ons > search 'Blender Arwaky' > check the box"
                     )
         else:
             print("\nManual enable required:")
-            print("  Edit > Preferences > Extensions > search 'Blender MCP' > enable")
+            print("  Edit > Preferences > Extensions > search 'Blender Arwaky' > enable")
 
-        print("\nDone! You can now start Blender and use Blender MCP.")
+        print("\nDone! You can now start Blender and use Blender Arwaky.")
         return True
 
     except Exception as e:
@@ -259,7 +259,7 @@ def main():
     addon_path = script_dir / "blender_mcp_addon"
 
     print("=" * 60)
-    print("Blender MCP Addon Installer for Fedora")
+    print("Blender Arwaky Addon Installer for Fedora")
     print("=" * 60)
     print()
 

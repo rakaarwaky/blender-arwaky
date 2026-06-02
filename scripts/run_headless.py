@@ -1,5 +1,5 @@
 """
-Unified Headless Engine for Blender MCP.
+Unified Headless Engine for Blender Arwaky.
 Combines robust path handling, multiple import strategies, and server state checking.
 """
 
@@ -7,7 +7,7 @@ import os
 import sys
 import time
 
-print("\n=== Blender MCP Headless Engine (Unified) ===", flush=True)
+print("\n=== Blender Arwaky Headless Engine (Unified) ===", flush=True)
 
 # 1. Setup Paths
 script_dir = os.path.dirname(os.path.abspath(__file__))

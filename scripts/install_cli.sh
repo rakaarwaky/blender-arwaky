@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Blender MCP CLI Installer
-# Installs blender-cli and blender-mcp globally in ~/.local/bin via editable venv.
+# Blender Arwaky CLI Installer
+# Installs blender-cli and blender-arwaky globally in ~/.local/bin via editable venv.
 #
 # Run: bash scripts/install_cli.sh
 #
@@ -23,13 +23,13 @@ else
   VENV_DIR="${PROJECT_ROOT}/.venv"
 fi
 
-echo "=== Blender MCP CLI Installer ==="
+echo "=== Blender Arwaky CLI Installer ==="
 echo "Project Root: ${PROJECT_ROOT}"
 echo "Virtual Env:  ${VENV_DIR}"
 echo ""
 
 # 1. Install package in editable mode
-echo "[*] Installing blender-mcp in editable mode..."
+echo "[*] Installing blender-arwaky in editable mode..."
 if [ -f "${PROJECT_ROOT}/uv.lock" ] && command -v uv &> /dev/null; then
   echo "    Using uv for lightning fast installation..."
   (cd "${PROJECT_ROOT}" && uv pip install -e .)
@@ -59,13 +59,13 @@ EOF
 }
 
 create_wrapper "blender-cli"
-create_wrapper "blender-mcp"
+create_wrapper "blender-arwaky"
 
 echo ""
 echo "=== Installation Complete ==="
 echo "You can now run the commands directly:"
 echo "  blender-cli --help"
-echo "  blender-mcp --help"
+echo "  blender-arwaky --help"
 echo ""
 if [[ ":$PATH:" != *":${LOCAL_BIN}:"* ]]; then
   echo "[!] WARNING: ${LOCAL_BIN} is not in your PATH."

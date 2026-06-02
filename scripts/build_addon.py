@@ -19,7 +19,7 @@ def build_addon():
     dist_dir.mkdir(exist_ok=True)
     zip_path = dist_dir / "blender_mcp_addon.zip"
 
-    print("Building Blender MCP Addon ZIP...")
+    print("Building Blender Arwaky Addon ZIP...")
     print(f"Source: {addon_dir}")
     print(f"Output: {zip_path}")
 
