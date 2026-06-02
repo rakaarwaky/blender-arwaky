@@ -1,6 +1,6 @@
 import textwrap, pathlib
 
-p = pathlib.Path('/home/raka/mcp-servers/blender-mcp/src/surfaces/server_instance_handler.py')
+p = pathlib.Path('/home/raka/mcp-servers/blender-arwaky/src/surfaces/server_instance_handler.py')
 text = p.read_text()
 
 old = '''        try:
@@ -38,7 +38,7 @@ new = '''        try:
             # TCP connect can make the server look unhealthy "out of the gate".
             # Connection is established lazily on the first tool call.
             logger.info(
-                "BlenderMCP server is up; Blender connection deferred until first tool call"
+                "BlenderArwaky server is up; Blender connection deferred until first tool call"
             )
             startup_data["blender_connected"] = False
 
