@@ -1,5 +1,5 @@
 """
-Privacy-focused, anonymous telemetry collection for Blender MCP.
+Privacy-focused, anonymous telemetry collection for Blender Arwaky.
 Includes module-level version utilities and initialization helpers.
 """
 
@@ -35,7 +35,7 @@ from taxonomy import (
 )
 from taxonomy.telemetry_event_entity import EventType, TelemetryEvent
 
-logger = logging.getLogger("blender-mcp-telemetry-service")
+logger = logging.getLogger("blender-arwaky-telemetry-service")
 
 # ─── TOML parser (stdlib in 3.11+, fallback to tomli) ────
 _toml_parser: Any = None
@@ -57,7 +57,7 @@ def _get_package_version() -> str:
     try:
         from importlib.metadata import version as _v
 
-        return _v("blender-mcp")
+        return _v("blender-arwaky")
     except Exception:  # nosec B110 — import fallback, safe to skip
         pass
     # Fallback: try pyproject.toml in dev layout
@@ -172,7 +172,7 @@ class TelemetrySignalRecorder(TelemetryRecordingPort):
             base = Path.home() / "Library" / "Application Support"
         else:
             base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-        d = base / "BlenderMCP"
+        d = base / "BlenderArwaky"
         try:
             d.mkdir(parents=True, exist_ok=True)
         except Exception as e:

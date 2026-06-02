@@ -22,7 +22,7 @@ class ApplicationConfigLoader(ConfigPort):
         1. BLENDERMCP_CONFIG_PATH (explicit config file path)
         2. BLENDER_MCP_ROOT env var (project root override)
         3. Relative to this file (works in dev: src/infrastructure/)
-        4. XDG_CONFIG_HOME or ~/.config/blender-mcp (production install)
+        4. XDG_CONFIG_HOME or ~/.config/blender-arwaky (production install)
         5. Current working directory (last resort)
         """
         from os import environ
@@ -49,7 +49,7 @@ class ApplicationConfigLoader(ConfigPort):
 
         # 4. XDG config path (production install)
         xdg_config = environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
-        prod_path = Path(xdg_config) / "blender-mcp"
+        prod_path = Path(xdg_config) / "blender-arwaky"
         if prod_path.exists():
             return prod_path
 

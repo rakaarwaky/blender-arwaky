@@ -1,7 +1,7 @@
 """
 Dispatcher: Route MCP actions to AgentOrchestrator.
 
-This capability is the sole entry point for executing any BlenderMCP action.
+This capability is the sole entry point for executing any BlenderArwaky action.
 Handlers (MCP tools, CLI) delegate here — they contain no business logic.
 """
 

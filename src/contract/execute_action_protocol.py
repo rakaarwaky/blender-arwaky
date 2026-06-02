@@ -8,7 +8,7 @@ from taxonomy import ActionName, Details, Prompt
 
 
 class ExecuteActionProtocol(ABC):
-    """Entry point interface for executing any BlenderMCP action."""
+    """Entry point interface for executing any BlenderArwaky action."""
 
     @abstractmethod
     async def execute(self, action: ActionName, args: Details | None = None) -> Prompt:

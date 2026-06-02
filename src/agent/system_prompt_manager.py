@@ -1,5 +1,5 @@
 """
-Agentic Orchestration: Specialized Prompt Templates for BlenderMCP Experts.
+Agentic Orchestration: Specialized Prompt Templates for BlenderArwaky Experts.
 """
 
 from contract import SystemPromptManagerAggregate
@@ -7,7 +7,7 @@ from taxonomy import ObjectName, SuccessFlag
 
 
 class SystemPromptManager(SystemPromptManagerAggregate):
-    """Builder for specialized system prompts used by BlenderMCP expert agents."""
+    """Builder for specialized system prompts used by BlenderArwaky expert agents."""
 
     _success_ref: SuccessFlag = SuccessFlag(True)
     _obj_ref: ObjectName = ObjectName("ref")
@@ -42,7 +42,7 @@ Always follow these steps:
     def get_text_to_scene_orchestrator_prompt() -> str:
         """System prompt for the Text-to-Scene Orchestrator."""
         return """
-You are the Text-to-Scene Orchestrator for BlenderMCP. Your job is to transform a natural language description into a complete 3D tool_scene_ops.
+You are the Text-to-Scene Orchestrator for BlenderArwaky. Your job is to transform a natural language description into a complete 3D tool_scene_ops.
 Phase 1: Analysis & Cleanup
 - Use 'cleanup_scene' if the user wants a fresh start.
 - Identify the necessary assets (model_domain_entity_model, HDRIs, textures).

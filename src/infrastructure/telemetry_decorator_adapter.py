@@ -1,5 +1,5 @@
 """
-Telemetry decorator for Blender MCP tools.
+Telemetry decorator for Blender Arwaky tools.
 
 Depends only on contract TelemetryRecordingPort, not on concrete infra modules.
 """
@@ -14,7 +14,7 @@ from typing import Any
 from contract import TelemetryRecordingPort
 from taxonomy import BlenderVersion, Details, DurationMs, ErrorMessage, EventType, Prompt, SuccessFlag, ToolName
 
-logger = logging.getLogger("blender-mcp-telemetry_service")
+logger = logging.getLogger("blender-arwaky-telemetry_service")
 
 
 class TelemetryDecoratorAdapter(TelemetryRecordingPort):

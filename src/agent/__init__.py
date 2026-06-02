@@ -1,4 +1,4 @@
-"""Agentic Orchestration Layer for BlenderMCP - AES Compliant.
+"""Agentic Orchestration Layer for BlenderArwaky - AES Compliant.
 
 All expert (router) classes live in src/agent/.
 They depend on capabilities via constructor injection from the DI container.

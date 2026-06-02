@@ -1,5 +1,5 @@
 """
-Agentic Experts: Specialized DDD-based Agents for BlenderMCP.
+Agentic Experts: Specialized DDD-based Agents for BlenderArwaky.
 
 Each expert encapsulates deep knowledge of a specific domain and exposes
 a clean, composable interface for the workflow_agent_orchestrator to use.
