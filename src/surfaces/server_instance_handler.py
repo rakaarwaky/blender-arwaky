@@ -51,7 +51,7 @@ class ServerInstanceHandler:
         2. Verify Blender connection (non-fatal)
         3. Initialize agent orchestrator (lazy)
         """
-        logger.info("BlenderMCP server starting up")
+        logger.info("BlenderArwaky server starting up")
 
         startup_data: Details = {}
 
@@ -64,7 +64,7 @@ class ServerInstanceHandler:
             # Blender is not yet running. Connection will be established later
             # on the first actual tool call.
             logger.info(
-                "BlenderMCP server is up; Blender connection deferred until first tool call"
+                "BlenderArwaky server is up; Blender connection deferred until first tool call"
             )
             startup_data["blender_connected"] = False
 
@@ -74,11 +74,11 @@ class ServerInstanceHandler:
             logger.error(f"Startup error: {e}")
             yield {"blender_connected": False, "startup_error": str(e)}
         finally:
-                logger.info("BlenderMCP server shut down")
+                logger.info("BlenderArwaky server shut down")
 
     @staticmethod
     def get_mcp_instance(name: ServerName | None = None) -> FastMCP:
-        name = name or ServerName("BlenderMCP")
+        name = name or ServerName("BlenderArwaky")
         """Return the singleton MCP instance, creating it lazily on first call.
 
         Args:
@@ -94,7 +94,7 @@ class ServerInstanceHandler:
 
             _mcp_instance = FastMCP(
                 name=name,
-                instructions="Blender MCP Server — 3D asset search, AI generation, scene assembly via standardized tool pipelines.",
+                instructions="Blender Arwaky Server — 3D asset search, AI generation, scene assembly via standardized tool pipelines.",
                 lifespan=ServerInstanceHandler.server_lifespan,
             )
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-BlenderMCP CLI — Unlimited command dispatcher.
+BlenderArwaky CLI — Unlimited command dispatcher.
 
 Usage:
-  blender-mcp <action> [--args JSON]
+  blender-arwaky <action> [--args JSON]
 
 All actions are defined in COMMAND_CATALOG (src.surfaces.catalog_command_handler).
 """
@@ -29,7 +29,7 @@ _PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-logger = logging.getLogger("blender-mcp-cli_entry_point")
+logger = logging.getLogger("blender-arwaky-cli_entry_point")
 
 
 class CliCommandHandler:

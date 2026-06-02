@@ -1,4 +1,4 @@
-"""BlenderMCP MCP Server - Modularized
+"""BlenderArwaky MCP Server - Modularized
 
 Main entry point that runs the MCP server.
 """
@@ -46,7 +46,7 @@ class ServerStartHandler:
             mcp.settings.host = host
             mcp.settings.port = int(port_str)
             mcp.settings.log_level = "INFO"
-            logger.info(f"Starting BlenderMCP SSE server on {host}:{port_str}")
+            logger.info(f"Starting BlenderArwaky SSE server on {host}:{port_str}")
             mcp.run(transport="sse")
         else:
             mcp.run()
