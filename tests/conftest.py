@@ -1,4 +1,4 @@
-"""Pytest fixtures for BlenderMCP test suite."""
+"""Pytest fixtures for BlenderArwaky test suite."""
 import sys
 import os
 
