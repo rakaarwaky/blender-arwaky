@@ -234,13 +234,13 @@ class TestEntryPoints:
     def test_cli_importable(self):
         import importlib.util
         s = importlib.util.spec_from_file_location("cli_main_entry",
-            "/home/raka/mcp-servers/blender-mcp/src/cli_main_entry.py")
+            "/home/raka/mcp-servers/blender-arwaky/src/cli_main_entry.py")
         assert s is not None
 
     def test_mcp_importable(self):
         import importlib.util
         s = importlib.util.spec_from_file_location("mcp_main_entry",
-            "/home/raka/mcp-servers/blender-mcp/src/mcp_main_entry.py")
+            "/home/raka/mcp-servers/blender-arwaky/src/mcp_main_entry.py")
         assert s is not None
 
 
