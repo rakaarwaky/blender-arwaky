@@ -1,4 +1,4 @@
-"""Health Check for BlenderMCP — delegates directly to Agent container aggregate (AES compliant)."""
+"""Health Check for BlenderArwaky — delegates directly to Agent container aggregate (AES compliant)."""
 
 from contract import AgentDiContainerAggregate
 from taxonomy import Prompt
@@ -13,7 +13,7 @@ class HealthCheckHandler:
     def register_health_check(mcp):
         @mcp.tool()
         async def health_check() -> Prompt:
-            """Check the health and connectivity of BlenderMCP via Agent aggregate."""
+            """Check the health and connectivity of BlenderArwaky via Agent aggregate."""
             from agent.agent_di_container import get_container
 
             container: AgentDiContainerAggregate = get_container()

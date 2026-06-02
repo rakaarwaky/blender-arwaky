@@ -1,4 +1,4 @@
-"""MCP Prompts for BlenderMCP"""
+"""MCP Prompts for BlenderArwaky"""
 
 from mcp.server.fastmcp import FastMCP
 

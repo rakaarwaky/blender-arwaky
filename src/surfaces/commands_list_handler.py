@@ -22,7 +22,7 @@ class CommandsListHandler:
             format: FormatRef | None = None,
         ) -> Prompt:
             """
-            List all available BlenderMCP actions.
+            List all available BlenderArwaky actions.
 
             Args:
                 domain: Filter by domain (scene, object, viewport, render, io, infrastructure, asset, generation). Omit to list all.

@@ -1,5 +1,5 @@
 """
-MCP Command Catalog for BlenderMCP - DDD Compliant Version
+MCP Command Catalog for BlenderArwaky - DDD Compliant Version
 
 Re-exports the canonical COMMAND_CATALOG from taxonomy.
 All command definitions live in taxonomy; this surface handler provides

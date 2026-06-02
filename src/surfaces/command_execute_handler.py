@@ -26,7 +26,7 @@ class CommandExecuteHandler:
             args: Details | None = None,
         ) -> Prompt:
             """
-            Execute ANY BlenderMCP action via Agent aggregate contract.
+            Execute ANY BlenderArwaky action via Agent aggregate contract.
 
             Args:
                 action: Action name (must exist in COMMAND_CATALOG)

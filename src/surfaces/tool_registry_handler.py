@@ -23,7 +23,7 @@ class ToolRegistryHandler:
     @staticmethod
     def register_tools(mcp):
         """
-        Register the 5 core MCP tools for BlenderMCP.
+        Register the 5 core MCP tools for BlenderArwaky.
         """
         from .command_execute_handler import register_execute_command
         from .commands_list_handler import register_list_commands

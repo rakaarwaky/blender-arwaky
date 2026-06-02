@@ -1,4 +1,4 @@
-"""MCP Job Management for BlenderMCP — delegates to AgentOrchestrator via DI (AES compliant)."""
+"""MCP Job Management for BlenderArwaky — delegates to AgentOrchestrator via DI (AES compliant)."""
 
 from contract import AgentDiContainerAggregate
 from taxonomy import JobId, Prompt, ProviderName
