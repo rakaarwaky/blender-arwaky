@@ -39,6 +39,7 @@ def capability(mock_orchestrator):
     return ExecuteActionCapability(orchestrator=mock_orchestrator)
 
 
+@pytest.mark.functional
 class TestExecuteActionCapability:
     """Tests for action execution dispatch."""
 

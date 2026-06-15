@@ -68,6 +68,7 @@ def orchestrator(mock_blender_send):
 
 # ── Scenario 1: list_commands ─────────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioListCommands:
     """User asks: 'what commands are available?'"""
 
@@ -105,6 +106,7 @@ class TestScenarioListCommands:
 
 # ── Scenario 2: get_scene_info full stack ─────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioGetSceneInfo:
     """User asks: 'what objects are in the current scene?'"""
 
@@ -134,6 +136,7 @@ class TestScenarioGetSceneInfo:
 
 # ── Scenario 3: create_primitive full stack ───────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioCreatePrimitive:
     """User asks: 'create a sphere named MySphere at position (1, 2, 3)'
     
@@ -200,6 +203,7 @@ class TestScenarioCreatePrimitive:
 
 # ── Scenario 4: delete_object ─────────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioDeleteObject:
     """User asks: 'delete the object named OldMesh'
     
@@ -226,6 +230,7 @@ class TestScenarioDeleteObject:
 
 # ── Scenario 5: set_object_transform ──────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioSetObjectTransform:
     """User asks: 'move Cube to (5, 0, 0) and rotate it'
     
@@ -271,6 +276,7 @@ class TestScenarioSetObjectTransform:
 
 # ── Scenario 6: set_material ──────────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioSetMaterial:
     """User asks: 'apply a metal material to Sphere'
     
@@ -301,6 +307,7 @@ class TestScenarioSetMaterial:
 
 # ── Scenario 7: search_assets multi-provider ──────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioSearchAssets:
     """User asks: 'find nature assets from all providers'"""
 
@@ -361,6 +368,7 @@ class TestScenarioSearchAssets:
 
 # ── Scenario 8: Unknown action graceful error ─────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioUnknownAction:
     """System must not crash on unknown actions — return clear error to user."""
 
@@ -384,6 +392,7 @@ class TestScenarioUnknownAction:
 
 # ── Scenario 9: health_check ──────────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioHealthCheck:
     """User/system checks if the MCP server and Blender connection are alive."""
 
@@ -408,6 +417,7 @@ class TestScenarioHealthCheck:
 
 # ── Scenario 10: Capability exception → graceful error JSON ───────────────────
 
+@pytest.mark.functional
 class TestScenarioCapabilityException:
     """When a capability raises internally, the response must be a JSON error."""
 
@@ -439,6 +449,7 @@ class TestScenarioCapabilityException:
 
 # ── Scenario 11: cleanup_scene ────────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioCleanupScene:
     """User asks: 'clear all objects from the scene'"""
 
@@ -476,6 +487,7 @@ class TestScenarioCleanupScene:
 
 # ── Scenario 12: get_object_info ──────────────────────────────────────────────
 
+@pytest.mark.functional
 class TestScenarioGetObjectInfo:
     """User asks: 'what are the properties of Cube?'
     

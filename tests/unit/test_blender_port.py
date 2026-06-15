@@ -10,6 +10,7 @@ from contract import (
 )
 
 
+@pytest.mark.unit
 class TestBlenderPortInterface:
     """BlenderPort must define all expected abstract methods."""
 
@@ -33,6 +34,7 @@ class TestBlenderPortInterface:
             BlenderPort()  # type: ignore
 
 
+@pytest.mark.unit
 class TestSceneOperateProtocol:
     """SceneOperateProtocol must define all expected methods."""
 
@@ -50,6 +52,7 @@ class TestSceneOperateProtocol:
             )
 
 
+@pytest.mark.unit
 class TestObjectOperateProtocol:
     """ObjectOperateProtocol must define all expected methods."""
 
@@ -70,6 +73,7 @@ class TestObjectOperateProtocol:
             )
 
 
+@pytest.mark.unit
 class TestBlenderPortDirect:
     """Direct import from adapter_blender_port must work."""
 

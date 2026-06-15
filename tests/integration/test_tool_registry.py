@@ -1,8 +1,11 @@
 """Tests for MCP tool registry."""
 from unittest.mock import MagicMock
+
+import pytest
 from surfaces.tool_registry_handler import ToolRegistryHandler
 
 
+@pytest.mark.integration
 class TestToolRegistry:
     """Tests that all 5 MCP tools are registered."""
 

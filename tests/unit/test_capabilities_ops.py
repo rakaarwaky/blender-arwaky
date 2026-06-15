@@ -27,6 +27,7 @@ from capabilities.workflow_orchestrate_executor import WorkflowExecutor
 from capabilities.action_execute_actions import ActionExecuteActions
 
 
+@pytest.mark.unit
 class TestAiGenerateGenerator:
     """Tests for AiGenerateGenerator."""
 
@@ -67,6 +68,7 @@ class TestAiGenerateGenerator:
         assert "not found" in str(exc.value)
 
 
+@pytest.mark.unit
 class TestAssetSearchCollector:
     """Tests for AssetSearchCollector."""
 
@@ -139,6 +141,7 @@ class TestAssetSearchCollector:
         assert "no file path" in str(exc.value)
 
 
+@pytest.mark.unit
 class TestImportExportExecutor:
     """Tests for ImportExportExecutor."""
 
@@ -185,6 +188,7 @@ class TestImportExportExecutor:
         assert "Export failed" in str(exc.value)
 
 
+@pytest.mark.unit
 class TestObjectOperateExecutor:
     """Tests for ObjectOperateExecutor."""
 
@@ -317,6 +321,7 @@ class TestObjectOperateExecutor:
             await executor.apply_modifier(ApplyModifierRequestVO(object_name=ObjectName("Cube"), modifier_name="Subsurf"))
 
 
+@pytest.mark.unit
 class TestRenderOperateExecutor:
     """Tests for RenderOperateExecutor."""
 
@@ -392,6 +397,7 @@ class TestRenderOperateExecutor:
             await executor.render(RenderRequestVO(output_path="/tmp/render.png"))
 
 
+@pytest.mark.unit
 class TestSceneOperateExecutor:
     """Tests for SceneOperateExecutor."""
 
@@ -441,6 +447,7 @@ class TestSceneOperateExecutor:
             await executor.get_scene_info(GetSceneInfoRequestVO())
 
 
+@pytest.mark.unit
 class TestWorkflowExecutor:
     """Tests for WorkflowExecutor."""
 
@@ -560,6 +567,7 @@ class TestWorkflowExecutor:
         assert "Workflow failed" in str(res3)
 
 
+@pytest.mark.unit
 class TestActionExecuteActions:
     """Tests for ActionExecuteActions capability dispatcher."""
 

@@ -1,7 +1,9 @@
 """Test to close coverage gaps on AgentDiContainer property accessors."""
+import pytest
 from agent.agent_di_container import get_container, reset_container
 
 
+@pytest.mark.unit
 class TestAgentDiCoverage:
     """Access every lazy property to cover _lazy_get() lines."""
 

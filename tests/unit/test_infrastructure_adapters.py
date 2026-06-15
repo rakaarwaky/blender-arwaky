@@ -28,6 +28,7 @@ from infrastructure.blender_connection_connector import (
 from infrastructure.command_catalog_client import CommandCatalogClient
 
 
+@pytest.mark.unit
 class TestApplicationConfigLoader:
     """Tests for ApplicationConfigLoader and config caching."""
 
@@ -40,14 +41,16 @@ class TestApplicationConfigLoader:
     def test_get_project_root_env_cfg(self):
         with patch.dict(os.environ, {"BLENDERMCP_CONFIG_PATH": "/mock/dir/config.yaml"}):
             with patch.object(Path, "is_file", return_value=True):
-                # resolved to parent
+                # resolved to parent (use PurePosixPath for cross-platform comparison)
+                from pathlib import PurePosixPath
                 res = ApplicationConfigLoader.get_project_root()
-                assert res == Path("/mock/dir")
+                assert PurePosixPath(res) == PurePosixPath("/mock/dir")
 
     def test_get_project_root_env_root(self):
+        from pathlib import PurePosixPath
         with patch.dict(os.environ, {"BLENDER_MCP_ROOT": "/mock/root"}):
             res = ApplicationConfigLoader.get_project_root()
-            assert res == Path("/mock/root")
+            assert PurePosixPath(res) == PurePosixPath("/mock/root")
 
     def test_get_project_root_relative_dev(self):
         with patch.object(Path, "exists", return_value=True):
@@ -56,19 +59,21 @@ class TestApplicationConfigLoader:
             assert res is not None
 
     def test_get_project_root_xdg(self):
+        from pathlib import PurePosixPath
         with patch.dict(os.environ, {"XDG_CONFIG_HOME": "/mock/xdg"}):
             def exists_mock(self_path):
                 return "/mock/xdg" in str(self_path)
             with patch.object(Path, "exists", exists_mock):
                 res = ApplicationConfigLoader.get_project_root()
-                assert res == Path("/mock/xdg/blender-mcp")
+                assert PurePosixPath(res) == PurePosixPath("/mock/xdg/blender-mcp")
 
     def test_get_project_root_fallback_cwd(self):
+        from pathlib import PurePosixPath
         # We simulate all exists checks returning False
         with patch.dict(os.environ, {}, clear=True):
             with patch.object(Path, "exists", return_value=False):
                 res = ApplicationConfigLoader.get_project_root()
-                assert res == Path.cwd().resolve()
+                assert PurePosixPath(res) == PurePosixPath(Path.cwd().resolve())
 
     def test_load_config_file_not_found(self):
         with patch.object(Path, "exists", return_value=False):
@@ -97,6 +102,7 @@ class TestApplicationConfigLoader:
         assert loader.get("x.nonexistent", "default") == "default"
 
 
+@pytest.mark.unit
 class TestCodeExecutionAdapter:
     """Tests for CodeExecutionAdapter."""
 
@@ -180,6 +186,7 @@ class TestCodeExecutionAdapter:
         mock_conn.send_command.assert_called_once()
 
 
+@pytest.mark.unit
 class TestBlenderSocketAdapter:
     """Tests for BlenderSocketAdapter operations."""
 
@@ -297,6 +304,7 @@ class TestBlenderSocketAdapter:
             adapter._get_conn()
 
 
+@pytest.mark.unit
 class TestBlenderConnectionAndFactory:
     """Tests for BlenderConnection socket client, lifecycle, and Factory singleton."""
 
@@ -493,6 +501,7 @@ class TestBlenderConnectionAndFactory:
             assert conn.sock is None
 
 
+@pytest.mark.unit
 class TestCommandCatalogClient:
     """Tests for CommandCatalogClient."""
 
@@ -517,6 +526,7 @@ class TestCommandCatalogClient:
         assert client.get_command_spec(ActionName("nonexistent_command_123")) is None
 
 
+@pytest.mark.unit
 class TestSceneInspectionAdapter:
     """Tests for SceneInspectionAdapter."""
 
@@ -580,6 +590,7 @@ class TestSceneInspectionAdapter:
         assert "Execution error" in str(res2)
 
 
+@pytest.mark.unit
 class TestViewportCaptureAdapter:
     """Tests for ViewportCaptureAdapter."""
 

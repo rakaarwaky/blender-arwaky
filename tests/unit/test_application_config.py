@@ -3,6 +3,7 @@ import pytest
 from infrastructure.config_file_loader import get_config
 
 
+@pytest.mark.unit
 class TestApplicationConfig:
     """Tests for get_config() with defaults."""
 

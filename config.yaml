@@ -1,8 +1,9 @@
-# Blender MCP Configuration
+# Blender Arwaky Configuration
 
 blender:
   # Path to the Blender executable
-  executable_path: "/home/raka/SharedData/App/Blender/blender"
+  # Override with BLENDER_EXECUTABLE env var, or set in this file.
+  executable_path: "${BLENDER_EXECUTABLE:-/usr/bin/blender}"
   # Host and port for the Blender socket server
   host: "localhost"
   port: 9876

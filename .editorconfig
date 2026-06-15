@@ -1,0 +1,43 @@
+# EditorConfig — cross-IDE consistency
+# Docs: https://editorconfig.org/
+
+root = true
+
+# ─── Default for all files ─────────────────────────────────────────────────
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ─── Python ────────────────────────────────────────────────────────────────
+[*.py]
+indent_size = 4
+max_line_length = 120
+
+# ─── YAML ──────────────────────────────────────────────────────────────────
+[*.{yml,yaml}]
+indent_size = 2
+
+# ─── JSON / TOML ───────────────────────────────────────────────────────────
+[*.{json,toml}]
+indent_size = 2
+
+# ─── Markdown ──────────────────────────────────────────────────────────────
+[*.md]
+trim_trailing_whitespace = false  # MD uses double-space for line breaks
+max_line_length = off
+
+# ─── Shell scripts ─────────────────────────────────────────────────────────
+[*.sh]
+indent_size = 2
+
+# ─── Makefile ──────────────────────────────────────────────────────────────
+[Makefile]
+indent_style = tab
+
+# ─── Git config ────────────────────────────────────────────────────────────
+[.gitmodules]
+indent_size = 4

@@ -13,6 +13,7 @@ from pathlib import Path
 # PART 1: Agent layer
 # =============================================================================
 
+@pytest.mark.unit
 class TestAgentLogicCoordinator:
     """Cover log_error/log_warning through concrete subclass."""
 
@@ -30,6 +31,7 @@ class TestAgentLogicCoordinator:
         assert obj.name == "TestExpert"
 
 
+@pytest.mark.unit
 class TestGenerationExpert:
     """Cover error paths in generation expert."""
 
@@ -58,6 +60,7 @@ class TestGenerationExpert:
         assert not r["success"]
 
 
+@pytest.mark.unit
 class TestSearchExpert:
     """Cover error handling in search/asset expert."""
 
@@ -80,6 +83,7 @@ class TestSearchExpert:
         assert not r["success"]
 
 
+@pytest.mark.unit
 class TestSetupExpert:
     """Cover error handling in setup/scene expert."""
 
@@ -102,6 +106,7 @@ class TestSetupExpert:
         assert not r["success"]
 
 
+@pytest.mark.unit
 class TestRefinementExpert:
     """Cover refinement expert paths."""
 
@@ -124,6 +129,7 @@ class TestRefinementExpert:
         assert isinstance(r, dict)
 
 
+@pytest.mark.unit
 class TestWorkflowAgent:
     """Cover workflow create_scene_from_prompt (lines 50-51)."""
 
@@ -143,6 +149,7 @@ class TestWorkflowAgent:
 # PART 2: Surfaces
 # =============================================================================
 
+@pytest.mark.unit
 class TestPromptRegisterFuncs:
     """Cover inner prompt functions."""
 
@@ -162,6 +169,7 @@ class TestPromptRegisterFuncs:
         assert isinstance(r, str) and len(r) > 0
 
 
+@pytest.mark.unit
 class TestCatalogHandler:
     """Cover list_commands with domain filter."""
 
@@ -181,6 +189,7 @@ class TestCatalogHandler:
 # PART 3: Infrastructure
 # =============================================================================
 
+@pytest.mark.unit
 class TestBlenderConnection:
     """Cover remaining blender_connection paths."""
 
@@ -202,6 +211,7 @@ class TestBlenderConnection:
         assert c.host == "127.0.0.1" and c.port == 9876
 
 
+@pytest.mark.unit
 class TestConfigFileLoader:
     """Cover config file directory detection."""
 
@@ -211,6 +221,7 @@ class TestConfigFileLoader:
         assert r is None or isinstance(r, Path)
 
 
+@pytest.mark.unit
 class TestTelemetrySignalRecorder:
     """Cover remaining telemetry lines."""
 
@@ -228,19 +239,20 @@ class TestTelemetrySignalRecorder:
 # PART 4: Entry points
 # =============================================================================
 
+@pytest.mark.unit
 class TestEntryPoints:
     """Cover if __name__ guards."""
 
     def test_cli_importable(self):
         import importlib.util
         s = importlib.util.spec_from_file_location("cli_main_entry",
-            "/home/raka/mcp-servers/blender-arwaky/src/cli_main_entry.py")
+            "/path/to/blender-arwaky/src/cli_main_entry.py")
         assert s is not None
 
     def test_mcp_importable(self):
         import importlib.util
         s = importlib.util.spec_from_file_location("mcp_main_entry",
-            "/home/raka/mcp-servers/blender-arwaky/src/mcp_main_entry.py")
+            "/path/to/blender-arwaky/src/mcp_main_entry.py")
         assert s is not None
 
 
@@ -248,6 +260,7 @@ class TestEntryPoints:
 # PART 5: Contract aggregates get_contract_name()
 # =============================================================================
 
+@pytest.mark.unit
 class TestContractNames:
     """Test get_contract_name() on aggregates."""
 

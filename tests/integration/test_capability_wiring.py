@@ -36,6 +36,7 @@ def isolated_container(monkeypatch):
 
 # ── 1. Capability Contract Compliance ─────────────────────────────────────────
 
+@pytest.mark.integration
 class TestCapabilityContracts:
     """Capabilities resolved from DI must expose their contract methods."""
 
@@ -69,6 +70,7 @@ class TestCapabilityContracts:
 
 # ── 2. DI Container Lazy Loading Chain ───────────────────────────────────────
 
+@pytest.mark.integration
 class TestDILazyLoadingChain:
     """Capabilities share the same underlying blender adapter instance (singleton)."""
 
@@ -101,6 +103,7 @@ class TestDILazyLoadingChain:
 
 # ── 3. AssetSearchCollector + Providers Integration ──────────────────────────
 
+@pytest.mark.integration
 class TestAssetSearchCollectorIntegration:
     """Real AssetSearchCollector with mock providers — tests the collector logic."""
 
@@ -205,6 +208,7 @@ class TestAssetSearchCollectorIntegration:
 
 # ── 4. ActionExecuteActions + Capability Dispatch Integration ─────────────────
 
+@pytest.mark.integration
 class TestActionDispatchIntegration:
     """ActionExecuteActions dispatches to the correct real capability method."""
 
@@ -320,6 +324,7 @@ class TestActionDispatchIntegration:
 
 # ── 5. HealthCheck System Integration ────────────────────────────────────────
 
+@pytest.mark.integration
 class TestHealthCheckIntegration:
     """System health check must return a valid structured response."""
 
@@ -358,6 +363,7 @@ class TestHealthCheckIntegration:
 
 # ── 6. BlenderConnection Socket Protocol Integration ─────────────────────────
 
+@pytest.mark.integration
 class TestBlenderConnectionIntegration:
     """BlenderConnection correctly serializes commands and parses responses."""
 
@@ -431,6 +437,7 @@ class TestBlenderConnectionIntegration:
 
 # ── 7. AiGenerateGenerator + Provider Integration ─────────────────────────────
 
+@pytest.mark.integration
 class TestAiGenerateGeneratorIntegration:
     """AiGenerateGenerator routes correctly to the named provider."""
 

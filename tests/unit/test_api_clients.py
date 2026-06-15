@@ -31,6 +31,7 @@ from infrastructure.hyper3d_generation_client import Hyper3dGenerationTool
 from infrastructure.hyper3d_generation_adapter import Hyper3DGenerationAdapter
 
 
+@pytest.mark.unit
 class TestPolyhavenIntegration:
     """Tests for PolyhavenApiClient and PolyhavenAssetAdapter."""
 
@@ -213,6 +214,7 @@ class TestPolyhavenIntegration:
             adapter._get_conn()
 
 
+@pytest.mark.unit
 class TestSketchfabIntegration:
     """Tests for SketchfabApiClient and SketchfabAssetAdapter."""
 
@@ -376,6 +378,7 @@ class TestSketchfabIntegration:
             await adapter.download_asset(AssetDownloadRequestVO(asset_id=AssetId("1"), destination_path=FilePath("o1")))
 
 
+@pytest.mark.unit
 class TestHunyuanIntegration:
     """Tests for Hunyuan3D generation tool and adapter."""
 
@@ -503,6 +506,7 @@ class TestHunyuanIntegration:
         assert import_res.object_name == "obj_99"
 
 
+@pytest.mark.unit
 class TestHyper3DIntegration:
     """Tests for Hyper3D (Rodin) generation tool and adapter."""
 

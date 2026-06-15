@@ -18,6 +18,7 @@ from infrastructure.telemetry_signal_recorder import (
 )
 
 
+@pytest.mark.unit
 class TestTelemetryRecorder:
     """Tests for TelemetrySignalRecorder, decorators, and version retrieval."""
 
@@ -66,7 +67,10 @@ class TestTelemetryRecorder:
         with patch("sys.platform", "win32"):
             with patch.dict(os.environ, {"APPDATA": "/mock/appdata"}):
                 recorder = TelemetrySignalRecorder(mock_conn, mock_config)
-                assert "/mock/appdata" in str(recorder._get_data_directory())
+                # Normalize separators for cross-platform comparison
+                actual = os.path.normpath(str(recorder._get_data_directory()))
+                expected = os.path.normpath("/mock/appdata/BlenderArwaky")
+                assert expected in actual or os.path.normpath("/mock/appdata") in actual
 
         # Darwin path
         with patch("sys.platform", "darwin"):
@@ -77,7 +81,7 @@ class TestTelemetryRecorder:
         with patch("sys.platform", "linux"):
             with patch.dict(os.environ, {"XDG_DATA_HOME": "/mock/xdg"}):
                 recorder = TelemetrySignalRecorder(mock_conn, mock_config)
-                assert "/mock/xdg" in str(recorder._get_data_directory())
+                assert os.path.normpath("/mock/xdg") in os.path.normpath(str(recorder._get_data_directory()))
 
     def test_get_or_create_uuid_read_existing(self, mock_conn, mock_config):
         with tempfile.TemporaryDirectory() as tmpdir:

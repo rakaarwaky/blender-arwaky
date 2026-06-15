@@ -39,7 +39,7 @@ def _auto_start() -> float | None:
     global _auto_start_attempt, _auto_start_timer
 
     from . import properties
-    from .server import BlenderArwakyServer
+    from .server import BlenderMCPServer
 
     _auto_start_attempt += 1
 
@@ -63,7 +63,7 @@ def _auto_start() -> float | None:
         properties.inject_env_vars(scn)
 
         if not hasattr(bpy.types, "blendermcp_server") or not bpy.types.blendermcp_server:
-            bpy.types.blendermcp_server = BlenderArwakyServer(port=scn.blendermcp_port)
+            bpy.types.blendermcp_server = BlenderMCPServer(port=scn.blendermcp_port)
 
         if not bpy.types.blendermcp_server.running:
             bpy.types.blendermcp_server.start()

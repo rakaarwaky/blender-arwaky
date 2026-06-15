@@ -4,7 +4,7 @@
       "command": "uv",
       "args": [
         "--directory",
-        "/home/raka/mcp-arwaky/blender-arwaky",
+        "C:/Users/Administrator/mcp-arwaky/blender-arwaky",
         "run",
         "blender-arwaky"
       ]

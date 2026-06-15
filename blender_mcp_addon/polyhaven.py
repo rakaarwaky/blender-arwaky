@@ -217,7 +217,7 @@ def set_texture(object_name: str, texture_id: str) -> dict:
         texture_dirs = [
             os.path.join(tempfile.gettempdir(), "polyhaven"),
             os.path.join(bpy.utils.resource_path("LOCAL"), "textures"),
-            get_config("storage.polyhaven_dir", "/tmp/polyhaven"),
+            get_config("storage.polyhaven_dir", os.path.join(tempfile.gettempdir(), "polyhaven")),
         ]
 
         texture_found = False

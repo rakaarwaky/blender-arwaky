@@ -18,6 +18,7 @@ from infrastructure.telemetry_api_util import (
 from infrastructure.telemetry_decorator_adapter import TelemetryDecoratorAdapter
 
 
+@pytest.mark.unit
 class TestTelemetryConfigLoader:
     """Tests for TelemetryConfig loader and overrides."""
 
@@ -56,6 +57,7 @@ class TestTelemetryConfigLoader:
         assert config.get("nonexistent_path", "default_val") == "default_val"
 
 
+@pytest.mark.unit
 class TestTelemetryApiUtil:
     """Tests for TelemetryApi facades and global helpers."""
 
@@ -141,6 +143,7 @@ class TestTelemetryApiUtil:
         )
 
 
+@pytest.mark.unit
 class TestTelemetryDecoratorAdapter:
     """Tests for TelemetryDecoratorAdapter sync and async functionality."""
 

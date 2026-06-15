@@ -1,0 +1,62 @@
+# MANIFEST.in — control what files are included in the source distribution
+# See https://docs.python.org/3/distutils/sourcedist.html
+
+# ─── Documentation ─────────────────────────────────────────────────────────
+include README.md
+include CHANGELOG.md
+include SECURITY.md
+include LICENSE
+include AGENT.md
+include SKILL.md
+include TEST.md
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
+
+# ─── Configuration files ───────────────────────────────────────────────────
+include config.example.yaml
+include mcp.json.example
+include pytest.ini
+include mypy.ini
+include auto_linter.config.python.yaml
+include bandit.yaml
+include .pre-commit-config.yaml
+include .editorconfig
+
+# ─── Source distribution ───────────────────────────────────────────────────
+recursive-include src *.py
+recursive-include src *.typed
+recursive-include blender_mcp_addon *.py
+recursive-include blender_mcp_addon *.typed
+recursive-include blender_mcp_addon *.toml
+include blender_mcp_addon/blender_manifest.toml
+
+# ─── CI / GitHub ───────────────────────────────────────────────────────────
+include .github/workflows/*.yml
+
+# ─── Docker ────────────────────────────────────────────────────────────────
+include Dockerfile
+include docker-compose.yml
+include .dockerignore
+
+# ─── Exclude patterns (still honored by setuptools) ────────────────────────
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude *.egg-info
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude .ruff_cache
+global-exclude htmlcov
+global-exclude .coverage
+global-exclude coverage.xml
+global-exclude *.blend1
+global-exclude *.blend
+global-exclude *.glb
+global-exclude *.gltf
+global-exclude dist
+global-exclude build
+prune .venv
+prune venv
+prune .env
+prune .git
+prune .github

@@ -68,6 +68,7 @@ from taxonomy.core_types_vo import (
 
 # ─── base_provider_vo.py ──────────────────────────────────────────
 
+@pytest.mark.unit
 class TestProviderVO:
     def test_get_contract_name(self):
         assert ProviderVO.get_contract_name() == "ProviderVO"
@@ -78,6 +79,7 @@ class TestProviderVO:
         assert ConcreteVO().to_request_dict() == {}
 
 
+@pytest.mark.unit
 class TestAssetSearchRequestVO:
     def test_valid_request(self):
         req = AssetSearchRequestVO(
@@ -105,6 +107,7 @@ class TestAssetSearchRequestVO:
         assert req.asset_type == "all"
 
 
+@pytest.mark.unit
 class TestAssetMetadataVO:
     def test_create_metadata(self):
         meta = AssetMetadataVO(
@@ -128,6 +131,7 @@ class TestAssetMetadataVO:
         assert meta.thumbnail_url is None
 
 
+@pytest.mark.unit
 class TestAssetSearchResponseVO:
     def test_create_response(self):
         resp = AssetSearchResponseVO(
@@ -145,6 +149,7 @@ class TestAssetSearchResponseVO:
         assert resp.next_token is None
 
 
+@pytest.mark.unit
 class TestAssetDownloadVOs:
     def test_download_request(self):
         req = AssetDownloadRequestVO(
@@ -170,6 +175,7 @@ class TestAssetDownloadVOs:
         assert "Download failed" in resp.message
 
 
+@pytest.mark.unit
 class TestGenerationVOs:
     def test_generation_start_request(self):
         from taxonomy.core_types_vo import Prompt
@@ -217,6 +223,7 @@ class TestGenerationVOs:
 
 # ─── blender_asset_vo.py ──────────────────────────────────────────
 
+@pytest.mark.unit
 class TestBlenderAssetVO:
     def test_asset_type_constants(self):
         assert ASSET_TYPE_HDRIS == "hdris"
@@ -281,6 +288,7 @@ class TestBlenderAssetVO:
 
 # ─── blender_ops_vo.py ────────────────────────────────────────────
 
+@pytest.mark.unit
 class TestBlenderOpsVO:
     """Tests for BlenderOpsVO and concrete VO DTOs."""
 
@@ -499,6 +507,7 @@ class TestBlenderOpsVO:
             )
 
 
+@pytest.mark.unit
 class TestSceneAggregateExtended:
     """Extra test cases for SceneAggregate to close taxonomy gaps."""
 

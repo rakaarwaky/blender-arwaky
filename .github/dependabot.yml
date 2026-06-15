@@ -1,0 +1,66 @@
+# Dependabot configuration for automated dependency updates
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+
+# ─── Python (uv/pip) dependencies ──────────────────────────────────────────
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "rakaarwaky"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      production:
+        dependency-type: "production"
+      development:
+        dependency-type: "development"
+    # Allow direct updates but not more than major
+    allowed-updates:
+      - match-update-types: ["minor", "patch"]
+      - match-update-types: ["major"]
+        dependency-name: "*"
+        # Allow major updates with explicit approval
+
+  # ─── GitHub Actions ──────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "rakaarwaky"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # ─── Docker base images ─────────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "rakaarwaky"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "docker"
+      include: "scope"

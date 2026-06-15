@@ -7,6 +7,10 @@ BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compat
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Blender 3.0+](https://img.shields.io/badge/Blender-3.0%2B-orange.svg)](https://www.blender.org/)
+[![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/rakaarwaky/blender-arwaky/branch/main/graph/badge.svg)](https://codecov.io/gh/rakaarwaky/blender-arwaky)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 ---
 
@@ -71,7 +75,7 @@ The addon auto-starts a TCP server on port `9876` within 1–5 seconds.
 
 **Option B — Headless:**
 ```bash
-blender --background --python scripts/run_headless.py &
+blender --background --python scripts/blender/run_server_headless.py &
 ```
 
 ### 4. Start MCP Server
@@ -239,9 +243,19 @@ blender-arwaky/
 
 ### `config.yaml`
 
+A template is shipped as [`config.example.yaml`](./config.example.yaml) in the
+repository and the sdist. Copy it to `config.yaml` (or point
+`BLENDERMCP_CONFIG_PATH` at any file) and adjust for your OS:
+
+```bash
+cp config.example.yaml config.yaml   # Unix
+# or:
+Copy-Item config.example.yaml config.yaml   # PowerShell
+```
+
 ```yaml
 blender:
-  executable_path: "/path/to/blender"
+  executable_path: "/path/to/blender"   # Linux/macOS; see template for Windows
   host: "localhost"
   port: 9876
 

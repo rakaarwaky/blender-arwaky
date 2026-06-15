@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "blender-arwaky": {
+      "command": "uvx",
+      "args": ["blender-arwaky"]
+    }
+  }
+}

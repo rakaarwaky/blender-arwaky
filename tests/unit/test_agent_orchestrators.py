@@ -29,6 +29,7 @@ from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
 from agent.system_utils_coordinator import SystemUtilsCoordinator
 
 
+@pytest.mark.unit
 class TestCoreAgentOrchestrator:
     """Tests for CoreAgentOrchestrator."""
 
@@ -133,6 +134,7 @@ class TestCoreAgentOrchestrator:
                 assert "Section 'missing' not found" in str(res_missing)
 
 
+@pytest.mark.unit
 class TestExpertBaseOrchestrator:
     """Tests for ExpertBaseOrchestrator."""
 
@@ -143,6 +145,7 @@ class TestExpertBaseOrchestrator:
         assert res == {"success": True, "message": "Base expert execution"}
 
 
+@pytest.mark.unit
 class TestWorkflowAgentOrchestrator:
     """Tests for WorkflowAgentOrchestrator."""
 
@@ -207,6 +210,7 @@ class TestWorkflowAgentOrchestrator:
         }
 
 
+@pytest.mark.unit
 class TestSetupExpertOrchestrator:
     """Tests for SetupExpertOrchestrator."""
 
@@ -271,6 +275,7 @@ class TestSetupExpertOrchestrator:
         assert "Render manager not injected" in res["error"]
 
 
+@pytest.mark.unit
 class TestGenerationExpertOrchestrator:
     """Tests for GenerationExpertOrchestrator."""
 
@@ -309,6 +314,7 @@ class TestGenerationExpertOrchestrator:
         assert res["job_id"] == "job_xyz"
 
 
+@pytest.mark.unit
 class TestSearchExpertOrchestrator:
     """Tests for SearchExpertOrchestrator."""
 
@@ -370,6 +376,7 @@ class TestSearchExpertOrchestrator:
         assert res["job_id"] == "job_id"
 
 
+@pytest.mark.unit
 class TestRefinementExpertOrchestrator:
     """Tests for RefinementExpertOrchestrator."""
 
@@ -407,6 +414,7 @@ class TestRefinementExpertOrchestrator:
         assert res["iterations"] == 1
 
 
+@pytest.mark.unit
 class TestSystemUtilsCoordinator:
     """Tests for SystemUtilsCoordinator."""
 

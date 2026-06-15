@@ -5,6 +5,7 @@ import surfaces.cli_command_handler
 import surfaces.server_start_handler
 
 
+@pytest.mark.unit
 class TestCliMainEntry:
     """Tests for cli_main_entry.py."""
 
@@ -28,6 +29,7 @@ class TestCliMainEntry:
         assert callable(main)
 
 
+@pytest.mark.unit
 class TestMcpMainEntry:
     """Tests for mcp_main_entry.py."""
 
@@ -42,6 +44,7 @@ class TestMcpMainEntry:
         assert callable(main)
 
 
+@pytest.mark.unit
 class TestSrcInit:
     """Tests for src/__init__.py."""
 

@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-cd /home/raka/mcp-arwaky/blender-arwaky
+cd /path/to/blender-arwaky
 uv run pytest
 ```
 
@@ -97,17 +97,17 @@ uv run pytest -m "integration"
 uv run pytest tests/addon/ -v
 ```
 
-### Run addon tests tanpa coverage overhead
+### Run addon tests without coverage overhead
 
 ```bash
 uv run pytest tests/addon/ -v --no-cov
 ```
 
-### Run berdasarkan marker
+### Run by marker
 
 ```bash
-uv run pytest -m unit       # hanya unit tests
-uv run pytest -m addon      # hanya addon tests
+uv run pytest -m unit       # only unit tests
+uv run pytest -m addon      # only addon tests
 uv run pytest -m "not slow" # skip slow tests
 ```
 
@@ -138,13 +138,13 @@ uv run pytest -m "not slow" # skip slow tests
 
 ### Blender Addon Tests (`pytest -m addon`)
 
-- Test Blender-specific logic dengan **mock `bpy`** — tidak perlu Blender terpasang
-- `tests/addon/conftest.py` meng-inject mock `bpy` dan `mathutils` ke `sys.modules` sebelum import apapun
+- Test Blender-specific logic with **mock `bpy`** — no Blender installation required
+- `tests/addon/conftest.py` injects mock `bpy` and `mathutils` into `sys.modules` before any import
 - Examples: server start/stop, operator registration, UI rendering
 
 **File test addon yang tersedia:**
 
-| File                   | Module yang Ditest                                                          |
+| File                   | Module being tested                                                          |
 | ---------------------- | --------------------------------------------------------------------------- |
 | `test_config.py`     | `blender_mcp_addon/config.py` — env-var overrides, built-in defaults     |
 | `test_utils.py`      | `blender_mcp_addon/utils.py` — AABB, screenshot, GLB import              |
@@ -158,7 +158,7 @@ uv run pytest -m "not slow" # skip slow tests
 
 ```python
 # conftest.py otomatis dijalankan pytest sebelum test
-# Meng-inject mock ke sys.modules agar import bpy tidak error:
+# Inject mock into sys.modules so importing bpy does not fail:
 sys.modules['bpy'] = MockBpy
 sys.modules['bpy.types'] = MockBpy.types
 sys.modules['bpy.props'] = MockBpy.props
@@ -221,7 +221,7 @@ The project uses a self-hosted linter (`auto-lint`) for architecture compliance.
 
 ```bash
 # Run linter
-auto-lint check /home/raka/mcp-arwaky/blender-arwaky
+auto-lint check /path/to/blender-arwaky
 
 # Run tests with coverage
 uv run pytest --cov=src --cov=blender_mcp_addon --cov-report=term

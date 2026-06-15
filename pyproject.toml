@@ -27,6 +27,7 @@ test = [
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.15.1",
+    "requests>=2.31.0",  # Used by blender_mcp_addon modules (bundled with Blender at runtime)
 ]
 lint = [
     "ruff>=0.11.0",
@@ -61,7 +62,89 @@ target-version = "py310"
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "ARG", "RUF100"]
 ignore = ["E501"]
 
+# Blender API contracts: class names (N801), argument names (N803/ARG001/ARG002),
+# and Hunyuan API field names (N806) are dictated by external APIs.
+[tool.ruff.lint.per-file-ignores]
+"blender_mcp_addon/__init__.py"   = ["N801"]  # bl_info keys
+"blender_mcp_addon/operators.py"  = ["N801"]  # Operator.bl_idname convention
+"blender_mcp_addon/ui.py"         = ["N801", "ARG002"]  # Panel/AddonPreferences + context arg required by bpy
+"blender_mcp_addon/hunyuan.py"    = ["N803", "N806", "SIM105"]  # Hunyuan API field names are camelCase; try/except-pass is intentional
+"blender_mcp_addon/hyper3d.py"    = ["ARG001", "SIM105"]  # bpy.types.Operator signature requires unused arg; try/except-pass is intentional
+"blender_mcp_addon/polyhaven.py"  = ["B007"]  # `dirs` is required by os.walk contract
+"blender_mcp_addon/sketchfab.py"  = ["B007"]  # `dirs` is required by os.walk contract
+"blender_mcp_addon/properties.py" = []  # noqa already used inline
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+# ─── Pytest configuration ───────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--cov=src",
+    "--cov=blender_mcp_addon",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+]
+markers = [
+    "unit: Pure logic tests, no external dependencies",
+    "integration: Layer interaction tests with real DI, mocked I/O",
+    "functional: End-to-end command flows within project boundaries",
+    "addon: Blender addon tests using bpy mock (tests/addon/)",
+    "slow: Tests that take >1s to run",
+    "asyncio: Async test marker (pytest-asyncio)",
+]
+asyncio_mode = "auto"
+
+# ─── Coverage configuration ────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["src", "blender_mcp_addon"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/.*",
+    "*/dist/*",
+    "*/build/*",
+    # Exclude external-API clients from global threshold.
+    # They require recorded HTTP fixtures (vcrpy) to test meaningfully.
+    "blender_mcp_addon/hunyuan.py",
+    "blender_mcp_addon/hyper3d.py",
+    "blender_mcp_addon/polyhaven.py",
+    "blender_mcp_addon/sketchfab.py",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+# Realistic current threshold — increase as tests mature.
+# Excludes external-API modules (hunyuan, hyper3d, polyhaven, sketchfab)
+# that require live network mocking to test.
+fail_under = 60
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "\\.\\.\\.",
+    "pass",
+]
+exclude_also = [
+    "raise ImportError",
+    "except ImportError",
+    "@overload",
+    "@abstractmethod",
+]
+

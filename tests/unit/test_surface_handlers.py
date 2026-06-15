@@ -23,6 +23,7 @@ from surfaces.skill_read_handler import SkillReadHandler
 from surfaces.server_start_handler import ServerStartHandler
 
 
+@pytest.mark.unit
 class TestStatusCheckHandler:
     """Tests for StatusCheckHandler."""
 
@@ -67,38 +68,31 @@ class TestStatusCheckHandler:
             )
 
 
+@pytest.mark.unit
 class TestServerInstanceHandler:
     """Tests for ServerInstanceHandler."""
 
     @pytest.mark.asyncio
     async def test_server_lifespan(self):
         mock_server = MagicMock()
-        
-        # Setup mocks for system utils
-        with patch("surfaces.server_instance_handler.record_startup") as mock_record_startup, \
-             patch("surfaces.server_instance_handler.get_blender_connection", return_value="mock_conn") as mock_get_conn, \
-             patch("surfaces.server_instance_handler.shutdown_connection") as mock_shutdown_conn:
-            
-            # Enter the context manager
+
+        # Blender connection is deferred until the first tool call; lifespan
+        # only records startup telemetry and reports blender_connected=False.
+        with patch("surfaces.server_instance_handler.record_startup") as mock_record_startup:
+
             async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
-                assert startup_data["blender_connected"] is True
+                assert startup_data["blender_connected"] is False
                 mock_record_startup.assert_called_once()
-                mock_get_conn.assert_called_once()
-                
-            mock_shutdown_conn.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_server_lifespan_blender_fails(self):
         mock_server = MagicMock()
-        
-        with patch("surfaces.server_instance_handler.record_startup") as mock_record_startup, \
-             patch("surfaces.server_instance_handler.get_blender_connection", side_effect=Exception("Connection failed")), \
-             patch("surfaces.server_instance_handler.shutdown_connection") as mock_shutdown_conn:
-            
+
+        # Even if record_startup itself fails the lifespan yields a False
+        # blender_connected and surfaces the error to the caller.
+        with patch("surfaces.server_instance_handler.record_startup", side_effect=Exception("startup failed")):
             async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
                 assert startup_data["blender_connected"] is False
-                
-            mock_shutdown_conn.assert_called_once()
 
     def test_get_mcp_instance(self):
         # We reset singleton for testing
@@ -117,6 +111,7 @@ class TestServerInstanceHandler:
             mock_reg_prompts.assert_called_once_with(mock_mcp)
 
 
+@pytest.mark.unit
 class TestCliCommandHandler:
     """Tests for CliCommandHandler."""
 
@@ -178,6 +173,7 @@ class TestCliCommandHandler:
             assert res == ExitCode(1)
 
 
+@pytest.mark.unit
 class TestHealthCheckHandler:
     """Tests for HealthCheckHandler."""
 
@@ -201,6 +197,7 @@ class TestHealthCheckHandler:
             assert res == Prompt("healthy")
 
 
+@pytest.mark.unit
 class TestCommandExecuteHandler:
     """Tests for CommandExecuteHandler."""
 
@@ -236,6 +233,7 @@ class TestCommandExecuteHandler:
             assert "blender crash" in str(res2)
 
 
+@pytest.mark.unit
 class TestCommandsListHandler:
     """Tests for CommandsListHandler."""
 
@@ -262,6 +260,7 @@ class TestCommandsListHandler:
             )
 
 
+@pytest.mark.unit
 class TestPromptHandlerModule:
     """Tests for PromptHandlerModule."""
 
@@ -285,6 +284,7 @@ class TestPromptHandlerModule:
             assert lighting_decorator_fn == "lighting_expert"
 
 
+@pytest.mark.unit
 class TestSkillReadHandler:
     """Tests for SkillReadHandler."""
 
@@ -311,11 +311,13 @@ class TestSkillReadHandler:
             )
 
 
+@pytest.mark.unit
 class TestServerStartHandler:
     """Tests for ServerStartHandler."""
 
-    def test_setup_logging(self):
-        with patch("agent.server_bootstrap_manager.ServerBootstrapManager.resolve_log_file", return_value="/tmp/test.log"), \
+    def test_setup_logging(self, tmp_path):
+        log_file = str(tmp_path / "test.log")
+        with patch("agent.server_bootstrap_manager.ServerBootstrapManager.resolve_log_file", return_value=log_file), \
              patch("logging.basicConfig") as mock_basic_config:
             ServerStartHandler._setup_logging()
             mock_basic_config.assert_called_once()
@@ -349,6 +351,7 @@ class TestServerStartHandler:
             mock_mcp.run.assert_called_once_with()
 
 
+@pytest.mark.unit
 class TestCliCommandHandlerExtended:
     """Extended tests for CliCommandHandler to close remaining coverage gaps."""
 
@@ -393,46 +396,45 @@ class TestCliCommandHandlerExtended:
             assert res == ExitCode(1)
 
 
+@pytest.mark.unit
 class TestServerInstanceHandlerExtended:
     """Extended tests for ServerInstanceHandler to close remaining coverage gaps."""
 
     @pytest.mark.asyncio
     async def test_server_lifespan_blender_returns_none(self):
-        """When get_blender_connection returns falsy value (lines 67-68)."""
+        """The lifespan always reports blender_connected=False (deferred)."""
         mock_server = MagicMock()
 
-        with patch("surfaces.server_instance_handler.record_startup") as mock_record, \
-             patch("surfaces.server_instance_handler.get_blender_connection", return_value=None), \
-             patch("surfaces.server_instance_handler.shutdown_connection") as mock_shutdown:
-
+        with patch("surfaces.server_instance_handler.record_startup") as mock_record:
             async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
                 assert startup_data["blender_connected"] is False
-
-            mock_shutdown.assert_called_once()
+            mock_record.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_server_lifespan_startup_exception(self):
-        """When an exception occurs during startup (lines 76-78)."""
+        """When record_startup raises the lifespan still yields False."""
         mock_server = MagicMock()
 
-        with patch("surfaces.server_instance_handler.record_startup", side_effect=RuntimeError("Critical failure")), \
-             patch("surfaces.server_instance_handler.shutdown_connection"):
-
+        with patch("surfaces.server_instance_handler.record_startup", side_effect=RuntimeError("Critical failure")):
             async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
                 assert startup_data["blender_connected"] is False
                 assert "startup_error" in startup_data
+                assert "Critical failure" in startup_data["startup_error"]
 
     @pytest.mark.asyncio
     async def test_server_lifespan_shutdown_error(self):
-        """When shutdown_connection raises (lines 83-84)."""
+        """After a clean startup, an exception in the consumer body does not propagate."""
         mock_server = MagicMock()
 
-        with patch("surfaces.server_instance_handler.record_startup"), \
-             patch("surfaces.server_instance_handler.get_blender_connection", return_value="mock_conn"), \
-             patch("surfaces.server_instance_handler.shutdown_connection", side_effect=Exception("Shutdown failed")):
+        with patch("surfaces.server_instance_handler.record_startup"):
 
-            async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
-                assert startup_data["blender_connected"] is True
+            async def _consumer() -> None:
+                async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
+                    assert startup_data["blender_connected"] is False
+                    raise RuntimeError("consumer body crashed")
+
+            with pytest.raises(RuntimeError, match="consumer body crashed"):
+                await _consumer()
 
     def test_get_mcp_instance_already_initialized(self):
         """When _mcp_instance is already set, return cached (line 100)."""
@@ -442,6 +444,7 @@ class TestServerInstanceHandlerExtended:
             assert res is mock_mcp
 
 
+@pytest.mark.unit
 class TestCatalogCommandHandler:
     """Tests for CatalogCommandHandler to cover missing lines."""
 
@@ -462,6 +465,7 @@ class TestCatalogCommandHandler:
         assert len(result) > 0
 
 
+@pytest.mark.unit
 class TestSystemPromptManager:
     """Tests for SystemPromptManager prompt string functions."""
 

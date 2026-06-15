@@ -21,6 +21,7 @@ from agent.system_utils_coordinator import (
 from agent.agent_factory_registry import AgentFactoryRegistry
 
 
+@pytest.mark.unit
 class TestServerBootstrapManager:
     """Complete unit tests for ServerBootstrapManager."""
 
@@ -39,15 +40,15 @@ class TestServerBootstrapManager:
     @patch("os.makedirs")
     def test_resolve_log_file(self, mock_makedirs, mock_get_config, mock_root):
         log_file = ServerBootstrapManager.resolve_log_file()
-        assert log_file == "/mock/root/logs_dir/server_run.log"
-        mock_makedirs.assert_called_once_with("/mock/root/logs_dir", exist_ok=True)
+        assert os.path.normpath(str(log_file)) == os.path.normpath("/mock/root/logs_dir/server_run.log")
+        mock_makedirs.assert_called_once_with(os.path.normpath("/mock/root/logs_dir"), exist_ok=True)
 
     @patch("agent.server_bootstrap_manager.get_project_root", return_value="/mock/root")
     @patch("agent.server_bootstrap_manager.get_config", side_effect=["logs_dir", "server_run.log"])
     @patch("os.makedirs")
     def test_to_request_dict(self, mock_makedirs, mock_get_config, mock_root):
         req_dict = ServerBootstrapManager().to_request_dict()
-        assert req_dict == {"log_file": "/mock/root/logs_dir/server_run.log"}
+        assert req_dict == {"log_file": os.path.normpath("/mock/root/logs_dir/server_run.log")}
 
     @patch.dict(os.environ, {"MCP_TRANSPORT": "sse", "MCP_HOST": "0.0.0.0", "MCP_PORT": "9000"})
     def test_resolve_transport_config_from_env(self):
@@ -119,6 +120,7 @@ class TestServerBootstrapManager:
         assert AgentFactoryRegistry.create_core_agent(mock_container) is not None
 
 
+@pytest.mark.unit
 class TestAgentBaseContainer:
     """Tests for AgentBaseContainer (0% coverage)."""
 
@@ -134,6 +136,7 @@ class TestAgentBaseContainer:
         assert issubclass(AgentBaseContainer, AgentBaseContainerAggregate)
 
 
+@pytest.mark.unit
 class TestAgentInitModule:
     """Tests for agent/__init__.py module-level functions (67% coverage)."""
 
@@ -194,6 +197,7 @@ class TestAgentInitModule:
             }
 
 
+@pytest.mark.unit
 class TestCommandCatalogAdapter:
     """Tests for CommandCatalogAdapter (77% coverage)."""
 
@@ -241,6 +245,7 @@ class TestCommandCatalogAdapter:
 
 
 
+@pytest.mark.unit
 class TestSystemUtilsCoordinatorExceptionsAndAliases:
     """Covers edge cases, exceptions, and module-level aliases in SystemUtilsCoordinator."""
 

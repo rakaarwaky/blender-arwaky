@@ -17,7 +17,7 @@ read specific sections. Sections: `setup`, `tools`, `commands`, `workflows`,
 ### 2. Install Project
 
 ```bash
-cd /home/raka/mcp-arwaky/blender-arwaky
+cd /path/to/blender-arwaky
 uv sync
 uv run pip install -e .
 ```
@@ -44,13 +44,13 @@ The addon auto-starts a TCP server on port 9876 within 1-5 seconds.
 
 Option B — Headless:
 ```bash
-blender --background --python scripts/run_headless.py &
+blender --background --python scripts/blender/run_server_headless.py &
 ```
 
 ### 5. Start MCP Server
 
 ```bash
-cd /home/raka/mcp-arwaky/blender-arwaky
+cd /path/to/blender-arwaky
 uv run python -m surfaces.mcp_server_entry
 ```
 
@@ -262,7 +262,7 @@ Warning: BLENDERMCP_CONFIG_PATH=... not found
 ```
 **Fix:** Set `BLENDERMCP_CONFIG_PATH` to absolute path of `config.yaml`:
 ```bash
-export BLENDERMCP_CONFIG_PATH=/home/raka/mcp-arwaky/blender-arwaky/config.yaml
+export BLENDERMCP_CONFIG_PATH=/path/to/blender-arwaky/config.yaml
 ```
 
 ### Tools not showing up

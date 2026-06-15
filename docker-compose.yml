@@ -1,0 +1,33 @@
+# Blender Arwaky MCP server — example docker-compose
+# Use this to run the MCP server alongside your AI agent
+#
+# Note: The Blender addon runs INSIDE Blender on your host machine.
+# This compose file only runs the MCP server side.
+
+services:
+  blender-arwaky:
+    build: .
+    image: blender-arwaky:latest
+    container_name: blender-arwaky
+    restart: unless-stopped
+    environment:
+      - BLENDER_HOST=host.docker.internal
+      - BLENDER_PORT=9876
+      - BLENDERMCP_CONFIG_PATH=/app/config.yaml
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+    # For stdio transport, the agent launches the container directly
+    # For SSE transport, expose the port:
+    # ports:
+    #   - "9877:9877"
+    # Add to your MCP client config (stdio):
+    # {
+    #   "mcpServers": {
+    #     "blender-arwaky": {
+    #       "command": "docker",
+    #       "args": ["run", "-i", "--rm", "-v", "${PWD}/config.yaml:/app/config.yaml:ro", "blender-arwaky:latest"]
+    #     }
+    #   }
+    # }

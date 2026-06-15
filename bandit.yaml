@@ -1,0 +1,33 @@
+# Bandit security scanner configuration
+# Docs: https://bandit.readthedocs.io/en/latest/config.html
+
+# Directories to skip (already covered by other tools or out of scope)
+exclude_dirs:
+  - tests
+  - .venv
+  - venv
+  - env
+  - .env
+  - build
+  - dist
+  - htmlcov
+  - .git
+  - .github
+  - blender_mcp_addon/__pycache__
+
+# Specific tests to skip
+skips:
+  # B101: assert_used — we use assertions in tests heavily
+  - B101
+  # B311: standard random — not used for crypto
+  - B311
+
+# Show full report
+output_format: screen
+
+# Don't recurse into git/svn dirs
+recursive: true
+
+# Severity level to report (low, medium, high)
+# Report all in CI; local devs can filter
+confidence: low

@@ -1,0 +1,57 @@
+# .dockerignore — exclude files from Docker build context
+.git
+.gitignore
+.github
+.gitattributes
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+.tox
+.venv
+venv
+env
+.env
+
+# Build outputs
+dist
+build
+*.whl
+*.tar.gz
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Tests (not needed in production image)
+tests
+
+# Docs (already copied via Dockerfile, no need to double-include)
+docs
+*.md.bak
+
+# Local config (will be mounted at runtime, not baked in)
+config.yaml
+.env.blendermcp
+.env.local
+*.local.yaml
+
+# OS-specific
+Thumbs.db
+desktop.ini
+
+# Blender cache
+*.blend
+*.blend1
+*.glb
+*.gltf

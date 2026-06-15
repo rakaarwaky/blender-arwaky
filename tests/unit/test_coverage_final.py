@@ -11,6 +11,7 @@ from pathlib import Path
 # Each abstract method has a `pass` body. We cover it via super() delegation.
 # =============================================================================
 
+@pytest.mark.unit
 class TestContractAbstractMethods:
     """Cover all pass lines in abstract contract classes via super() calls."""
 
@@ -300,6 +301,7 @@ class TestContractAbstractMethods:
 # AGENT LAYER - Remaining gaps
 # =============================================================================
 
+@pytest.mark.unit
 class TestAgentFinalGaps:
     """Cover remaining agent gaps."""
 
@@ -403,6 +405,7 @@ class TestAgentFinalGaps:
 # CAPABILITIES LAYER
 # =============================================================================
 
+@pytest.mark.unit
 class TestCapabilitiesFinalGaps:
     """Cover remaining capabilities gaps."""
 
@@ -425,6 +428,7 @@ class TestCapabilitiesFinalGaps:
 # INFRASTRUCTURE LAYER
 # =============================================================================
 
+@pytest.mark.unit
 class TestInfrastructureFinalGaps:
     """Cover remaining infrastructure gaps."""
 
@@ -517,12 +521,13 @@ class TestInfrastructureFinalGaps:
 
     def test_config_file_loader_dir_based(self):
         from infrastructure.config_file_loader import ApplicationConfigLoader
+        from pathlib import PurePosixPath
         with patch.dict("os.environ", {"BLENDERMCP_CONFIG_PATH": "/mock/dir"}):
             with patch.object(Path, "is_file", return_value=False):
                 with patch.object(Path, "is_dir", return_value=True):
                     with patch.object(Path, "exists", return_value=True):
                         root = ApplicationConfigLoader.get_project_root()
-                        assert root == Path("/mock/dir")
+                        assert PurePosixPath(root) == PurePosixPath("/mock/dir")
 
     def test_hyper3d_adapter_parse_job_id_non_dict(self):
         from infrastructure.hyper3d_generation_adapter import Hyper3DGenerationAdapter
@@ -600,6 +605,7 @@ class TestInfrastructureFinalGaps:
 # SURFACES LAYER
 # =============================================================================
 
+@pytest.mark.unit
 class TestSurfacesFinalGaps:
     """Cover remaining surfaces gaps."""
 
@@ -696,6 +702,7 @@ class TestSurfacesFinalGaps:
 # ENTRY POINTS - if __name__ guards
 # =============================================================================
 
+@pytest.mark.unit
 class TestEntryPointsFinalGaps:
     """Cover if __name__ == '__main__' guards via subprocess."""
 

@@ -246,7 +246,9 @@ class BlenderMCPServer:
         out = io.StringIO()
         try:
             with redirect_stdout(out):
-                exec(code, {"bpy": bpy, "mathutils": __import__("mathutils")})
+                # exec is intentional: this is the core feature
+                # of the BlenderArwaky addon (expose Python execution to MCP clients)
+                exec(code, {"bpy": bpy, "mathutils": __import__("mathutils")})  # nosec B102
             return {"executed": True, "result": out.getvalue()}
         except Exception as e:
             return {"executed": False, "error": str(e)}

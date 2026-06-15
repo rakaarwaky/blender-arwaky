@@ -14,6 +14,7 @@ def reset_di(monkeypatch):
     reset_container()
 
 
+@pytest.mark.integration
 class TestDIContainer:
     """Tests that DI container resolves all capabilities."""
 

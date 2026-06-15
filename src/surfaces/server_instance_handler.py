@@ -21,9 +21,7 @@ from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
 
 from agent.system_utils_coordinator import (
-    get_blender_connection,
     record_startup,
-    shutdown_connection,
 )
 from contract import ServerBootstrapManagerAggregate
 from taxonomy import Details, ServerName

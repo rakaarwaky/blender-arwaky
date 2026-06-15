@@ -1,0 +1,17 @@
+{
+  "_comment": "Example MCP server config for Blender Arwaky. Copy this to your MCP client's config location and update paths.",
+  "mcpServers": {
+    "blender-arwaky": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/blender-arwaky",
+        "run",
+        "blender-arwaky"
+      ],
+      "env": {
+        "BLENDERMCP_CONFIG_PATH": "/absolute/path/to/blender-arwaky/config.yaml"
+      }
+    }
+  }
+}

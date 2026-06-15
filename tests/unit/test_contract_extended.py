@@ -31,6 +31,7 @@ class ConcreteHunyuanPort(HunyuanToolPort):
         return StatusString(f"imported:{name}")
 
 
+@pytest.mark.unit
 class TestHunyuanToolPort:
     def test_interface_is_abstract(self):
         with pytest.raises(TypeError):
@@ -97,6 +98,7 @@ class ConcreteHyper3dPort(Hyper3dToolPort):
         return BBoxIntegers([int(v) for v in original_bbox])
 
 
+@pytest.mark.unit
 class TestHyper3dToolPort:
     def test_interface_is_abstract(self):
         with pytest.raises(TypeError):
@@ -181,6 +183,7 @@ class ConcreteWorkflowProtocol(WorkflowProtocol):
         return Prompt(f"Generated with {provider_name}: {prompt}")
 
 
+@pytest.mark.unit
 class TestWorkflowProtocol:
     def test_interface_is_abstract(self):
         with pytest.raises(TypeError):
@@ -215,6 +218,7 @@ from surfaces.catalog_command_handler import (
 from taxonomy import DomainRef, CapabilityRef
 
 
+@pytest.mark.unit
 class TestCommandCatalogSurfaceHandler:
     def test_list_commands_all(self):
         result = CommandCatalogSurfaceHandler.list_commands(DomainRef("all"))

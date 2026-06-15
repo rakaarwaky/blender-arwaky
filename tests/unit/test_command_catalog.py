@@ -3,6 +3,7 @@ import pytest
 from taxonomy.blender_command_vo import COMMAND_CATALOG, list_actions
 
 
+@pytest.mark.unit
 class TestCommandCatalog:
     """Tests for COMMAND_CATALOG data integrity."""
 
@@ -61,6 +62,7 @@ class TestCommandCatalog:
         assert set(actions) == set(COMMAND_CATALOG.keys())
 
 
+@pytest.mark.unit
 class TestCommandCatalogDomains:
     """Tests that each known domain has at least one action."""
 
@@ -86,6 +88,7 @@ class TestCommandCatalogDomains:
         )
 
 
+@pytest.mark.unit
 class TestCommandCatalogDescriptions:
     """Tests for description quality."""
 

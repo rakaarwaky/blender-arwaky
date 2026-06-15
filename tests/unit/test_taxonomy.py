@@ -43,6 +43,7 @@ from taxonomy.core_types_vo import (
 )
 
 
+@pytest.mark.unit
 class TestVector3D:
     """Tests for Vector3D value object."""
 
@@ -100,6 +101,7 @@ class TestVector3D:
             create_float_triplet([1.0, 2.0])
 
 
+@pytest.mark.unit
 class TestBoundingBox:
     """Tests for BoundingBox value object."""
 
@@ -149,6 +151,7 @@ class TestBoundingBox:
         assert b == b2
 
 
+@pytest.mark.unit
 class TestJobStatusAndFactories:
     """Tests for JobStatus and associated factories."""
 
@@ -185,6 +188,7 @@ class TestJobStatusAndFactories:
             create_progress(101.0)
 
 
+@pytest.mark.unit
 class TestBlenderMCPError:
     """Tests for custom Exception classes."""
 
@@ -219,6 +223,7 @@ class TestBlenderMCPError:
         assert err.provider == pname
 
 
+@pytest.mark.unit
 class TestBlenderObjectEntity:
     """Tests for BlenderObject entity."""
 
@@ -298,6 +303,7 @@ class TestBlenderObjectEntity:
         assert cid1 not in obj.children_ids
 
 
+@pytest.mark.unit
 class TestSceneAggregate:
     """Tests for SceneAggregate root."""
 
