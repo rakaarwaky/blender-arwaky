@@ -39,6 +39,11 @@ dev = [
     "blender-arwaky[lint]",
 ]
 
+[dependency-groups]
+test = ["blender-arwaky[test]"]
+lint = ["blender-arwaky[lint]"]
+dev = ["blender-arwaky[dev]"]
+
 [project.scripts]
 blender-arwaky = "mcp_main_entry:main"
 blender-cli = "cli_main_entry:main"
