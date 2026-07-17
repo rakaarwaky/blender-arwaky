@@ -7,6 +7,8 @@ AES Port layer — depends only on taxonomy entities.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 from taxonomy import BlenderVersion, Details, DurationMs, ErrorMessage, EventType, Prompt, SuccessFlag, ToolName
 
@@ -35,6 +37,6 @@ class TelemetryRecordingPort(ABC):
         pass
 
     @abstractmethod
-    def create_tool_decorator(self, tool_name: ToolName):
+    def create_tool_decorator(self, tool_name: ToolName) -> Callable[..., Any]:
         """Create a decorator that records telemetry for an MCP tool."""
         pass

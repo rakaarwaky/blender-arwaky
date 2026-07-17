@@ -5,8 +5,8 @@ import logging
 import re
 
 from contract import BlenderConnectionPort, CodeExecutionPort
-from taxonomy import ActionName, Prompt
-from taxonomy.blender_mcp_error import ErrorMessage, ValidationError
+from taxonomy import ActionName, ErrorMessage, Prompt
+from taxonomy.blender_mcp_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
