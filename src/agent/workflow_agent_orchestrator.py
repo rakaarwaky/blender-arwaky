@@ -13,7 +13,6 @@ class WorkflowAgentOrchestrator(WorkflowAgentOrchestratorAggregate):
     Provides both single-step and autonomous loop workflows.
     """
 
-    _scene_ref: SceneInfo
     _success_ref: SuccessFlag = SuccessFlag(True)
 
     def __init__(

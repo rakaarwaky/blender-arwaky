@@ -18,6 +18,7 @@ CIRCULAR IMPORT SAFETY:
 """
 
 import logging
+import threading
 
 from contract import (
     AgentDiContainerAggregate,
@@ -257,17 +258,21 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
 # ── Global Singleton ───────────────────────────────────────────────────────────
 
 _container: AgentDiContainer | None = None
+_container_lock = threading.Lock()
 
 
 def get_container() -> AgentDiContainer:
-    """Return the global DI container (singleton)."""
+    """Return the global DI container (singleton, thread-safe)."""
     global _container
     if _container is None:
-        _container = AgentDiContainer()
+        with _container_lock:
+            if _container is None:
+                _container = AgentDiContainer()
     return _container
 
 
 def reset_container() -> None:
-    """For testing only: clear the singleton."""
+    """For testing only: clear the singleton (thread-safe)."""
     global _container
-    _container = None
+    with _container_lock:
+        _container = None

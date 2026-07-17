@@ -29,7 +29,6 @@ class SetupExpertOrchestrator(ExpertOrchestratorLogic, SetupExpertOrchestratorAg
     """Specialist for all things scene-related."""
 
     _contract_name: StatusString = StatusString("SetupExpertOrchestrator")
-    _scene_ref: SceneInfo
     _obj_ref: ObjectName = ObjectName("ref")
 
     def __init__(self, blender_mgr: SceneOperateProtocol, render_mgr: RenderOperateProtocol | None = None):

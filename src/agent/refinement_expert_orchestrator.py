@@ -40,7 +40,7 @@ class RefinementExpertOrchestrator(ExpertOrchestratorLogic, RefinementExpertOrch
 
         if action == "refine_loop":
             objective = params.get("objective", "")
-            max_iterations = params.get("max_iterations", 5)
+            max_iterations = int(params.get("max_iterations", 5))
             return await self._run_refinement_loop(objective, max_iterations)
 
         elif action == "analyze_gaps":
