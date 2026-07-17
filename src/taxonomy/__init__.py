@@ -49,9 +49,9 @@ from .blender_job_vo import (
 )
 from .blender_mcp_error import (
     AssetNotFoundError,
-    BlenderConnectionError,
+    BlenderConnectionFailure,
     BlenderMCPError,
-    ConnectionError,
+    ConnectionFailure,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -224,10 +224,10 @@ __all__ = [
     "SceneValidationError",
     "AssetNotFoundError",
     "ValidationError",
-    "ConnectionError",
+    "ConnectionFailure",
     "ProviderError",
     "ExecutionError",
-    "BlenderConnectionError",
+    "BlenderConnectionFailure",
     "InvalidCommandError",
     # Branded IDs
     "UserId",

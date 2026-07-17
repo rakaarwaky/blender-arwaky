@@ -13,7 +13,7 @@ from contract import BlenderConnectionPort, BlenderPort
 from taxonomy import (
     ActionName,
     BlenderObject,
-    ConnectionError,
+    ConnectionFailure as ConnectionError,
     ErrorMessage,
     ExecutionError,
     ImageBytes,

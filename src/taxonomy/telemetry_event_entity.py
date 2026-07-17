@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from taxonomy.core_types_vo import (
+from .core_types_vo import (
     BlenderVersion,
     CustomerUuid,
     Details,

@@ -18,7 +18,7 @@ from infrastructure.config_file_loader import (
 )
 from taxonomy import (
     ActionName,
-    ConnectionError,
+    ConnectionFailure,
     ExecutionError,
     MaxSize,
     ObjectName,
@@ -208,8 +208,8 @@ class TestBlenderSocketAdapter:
 
     @pytest.mark.asyncio
     async def test_execute_code_connection_error(self, adapter, mock_conn):
-        mock_conn.send_command.side_effect = ConnectionError("Conn error")
-        with pytest.raises(ConnectionError):
+        mock_conn.send_command.side_effect = ConnectionFailure("Conn error")
+        with pytest.raises(ConnectionFailure):
             await adapter.execute_code(PythonCode("import bpy"))
 
     @pytest.mark.asyncio
@@ -230,8 +230,8 @@ class TestBlenderSocketAdapter:
 
     @pytest.mark.asyncio
     async def test_get_scene_info_errors(self, adapter, mock_conn):
-        mock_conn.send_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
+        mock_conn.send_command.side_effect = ConnectionFailure()
+        with pytest.raises(ConnectionFailure):
             await adapter.get_scene_info()
 
         mock_conn.send_command.side_effect = Exception()
@@ -264,8 +264,8 @@ class TestBlenderSocketAdapter:
         with pytest.raises(ExecutionError):
             await adapter.get_object_info(ObjectName("Cube"))
 
-        mock_conn.send_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
+        mock_conn.send_command.side_effect = ConnectionFailure()
+        with pytest.raises(ConnectionFailure):
             await adapter.get_object_info(ObjectName("Cube"))
 
     @pytest.mark.asyncio
@@ -295,8 +295,8 @@ class TestBlenderSocketAdapter:
 
     @pytest.mark.asyncio
     async def test_get_screenshot_exceptions(self, adapter, mock_conn):
-        mock_conn.send_command.side_effect = ConnectionError()
-        with pytest.raises(ConnectionError):
+        mock_conn.send_command.side_effect = ConnectionFailure()
+        with pytest.raises(ConnectionFailure):
             await adapter.get_screenshot()
 
         mock_conn.send_command.side_effect = Exception()
@@ -305,7 +305,7 @@ class TestBlenderSocketAdapter:
 
     def test_uninitialized_connection(self):
         adapter = BlenderSocketAdapter(None)  # type: ignore
-        with pytest.raises(ConnectionError):
+        with pytest.raises(ConnectionFailure):
             adapter._get_conn()
 
 

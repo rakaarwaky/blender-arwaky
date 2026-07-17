@@ -13,7 +13,7 @@ from typing import Any
 from contract import BlenderConnectionFactoryPort, BlenderConnectionPort, ConfigPort
 from taxonomy import (
     ActionName,
-    BlenderConnectionError,
+    BlenderConnectionFailure,
     ConfigPath,
     Details,
     ErrorMessage,
@@ -82,7 +82,7 @@ class BlenderConnection(BlenderConnectionPort):
                 if not data:
                     return False
             return True
-        except (ConnectionError, BrokenPipeError, ConnectionResetError, OSError, BlenderConnectionError):
+        except (ConnectionError, BrokenPipeError, ConnectionResetError, OSError, BlenderConnectionFailure):
             return False
 
     def _read_response_chunks(self, sock: socket.socket, buffer_size: int) -> tuple:
@@ -98,7 +98,7 @@ class BlenderConnection(BlenderConnectionPort):
                     chunk = sock.recv(buffer_size)
                     if not chunk:
                         if not chunks:
-                            raise BlenderConnectionError(ErrorMessage("Connection closed before receiving any data"))
+                            raise BlenderConnectionFailure(ErrorMessage("Connection closed before receiving any data"))
                         break
                     chunks.append(chunk)
                     try:
@@ -137,7 +137,7 @@ class BlenderConnection(BlenderConnectionPort):
             return b"".join(chunks)
         if chunks:
             return self._finalize_chunks(chunks)
-        raise BlenderConnectionError(ErrorMessage("No data received"))
+        raise BlenderConnectionFailure(ErrorMessage("No data received"))
 
     def is_connected(self) -> SuccessFlag:
         return SuccessFlag(self._is_socket_alive())  # pragma: no cover
@@ -178,13 +178,13 @@ class BlenderConnection(BlenderConnectionPort):
             except TimeoutError as e:
                 logger.error("Socket timeout while waiting for response")
                 self._close_socket()
-                raise BlenderConnectionError(
+                raise BlenderConnectionFailure(
                     ErrorMessage("Timeout waiting for Blender response - try simplifying your request")
                 ) from e
             except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
                 logger.error(f"Socket connection error: {e}")
                 self._close_socket()
-                raise BlenderConnectionError(ErrorMessage(f"Connection to Blender lost: {e}")) from e
+                raise BlenderConnectionFailure(ErrorMessage(f"Connection to Blender lost: {e}")) from e
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON response from Blender: {e}")
                 if response_data:
@@ -195,7 +195,7 @@ class BlenderConnection(BlenderConnectionPort):
             except Exception as e:
                 logger.error(f"Error communicating with Blender: {e}")
                 self._close_socket()
-                raise BlenderConnectionError(ErrorMessage(f"Communication error with Blender: {e}")) from e
+                raise BlenderConnectionFailure(ErrorMessage(f"Communication error with Blender: {e}")) from e
 
 
 # ─── BlenderConnectionFactory ─────────────────────────────────────────────────
@@ -234,7 +234,7 @@ class BlenderConnectionFactory(BlenderConnectionFactoryPort):
             self._connection = BlenderConnection(host=host, port=port)
             if not self._connection.connect():
                 self._connection = None
-                raise BlenderConnectionError(
+                raise BlenderConnectionFailure(
                     ErrorMessage("Could not connect to Blender. Make sure the Blender addon is running.")
                 )
             return self._connection

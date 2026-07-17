@@ -51,7 +51,7 @@ class ValidationError(DomainError):
         super().__init__(message or ErrorMessage("Input validation failed"))
 
 
-class ConnectionError(DomainError):
+class ConnectionFailure(DomainError):
     """Raised when a persistent connection to an external service or socket fails."""
 
     def __init__(self, message: ErrorMessage | None = None) -> None:
@@ -72,7 +72,7 @@ class ExecutionError(DomainError):
         super().__init__(message or ErrorMessage("Execution failed"))
 
 
-class BlenderConnectionError(ConnectionError):
+class BlenderConnectionFailure(ConnectionFailure):
     """Raised when the specific socket connection to the Blender instance is lost."""
 
     def __init__(self, message: ErrorMessage | None = None) -> None:

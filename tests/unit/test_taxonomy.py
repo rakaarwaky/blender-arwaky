@@ -14,9 +14,9 @@ from taxonomy.blender_job_vo import (
 )
 from taxonomy.blender_mcp_error import (
     AssetNotFoundError,
-    BlenderConnectionError,
+    BlenderConnectionFailure,
     BlenderMCPError,
-    ConnectionError,
+    ConnectionFailure,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -206,10 +206,10 @@ class TestBlenderMCPError:
         assert str(DomainError()) == "Domain error"
         assert str(SceneValidationError()) == "Scene validation failed"
         assert str(ValidationError()) == "Input validation failed"
-        assert str(ConnectionError()) == "Connection failed"
+        assert str(ConnectionFailure()) == "Connection failed"
         assert str(ProviderError()) == "Provider error"
         assert str(ExecutionError()) == "Execution failed"
-        assert str(BlenderConnectionError()) == "Blender connection lost"
+        assert str(BlenderConnectionFailure()) == "Blender connection lost"
         assert str(InvalidCommandError()) == "Invalid command"
 
         # AssetNotFoundError specific test
