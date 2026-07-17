@@ -2,35 +2,34 @@
 
 **Connect Blender to AI agents through the Model Context Protocol.**
 
-BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, generate AI models, and execute Blender Python — all through 5 universal MCP tools.
+BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, render, and execute Blender Python — all through 4 universal MCP tools.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Blender 3.0+](https://img.shields.io/badge/Blender-3.0%2B-orange.svg)](https://www.blender.org/)
 [![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/rakaarwaky/blender-arwaky/branch/main/graph/badge.svg)](https://codecov.io/gh/rakaarwaky/blender-arwaky)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 ---
 
-## ✨ Features
+## Features
 
-- **5 Universal MCP Tools** — Minimal surface, maximum power via command catalog dispatch
-- **20+ Actions** — Scene ops, object manipulation, rendering, import/export, code execution
-- **4 Asset Providers** — Poly Haven (HDRI/textures/models), Sketchfab, Hyper3D Rodin, Hunyuan3D
-- **AI 3D Generation** — Text-to-3D via Hyper3D and Hunyuan3D with async job management
+- **4 Universal MCP Tools** — Minimal surface, maximum power via command catalog dispatch
+- **15+ Actions** — Scene ops, object manipulation, rendering, import/export, code execution
+- **2 Asset Providers** — Poly Haven (HDRI/textures/models), Sketchfab
+- **AI-Optimized Screenshots** — View presets, shading modes, overlay control, object focus
 - **Blender Addon** — TCP server with auto-start, UI panel, and API key management
 - **Clean Architecture** — AES 6-domain layering with full dependency inversion
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-surfaces/        → MCP tools & CLI entry points (5 tools only)
+surfaces/        → MCP tools & CLI entry points (4 tools only)
 agent/           → DI container, orchestrators, experts
-capabilities/    → Use cases: scene ops, asset search, AI generation
+capabilities/    → Use cases: scene ops, asset search, rendering
 infrastructure/  → Adapters: Blender socket, API clients, telemetry
 contract/        → Ports & protocols (interfaces between layers)
 taxonomy/        → Foundation: data structures, config, command catalog
@@ -41,13 +40,12 @@ taxonomy/        → Foundation: data structures, config, command catalog
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - **Blender 3.0+** (tested on 5.1)
 - **Python 3.10+**
-- **[uv](https://docs.astral.sh/uv/)** package manager
 
 ### 1. Install
 
@@ -57,36 +55,23 @@ cd blender-arwaky
 uv sync
 ```
 
-### 2. Configure API Keys
+### 2. Install Blender Addon
 
-```bash
-cp .env.blendermcp.example .env.blendermcp
-# Edit: add your Sketchfab, Hyper3D, Hunyuan API keys
-```
-
-### 3. Install Blender Addon
-
-**Option A — GUI Install:**
 1. Open Blender → Edit → Preferences → Add-ons
-2. Install `blender_mcp_addon.zip` (or point to `blender_mcp_addon/` directory)
+2. Install `blender_mcp_addon/` directory
 3. Enable **"Interface: Blender Arwaky"**
 
 The addon auto-starts a TCP server on port `9876` within 1–5 seconds.
 
-**Option B — Headless:**
-```bash
-blender --background --python scripts/blender/run_server_headless.py &
-```
-
-### 4. Start MCP Server
+### 3. Start MCP Server
 
 ```bash
 uv run python -m surfaces.mcp_server_entry
 ```
 
-### 5. Configure Your MCP Client
+### 4. Configure Your MCP Client
 
-Add to your client's MCP configuration (e.g. `mcp.json`):
+Add to your client's MCP configuration:
 
 ```json
 {
@@ -104,21 +89,20 @@ Add to your client's MCP configuration (e.g. `mcp.json`):
 
 ---
 
-## 🔧 MCP Tools
+## MCP Tools
 
-BlenderArwaky exposes exactly **5 MCP tools** (Universal Surface Layer design):
+BlenderArwaky exposes exactly **4 MCP tools** (Universal Surface Layer design):
 
 | Tool | Purpose |
 |------|---------|
 | `execute_command` | Universal action executor — dispatches any action from the command catalog |
 | `list_commands` | Discover available actions and their parameters |
 | `read_skill_context` | Read SKILL.md sections for agent guidance |
-| `check_status` | Monitor long-running job status (AI generation, imports) |
 | `health_check` | Verify Blender connectivity and system health |
 
 ---
 
-## 📋 Command Catalog
+## Command Catalog
 
 Actions available via `execute_command(action=..., args=...)`:
 
@@ -134,90 +118,58 @@ Actions available via `execute_command(action=..., args=...)`:
 | `set_material` | object | Assign a material to an object |
 | `apply_modifier` | object | Apply modifiers (subsurf, bevel, etc.) |
 | `place_asset` | object | Position an imported asset |
-| `get_viewport_screenshot` | viewport | Capture 3D viewport screenshot |
+| `get_viewport_screenshot` | viewport | Capture 3D viewport (AI-optimized) |
 | `render` | render | Execute full frame render to file |
 | `import_glb` | io | Import GLB/GLTF model |
 | `export_model` | io | Export model to file |
 | `execute_blender_code` | infrastructure | Run Python code in Blender |
-| `search_all_assets` | asset | Search Poly Haven + Sketchfab |
-| `start_generation` | generation | Start AI 3D model generation |
-| `poll_generation` | generation | Check generation job status |
 
 ---
 
-## 🎯 Workflow Examples
+## AI-Optimized Screenshots
 
-### Scene Discovery & Manipulation
+The `get_viewport_screenshot` action supports AI agent-specific parameters:
 
-```python
-# Discover available commands
-list_commands(domain="scene")
-
-# Get scene info
-execute_command(action="get_scene_info")
-
-# Create a sphere
-execute_command(
-    action="create_primitive",
-    args={"primitive_type": "SPHERE", "location": [0, 0, 0]}
-)
+```json
+{
+  "action": "get_viewport_screenshot",
+  "args": {
+    "max_size": 800,
+    "view_angle": "TOP",
+    "shading": "WIREFRAME",
+    "show_overlays": false,
+    "focus_object": "MyTable"
+  }
+}
 ```
 
-### AI 3D Model Generation
-
-```python
-# Start generation
-result = execute_command(
-    action="start_generation",
-    args={"prompt": "a gothic throne with ornate details"}
-)
-
-# Poll until ready
-execute_command(action="poll_generation", args={"job_id": "..."})
-
-# Import into scene
-execute_command(
-    action="import_generated_asset",
-    args={"job_id": "...", "name": "Gothic_Throne"}
-)
-```
-
-### Asset Import
-
-```python
-# Search all providers
-execute_command(
-    action="search_all_assets",
-    args={"query": "sunset", "asset_type": "hdri", "limit": 5}
-)
-
-# Download and import
-execute_command(
-    action="download_asset",
-    args={"asset_id": "...", "provider": "polyhaven", "resolution": "2k"}
-)
-```
+| Parameter | Options | Purpose |
+|-----------|---------|---------|
+| `view_angle` | `PERSPECTIVE`, `TOP`, `FRONT`, `SIDE` | Standard orthographic views |
+| `shading` | `WIREFRAME`, `SOLID`, `MATERIAL`, `RENDERED` | Viewport shading mode |
+| `show_overlays` | `true`/`false` | Toggle grid, axes, origins |
+| `focus_object` | Object name | Frame specific object |
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
-# Full test suite with coverage
+# Full test suite
 uv run pytest
 
 # Only unit tests
 uv run pytest -m unit
 
-# Specific test file
-uv run pytest tests/unit/test_command_catalog.py -v
+# With coverage
+uv run pytest --cov=src --cov-report=term
 ```
 
-Coverage targets: **100% line coverage** across all layers. See [TEST.md](TEST.md) for full testing guide.
+455+ tests across unit, integration, and functional categories.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 blender-arwaky/
@@ -225,13 +177,11 @@ blender-arwaky/
 │   ├── surfaces/          # MCP tools & entry points
 │   ├── agent/             # DI container & orchestrators
 │   ├── capabilities/      # Business logic (use cases)
-│   ├── infrastructure/    # External adapters & API clients
+│   ├── infrastructure/    # External adapters
 │   ├── contract/          # Ports & protocol interfaces
 │   └── taxonomy/          # Data structures & command catalog
 ├── blender_mcp_addon/     # Blender addon (TCP server)
 ├── tests/                 # Unit, integration, functional tests
-├── scripts/               # Helper scripts (install, deploy)
-├── config.yaml            # Server configuration
 ├── AGENT.md               # Developer guide
 ├── SKILL.md               # MCP skill documentation
 └── TEST.md                # Testing guide
@@ -239,67 +189,21 @@ blender-arwaky/
 
 ---
 
-## ⚙️ Configuration
-
-### `config.yaml`
-
-A template is shipped as [`config.example.yaml`](./config.example.yaml) in the
-repository and the sdist. Copy it to `config.yaml` (or point
-`BLENDERMCP_CONFIG_PATH` at any file) and adjust for your OS:
-
-```bash
-cp config.example.yaml config.yaml   # Unix
-# or:
-Copy-Item config.example.yaml config.yaml   # PowerShell
-```
+## Configuration
 
 ```yaml
 blender:
-  executable_path: "/path/to/blender"   # Linux/macOS; see template for Windows
+  executable_path: "/path/to/blender"
   host: "localhost"
   port: 9876
 
 server:
   transport: "stdio"    # or "sse"
   log_dir: "log"
-
-telemetry:
-  enabled: false        # opt-in only
 ```
 
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `BLENDERMCP_SKETCHFAB_API_KEY` | Sketchfab API token |
-| `BLENDERMCP_HYPER3D_API_KEY` | Hyper3D/Rodin API key |
-| `BLENDERMCP_HUNYUAN3D_SECRET_ID` | Hunyuan3D Secret ID |
-| `BLENDERMCP_HUNYUAN3D_SECRET_KEY` | Hunyuan3D Secret Key |
-| `BLENDERMCP_CONFIG_PATH` | Override config.yaml path |
-| `BLENDER_HOST` | Override Blender host (default: localhost) |
-| `BLENDER_PORT` | Override Blender port (default: 9876) |
-
 ---
 
-## 📚 Additional Documentation
-
-- [AGENT.md](AGENT.md) — Architecture & developer guide
-- [SKILL.md](SKILL.md) — MCP skill documentation (readable by agents)
-- [TEST.md](TEST.md) — Testing guide & coverage targets
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Follow the [AES naming convention](AGENT.md#file-naming--3-word-aes-convention): `{domain}_{concern}_{suffix}.py`
-4. Write tests for new code (target: 85%+ coverage)
-5. Run linting: `uv run ruff check src/ blender_mcp_addon/`
-6. Submit a pull request
-
----
-
-## 📄 License
+## License
 
 [MIT License](LICENSE) — Originally by Siddharth Ahuja, extended by Raka Arwaky.

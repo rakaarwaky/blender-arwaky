@@ -12,56 +12,36 @@ read specific sections. Sections: `setup`, `tools`, `commands`, `workflows`,
 
 - Blender 3.0+ (tested on 5.1)
 - Python 3.10+
-- UV package manager (`pip install uv` or system package)
 
 ### 2. Install Project
 
 ```bash
 cd /path/to/blender-arwaky
 uv sync
-uv run pip install -e .
 ```
 
-### 3. Configure
+### 3. Start Blender with Addon
 
-Copy `.env.blendermcp.example` to `.env.blendermcp` and fill in API keys:
-
-```bash
-cp .env.blendermcp.example .env.blendermcp
-# Edit: add your Sketchfab, Hyper3D, Hunyuan API keys
-```
-
-Optional: set `BLENDERMCP_CONFIG_PATH` to absolute path of `config.yaml`.
-
-### 4. Start Blender with Addon
-
-Option A — Install addon:
 1. Blender → Edit → Preferences → Add-ons
-2. Install `blender_mcp_addon.zip` (or copy `blender_mcp_addon/` to addons dir)
+2. Install `blender_mcp_addon/` directory
 3. Enable "Interface: Blender Arwaky"
 
 The addon auto-starts a TCP server on port 9876 within 1-5 seconds.
 
-Option B — Headless:
-```bash
-blender --background --python scripts/blender/run_server_headless.py &
-```
-
-### 5. Start MCP Server
+### 4. Start MCP Server
 
 ```bash
 cd /path/to/blender-arwaky
 uv run python -m surfaces.mcp_server_entry
 ```
 
-The server connects to the Blender addon and registers 5 MCP tools.
+The server connects to the Blender addon and registers 4 MCP tools.
 
 ---
 
 ## Section: tools
 
-BlenderArwaky exposes exactly **5 MCP tools** (Universal Surface Layer design
-to minimize tool bloat):
+BlenderArwaky exposes exactly **4 MCP tools** (Universal Surface Layer design):
 
 ### Tool 1: `execute_command`
 Universal action executor. Dispatches any action from the command catalog.
@@ -88,7 +68,7 @@ Discovers available actions and their parameters.
 **Parameters:**
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `domain` | string | no | Filter by domain: "scene", "asset", "generation", "workflow", "utility", or "all" |
+| `domain` | string | no | Filter by domain: "scene", "object", "viewport", "render", "io", "infrastructure", or "all" |
 
 ### Tool 3: `read_skill_context`
 Reads specific sections of this document (SKILL.md).
@@ -98,19 +78,10 @@ Reads specific sections of this document (SKILL.md).
 |-------|------|----------|-------------|
 | `section` | string | no | Section name: "setup", "tools", "commands", "workflows", "addon", "troubleshooting". Default: all. |
 
-### Tool 4: `check_status`
-Checks status of long-running tasks (AI generation, imports).
-
-**Parameters:**
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `job_id` | string | no | Specific job to check. Returns latest if omitted. |
-| `provider` | string | no | Provider filter: "rodin", "hunyuan", "all". Default: all. |
-
-### Tool 5: `health_check`
+### Tool 4: `health_check`
 Verifies Blender connectivity and system health. No parameters.
 
-**Returns:** JSON with Blender connection status, tool count, config info.
+**Returns:** JSON with Blender connection status, config info.
 
 ---
 
@@ -122,18 +93,33 @@ Actions available via `execute_command(action=..., args=...)`:
 
 | Action | Domain | Parameters | Description |
 |--------|--------|------------|-------------|
-| `get_scene_info` | scene | (none) | Full scene metadata (objects, counts, engine) |
-| `get_object_info` | scene | `object_name` | Detailed info for a single object |
-| `get_viewport_screenshot` | viewport | `max_size` | Capture 3D viewport (PNG bytes) |
-| `cleanup_scene` | scene | (none) | Remove all objects from scene |
-| `setup_environment` | scene | `hdri_id`, `render_engine`, `samples` | Setup HDRI + environment |
-| `place_asset` | scene | `object_name`, `location`, `rotation`, `scale` | Position imported asset |
-| `execute_blender_code` | infrastructure | `code` | Run arbitrary bpy Python code |
-| `search_all_assets` | asset | `query`, `asset_type`, `limit` | Search Polyhaven + Sketchfab |
-| `download_asset` | asset | `asset_id`, `provider`, `resolution` | Download + import asset |
-| `start_generation` | generation | `prompt`, `input_image_url`, `bbox_condition` | Start AI 3D generation |
-| `poll_generation` | generation | `job_id` | Check generation job status |
-| `import_generated_asset` | generation | `job_id`, `name` | Import generated model into scene |
+| `get_scene_info` | scene | (none) | Full scene metadata |
+| `get_object_info` | object | `object_name` | Detailed info for a single object |
+| `cleanup_scene` | scene | `mode` | Remove objects ("all", "objects", "meshes") |
+| `setup_environment` | scene | `hdri_id`, `strength` | Setup HDRI + environment |
+| `create_primitive` | object | `primitive_type`, `location`, `scale`, `name` | Create 3D primitive |
+| `set_object_transform` | object | `object_name`, `location`, `rotation`, `scale` | Update transform |
+| `delete_object` | object | `object_name` | Remove object |
+| `set_material` | object | `object_name`, `material_name` | Assign material |
+| `apply_modifier` | object | `object_name`, `modifier_name` | Apply modifier |
+| `place_asset` | object | `asset_id`, `location`, `rotation`, `scale` | Position asset |
+| `get_viewport_screenshot` | viewport | `max_size`, `view_angle`, `shading`, `show_overlays`, `focus_object` | AI-optimized screenshot |
+| `render` | render | `output_path`, `resolution_x`, `resolution_y` | Full frame render |
+| `import_glb` | io | `file_path`, `object_name` | Import GLB/GLTF |
+| `export_model` | io | `object_name`, `file_path`, `export_format` | Export model |
+| `execute_blender_code` | infrastructure | `code` | Run Python code |
+
+### AI-Optimized Screenshots
+
+The `get_viewport_screenshot` action supports parameters optimized for AI vision:
+
+| Parameter | Type | Default | Options |
+|-----------|------|---------|---------|
+| `max_size` | int | 800 | Max dimension in pixels |
+| `view_angle` | string | `PERSPECTIVE` | `PERSPECTIVE`, `TOP`, `FRONT`, `SIDE` |
+| `shading` | string | `MATERIAL` | `WIREFRAME`, `SOLID`, `MATERIAL`, `RENDERED` |
+| `show_overlays` | bool | `true` | Toggle grid, axes, origins |
+| `focus_object` | string | null | Object name to frame |
 
 ---
 
@@ -148,50 +134,51 @@ list_commands(domain="scene")
 # Step 2: Get scene info
 execute_command(action="get_scene_info")
 
-# Step 3: Modify scene
+# Step 3: Create a sphere
 execute_command(
     action="create_primitive",
-    args={"type": "sphere", "location": [0, 0, 0], "radius": 2.0}
+    args={"primitive_type": "SPHERE", "location": [0, 0, 0]}
 )
 ```
 
-### Workflow 2: AI Model Generation
+### Workflow 2: AI-Optimized Viewport Analysis
 
 ```python
-# Step 1: Start generation
-result = execute_command(
-    action="start_generation",
-    args={"prompt": "a gothic throne with ornate details"}
-)
-# Returns: {"job_id": "...", "status": "PROCESSING"}
-
-# Step 2: Poll until ready
+# Top-down wireframe view of a specific object
 execute_command(
-    action="poll_generation",
-    args={"job_id": result.get("job_id", "unknown")}
+    action="get_viewport_screenshot",
+    args={
+        "view_angle": "TOP",
+        "shading": "WIREFRAME",
+        "show_overlays": false,
+        "focus_object": "MyTable"
+    }
 )
-# Repeat until status == "DONE" or "FAILED"
 
-# Step 3: Import into scene
+# Front view with material shading
 execute_command(
-    action="import_generated_asset",
-    args={"job_id": result.get("job_id", "unknown"), "name": "Gothic_Throne"}
+    action="get_viewport_screenshot",
+    args={
+        "view_angle": "FRONT",
+        "shading": "MATERIAL",
+        "max_size": 1200
+    }
 )
 ```
 
 ### Workflow 3: Asset Import
 
 ```python
-# Step 1: Search all providers
+# Import GLB model
 execute_command(
-    action="search_all_assets",
-    args={"query": "sunset", "asset_type": "hdri", "limit": 5}
+    action="import_glb",
+    args={"file_path": "/path/to/model.glb"}
 )
 
-# Step 2: Download asset
+# Place it in the scene
 execute_command(
-    action="download_asset",
-    args={"asset_id": "...", "provider": "polyhaven", "resolution": "2k"}
+    action="place_asset",
+    args={"asset_id": "model", "location": [0, 0, 0]}
 )
 ```
 
@@ -217,7 +204,6 @@ commands from the external MCP server.
 - Auto-starts on Blender load (persistent timer, 30 retries × 2s)
 - Reads `config.yaml` (env var `BLENDERMCP_CONFIG_PATH` override)
 - Injects environment variables from `.env.blendermcp`
-- Manages API key input via scene properties
 - UI panel in View3D → Sidebar → BlenderArwaky
 
 **Architecture:**
@@ -228,12 +214,9 @@ commands from the external MCP server.
 | `operators.py` | Operator buttons (start/stop) |
 | `properties.py` | Scene properties (port, API keys) |
 | `ui.py` | Panel and preferences UI |
-| `config.py` | YAML config loader |
 | `utils.py` | Screenshot, GLB import, AABB helpers |
 | `polyhaven.py` | Poly Haven integration |
-| `hyper3d.py` | Hyper3D Rodin integration |
 | `sketchfab.py` | Sketchfab integration |
-| `hunyuan.py` | Hunyuan3D integration |
 
 Install: zip `blender_mcp_addon/` and install via Blender Preferences,
 or copy directory to `~/.config/blender/<version>/scripts/addons/`.
@@ -266,9 +249,12 @@ export BLENDERMCP_CONFIG_PATH=/path/to/blender-arwaky/config.yaml
 ```
 
 ### Tools not showing up
-**Fix:** Verify `surfaces/tool_registry_handler.py` has all 5 tools registered.
+**Fix:** Verify `surfaces/tool_registry_handler.py` has all 4 tools registered.
 Run `health_check` to see tool count.
 
-### API key errors
-**Fix:** Ensure `.env.blendermcp` has the correct keys. After adding keys,
-restart Blender addon (restart server via UI button) or restart Blender.
+### No active camera for screenshot
+```
+RuntimeError: No active camera in scene
+```
+**Fix:** In headless mode, you must set an active camera before taking screenshots.
+In GUI mode, screenshots use the current viewport view (no camera needed).
