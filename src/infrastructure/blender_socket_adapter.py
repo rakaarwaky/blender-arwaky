@@ -98,8 +98,15 @@ class BlenderSocketAdapter(BlenderPort):
             logger.error("Error getting object info: %s", e)
             raise ExecutionError(ErrorMessage(str(e))) from e
 
-    async def get_screenshot(self, max_size: MaxSize | None = None) -> tuple[ImageBytes, int, int]:
-        """Capture viewport screenshot. Returns (image_bytes, width, height)."""
+    async def get_screenshot(
+        self,
+        max_size: MaxSize | None = None,
+        view_angle: str = "PERSPECTIVE",
+        shading_mode: str = "MATERIAL",
+        show_overlays: bool = True,
+        focus_object: str | None = None,
+    ) -> tuple[ImageBytes, int, int]:
+        """Capture viewport screenshot with AI optimizations. Returns (image_bytes, width, height)."""
         max_size = max_size or MaxSize(800)
         temp_path = os.path.join(tempfile.gettempdir(), f"blender_ss_{uuid4().hex}.png")
         try:
@@ -107,7 +114,15 @@ class BlenderSocketAdapter(BlenderPort):
                 asyncio.to_thread(
                     self._send,
                     ActionName("get_viewport_screenshot"),
-                    {"max_size": int(max_size), "filepath": temp_path, "format": "png"},
+                    {
+                        "max_size": int(max_size),
+                        "filepath": temp_path,
+                        "format": "png",
+                        "view_angle": view_angle,
+                        "shading_mode": shading_mode,
+                        "show_overlays": show_overlays,
+                        "focus_object": focus_object,
+                    },
                 ),
                 timeout=IPC_TIMEOUT_S,
             )

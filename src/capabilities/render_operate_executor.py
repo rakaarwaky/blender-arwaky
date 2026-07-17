@@ -49,9 +49,18 @@ class RenderOperateExecutor(RenderOperateProtocol):
         self.blender = blender_port
 
     async def get_viewport_screenshot(self, request: GetScreenshotRequestVO) -> ScreenshotResponseVO:
-        logger.info("Capturing viewport screenshot with max size %s", request.max_size)
+        logger.info(
+            "Capturing viewport screenshot: max_size=%s, view=%s, shading=%s, overlays=%s, focus=%s",
+            request.max_size, request.view_angle, request.shading, request.show_overlays, request.focus_object,
+        )
         try:
-            image_data, width, height = await self.blender.get_screenshot(max_size=request.max_size)
+            image_data, width, height = await self.blender.get_screenshot(
+                max_size=request.max_size,
+                view_angle=request.view_angle,
+                shading_mode=request.shading,
+                show_overlays=request.show_overlays,
+                focus_object=request.focus_object,
+            )
             return ScreenshotResponseVO(
                 success=SuccessFlag(True),
                 image_data=image_data,

@@ -4,6 +4,8 @@ Contract: Blender Operations VO — Consolidated DTOs for Blender manipulation.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 from .blender_object_entity import BlenderObject
@@ -252,6 +254,10 @@ class GetScreenshotRequestVO(BaseModel):
 
     max_size: MaxSize = Field(default=MaxSize(800))
     format: ImageFormat | None = Field(default=ImageFormat("png"))
+    view_angle: Literal["PERSPECTIVE", "TOP", "FRONT", "SIDE"] = Field(default="PERSPECTIVE")
+    shading: Literal["WIREFRAME", "SOLID", "MATERIAL", "RENDERED"] = Field(default="MATERIAL")
+    show_overlays: bool = Field(default=True)
+    focus_object: ObjectName | None = Field(default=None)
 
 
 class ScreenshotResponseVO(BaseModel):
