@@ -14,11 +14,8 @@ from .adapter_blender_port import BlenderPort
 from .agent_base_aggregate import AgentBaseContainerAggregate
 from .agent_di_aggregate import AgentDiContainerAggregate
 from .agent_factory_aggregate import AgentFactoryRegistryAggregate
-from .api_polyhaven_port import PolyhavenApiPort
-from .api_sketchfab_port import SketchfabApiPort
 from .app_config_port import ConfigPort, ConfigValue
 from .asset_search_protocol import AssetSearchProtocol
-from .capture_viewport_port import ViewportCapturePort
 
 # ============== Ports ==============
 from .command_catalog_port import CommandCatalogPort
@@ -75,10 +72,7 @@ __all__ = [
     "BlenderConnectionPort",
     "CodeExecutionPort",
     "SceneInspectionPort",
-    "ViewportCapturePort",
     "TelemetryRecordingPort",
-    "PolyhavenApiPort",
-    "SketchfabApiPort",
     "ConfigPort",
     "ConfigValue",
     "BlenderConnectionFactoryPort",

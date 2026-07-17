@@ -1,5 +1,6 @@
 """Handler: Import/Export file exchange operations."""
 
+import json
 import logging
 
 from contract import (
@@ -21,6 +22,11 @@ from taxonomy import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
+def _safe_str(value: object) -> str:
+    """Safely escape a string for inclusion in generated Python code."""
+    return json.dumps(str(value))
+
+
 class ImportExportExecutor(ImportExportProtocol):
     """Business logic for file exchange operations."""
 
@@ -29,12 +35,14 @@ class ImportExportExecutor(ImportExportProtocol):
 
     async def import_glb(self, request: ImportGlbRequestVO) -> ImportGlbResponseVO:
         logger.info(f"Importing GLB from {request.file_path}")
-        code = f"import bpy\nbpy.ops.import_scene.gltf(filepath='{request.file_path}')\n"
+        safe_path = _safe_str(str(request.file_path))
+        code = f"import bpy\nbpy.ops.import_scene.gltf(filepath={safe_path})\n"
         if request.object_name:
+            safe_name = _safe_str(str(request.object_name))
             code += (
                 "imported_obj = bpy.context.active_object\n"
                 f"if imported_obj:\n"
-                f"    imported_obj.name = '{request.object_name}'\n"
+                f"    imported_obj.name = {safe_name}\n"
             )
         try:
             await self.blender.execute_code(PythonCode(code))
