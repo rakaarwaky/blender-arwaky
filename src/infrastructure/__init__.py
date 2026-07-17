@@ -7,8 +7,6 @@ and receive their dependencies (e.g., BlenderConnectionPort) via constructor.
 from .blender_connection_connector import BlenderConnection, BlenderConnectionFactory
 from .blender_socket_adapter import BlenderSocketAdapter
 from .code_execution_adapter import CodeExecutionAdapter
-from .hunyuan_generation_adapter import HunyuanGenerationAdapter
-from .hyper3d_generation_adapter import Hyper3DGenerationAdapter
 from .polyhaven_asset_adapter import PolyhavenAssetAdapter
 from .scene_inspection_adapter import SceneInspectionAdapter
 from .sketchfab_asset_adapter import SketchfabAssetAdapter
@@ -21,8 +19,6 @@ __all__ = [
     "BlenderSocketAdapter",
     "PolyhavenAssetAdapter",
     "SketchfabAssetAdapter",
-    "Hyper3DGenerationAdapter",
-    "HunyuanGenerationAdapter",
     "TelemetrySignalRecorder",
     "ViewportCaptureAdapter",
     "SceneInspectionAdapter",

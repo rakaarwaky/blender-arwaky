@@ -29,16 +29,6 @@ class TestContractAbstractMethods:
         assert await c.get_object_info(None) is None
         assert await c.get_screenshot() is None
 
-    @pytest.mark.asyncio
-    async def test_ai_generation_protocol(self):
-        from contract.ai_generation_protocol import GenerationProtocol
-        class C(GenerationProtocol):
-            async def start_generation(self, provider_name, prompt): return await super().start_generation(provider_name, prompt)
-            async def check_status(self, provider_name, job_id): return await super().check_status(provider_name, job_id)
-        c = C()
-        assert await c.start_generation(None, None) is None
-        assert await c.check_status(None, None) is None
-
     def test_api_polyhaven_port(self):
         from contract.api_polyhaven_port import PolyhavenApiPort
         class C(PolyhavenApiPort):
@@ -202,18 +192,6 @@ class TestContractAbstractMethods:
         assert await c.get_asset_details(None) is None
         assert await c.download_asset(None) is None
 
-    @pytest.mark.asyncio
-    async def test_provider_generation_port(self):
-        from contract.provider_generation_port import GenerationProviderPort
-        class C(GenerationProviderPort):
-            async def start_generation(self, request): return await super().start_generation(request)
-            async def poll_generation(self, request): return await super().poll_generation(request)
-            async def import_generated_asset(self, request): return await super().import_generated_asset(request)
-        c = C()
-        assert await c.start_generation(None) is None
-        assert await c.poll_generation(None) is None
-        assert await c.import_generated_asset(None) is None
-
     def test_recording_telemetry_port(self):
         from contract.recording_telemetry_port import TelemetryRecordingPort
         class C(TelemetryRecordingPort):
@@ -256,45 +234,13 @@ class TestContractAbstractMethods:
         assert await c.setup_environment(None) is None
         assert await c.get_scene_info(None) is None
 
-    def test_tool_hunyuan_port(self):
-        from contract.tool_hunyuan_port import HunyuanToolPort
-        class C(HunyuanToolPort):
-            def get_hunyuan3d_status(self): return super().get_hunyuan3d_status()
-            def generate_hunyuan3d_model(self, text_prompt=None, input_image_url=None): return super().generate_hunyuan3d_model(text_prompt, input_image_url)
-            def poll_hunyuan_job_status(self, job_id=None): return super().poll_hunyuan_job_status(job_id)
-            def import_generated_asset_hunyuan(self, name, zip_file_url): return super().import_generated_asset_hunyuan(name, zip_file_url)
-        c = C()
-        assert c.get_hunyuan3d_status() is None
-        assert c.generate_hunyuan3d_model() is None
-        assert c.poll_hunyuan_job_status() is None
-        assert c.import_generated_asset_hunyuan(None, None) is None
-
-    def test_tool_hyper3d_port(self):
-        from contract.tool_hyper3d_port import Hyper3dToolPort
-        class C(Hyper3dToolPort):
-            def get_hyper3d_status(self): return super().get_hyper3d_status()
-            def generate_hyper3d_model_via_text(self, text_prompt, bbox_condition=None): return super().generate_hyper3d_model_via_text(text_prompt, bbox_condition)
-            def generate_hyper3d_model_via_images(self, input_image_paths=None, input_image_urls=None, bbox_condition=None): return super().generate_hyper3d_model_via_images(input_image_paths, input_image_urls, bbox_condition)
-            def poll_rodin_job_status(self, subscription_key=None, request_id=None): return super().poll_rodin_job_status(subscription_key, request_id)
-            def import_generated_asset(self, name, task_uuid=None, request_id=None): return super().import_generated_asset(name, task_uuid, request_id)
-            def process_bbox(self, original_bbox): return super().process_bbox(original_bbox)
-        c = C()
-        assert c.get_hyper3d_status() is None
-        assert c.generate_hyper3d_model_via_text(None) is None
-        assert c.poll_rodin_job_status() is None
-        assert c.generate_hyper3d_model_via_images() is None
-        assert c.import_generated_asset(None) is None
-        assert c.process_bbox(None) is None
-
     @pytest.mark.asyncio
     async def test_workflow_operate_protocol(self):
         from contract.workflow_operate_protocol import WorkflowProtocol
         class C(WorkflowProtocol):
             async def create_basic_scene(self, prompt): return await super().create_basic_scene(prompt)
-            async def generate_and_import_ai_asset(self, provider_name, prompt): return await super().generate_and_import_ai_asset(provider_name, prompt)
         c = C()
         assert await c.create_basic_scene(None) is None
-        assert await c.generate_and_import_ai_asset(None, None) is None
 
 
 # =============================================================================
@@ -306,52 +252,6 @@ class TestAgentFinalGaps:
     """Cover remaining agent gaps."""
 
     @pytest.mark.asyncio
-    async def test_generation_expert_params_none(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        r = await GenerationExpertOrchestrator(MagicMock(), MagicMock()).execute("generate", None)
-        assert not r["success"]
-
-    @pytest.mark.asyncio
-    async def test_generation_expert_exception(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        gen_mock = MagicMock()
-        gen_mock.start_generation = AsyncMock(side_effect=Exception("test error"))
-        r = await GenerationExpertOrchestrator(gen_mock, MagicMock()).execute("generate", {"prompt": "cat"})
-        assert not r["success"]
-        assert "test error" in r["error"]
-
-    @pytest.mark.asyncio
-    async def test_generation_expert_timeout(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        gen_mock = MagicMock()
-        gen_mock.start_generation = AsyncMock(return_value="job_1")
-        status_mock = MagicMock()
-        status_mock.status = "RUNNING"
-        gen_mock.check_status = AsyncMock(return_value=status_mock)
-        with patch("time.time", side_effect=[0, 999]):
-            r = await GenerationExpertOrchestrator(gen_mock, MagicMock()).execute(
-                "generate_and_import", {"prompt": "cat", "max_wait_seconds": 1, "poll_interval": 0.01}
-            )
-        assert not r["success"]
-        assert "Timeout" in r["error"]
-
-    @pytest.mark.asyncio
-    async def test_generation_expert_failed_status(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        gen_mock = MagicMock()
-        gen_mock.start_generation = AsyncMock(return_value="job_1")
-        status_mock = MagicMock()
-        status_mock.status = "FAILED"
-        status_mock.error = "Model generation failed"
-        gen_mock.check_status = AsyncMock(return_value=status_mock)
-        with patch("time.time", side_effect=[0, 0.1]):
-            r = await GenerationExpertOrchestrator(gen_mock, MagicMock()).execute(
-                "generate_and_import", {"prompt": "cat", "max_wait_seconds": 10, "poll_interval": 0.01}
-            )
-        assert not r["success"]
-        assert "Model generation failed" in r["error"]
-
-    @pytest.mark.asyncio
     async def test_search_expert_params_none(self):
         from agent.search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
@@ -359,7 +259,7 @@ class TestAgentFinalGaps:
         blender = MagicMock()
         blender.blender = MagicMock()
         blender.blender.execute_code = AsyncMock()
-        r = await SearchExpertOrchestrator(assets, MagicMock(), blender).execute("search", None)
+        r = await SearchExpertOrchestrator(assets, blender).execute("search", None)
         assert r["success"]
 
     @pytest.mark.asyncio
@@ -367,7 +267,7 @@ class TestAgentFinalGaps:
         from agent.search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
         assets.search_all = AsyncMock(side_effect=Exception("search error"))
-        r = await SearchExpertOrchestrator(assets, MagicMock(), MagicMock()).execute("search", {"query": "box"})
+        r = await SearchExpertOrchestrator(assets, MagicMock()).execute("search", {"query": "box"})
         assert not r["success"]
         assert "search error" in r["error"]
 
@@ -528,19 +428,6 @@ class TestInfrastructureFinalGaps:
                     with patch.object(Path, "exists", return_value=True):
                         root = ApplicationConfigLoader.get_project_root()
                         assert PurePosixPath(root) == PurePosixPath("/mock/dir")
-
-    def test_hyper3d_adapter_parse_job_id_non_dict(self):
-        from infrastructure.hyper3d_generation_adapter import Hyper3DGenerationAdapter
-        from taxonomy import JobId
-        kwargs = Hyper3DGenerationAdapter._parse_job_id_kwargs(JobId('"raw_string"'))
-        assert kwargs.get("request_id") == '"raw_string"'
-
-    def test_hyper3d_client_validate_url_success(self):
-        from infrastructure.hyper3d_generation_client import Hyper3dGenerationTool
-        from taxonomy import StringList
-        err, images = Hyper3dGenerationTool._validate_and_prepare_images(None, StringList(["http://example.com/img.png"]))
-        assert err is None
-        assert images == ["http://example.com/img.png"]
 
     def test_polyhaven_download_error_key(self):
         from infrastructure.polyhaven_api_client import PolyhavenApiClient
@@ -719,6 +606,3 @@ class TestEntryPointsFinalGaps:
         with pytest.raises((SystemExit, Exception)):
             runpy.run_path(str(Path(__file__).parent.parent.parent / "src" / "mcp_main_entry.py"),
                           run_name="__main__")
-
-
-

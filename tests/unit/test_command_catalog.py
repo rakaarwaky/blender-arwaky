@@ -21,7 +21,7 @@ class TestCommandCatalog:
 
     def test_all_actions_have_valid_domain(self):
         """Every catalog entry must have a known domain."""
-        valid_domains = {"scene", "asset", "generation", "viewport", "infrastructure", "object", "render", "io"}
+        valid_domains = {"scene", "viewport", "infrastructure", "object", "render", "io"}
         for name, spec in COMMAND_CATALOG.items():
             domain = spec.get("domain", "")
             assert domain in valid_domains, (
@@ -82,7 +82,7 @@ class TestCommandCatalogDomains:
         """Document the actual domains present in the catalog."""
         from taxonomy.blender_command_vo import COMMAND_CATALOG
         actual_domains = {spec.get("domain", "") for spec in COMMAND_CATALOG.values()}
-        expected_domains = {"scene", "asset", "generation", "viewport", "infrastructure", "object", "render", "io"}
+        expected_domains = {"scene", "viewport", "infrastructure", "object", "render", "io"}
         assert actual_domains == expected_domains, (
             f"Domains mismatch. Got {actual_domains}, expected {expected_domains}"
         )

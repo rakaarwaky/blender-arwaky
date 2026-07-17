@@ -65,7 +65,7 @@ class TestApplicationConfigLoader:
                 return "/mock/xdg" in str(self_path)
             with patch.object(Path, "exists", exists_mock):
                 res = ApplicationConfigLoader.get_project_root()
-                assert PurePosixPath(res) == PurePosixPath("/mock/xdg/blender-mcp")
+                assert PurePosixPath(res) == PurePosixPath("/mock/xdg/blender-arwaky")
 
     def test_get_project_root_fallback_cwd(self):
         from pathlib import PurePosixPath

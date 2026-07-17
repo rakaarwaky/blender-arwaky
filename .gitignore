@@ -54,3 +54,5 @@ MagicMock/
 
 # Screenshot artifacts
 screenshot*/
+
+.mimocode/

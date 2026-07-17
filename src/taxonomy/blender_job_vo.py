@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Final
 
-from .core_types_vo import ErrorMessage, JobId, JobState, Progress, ProviderName, ResultUrl
+from .core_types_vo import ErrorMessage, JobId, JobState, Progress, ResultUrl
 
 # ============================================================
 # JOB CONSTANTS
@@ -13,9 +13,6 @@ JOB_STATE_PENDING: Final[JobState] = JobState("PENDING")
 JOB_STATE_RUNNING: Final[JobState] = JobState("RUNNING")
 JOB_STATE_COMPLETED: Final[JobState] = JobState("COMPLETED")
 JOB_STATE_FAILED: Final[JobState] = JobState("FAILED")
-
-PROVIDER_HYPER3D_NAME: Final[ProviderName] = ProviderName("tool_generate_hyper3d")
-PROVIDER_HUNYUAN_NAME: Final[ProviderName] = ProviderName("hunyuan")
 
 
 # ============================================================

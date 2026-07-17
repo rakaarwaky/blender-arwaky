@@ -47,10 +47,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "polyhaven_asset_adapter",
         "sketchfab_api_client",
         "sketchfab_asset_adapter",
-        "hyper3d_generation_adapter",
-        "hyper3d_generation_client",
-        "hunyuan_generation_adapter",
-        "hunyuan_generation_client",
         "telemetry_signal_recorder",
         "telemetry_config_loader",
         "telemetry_api_util",
@@ -66,7 +62,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "render_operate_executor",
         "import_export_executor",
         "asset_search_collector",
-        "ai_generate_generator",
         "workflow_orchestrate_executor",
         "action_execute_actions",
         "core_agent_orchestrator",
@@ -77,7 +72,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "refinement_expert_orchestrator",
         "expert_base_orchestrator",
         "setup_expert_orchestrator",
-        "generation_expert_orchestrator",
         "server_bootstrap_manager",
         "server_bootstrap_coordinator",
     )
@@ -115,14 +109,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         return self._lazy_get("_sketchfab_adapter", lambda: FactoryRegistry.create_sketchfab_adapter(self.blender_connection))
 
     @property
-    def hyper3d_provider(self) -> object:
-        return self._lazy_get("_hyper3d_provider", lambda: FactoryRegistry.create_hyper3d_adapter(self.blender_connection))
-
-    @property
-    def hunyuan_provider(self) -> object:
-        return self._lazy_get("_hunyuan_provider", lambda: FactoryRegistry.create_hunyuan_adapter(self.blender_connection))
-
-    @property
     def telemetry(self) -> object:
         return self._lazy_get(
             "_telemetry_svc", lambda: FactoryRegistry.create_telemetry_recorder(self.blender_connection, self.config)
@@ -155,12 +141,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         )
 
     @property
-    def generate_ai_capability(self) -> object:
-        return self._lazy_get(
-            "_generation_manager", lambda: FactoryRegistry.create_generation_logic(self.hyper3d_provider, self.hunyuan_provider)
-        )
-
-    @property
     def object_operate_capability(self) -> object:
         return self._lazy_get("_object_operate_manager", lambda: FactoryRegistry.create_object_operate_executor(self.blender))
 
@@ -179,7 +159,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
             lambda: FactoryRegistry.create_workflow_orchestrate_executor(
                 blender_mgr=self.operate_scene_capability,
                 asset_mgr=self.search_asset_capability,
-                generation_mgr=self.generate_ai_capability,
             ),
         )
 
@@ -204,17 +183,7 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
             "_asset_expert",
             lambda: FactoryRegistry.create_asset_expert(
                 asset_mgr=self.search_asset_capability,
-                generation_mgr=self.generate_ai_capability,
                 blender_mgr=self.operate_scene_capability,
-            ),
-        )
-
-    @property
-    def generation_expert(self) -> object:
-        return self._lazy_get(
-            "_generation_expert",
-            lambda: FactoryRegistry.create_generation_expert(
-                gen_mgr=self.generate_ai_capability, blender_mgr=self.operate_scene_capability
             ),
         )
 
@@ -225,7 +194,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
             lambda: FactoryRegistry.create_refinement_expert(
                 setup_scene_expert=self.scene_expert,
                 search_asset_expert=self.asset_expert,
-                generate_ai_expert=self.generation_expert,
             ),
         )
 
@@ -236,7 +204,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
             lambda: FactoryRegistry.create_workflow_orchestrator(
                 scene_expert=self.scene_expert,
                 asset_expert=self.asset_expert,
-                generation_expert=self.generation_expert,
                 refinement_expert=self.refinement_expert,
             ),
         )

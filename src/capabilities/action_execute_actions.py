@@ -5,9 +5,12 @@ This capability is the sole entry point for executing any BlenderArwaky action.
 Handlers (MCP tools, CLI) delegate here — they contain no business logic.
 """
 
+import inspect
 import logging
 import re
 from typing import Any
+
+from pydantic import BaseModel
 
 from contract import ExecuteActionProtocol
 from taxonomy import ActionName, Details, Prompt
@@ -77,9 +80,9 @@ class ActionExecuteActions(ExecuteActionProtocol):
 
         method = getattr(cap, method_name)
 
-        # Call the method with **args
+        # Call the method — construct RequestVO if method expects a typed model
         try:
-            result = await method(**args)
+            result = await self._invoke_method(method, args)
             return Prompt(self._serialize_result(result))
         except Exception as e:
             import json
@@ -94,8 +97,6 @@ class ActionExecuteActions(ExecuteActionProtocol):
             return self.orchestrator.operate_scene_capability
         elif protocol_name == "AssetSearchProtocol" or protocol_name == "AssetProviderPort":
             return self.orchestrator.search_asset_capability
-        elif protocol_name == "GenerationProviderPort":
-            return self.orchestrator.generate_ai_capability
         elif protocol_name == "ObjectOperateProtocol":
             return self.orchestrator.object_operate_capability
         elif protocol_name == "RenderOperateProtocol":
@@ -103,6 +104,30 @@ class ActionExecuteActions(ExecuteActionProtocol):
         elif protocol_name == "ImportExportProtocol":
             return self.orchestrator.import_export_capability
         return None
+
+    @staticmethod
+    def _invoke_method(method: Any, args: dict[str, Any]) -> Any:
+        """Invoke a capability method, auto-constructing RequestVO when needed.
+
+        Protocol methods expecting a typed RequestVO (pydantic BaseModel) as their
+        first parameter receive a constructed instance. Methods with direct scalar
+        parameters receive unpacked kwargs (original behavior).
+        """
+        sig = inspect.signature(method)
+        params = [p for p in sig.parameters.values() if p.name != "self"]
+
+        if params:
+            first = params[0]
+            annotation = first.annotation
+            if (
+                annotation is not inspect.Parameter.empty
+                and isinstance(annotation, type)
+                and issubclass(annotation, BaseModel)
+            ):
+                request_obj = annotation(**args)
+                return method(request_obj)
+
+        return method(**args)
 
     def _serialize_result(self, result: Any) -> str:
         """Serialize capability method execution result to standard string or JSON."""

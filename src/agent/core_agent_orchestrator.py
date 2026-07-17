@@ -8,16 +8,14 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from contract import AgentDiContainerAggregate, CoreAgentOrchestratorAggregate, GenerationProtocol
+from contract import AgentDiContainerAggregate, CoreAgentOrchestratorAggregate
 from taxonomy import (
     ActionName,
     Details,
     DomainRef,
     FormatRef,
-    JobId,
     ObjectName,
     Prompt,
-    ProviderName,
     SectionRef,
     SkillName,
     SuccessFlag,
@@ -76,25 +74,6 @@ class CoreAgentOrchestrator(CoreAgentOrchestratorAggregate):
             return Prompt(json.dumps(summary, indent=2))
 
         return Prompt(json.dumps(catalog, indent=2))
-
-    async def check_status(self, provider: ProviderName, job_id: JobId) -> Prompt:
-        """Check status of a background generation job."""
-        import json
-
-        raw_provider = str(provider)
-        raw_job_id = str(job_id)
-
-        gen_cap = cast(GenerationProtocol, cast(Any, self._container).generate_ai_capability)
-        status = await gen_cap.check_status(provider, job_id)
-
-        result_dict = {
-            "success": True,
-            "provider": raw_provider,
-            "job_id": raw_job_id,
-            "status": status.status,
-            "message": "Status retrieved successfully",
-        }
-        return Prompt(json.dumps(result_dict, indent=2))
 
     def health_check(self) -> Prompt:
         """Check system health status."""

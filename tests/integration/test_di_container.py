@@ -46,14 +46,6 @@ class TestDIContainer:
         assert cap is not None
         assert hasattr(cap, "search_all")
 
-    def test_container_resolves_generate_ai_capability(self):
-        """DI container must resolve generate_ai_capability."""
-        container = get_container()
-        cap = container.generate_ai_capability
-        assert cap is not None
-        assert hasattr(cap, "start_generation")
-        assert hasattr(cap, "check_status")
-
     def test_container_resolves_execute_action_capability(self):
         """DI container must resolve execute_action_capability."""
         container = get_container()

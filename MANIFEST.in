@@ -4,7 +4,6 @@
 # ─── Documentation ─────────────────────────────────────────────────────────
 include README.md
 include CHANGELOG.md
-include SECURITY.md
 include LICENSE
 include AGENT.md
 include SKILL.md

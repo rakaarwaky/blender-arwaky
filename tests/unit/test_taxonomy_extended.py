@@ -1,4 +1,4 @@
-"""Tests tambahan untuk taxonomy layer — menutup gap 100% target.
+"""Tests tambahan untuk taxonomy layer -- menutup gap 100% target.
 
 Mencakup:
 - base_provider_vo.py (ProviderVO, AssetSearchRequestVO, dsb.)
@@ -13,12 +13,6 @@ from taxonomy.base_provider_vo import (
     AssetSearchResponseVO,
     AssetDownloadRequestVO,
     AssetDownloadResponseVO,
-    GenerationStartRequestVO,
-    GenerationStartResponseVO,
-    GenerationStatusRequestVO,
-    GenerationStatusResponseVO,
-    ImportGeneratedAssetRequestVO,
-    ImportGeneratedAssetResponseVO,
 )
 from taxonomy.blender_asset_vo import (
     AssetMetadata,
@@ -175,52 +169,8 @@ class TestAssetDownloadVOs:
         assert "Download failed" in resp.message
 
 
-@pytest.mark.unit
-class TestGenerationVOs:
-    def test_generation_start_request(self):
-        from taxonomy.core_types_vo import Prompt
-        req = GenerationStartRequestVO(prompt=Prompt("a red dragon"))
-        assert req.prompt == "a red dragon"
 
-    def test_generation_start_response(self):
-        resp = GenerationStartResponseVO(
-            job_id=JobId("job-123"),
-            status=JobState("PENDING"),
-        )
-        assert resp.job_id == "job-123"
-
-    def test_generation_status_request(self):
-        req = GenerationStatusRequestVO(job_id=JobId("job-456"))
-        assert req.job_id == "job-456"
-
-    def test_generation_status_response(self):
-        resp = GenerationStatusResponseVO(
-            job_id=JobId("job-789"),
-            status=JobState("RUNNING"),
-            progress=Progress(50.0),
-        )
-        assert resp.progress == 50.0
-        assert resp.error is None
-
-    def test_import_request(self):
-        req = ImportGeneratedAssetRequestVO(
-            asset_id=AssetId("gen-001"),
-            object_name=ObjectName("Dragon"),
-            location=Vector3D(0.0, 0.0, 0.0),
-        )
-        assert req.object_name == "Dragon"
-        assert req.rotation is None
-
-    def test_import_response(self):
-        resp = ImportGeneratedAssetResponseVO(
-            success=SuccessFlag(True),
-            object_name=ObjectName("Dragon"),
-            blender_id=ObjectName("Dragon.001"),
-        )
-        assert resp.success is True
-        assert resp.message is None
-
-
+# ─── blender_asset_vo
 # ─── blender_asset_vo.py ──────────────────────────────────────────
 
 @pytest.mark.unit

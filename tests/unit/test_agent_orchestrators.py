@@ -16,14 +16,12 @@ from contract import (
     ExpertBaseOrchestratorAggregate,
     SceneOperateProtocol,
     RenderOperateProtocol,
-    GenerationProtocol,
     AssetSearchProtocol
 )
 from agent.core_agent_orchestrator import CoreAgentOrchestrator
 from agent.expert_base_orchestrator import ExpertBaseOrchestrator
 from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
 from agent.setup_expert_orchestrator import SetupExpertOrchestrator
-from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
 from agent.search_expert_orchestrator import SearchExpertOrchestrator
 from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
 from agent.system_utils_coordinator import SystemUtilsCoordinator
@@ -39,7 +37,6 @@ class TestCoreAgentOrchestrator:
         container.code_executor = MagicMock()
         container.action_execute_capability = MagicMock()
         container.command_catalog = MagicMock()
-        container.generate_ai_capability = MagicMock()
         return container
 
     @pytest.mark.asyncio
@@ -86,20 +83,6 @@ class TestCoreAgentOrchestrator:
         data = json.loads(str(res))
         assert "clean" in data
         assert "description" in data["clean"]
-
-    @pytest.mark.asyncio
-    async def test_check_status(self, mock_container):
-        orchestrator = CoreAgentOrchestrator(mock_container)
-        mock_gen = mock_container.generate_ai_capability
-        mock_status = MagicMock()
-        mock_status.status = "COMPLETED"
-        mock_gen.check_status = AsyncMock(return_value=mock_status)
-
-        res = await orchestrator.check_status(ProviderName("hunyuan"), JobId("job_123"))
-        data = json.loads(str(res))
-        assert data["success"] is True
-        assert data["status"] == "COMPLETED"
-        mock_gen.check_status.assert_called_with(ProviderName("hunyuan"), JobId("job_123"))
 
     def test_health_check(self, mock_container):
         orchestrator = CoreAgentOrchestrator(mock_container)
@@ -154,7 +137,6 @@ class TestWorkflowAgentOrchestrator:
         return {
             "scene": MagicMock(spec=ExpertBaseOrchestratorAggregate),
             "asset": MagicMock(spec=ExpertBaseOrchestratorAggregate),
-            "generation": MagicMock(spec=ExpertBaseOrchestratorAggregate),
             "refinement": MagicMock(spec=ExpertBaseOrchestratorAggregate),
         }
 
@@ -163,7 +145,6 @@ class TestWorkflowAgentOrchestrator:
         orchestrator = WorkflowAgentOrchestrator(
             scene_expert=mock_experts["scene"],
             asset_expert=mock_experts["asset"],
-            generation_expert=mock_experts["generation"],
             refinement_expert=mock_experts["refinement"]
         )
 
@@ -186,7 +167,6 @@ class TestWorkflowAgentOrchestrator:
         orchestrator = WorkflowAgentOrchestrator(
             scene_expert=mock_experts["scene"],
             asset_expert=mock_experts["asset"],
-            generation_expert=mock_experts["generation"],
             refinement_expert=mock_experts["refinement"]
         )
         mock_experts["refinement"].execute = AsyncMock(return_value={"success": True, "message": "refined"})
@@ -198,14 +178,12 @@ class TestWorkflowAgentOrchestrator:
         orchestrator = WorkflowAgentOrchestrator(
             scene_expert=mock_experts["scene"],
             asset_expert=mock_experts["asset"],
-            generation_expert=mock_experts["generation"],
             refinement_expert=mock_experts["refinement"]
         )
         status = await orchestrator.get_expert_status()
         assert status == {
             "tool_scene_ops": "initialized",
             "asset": "initialized",
-            "generation": "initialized",
             "refinement": "initialized"
         }
 
@@ -276,45 +254,6 @@ class TestSetupExpertOrchestrator:
 
 
 @pytest.mark.unit
-class TestGenerationExpertOrchestrator:
-    """Tests for GenerationExpertOrchestrator."""
-
-    @pytest.fixture
-    def mock_gen(self):
-        return MagicMock(spec=GenerationProtocol)
-
-    @pytest.fixture
-    def mock_blender(self):
-        return MagicMock(spec=SceneOperateProtocol)
-
-    @pytest.mark.asyncio
-    async def test_execute_actions(self, mock_gen, mock_blender):
-        orchestrator = GenerationExpertOrchestrator(mock_gen, mock_blender)
-
-        # 1. generate
-        mock_gen.start_generation = AsyncMock(return_value="job_abc")
-        res = await orchestrator.execute("generate", {"prompt": "cat"})
-        assert res["success"] is True
-        assert res["job_id"] == "job_abc"
-
-        # 2. poll
-        mock_status = MagicMock()
-        mock_status.status = "COMPLETED"
-        mock_status.result_url = "http://my_asset.glb"
-        mock_gen.check_status = AsyncMock(return_value=mock_status)
-        res = await orchestrator.execute("poll", {"provider": "hyper3d", "job_id": "job_abc"})
-        assert res["success"] is True
-        assert res["status"] == "COMPLETED"
-        assert res["result_url"] == "http://my_asset.glb"
-
-        # 3. generate_and_import success
-        mock_gen.start_generation = AsyncMock(return_value="job_xyz")
-        res = await orchestrator.execute("generate_and_import", {"prompt": "dog", "max_wait_seconds": 5, "poll_interval": 0.01})
-        assert res["success"] is True
-        assert res["job_id"] == "job_xyz"
-
-
-@pytest.mark.unit
 class TestSearchExpertOrchestrator:
     """Tests for SearchExpertOrchestrator."""
 
@@ -323,16 +262,12 @@ class TestSearchExpertOrchestrator:
         return MagicMock(spec=AssetSearchProtocol)
 
     @pytest.fixture
-    def mock_gen(self):
-        return MagicMock(spec=GenerationProtocol)
-
-    @pytest.fixture
     def mock_blender(self):
         return MagicMock(spec=SceneOperateProtocol)
 
     @pytest.mark.asyncio
-    async def test_execute_actions(self, mock_assets, mock_gen, mock_blender):
-        orchestrator = SearchExpertOrchestrator(mock_assets, mock_gen, mock_blender)
+    async def test_execute_actions(self, mock_assets, mock_blender):
+        orchestrator = SearchExpertOrchestrator(mock_assets, mock_blender)
 
         # 1. search
         asset_mock = MagicMock()
@@ -362,19 +297,6 @@ class TestSearchExpertOrchestrator:
         res = await orchestrator.execute("place", {"asset_id": "asset_id", "location": [0.0, 1.0, 2.0]})
         assert res["success"] is True
 
-        # 4. generate_if_missing (found path)
-        res = await orchestrator.execute("generate_if_missing", {"query": "box"})
-        assert res["success"] is True
-        assert res["action"] == "search_found"
-
-        # 5. generate_if_missing (not found -> generate path)
-        mock_assets.search_all = AsyncMock(return_value=[])
-        mock_gen.start_generation = AsyncMock(return_value="job_id")
-        res = await orchestrator.execute("generate_if_missing", {"query": "alien", "ai_provider": "hunyuan"})
-        assert res["success"] is True
-        assert res["action"] == "generation_started"
-        assert res["job_id"] == "job_id"
-
 
 @pytest.mark.unit
 class TestRefinementExpertOrchestrator:
@@ -388,13 +310,9 @@ class TestRefinementExpertOrchestrator:
     def mock_asset(self):
         return MagicMock(spec=ExpertBaseOrchestratorAggregate)
 
-    @pytest.fixture
-    def mock_gen(self):
-        return MagicMock(spec=ExpertBaseOrchestratorAggregate)
-
     @pytest.mark.asyncio
-    async def test_execute_actions(self, mock_scene, mock_asset, mock_gen):
-        orchestrator = RefinementExpertOrchestrator(mock_scene, mock_asset, mock_gen)
+    async def test_execute_actions(self, mock_scene, mock_asset):
+        orchestrator = RefinementExpertOrchestrator(mock_scene, mock_asset)
 
         # 1. analyze_gaps
         mock_scene.execute = AsyncMock(return_value={"tool_scene_ops": {"objects": [{"name": "Cube"}]}})

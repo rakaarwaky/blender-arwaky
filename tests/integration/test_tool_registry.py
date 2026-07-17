@@ -7,21 +7,18 @@ from surfaces.tool_registry_handler import ToolRegistryHandler
 
 @pytest.mark.integration
 class TestToolRegistry:
-    """Tests that all 5 MCP tools are registered."""
+    """Tests that all 4 MCP tools are registered."""
 
-    def test_register_tools_registers_exactly_5(self):
-        """register_tools must call mcp.tool() exactly 5 times."""
+    def test_register_tools_registers_exactly_4(self):
+        """register_tools must call mcp.tool() exactly 4 times."""
         mcp = MagicMock()
         ToolRegistryHandler.register_tools(mcp)
-        assert mcp.tool.call_count == 5, (
-            f"Expected 5 tool registrations, got {mcp.tool.call_count}"
+        assert mcp.tool.call_count == 4, (
+            f"Expected 4 tool registrations, got {mcp.tool.call_count}"
         )
 
-    def test_register_tools_calls_five_different_modules(self):
-        """Each tool must come from a different handler module (5 distinct registers)."""
-        # We test that the mcp.tool() decorator was called 5 times.
-        # Since all calls are decorator-like (no positional args beyond the decorator),
-        # we verify count and that the registry doesn't throw.
+    def test_register_tools_calls_four_different_modules(self):
+        """Each tool must come from a different handler module (4 distinct registers)."""
         mcp = MagicMock()
         ToolRegistryHandler.register_tools(mcp)
-        assert mcp.tool.call_count == 5
+        assert mcp.tool.call_count == 4

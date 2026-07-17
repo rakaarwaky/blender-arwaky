@@ -13,9 +13,6 @@ from contract import (
     ConfigPort,
     CoreAgentOrchestratorAggregate,
     ExecuteActionProtocol,
-    GenerationExpertOrchestratorAggregate,
-    GenerationProtocol,
-    GenerationProviderPort,
     ImportExportProtocol,
     ObjectOperateProtocol,
     RefinementExpertOrchestratorAggregate,
@@ -47,10 +44,6 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
             "polyhaven_asset_adapter",
             "sketchfab_api_client",
             "sketchfab_asset_adapter",
-            "hyper3d_generation_adapter",
-            "hyper3d_generation_client",
-            "hunyuan_generation_adapter",
-            "hunyuan_generation_client",
             "telemetry_signal_recorder",
             "telemetry_config_loader",
             "telemetry_api_util",
@@ -65,7 +58,6 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
             "render_operate_executor",
             "import_export_executor",
             "asset_search_collector",
-            "ai_generate_generator",
             "workflow_orchestrate_executor",
             "action_execute_actions",
         )
@@ -99,18 +91,6 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
         from infrastructure.sketchfab_asset_adapter import SketchfabAssetAdapter
 
         return SketchfabAssetAdapter(cast(Any, connection))
-
-    @staticmethod
-    def create_hyper3d_adapter(connection: object) -> GenerationProviderPort:
-        from infrastructure.hyper3d_generation_adapter import Hyper3DGenerationAdapter
-
-        return Hyper3DGenerationAdapter(cast(Any, connection))
-
-    @staticmethod
-    def create_hunyuan_adapter(connection: object) -> GenerationProviderPort:
-        from infrastructure.hunyuan_generation_adapter import HunyuanGenerationAdapter
-
-        return HunyuanGenerationAdapter(cast(Any, connection))
 
     @staticmethod
     def create_telemetry_recorder(connection: object, config: object) -> TelemetryRecordingPort:
@@ -149,18 +129,12 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
         return AssetSearchCollector({"polyhaven": cast(Any, polyhaven), "sketchfab": cast(Any, sketchfab)})
 
     @staticmethod
-    def create_generation_logic(hyper3d: object, hunyuan: object) -> GenerationProtocol:
-        from capabilities.ai_generate_generator import AiGenerateGenerator
-
-        return AiGenerateGenerator({"hyper3d": cast(Any, hyper3d), "hunyuan": cast(Any, hunyuan)})
-
-    @staticmethod
     def create_workflow_orchestrate_executor(
-        blender_mgr: object, asset_mgr: object, generation_mgr: object
+        blender_mgr: object, asset_mgr: object
     ) -> WorkflowProtocol:
         from capabilities.workflow_orchestrate_executor import WorkflowExecutor
 
-        return WorkflowExecutor(cast(Any, blender_mgr), cast(Any, asset_mgr), cast(Any, generation_mgr))
+        return WorkflowExecutor(cast(Any, blender_mgr), cast(Any, asset_mgr))
 
     @staticmethod
     def create_object_operate_executor(blender: object) -> ObjectOperateProtocol:
@@ -200,41 +174,33 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
 
     @staticmethod
     def create_asset_expert(
-        asset_mgr: object, generation_mgr: object, blender_mgr: object
+        asset_mgr: object, blender_mgr: object
     ) -> SearchExpertOrchestratorAggregate:
         from .search_expert_orchestrator import SearchExpertOrchestrator
 
-        return SearchExpertOrchestrator(cast(Any, asset_mgr), cast(Any, generation_mgr), cast(Any, blender_mgr))
-
-    @staticmethod
-    def create_generation_expert(gen_mgr: object, blender_mgr: object) -> GenerationExpertOrchestratorAggregate:
-        from .generation_expert_orchestrator import GenerationExpertOrchestrator
-
-        return GenerationExpertOrchestrator(cast(Any, gen_mgr), cast(Any, blender_mgr))
+        return SearchExpertOrchestrator(cast(Any, asset_mgr), cast(Any, blender_mgr))
 
     @staticmethod
     def create_refinement_expert(
         setup_scene_expert: object,
         search_asset_expert: object,
-        generate_ai_expert: object,
     ) -> RefinementExpertOrchestratorAggregate:
         from .refinement_expert_orchestrator import RefinementExpertOrchestrator
 
         return RefinementExpertOrchestrator(
-            cast(Any, setup_scene_expert), cast(Any, search_asset_expert), cast(Any, generate_ai_expert)
+            cast(Any, setup_scene_expert), cast(Any, search_asset_expert)
         )
 
     @staticmethod
     def create_workflow_orchestrator(
         scene_expert: object,
         asset_expert: object,
-        generation_expert: object,
         refinement_expert: object,
     ) -> WorkflowAgentOrchestratorAggregate:
         from .workflow_agent_orchestrator import WorkflowAgentOrchestrator
 
         return WorkflowAgentOrchestrator(
-            cast(Any, scene_expert), cast(Any, asset_expert), cast(Any, generation_expert), cast(Any, refinement_expert)
+            cast(Any, scene_expert), cast(Any, asset_expert), cast(Any, refinement_expert)
         )
 
     @staticmethod

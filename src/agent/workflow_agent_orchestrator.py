@@ -20,12 +20,10 @@ class WorkflowAgentOrchestrator(WorkflowAgentOrchestratorAggregate):
         self,
         scene_expert: ExpertBaseOrchestratorAggregate,
         asset_expert: ExpertBaseOrchestratorAggregate,
-        generation_expert: ExpertBaseOrchestratorAggregate,
         refinement_expert: ExpertBaseOrchestratorAggregate,
     ):
         self.tool_scene_ops = scene_expert
         self.asset = asset_expert
-        self.generation = generation_expert
         self.refinement = refinement_expert
 
     async def create_scene_from_prompt(self, prompt: str) -> dict[str, Any]:
@@ -49,9 +47,6 @@ class WorkflowAgentOrchestrator(WorkflowAgentOrchestratorAggregate):
         asset_search = await self.asset.execute("search", {"query": prompt})
         results["steps"].append({"step": "asset_search", "result": asset_search})
 
-        if not asset_search.get("success") or len(asset_search.get("assets", [])) == 0:
-            gen_res = await self.asset.execute("generate_if_missing", {"query": prompt})
-            results["steps"].append({"step": "ai_generation", "result": gen_res})
 
         # Step 3: Environment & lighting
         env_res = await self.tool_scene_ops.execute("setup_environment", {"hdri_name": "default_studio"})
@@ -88,6 +83,5 @@ class WorkflowAgentOrchestrator(WorkflowAgentOrchestratorAggregate):
         return {
             "tool_scene_ops": "initialized",
             "asset": "initialized",
-            "generation": "initialized",
             "refinement": "initialized",
         }

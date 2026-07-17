@@ -8,7 +8,6 @@ from typing import cast
 
 from .agent_di_container import AgentDiContainer as AgentContainer
 from .agent_di_container import get_container
-from .generation_expert_orchestrator import GenerationExpertOrchestrator as GenerationExpert
 from .refinement_expert_orchestrator import RefinementExpertOrchestrator as RefinementExpert
 from .search_expert_orchestrator import SearchExpertOrchestrator as AssetExpert
 from .setup_expert_orchestrator import SetupExpertOrchestrator as SceneExpert
@@ -23,11 +22,6 @@ def get_scene_expert() -> SceneExpert:
 def get_asset_expert() -> AssetExpert:
     """Get AssetExpert from the global DI container."""
     return cast(AssetExpert, get_container().asset_expert)
-
-
-def get_generation_expert() -> GenerationExpert:
-    """Get GenerationExpert from the global DI container."""
-    return cast(GenerationExpert, get_container().generation_expert)
 
 
 def get_refinement_expert() -> RefinementExpert:
@@ -46,7 +40,6 @@ def get_all_experts() -> dict:
     return {
         "tool_scene_ops": container.scene_expert,
         "asset": container.asset_expert,
-        "generation": container.generation_expert,
         "refinement": container.refinement_expert,
     }
 
@@ -54,14 +47,12 @@ def get_all_experts() -> dict:
 __all__ = [
     "SceneExpert",
     "AssetExpert",
-    "GenerationExpert",
     "RefinementExpert",
     "TextToSceneOrchestrator",
     "AgentContainer",
     "get_container",
     "get_scene_expert",
     "get_asset_expert",
-    "get_generation_expert",
     "get_refinement_expert",
     "get_orchestrator",
     "get_all_experts",

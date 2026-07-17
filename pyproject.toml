@@ -73,8 +73,6 @@ ignore = ["E501"]
 "blender_mcp_addon/__init__.py"   = ["N801"]  # bl_info keys
 "blender_mcp_addon/operators.py"  = ["N801"]  # Operator.bl_idname convention
 "blender_mcp_addon/ui.py"         = ["N801", "ARG002"]  # Panel/AddonPreferences + context arg required by bpy
-"blender_mcp_addon/hunyuan.py"    = ["N803", "N806", "SIM105"]  # Hunyuan API field names are camelCase; try/except-pass is intentional
-"blender_mcp_addon/hyper3d.py"    = ["ARG001", "SIM105"]  # bpy.types.Operator signature requires unused arg; try/except-pass is intentional
 "blender_mcp_addon/polyhaven.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/sketchfab.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/properties.py" = []  # noqa already used inline
@@ -124,8 +122,6 @@ omit = [
     "*/build/*",
     # Exclude external-API clients from global threshold.
     # They require recorded HTTP fixtures (vcrpy) to test meaningfully.
-    "blender_mcp_addon/hunyuan.py",
-    "blender_mcp_addon/hyper3d.py",
     "blender_mcp_addon/polyhaven.py",
     "blender_mcp_addon/sketchfab.py",
 ]
@@ -135,7 +131,7 @@ precision = 2
 show_missing = true
 skip_covered = false
 # Realistic current threshold — increase as tests mature.
-# Excludes external-API modules (hunyuan, hyper3d, polyhaven, sketchfab)
+# Excludes external-API modules (polyhaven, sketchfab)
 # that require live network mocking to test.
 fail_under = 60
 exclude_lines = [

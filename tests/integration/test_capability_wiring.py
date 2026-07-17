@@ -51,11 +51,6 @@ class TestCapabilityContracts:
         assert hasattr(cap, "search_all"), "missing: search_all"
         assert hasattr(cap, "fetch_and_import"), "missing: fetch_and_import"
 
-    def test_generation_capability_has_required_methods(self):
-        cap = get_container().generate_ai_capability
-        assert hasattr(cap, "start_generation"), "missing: start_generation"
-        assert hasattr(cap, "check_status"), "missing: check_status"
-
     def test_object_capability_via_factory_has_required_methods(self):
         """Object capability via factory (bypasses missing DI slot)."""
         from capabilities.object_operate_executor import ObjectOperateExecutor
@@ -433,88 +428,3 @@ class TestBlenderConnectionIntegration:
         result = conn.receive_full_response(mock_sock, buffer_size=8192)
         parsed = json.loads(result.decode("utf-8"))
         assert parsed["result"]["x"] == 1
-
-
-# ── 7. AiGenerateGenerator + Provider Integration ─────────────────────────────
-
-@pytest.mark.integration
-class TestAiGenerateGeneratorIntegration:
-    """AiGenerateGenerator routes correctly to the named provider."""
-
-    @pytest.mark.asyncio
-    async def test_start_generation_delegates_to_correct_provider(self):
-        from capabilities.ai_generate_generator import AiGenerateGenerator
-        from taxonomy import (
-            GenerationStartResponseVO, JobId, ProviderName, Prompt, JobState,
-        )
-
-        mock_hunyuan = AsyncMock()
-        mock_hunyuan.start_generation = AsyncMock(
-            return_value=GenerationStartResponseVO(
-                job_id=JobId("job_hun_123"),
-                status=JobState("PENDING"),
-                provider=ProviderName("hunyuan"),
-            )
-        )
-        mock_hyper3d = AsyncMock()
-        mock_hyper3d.start_generation = AsyncMock(
-            return_value=GenerationStartResponseVO(
-                job_id=JobId("job_hyp_456"),
-                status=JobState("PENDING"),
-                provider=ProviderName("hyper3d"),
-            )
-        )
-
-        generator = AiGenerateGenerator(providers={
-            "hunyuan": mock_hunyuan,
-            "hyper3d": mock_hyper3d,
-        })
-
-        job_id = await generator.start_generation(
-            provider_name=ProviderName("hunyuan"),
-            prompt=Prompt("a wooden chair")
-        )
-
-        assert str(job_id) == "job_hun_123"
-        mock_hunyuan.start_generation.assert_called_once()
-        mock_hyper3d.start_generation.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_start_generation_raises_for_unknown_provider(self):
-        from capabilities.ai_generate_generator import AiGenerateGenerator
-        from taxonomy import ProviderError, ProviderName, Prompt
-
-        generator = AiGenerateGenerator(providers={})
-
-        with pytest.raises(ProviderError, match="not found"):
-            await generator.start_generation(
-                provider_name=ProviderName("unknown_provider"),
-                prompt=Prompt("test prompt")
-            )
-
-    @pytest.mark.asyncio
-    async def test_check_status_returns_structured_job_status(self):
-        from capabilities.ai_generate_generator import AiGenerateGenerator
-        from taxonomy import (
-            GenerationStatusResponseVO, JobId, ProviderName, JobState, Progress,
-        )
-
-        mock_provider = AsyncMock()
-        mock_provider.poll_generation = AsyncMock(
-            return_value=GenerationStatusResponseVO(
-                job_id=JobId("job_1"),
-                status=JobState("DONE"),
-                progress=Progress(100.0),
-                error=None,
-            )
-        )
-
-        generator = AiGenerateGenerator(providers={"hunyuan": mock_provider})
-
-        status = await generator.check_status(
-            provider_name=ProviderName("hunyuan"),
-            job_id=JobId("job_1")
-        )
-
-        assert str(status.status) == "DONE"
-        assert status.error is None

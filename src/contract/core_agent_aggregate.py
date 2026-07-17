@@ -11,10 +11,8 @@ from taxonomy import (
     DomainRef,
     FilePath,
     FormatRef,
-    JobId,
     ObjectName,
     Prompt,
-    ProviderName,
     SectionRef,
     SkillName,
 )
@@ -38,11 +36,6 @@ class CoreAgentOrchestratorAggregate(ABC):
     @abstractmethod
     def list_commands(self, domain: DomainRef | None = None, format: FormatRef | None = None) -> Prompt:
         """List commands registered in the catalog."""
-        ...
-
-    @abstractmethod
-    async def check_status(self, provider: ProviderName, job_id: JobId) -> Prompt:
-        """Check status of a background generation job."""
         ...
 
     @abstractmethod

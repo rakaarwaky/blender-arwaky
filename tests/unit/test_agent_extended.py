@@ -85,8 +85,6 @@ class TestServerBootstrapManager:
         assert AgentFactoryRegistry.create_blender_adapter(mock_conn) is not None
         assert AgentFactoryRegistry.create_polyhaven_adapter(mock_conn) is not None
         assert AgentFactoryRegistry.create_sketchfab_adapter(mock_conn) is not None
-        assert AgentFactoryRegistry.create_hyper3d_adapter(mock_conn) is not None
-        assert AgentFactoryRegistry.create_hunyuan_adapter(mock_conn) is not None
         assert AgentFactoryRegistry.create_telemetry_recorder(mock_conn, mock_config) is not None
         assert AgentFactoryRegistry.create_viewport_capture(mock_conn) is not None
         assert AgentFactoryRegistry.create_scene_inspector(mock_conn, mock_executor) is not None
@@ -96,14 +94,11 @@ class TestServerBootstrapManager:
         mock_blender = MagicMock()
         mock_polyhaven = MagicMock()
         mock_sketchfab = MagicMock()
-        mock_hyper3d = MagicMock()
-        mock_hunyuan = MagicMock()
         mock_container = MagicMock()
 
         assert AgentFactoryRegistry.create_blender_manager(mock_blender) is not None
         assert AgentFactoryRegistry.create_asset_collector(mock_polyhaven, mock_sketchfab) is not None
-        assert AgentFactoryRegistry.create_generation_logic(mock_hyper3d, mock_hunyuan) is not None
-        assert AgentFactoryRegistry.create_workflow_orchestrate_executor(MagicMock(), MagicMock(), MagicMock()) is not None
+        assert AgentFactoryRegistry.create_workflow_orchestrate_executor(MagicMock(), MagicMock()) is not None
         assert AgentFactoryRegistry.create_object_operate_executor(mock_blender) is not None
         assert AgentFactoryRegistry.create_render_operate_executor(mock_blender) is not None
         assert AgentFactoryRegistry.create_import_export_executor(mock_blender) is not None
@@ -113,10 +108,9 @@ class TestServerBootstrapManager:
     def test_expert_factories(self):
         mock_container = MagicMock()
         assert AgentFactoryRegistry.create_scene_expert(MagicMock(), MagicMock()) is not None
-        assert AgentFactoryRegistry.create_asset_expert(MagicMock(), MagicMock(), MagicMock()) is not None
-        assert AgentFactoryRegistry.create_generation_expert(MagicMock(), MagicMock()) is not None
-        assert AgentFactoryRegistry.create_refinement_expert(MagicMock(), MagicMock(), MagicMock()) is not None
-        assert AgentFactoryRegistry.create_workflow_orchestrator(MagicMock(), MagicMock(), MagicMock(), MagicMock()) is not None
+        assert AgentFactoryRegistry.create_asset_expert(MagicMock(), MagicMock()) is not None
+        assert AgentFactoryRegistry.create_refinement_expert(MagicMock(), MagicMock()) is not None
+        assert AgentFactoryRegistry.create_workflow_orchestrator(MagicMock(), MagicMock(), MagicMock()) is not None
         assert AgentFactoryRegistry.create_core_agent(mock_container) is not None
 
 
@@ -156,14 +150,6 @@ class TestAgentInitModule:
             result = get_asset_expert()
             assert result == "asset_expert"
 
-    def test_get_generation_expert(self):
-        mock_container = MagicMock()
-        mock_container.generation_expert = "gen_expert"
-        with patch("agent.get_container", return_value=mock_container):
-            from agent import get_generation_expert
-            result = get_generation_expert()
-            assert result == "gen_expert"
-
     def test_get_refinement_expert(self):
         mock_container = MagicMock()
         mock_container.refinement_expert = "ref_expert"
@@ -184,7 +170,6 @@ class TestAgentInitModule:
         mock_container = MagicMock()
         mock_container.scene_expert = "scene"
         mock_container.asset_expert = "asset"
-        mock_container.generation_expert = "gen"
         mock_container.refinement_expert = "ref"
         with patch("agent.get_container", return_value=mock_container):
             from agent import get_all_experts
@@ -192,7 +177,6 @@ class TestAgentInitModule:
             assert result == {
                 "tool_scene_ops": "scene",
                 "asset": "asset",
-                "generation": "gen",
                 "refinement": "ref",
             }
 

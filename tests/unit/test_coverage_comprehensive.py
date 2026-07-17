@@ -32,54 +32,25 @@ class TestAgentLogicCoordinator:
 
 
 @pytest.mark.unit
-class TestGenerationExpert:
-    """Cover error paths in generation expert."""
-
-    @pytest.mark.asyncio
-    async def test_unknown_action(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        r = await GenerationExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
-        assert not r["success"]
-
-    @pytest.mark.asyncio
-    async def test_generate_no_prompt(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        r = await GenerationExpertOrchestrator(MagicMock(), MagicMock()).execute("generate", {})
-        assert not r["success"]
-
-    @pytest.mark.asyncio
-    async def test_poll_no_params(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        r = await GenerationExpertOrchestrator(MagicMock(), MagicMock()).execute("poll", {})
-        assert not r["success"]
-
-    @pytest.mark.asyncio
-    async def test_generate_and_import_no_prompt(self):
-        from agent.generation_expert_orchestrator import GenerationExpertOrchestrator
-        r = await GenerationExpertOrchestrator(MagicMock(), MagicMock()).execute("generate_and_import", {})
-        assert not r["success"]
-
-
-@pytest.mark.unit
 class TestSearchExpert:
     """Cover error handling in search/asset expert."""
 
     @pytest.mark.asyncio
     async def test_unknown_action(self):
         from agent.search_expert_orchestrator import SearchExpertOrchestrator
-        r = await SearchExpertOrchestrator(MagicMock(), MagicMock(), MagicMock()).execute("nonexistent", {})
+        r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_import_no_params(self):
         from agent.search_expert_orchestrator import SearchExpertOrchestrator
-        r = await SearchExpertOrchestrator(MagicMock(), MagicMock(), MagicMock()).execute("import", {})
+        r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("import", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_place_no_params(self):
         from agent.search_expert_orchestrator import SearchExpertOrchestrator
-        r = await SearchExpertOrchestrator(MagicMock(), MagicMock(), MagicMock()).execute("place", {})
+        r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("place", {})
         assert not r["success"]
 
 
@@ -113,7 +84,7 @@ class TestRefinementExpert:
     @pytest.mark.asyncio
     async def test_unknown_action(self):
         from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
-        r = await RefinementExpertOrchestrator(MagicMock(), MagicMock(), MagicMock()).execute("nonexistent", {})
+        r = await RefinementExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
@@ -123,7 +94,7 @@ class TestRefinementExpert:
         scene.execute = AsyncMock(return_value={"tool_scene_ops": {"objects": []}})
         asset = MagicMock()
         asset.execute = AsyncMock(return_value={"success": True})
-        r = await RefinementExpertOrchestrator(scene, asset, MagicMock()).execute("refine_loop", {
+        r = await RefinementExpertOrchestrator(scene, asset).execute("refine_loop", {
             "objective": "improve", "max_iterations": 1
         })
         assert isinstance(r, dict)
@@ -140,7 +111,7 @@ class TestWorkflowAgent:
         scene.execute = AsyncMock(return_value={"success": True})
         asset = MagicMock()
         asset.execute = AsyncMock(return_value={"success": True, "assets": []})
-        wf = WorkflowAgentOrchestrator(scene, asset, MagicMock(), MagicMock())
+        wf = WorkflowAgentOrchestrator(scene, asset, MagicMock())
         r = await wf.create_scene_from_prompt("make a chair")
         assert isinstance(r, dict)
 
@@ -280,8 +251,6 @@ class TestContractNames:
         self._c("contract.core_agent_aggregate", "CoreAgentOrchestratorAggregate")
     def test_expert_base(self):
         self._c("contract.expert_base_aggregate", "ExpertBaseOrchestratorAggregate")
-    def test_generation_expert(self):
-        self._c("contract.generation_expert_aggregate", "GenerationExpertOrchestratorAggregate")
     def test_refinement_expert(self):
         self._c("contract.refinement_expert_aggregate", "RefinementExpertOrchestratorAggregate")
     def test_search_expert(self):

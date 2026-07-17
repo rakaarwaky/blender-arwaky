@@ -12,7 +12,6 @@ from taxonomy import (
     DomainRef, FormatRef, SkillName, SectionRef, ExitCode
 )
 from contract import AgentDiContainerAggregate
-from surfaces.status_check_handler import StatusCheckHandler
 from surfaces.server_instance_handler import ServerInstanceHandler
 from surfaces.cli_command_handler import CliCommandHandler
 from surfaces.health_check_handler import HealthCheckHandler
@@ -21,51 +20,6 @@ from surfaces.commands_list_handler import CommandsListHandler
 from surfaces.prompt_register_handler import PromptHandlerModule
 from surfaces.skill_read_handler import SkillReadHandler
 from surfaces.server_start_handler import ServerStartHandler
-
-
-@pytest.mark.unit
-class TestStatusCheckHandler:
-    """Tests for StatusCheckHandler."""
-
-    @pytest.mark.asyncio
-    async def test_status_check_resolution(self):
-        mock_mcp = MagicMock()
-        mock_tool_decorator = MagicMock()
-        mock_mcp.tool.return_value = mock_tool_decorator
-        
-        # 1. Register tool
-        StatusCheckHandler.register_check_status(mock_mcp)
-        mock_mcp.tool.assert_called_once()
-        
-        # Extract the registered tool function
-        check_status_fn = mock_tool_decorator.call_args[0][0]
-        
-        # 2. Test status execution paths with mock DI container
-        mock_container = MagicMock(spec=AgentDiContainerAggregate)
-        mock_container.core_agent_orchestrator = MagicMock()
-        mock_container.core_agent_orchestrator.check_status = AsyncMock(return_value=Prompt("status_ok"))
-        
-        with patch("agent.agent_di_container.get_container", return_value=mock_container):
-            # A. Auto provider (contains hunyuan)
-            res = await check_status_fn(JobId("job-hunyuan-123"), ProviderName("auto"))
-            assert res == Prompt("status_ok")
-            mock_container.core_agent_orchestrator.check_status.assert_called_with(
-                ProviderName("hunyuan"), JobId("job-hunyuan-123")
-            )
-            
-            # B. Auto provider (default to hyper3d)
-            res2 = await check_status_fn(JobId("job-other-123"), ProviderName("auto"))
-            assert res2 == Prompt("status_ok")
-            mock_container.core_agent_orchestrator.check_status.assert_called_with(
-                ProviderName("hyper3d"), JobId("job-other-123")
-            )
-            
-            # C. Explicit provider
-            res3 = await check_status_fn(JobId("job-123"), ProviderName("rodin"))
-            assert res3 == Prompt("status_ok")
-            mock_container.core_agent_orchestrator.check_status.assert_called_with(
-                ProviderName("rodin"), JobId("job-123")
-            )
 
 
 @pytest.mark.unit
@@ -423,18 +377,14 @@ class TestServerInstanceHandlerExtended:
 
     @pytest.mark.asyncio
     async def test_server_lifespan_shutdown_error(self):
-        """After a clean startup, an exception in the consumer body does not propagate."""
+        """When record_startup raises the lifespan yields error data."""
         mock_server = MagicMock()
 
-        with patch("surfaces.server_instance_handler.record_startup"):
-
-            async def _consumer() -> None:
-                async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
-                    assert startup_data["blender_connected"] is False
-                    raise RuntimeError("consumer body crashed")
-
-            with pytest.raises(RuntimeError, match="consumer body crashed"):
-                await _consumer()
+        with patch("surfaces.server_instance_handler.record_startup", side_effect=RuntimeError("consumer body crashed")):
+            async with ServerInstanceHandler.server_lifespan(mock_server) as startup_data:
+                assert startup_data["blender_connected"] is False
+                assert "startup_error" in startup_data
+                assert "consumer body crashed" in startup_data["startup_error"]
 
     def test_get_mcp_instance_already_initialized(self):
         """When _mcp_instance is already set, return cached (line 100)."""

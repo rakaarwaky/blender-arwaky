@@ -14,8 +14,7 @@ class TestAgentDiCoverage:
     def test_infrastructure_properties(self) -> None:
         c = self._get()
         for attr in ("config", "blender_connection", "blender",
-                     "polyhaven_adapter", "sketchfab_adapter",
-                     "hyper3d_provider", "hunyuan_provider"):
+                     "polyhaven_adapter", "sketchfab_adapter"):
             try:
                 _ = getattr(c, attr)
             except Exception:
@@ -33,7 +32,7 @@ class TestAgentDiCoverage:
     def test_capability_properties(self) -> None:
         c = self._get()
         for attr in ("operate_scene_capability", "search_asset_capability",
-                     "generate_ai_capability", "object_operate_capability",
+                     "object_operate_capability",
                      "render_operate_capability", "import_export_capability",
                      "workflow_orchestrate_capability", "system_utils"):
             try:
@@ -43,7 +42,7 @@ class TestAgentDiCoverage:
 
     def test_expert_properties(self) -> None:
         c = self._get()
-        for attr in ("scene_expert", "asset_expert", "generation_expert",
+        for attr in ("scene_expert", "asset_expert",
                      "refinement_expert", "workflow_orchestrator"):
             try:
                 _ = getattr(c, attr)

@@ -31,10 +31,10 @@ When creating 3D content in Blender, always start by checking if integrations ar
     1. Poly Haven
         Use get_polyhaven_status() to verify its status ...
 Only fall back to scripting when:
-- Poly Haven, Sketchfab, Hyper3D, and Hunyuan3D are all disabled
+- Poly Haven and Sketchfab are both disabled
 - A simple primitive is explicitly requested
 - No suitable asset exists in any of the libraries
-- Hyper3D Rodin or Hunyuan3D failed to generate the desired asset
+- No suitable asset exists in any of the libraries
 - The task specifically requires a basic material/color
 """,
                 },

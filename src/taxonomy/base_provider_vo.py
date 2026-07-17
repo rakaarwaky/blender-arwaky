@@ -103,45 +103,44 @@ class AssetDownloadResponseVO(ProviderVO, BaseModel):
 
 
 class GenerationStartRequestVO(ProviderVO, BaseModel):
-    """Request to start a generation job."""
+    """Request DTO to start an AI generation job."""
 
     prompt: Prompt = Field(...)
 
 
 class GenerationStartResponseVO(ProviderVO, BaseModel):
-    """Response after starting generation."""
+    """Response DTO for generation start result."""
 
     job_id: JobId = Field(...)
     status: JobState = Field(...)
 
 
 class GenerationStatusRequestVO(ProviderVO, BaseModel):
-    """Request to poll generation job status."""
+    """Request DTO to check generation job status."""
 
     job_id: JobId = Field(...)
 
 
 class GenerationStatusResponseVO(ProviderVO, BaseModel):
-    """Response with current generation progress."""
+    """Response DTO for generation status check."""
 
     job_id: JobId = Field(...)
     status: JobState = Field(...)
-    progress: Progress = Field(Progress(0.0))
+    progress: Progress | None = Field(None)
     error: ErrorMessage | None = Field(None)
 
 
 class ImportGeneratedAssetRequestVO(ProviderVO, BaseModel):
-    """Request to import a completed generation result."""
+    """Request DTO to import an AI-generated asset into the scene."""
 
     asset_id: AssetId = Field(...)
     object_name: ObjectName = Field(...)
-    location: Vector3D = Field(...)
+    location: Vector3D = Field(default=Vector3D(0.0, 0.0, 0.0))
     rotation: Vector3D | None = Field(None)
-    scale: Vector3D | None = Field(None)
 
 
 class ImportGeneratedAssetResponseVO(ProviderVO, BaseModel):
-    """Response after importing generated asset."""
+    """Response DTO for importing generated asset result."""
 
     success: SuccessFlag = Field(...)
     object_name: ObjectName = Field(...)

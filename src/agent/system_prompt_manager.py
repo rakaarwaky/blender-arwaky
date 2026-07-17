@@ -48,8 +48,7 @@ Phase 1: Analysis & Cleanup
 - Identify the necessary assets (model_domain_entity_model, HDRIs, textures).
 
 Phase 2: Asset Acquisition
-- Use 'search_all_assets' to find model_domain_entity_model.
-- Use AI generation tools ('generate_hyper3d', 'generate_hunyuan') for unique items.
+- Use asset search to find models.
 - Import assets sequentially.
 
 Phase 3: Layout & Composition

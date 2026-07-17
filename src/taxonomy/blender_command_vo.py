@@ -176,27 +176,7 @@ class CommandCatalog:
         # ──────────────────────────────────────────────────────────────
         # Asset Search & Generation (ProviderPort)
         # ──────────────────────────────────────────────────────────────
-        "search_all_assets": {
-            "description": "Search for assets across providers",
-            "capability": "AssetProviderPort.search_assets",
-            "parameters": {"query": "Search string"},
-            "domain": "asset",
-            "returns": "AssetSearchResponseIO",
-        },
-        "start_generation": {
-            "description": "Start AI 3D generation",
-            "capability": "GenerationProviderPort.start_generation",
-            "parameters": {"prompt": "Description"},
-            "domain": "generation",
-            "returns": "GenerationStartResponseIO",
-        },
-        "poll_generation": {
-            "description": "Poll generation job status",
-            "capability": "GenerationProviderPort.poll_generation",
-            "parameters": {"job_id": "Job ID"},
-            "domain": "generation",
-            "returns": "GenerationStatusResponseIO",
-        },
+
     }
 
     @staticmethod

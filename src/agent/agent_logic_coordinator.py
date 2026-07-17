@@ -58,8 +58,6 @@ class ContainerLogic(AgentBaseContainerAggregate):
         self._blender_adapter: object | None = None
         self._polyhaven_adapter: object | None = None
         self._sketchfab_adapter: object | None = None
-        self._hyper3d_provider: object | None = None
-        self._hunyuan_provider: object | None = None
         self._telemetry_svc: object | None = None
         self._viewport_svc: object | None = None
         self._scene_svc: object | None = None
@@ -68,13 +66,10 @@ class ContainerLogic(AgentBaseContainerAggregate):
         self._tel_config: object | None = None
         self._tel_decorator: object | None = None
         self._tel_api: object | None = None
-        self._hunyuan_gen: object | None = None
-        self._hyper3d_gen: object | None = None
 
         # ── capability slots ──────────────────────────────────────────────────
         self._blender_manager: object | None = None
         self._asset_manager: object | None = None
-        self._generation_manager: object | None = None
         self._workflow_manager: object | None = None
         self._object_operate_manager: object | None = None
         self._render_operate_manager: object | None = None
@@ -86,7 +81,6 @@ class ContainerLogic(AgentBaseContainerAggregate):
         # ── expert slots ──────────────────────────────────────────────────────
         self._scene_expert: object | None = None
         self._asset_expert: object | None = None
-        self._generation_expert: object | None = None
         self._refinement_expert: object | None = None
         self._core_agent_orchestrator: object | None = None
 

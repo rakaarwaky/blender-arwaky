@@ -31,9 +31,3 @@ class TestApplicationConfig:
         """Default server.transport should be 'stdio'."""
         transport = get_config("server.transport", "stdio")
         assert transport == "stdio"
-
-    def test_get_config_root_level(self):
-        """get_config should work with single-level keys."""
-        value = get_config("hunyuan", None)
-        # Should not crash — returns None or a dict
-        assert value is None or isinstance(value, dict)

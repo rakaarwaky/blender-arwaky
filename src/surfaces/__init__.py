@@ -13,7 +13,6 @@ from .prompt_register_handler import PromptHandlerModule, register_prompts
 from .server_instance_handler import ServerInstanceHandler
 from .server_start_handler import ServerStartHandler
 from .skill_read_handler import SkillReadHandler
-from .status_check_handler import StatusCheckHandler
 from .tool_registry_handler import ToolRegistryHandler, register_tools
 
 __all__ = [
@@ -27,7 +26,6 @@ __all__ = [
     "ServerInstanceHandler",
     "ServerStartHandler",
     "SkillReadHandler",
-    "StatusCheckHandler",
     "ToolRegistryHandler",
     "register_tools",
 ]

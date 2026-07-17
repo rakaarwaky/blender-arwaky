@@ -33,9 +33,22 @@ class SceneOperateExecutor(SceneOperateProtocol):
     def blender(self) -> BlenderPort:
         return self._blender
 
-    async def cleanup_scene(self, _request: CleanupSceneRequestVO) -> CleanupSceneResponseVO:
-        logger.info("Cleaning up scene...")
-        code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
+    async def cleanup_scene(self, request: CleanupSceneRequestVO) -> CleanupSceneResponseVO:
+        logger.info(f"Cleaning up scene (mode={request.mode})...")
+        mode = str(request.mode).lower()
+        if mode == "objects":
+            code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
+        elif mode == "meshes":
+            code = (
+                "import bpy\n"
+                "bpy.ops.object.select_all(action='DESELECT')\n"
+                "for obj in bpy.data.objects:\n"
+                "    if obj.type == 'MESH':\n"
+                "        obj.select_set(True)\n"
+                "bpy.ops.object.delete()\n"
+            )
+        else:  # "all"
+            code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
         try:
             await self.blender.execute_code(PythonCode(code))
             return CleanupSceneResponseVO(

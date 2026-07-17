@@ -17,7 +17,6 @@ from taxonomy import (
     AssetMetadataVO, AssetSearchResponseVO, SceneInfo, BlenderObjectList,
     AssetName, BlenderObject, ObjectType
 )
-from capabilities.ai_generate_generator import AiGenerateGenerator
 from capabilities.asset_search_collector import AssetSearchCollector
 from capabilities.import_export_executor import ImportExportExecutor
 from capabilities.object_operate_executor import ObjectOperateExecutor
@@ -25,47 +24,6 @@ from capabilities.render_operate_executor import RenderOperateExecutor
 from capabilities.scene_operate_executor import SceneOperateExecutor
 from capabilities.workflow_orchestrate_executor import WorkflowExecutor
 from capabilities.action_execute_actions import ActionExecuteActions
-
-
-@pytest.mark.unit
-class TestAiGenerateGenerator:
-    """Tests for AiGenerateGenerator."""
-
-    @pytest.mark.asyncio
-    async def test_start_generation_success(self):
-        mock_provider = MagicMock()
-        mock_provider.start_generation = AsyncMock(return_value=MagicMock(job_id=JobId("job_123")))
-        generator = AiGenerateGenerator(providers={"hunyuan": mock_provider})
-
-        res = await generator.start_generation(ProviderName("hunyuan"), Prompt("cat"))
-        assert res == "job_123"
-        mock_provider.start_generation.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_start_generation_provider_not_found(self):
-        generator = AiGenerateGenerator(providers={})
-        with pytest.raises(ProviderError) as exc:
-            await generator.start_generation(ProviderName("hunyuan"), Prompt("cat"))
-        assert "not found" in str(exc.value)
-
-    @pytest.mark.asyncio
-    async def test_check_status_success(self):
-        mock_provider = MagicMock()
-        mock_response = MagicMock(status="COMPLETED", progress=1.0, error=None)
-        mock_provider.poll_generation = AsyncMock(return_value=mock_response)
-        generator = AiGenerateGenerator(providers={"hunyuan": mock_provider})
-
-        res = await generator.check_status(ProviderName("hunyuan"), JobId("job_123"))
-        assert res.status == "COMPLETED"
-        assert res.progress == 1.0
-        mock_provider.poll_generation.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_check_status_provider_not_found(self):
-        generator = AiGenerateGenerator(providers={})
-        with pytest.raises(ProviderError) as exc:
-            await generator.check_status(ProviderName("hunyuan"), JobId("job_123"))
-        assert "not found" in str(exc.value)
 
 
 @pytest.mark.unit
@@ -458,19 +416,13 @@ class TestWorkflowExecutor:
         m.setup_environment = AsyncMock()
         m.blender = MagicMock()
         m.blender.execute_code = AsyncMock()
+        m.generate_and_import_ai_asset = AsyncMock(return_value=Prompt("imported"))
         return m
 
     @pytest.fixture
     def mock_search(self):
         m = MagicMock()
         m.search_all = AsyncMock()
-        return m
-
-    @pytest.fixture
-    def mock_generation(self):
-        m = MagicMock()
-        m.start_generation = AsyncMock()
-        m.check_status = AsyncMock()
         return m
 
     @pytest.mark.asyncio
@@ -500,71 +452,6 @@ class TestWorkflowExecutor:
         res = await executor.create_basic_scene(Prompt("cozy chair"))
         assert res is False
 
-    @pytest.mark.asyncio
-    async def test_generate_and_import_ai_asset_no_generation(self, mock_scene, mock_search):
-        # Injected generation logic is None
-        executor = WorkflowExecutor(mock_scene, mock_search, None)
-        res = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "not configured" in str(res)
-
-    @pytest.mark.asyncio
-    async def test_generate_and_import_ai_asset_success(self, mock_scene, mock_search, mock_generation):
-        executor = WorkflowExecutor(mock_scene, mock_search, mock_generation)
-
-        mock_generation.start_generation.return_value = JobId("job_1")
-        # Check status returns DONE
-        mock_generation.check_status.return_value = MagicMock(status="DONE")
-
-        res = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "generated and imported successfully" in str(res)
-
-    @pytest.mark.asyncio
-    async def test_generate_and_import_ai_asset_failure_status(self, mock_scene, mock_search, mock_generation):
-        executor = WorkflowExecutor(mock_scene, mock_search, mock_generation)
-
-        mock_generation.start_generation.return_value = JobId("job_1")
-        # Check status returns FAILED
-        mock_generation.check_status.return_value = MagicMock(status="FAILED")
-
-        res = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "Generation failed" in str(res)
-
-    @pytest.mark.asyncio
-    async def test_generate_and_import_ai_asset_timeout(self, mock_scene, mock_search, mock_generation):
-        executor = WorkflowExecutor(mock_scene, mock_search, mock_generation)
-
-        mock_generation.start_generation.return_value = JobId("job_1")
-        # Always RUNNING
-        mock_generation.check_status.return_value = MagicMock(status="RUNNING")
-
-        # Mock sleep to avoid waiting 150 seconds
-        async def dummy_sleep(delay):
-            pass
-
-        with patch("asyncio.sleep", dummy_sleep):
-            res = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-            assert "timed out" in str(res)
-
-    @pytest.mark.asyncio
-    async def test_generate_and_import_ai_asset_exceptions(self, mock_scene, mock_search, mock_generation):
-        executor = WorkflowExecutor(mock_scene, mock_search, mock_generation)
-
-        # 1. ProviderError
-        mock_generation.start_generation = AsyncMock(side_effect=ProviderError(ErrorMessage("API full")))
-        res = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "API full" in str(res)
-
-        # 2. BlenderMCPError during import
-        mock_generation.start_generation = AsyncMock(return_value=JobId("job_1"))
-        mock_generation.check_status.return_value = MagicMock(status="DONE")
-        mock_scene.blender.execute_code = AsyncMock(side_effect=BlenderMCPError(ErrorMessage("Import failed")))
-        res2 = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "Import failed" in str(res2)
-
-        # 3. Generic Exception
-        mock_generation.start_generation = AsyncMock(side_effect=Exception("System error"))
-        res3 = await executor.generate_and_import_ai_asset(ProviderName("hunyuan"), Prompt("sword"))
-        assert "Workflow failed" in str(res3)
 
 
 @pytest.mark.unit
@@ -654,7 +541,6 @@ class TestActionExecuteActions:
         assert dispatcher._resolve_capability("SceneOperateProtocol") is mock_orch.operate_scene_capability
         assert dispatcher._resolve_capability("AssetSearchProtocol") is mock_orch.search_asset_capability
         assert dispatcher._resolve_capability("AssetProviderPort") is mock_orch.search_asset_capability
-        assert dispatcher._resolve_capability("GenerationProviderPort") is mock_orch.generate_ai_capability
         assert dispatcher._resolve_capability("ObjectOperateProtocol") is mock_orch.object_operate_capability
         assert dispatcher._resolve_capability("RenderOperateProtocol") is mock_orch.render_operate_capability
         assert dispatcher._resolve_capability("ImportExportProtocol") is mock_orch.import_export_capability

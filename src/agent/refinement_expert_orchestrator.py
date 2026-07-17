@@ -27,12 +27,10 @@ class RefinementExpertOrchestrator(ExpertOrchestratorLogic, RefinementExpertOrch
         self,
         setup_scene_expert: ExpertBaseOrchestratorAggregate,
         search_asset_expert: ExpertBaseOrchestratorAggregate,
-        generate_ai_expert: ExpertBaseOrchestratorAggregate,
     ):
         super().__init__("RefinementExpertOrchestrator")
         self.tool_scene_ops = setup_scene_expert
         self.asset = search_asset_expert
-        self.generation = generate_ai_expert
 
     async def execute(self, action: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if params is None:

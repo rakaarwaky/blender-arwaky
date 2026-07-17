@@ -43,8 +43,6 @@ from .blender_job_vo import (
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    PROVIDER_HUNYUAN_NAME,
-    PROVIDER_HYPER3D_NAME,
     JobStatus,
     create_job_id,
     create_progress,
@@ -350,8 +348,6 @@ __all__ = [
     "ASSET_TYPE_MODELS",
     "PROVIDER_POLYHAVEN",
     "PROVIDER_SKETCHFAB",
-    "PROVIDER_HYPER3D_NAME",
-    "PROVIDER_HUNYUAN_NAME",
     # Job state constants
     "JOB_STATE_PENDING",
     "JOB_STATE_RUNNING",

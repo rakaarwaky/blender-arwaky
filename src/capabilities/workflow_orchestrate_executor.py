@@ -10,7 +10,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from contract import AssetSearchProtocol, GenerationProtocol, SceneOperateProtocol
+    from contract import AssetSearchProtocol, SceneOperateProtocol
 
 from contract import WorkflowProtocol
 from taxonomy import (
@@ -18,8 +18,6 @@ from taxonomy import (
     CleanupSceneRequestVO,
     HdriId,
     Prompt,
-    ProviderError,
-    ProviderName,
     PythonCode,
     SearchQuery,
     SetupEnvironmentRequestVO,
@@ -36,11 +34,9 @@ class WorkflowExecutor(WorkflowProtocol):
         self,
         blender_executor: "SceneOperateProtocol",
         asset_collector: "AssetSearchProtocol",
-        generation_logic: "GenerationProtocol | None" = None,
     ):
         self.blender = blender_executor
         self.assets = asset_collector
-        self.generation = generation_logic
 
     async def create_basic_scene(self, prompt: Prompt) -> SuccessFlag:
         """
@@ -80,94 +76,3 @@ class WorkflowExecutor(WorkflowProtocol):
             logger.error(f"Workflow failed: {e}")
             return SuccessFlag(False)
 
-    async def generate_and_import_ai_asset(self, provider_name: ProviderName, prompt: Prompt) -> Prompt:
-        """
-        Workflow:
-        1. Start AI generation.
-        2. Wait for completion (poll).
-        3. Import into Blender.
-
-        Returns JSON string with result wrapped in Prompt.
-        """
-        if self.generation is None:
-            logger.warning("AI generation workflow not available: no GenerationLogic injected")
-            import json
-
-            return Prompt(
-                json.dumps({"error": "Generation logic not configured", "action": "generate_and_import_ai_asset"})
-            )
-
-        logger.info(f"Starting AI generation workflow: provider={provider_name}, prompt='{str(prompt)[:80]}'")
-        try:
-            # 1. Start generation
-            job_id = await self.generation.start_generation(provider_name, prompt)
-            logger.info(f"Generation started: job_id={job_id}")
-
-            # 2. Poll up to 30 times (5s interval = 150s max)
-            import asyncio
-
-            max_polls = 30
-            poll_interval = 5.0
-            for attempt in range(max_polls):
-                await asyncio.sleep(poll_interval)
-                status = await self.generation.check_status(provider_name, job_id)
-                logger.info(f"Poll attempt {attempt + 1}/{max_polls}: status={status.status}")
-                if str(status.status).upper() in ("DONE", "COMPLETED", "SUCCESS"):
-                    break
-                if str(status.status).upper() in ("FAILED", "ERROR", "FAIL"):
-                    import json
-
-                    return Prompt(
-                        json.dumps(
-                            {
-                                "error": f"Generation failed: {status.status}",
-                                "job_id": str(job_id),
-                                "provider": str(provider_name),
-                            }
-                        )
-                    )
-            else:
-                import json
-
-                return Prompt(
-                    json.dumps(
-                        {
-                            "error": "Generation timed out after 150s",
-                            "job_id": str(job_id),
-                            "provider": str(provider_name),
-                        }
-                    )
-                )
-
-            # 3. Import via Blender
-            import_code = f"import bpy; print('Importing {provider_name} asset from job {job_id}')"
-            await self.blender.blender.execute_code(PythonCode(import_code))
-
-            import json
-
-            return Prompt(
-                json.dumps(
-                    {
-                        "success": True,
-                        "job_id": str(job_id),
-                        "provider": str(provider_name),
-                        "message": "Asset generated and imported successfully",
-                    }
-                )
-            )
-
-        except ProviderError as e:
-            logger.error(f"Provider error in generation workflow: {e}")
-            import json
-
-            return Prompt(json.dumps({"error": str(e), "provider": str(provider_name)}))
-        except BlenderMCPError as e:
-            logger.error(f"Blender error during import: {e}")
-            import json
-
-            return Prompt(json.dumps({"error": str(e)}))
-        except Exception as e:
-            logger.error(f"Generation workflow failed: {e}", exc_info=True)
-            import json
-
-            return Prompt(json.dumps({"error": f"Workflow failed: {str(e)}"}))

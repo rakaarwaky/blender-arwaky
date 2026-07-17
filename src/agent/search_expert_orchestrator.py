@@ -5,10 +5,9 @@ Supports Polyhaven, Sketchfab, and AI-generated assets.
 
 import logging
 
-from contract import AssetSearchProtocol, GenerationProtocol, SceneOperateProtocol, SearchExpertOrchestratorAggregate
+from contract import AssetSearchProtocol, SceneOperateProtocol, SearchExpertOrchestratorAggregate
 from taxonomy import (
     AssetId,
-    Prompt,
     ProviderName,
     PythonCode,
     SearchQuery,
@@ -35,12 +34,10 @@ class SearchExpertOrchestrator(ExpertOrchestratorLogic, SearchExpertOrchestrator
     def __init__(
         self,
         asset_mgr: AssetSearchProtocol,
-        generation_mgr: GenerationProtocol,
         blender_mgr: SceneOperateProtocol,
     ):
         super().__init__("SearchExpertOrchestrator")
         self.assets = asset_mgr
-        self.generation = generation_mgr
         self.blender = blender_mgr
 
     async def execute(self, action: str, params: dict[str, object] | None = None) -> dict[str, object]:
@@ -56,8 +53,6 @@ class SearchExpertOrchestrator(ExpertOrchestratorLogic, SearchExpertOrchestrator
                 return await self._handle_import(params)
             elif action == "place":
                 return await self._handle_place(params)
-            elif action == "generate_if_missing":
-                return await self._handle_generate_if_missing(params)
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
 
@@ -127,28 +122,3 @@ class SearchExpertOrchestrator(ExpertOrchestratorLogic, SearchExpertOrchestrator
             "result": str(result),
         }
 
-    async def _handle_generate_if_missing(self, params: dict[str, object]) -> dict[str, object]:
-        """AI-generate asset if search yields no results."""
-        query = str(params.get("query", ""))
-        provider = str(params.get("ai_provider", "tool_generate_hyper3d"))
-
-        # Try search first
-        results = await self.assets.search_all(SearchQuery(query))
-        if results:
-            return {
-                "success": True,
-                "action": "search_found",
-                "count": len(results),
-                "assets": [str(r.id) for r in results],
-            }
-
-        # Generate via AI
-        self.log_info(f"No assets found for '{query}', generating via {provider}...")
-        job_id = await self.generation.start_generation(ProviderName(provider), Prompt(query))
-        return {
-            "success": True,
-            "action": "generation_started",
-            "provider": provider,
-            "job_id": str(job_id),
-            "message": f"AI generation initiated for '{query}'",
-        }
