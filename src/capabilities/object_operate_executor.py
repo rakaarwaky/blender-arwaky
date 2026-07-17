@@ -48,7 +48,6 @@ MODIFIER_MAP: dict[str, str] = {
     "mesh deform": "MESH_DEFORM",
     "rigid body": "RIGID_BODY",
     "shrink wrap": "SHRINKWRAP",
-    "simplify": "SIMPLE_DEFORM",
     "smoke": "SMOKE",
     "soft body": "SOFT_BODY",
     "spring": "SPRING",
