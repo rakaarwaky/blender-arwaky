@@ -61,9 +61,7 @@ class ServerInstanceHandler:
             # makes the MCP server susceptible to Hermes marking it unhealthy if
             # Blender is not yet running. Connection will be established later
             # on the first actual tool call.
-            logger.info(
-                "BlenderArwaky server is up; Blender connection deferred until first tool call"
-            )
+            logger.info("BlenderArwaky server is up; Blender connection deferred until first tool call")
             startup_data["blender_connected"] = False
 
             yield startup_data

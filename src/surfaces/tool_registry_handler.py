@@ -11,7 +11,6 @@ All tools delegate to the agent layer; handlers never call capabilities directly
 """
 
 
-
 class ToolRegistryHandler:
     """Handler for tool registry ."""
 

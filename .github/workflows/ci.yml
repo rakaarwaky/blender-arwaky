@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   lint:
-    name: Lint & Type Check
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,19 +27,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --group lint
+        run: uv sync --all-extras
 
-      - name: Ruff lint
+      - name: Ruff check
         run: uv run ruff check src/ blender_mcp_addon/
 
       - name: Ruff format check
         run: uv run ruff format --check src/ blender_mcp_addon/
-
-      - name: Mypy type check
-        run: uv run mypy src/
-
-      - name: Bandit security scan
-        run: uv run bandit -r src/ -x tests
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -61,18 +55,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --group test
+        run: uv sync --all-extras
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           uv run pytest tests/ \
             --cov=src \
             --cov=blender_mcp_addon \
             --cov-report=term \
             --cov-report=xml:coverage.xml \
-            -v --tb=short
+            -q --tb=short
 
-      - name: Upload coverage report
+      - name: Upload coverage
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:

@@ -314,6 +314,7 @@ class TelemetryConfig(ConfigPort):
             self.enabled: bool = False
         else:
             from .config_file_loader import ApplicationConfigLoader
+
             cfg_enabled = ApplicationConfigLoader.get_config("telemetry.enabled")
             self.enabled = bool(cfg_enabled) if cfg_enabled is not None else False
 

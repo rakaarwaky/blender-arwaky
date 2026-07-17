@@ -108,7 +108,9 @@ class ActionExecuteActions(ExecuteActionProtocol):
 
         args = self._sanitize_args(args)
 
-        logger.info("dispatch action=%s protocol=%s method=%s args_keys=%s", action, protocol_name, method_name, list(args))
+        logger.info(
+            "dispatch action=%s protocol=%s method=%s args_keys=%s", action, protocol_name, method_name, list(args)
+        )
 
         try:
             raw = self._invoke(method, args)
@@ -168,8 +170,8 @@ class ActionExecuteActions(ExecuteActionProtocol):
             return f"Error: Action name exceeds {MAX_ACTION_NAME_LENGTH} characters."
         if not ACTION_NAME_PATTERN.match(action):
             return (
-                f"Error: Invalid action name \'{action}\'. "
-                f"Must be lowercase alphanumeric with underscores (e.g. \'get_scene_info\')."
+                f"Error: Invalid action name '{action}'. "
+                f"Must be lowercase alphanumeric with underscores (e.g. 'get_scene_info')."
             )
         return None
 
@@ -183,7 +185,7 @@ class ActionExecuteActions(ExecuteActionProtocol):
                 value = value.strip()
                 if original_len > MAX_STRING_ARG_LENGTH:
                     logger.warning(
-                        "Argument \'%s\' truncated from %d to %d chars",
+                        "Argument '%s' truncated from %d to %d chars",
                         key,
                         original_len,
                         MAX_STRING_ARG_LENGTH,

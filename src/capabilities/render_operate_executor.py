@@ -51,7 +51,11 @@ class RenderOperateExecutor(RenderOperateProtocol):
     async def get_viewport_screenshot(self, request: GetScreenshotRequestVO) -> ScreenshotResponseVO:
         logger.info(
             "Capturing viewport screenshot: max_size=%s, view=%s, shading=%s, overlays=%s, focus=%s",
-            request.max_size, request.view_angle, request.shading, request.show_overlays, request.focus_object,
+            request.max_size,
+            request.view_angle,
+            request.shading,
+            request.show_overlays,
+            request.focus_object,
         )
         try:
             image_data, width, height = await self.blender.get_screenshot(
@@ -174,11 +178,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
         logger.info("Rendering frame to %s", request.output_path)
 
         safe_path = _py_str(str(request.output_path))
-        code = (
-            "import bpy\n"
-            f"bpy.context.scene.render.filepath = {safe_path}\n"
-            "bpy.ops.render.render(write_still=True)\n"
-        )
+        code = f"import bpy\nbpy.context.scene.render.filepath = {safe_path}\nbpy.ops.render.render(write_still=True)\n"
         try:
             start_time = time.perf_counter()
             await self.blender.execute_code(PythonCode(code))

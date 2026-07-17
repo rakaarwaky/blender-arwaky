@@ -121,4 +121,3 @@ class SearchExpertOrchestrator(ExpertOrchestratorLogic, SearchExpertOrchestrator
             "message": f"Asset {asset_id} placed at {location}",
             "result": str(result),
         }
-

@@ -120,9 +120,7 @@ class CodeExecutionAdapter(CodeExecutionPort):
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: self._connection_port.send_command(
-                    ActionName("execute_code"), {"code": code_str}
-                ),
+                lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code_str}),
             )
             # result is a dict from send_command; extract 'result' safely
             return Prompt(f"Code executed successfully: {result.get('result', '')}")

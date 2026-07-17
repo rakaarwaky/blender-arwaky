@@ -32,7 +32,7 @@ def _get_aabb(obj):
 def _get_3d_space():
     """Get the 3D viewport space data."""
     for area in bpy.context.screen.areas:
-        if area.type == 'VIEW_3D':
+        if area.type == "VIEW_3D":
             return area.spaces.active
     return None
 
@@ -120,8 +120,7 @@ def get_viewport_screenshot(
             camera = bpy.context.scene.camera
             if not camera:
                 raise RuntimeError(
-                    "No active camera in scene. "
-                    "Set an active camera before taking headless screenshots."
+                    "No active camera in scene. Set an active camera before taking headless screenshots."
                 )
 
             # Set render settings for quick screenshot

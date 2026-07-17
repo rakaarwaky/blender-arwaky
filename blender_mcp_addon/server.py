@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import logging
@@ -49,9 +50,7 @@ class BlenderMCPServer:
 
             # Timer for processing commands in main thread (GUI mode)
             if not bpy.app.background:
-                self._timer_handle = bpy.app.timers.register(
-                    self.process_commands, first_interval=0.1, persistent=True
-                )
+                self._timer_handle = bpy.app.timers.register(self.process_commands, first_interval=0.1, persistent=True)
 
             logger.info("BlenderMCP server started on %s:%s", self.host, self.port)
         except Exception as e:
@@ -67,10 +66,8 @@ class BlenderMCPServer:
 
         # Signal all pending response queues to unblock waiting threads
         for res_q in self._pending_responses:
-            try:
+            with contextlib.suppress(queue.Full):
                 res_q.put_nowait(None)
-            except queue.Full:
-                pass
         self._pending_responses.clear()
 
         if self.socket:
@@ -152,10 +149,8 @@ class BlenderMCPServer:
                             logger.warning("Command %s timed out", command.get("type"))
                             self._send_response(client, {"status": "error", "message": "Command timed out"})
                     finally:
-                        try:
+                        with contextlib.suppress(ValueError):
                             self._pending_responses.remove(res_q)
-                        except ValueError:
-                            pass
 
                 except TimeoutError:
                     continue
@@ -166,10 +161,8 @@ class BlenderMCPServer:
                     logger.warning("Invalid message: %s", e)
                     continue
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 client.close()
-            except Exception:
-                pass
 
     def _send_response(self, client, response):
         """Send a length-prefixed JSON response."""

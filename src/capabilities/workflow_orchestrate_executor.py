@@ -75,4 +75,3 @@ class WorkflowExecutor(WorkflowProtocol):
         except BlenderMCPError as e:
             logger.error(f"Workflow failed: {e}")
             return SuccessFlag(False)
-

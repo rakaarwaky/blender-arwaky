@@ -34,11 +34,10 @@ from .agent_logic_coordinator import ContainerLogic
 logger = logging.getLogger("BlenderMCPServer")
 
 
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # CommandCatalogAdapter (merged from command_catalog_registry.py)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class CommandCatalogAdapter(CommandCatalogPort):
     """Adapter that exposes taxonomy CommandCatalog through CommandCatalogPort."""
@@ -109,15 +108,21 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
 
     @property
     def blender(self) -> object:
-        return self._lazy_get("_blender_adapter", lambda: FactoryRegistry.create_blender_adapter(self.blender_connection))
+        return self._lazy_get(
+            "_blender_adapter", lambda: FactoryRegistry.create_blender_adapter(self.blender_connection)
+        )
 
     @property
     def polyhaven_adapter(self) -> object:
-        return self._lazy_get("_polyhaven_adapter", lambda: FactoryRegistry.create_polyhaven_adapter(self.blender_connection))
+        return self._lazy_get(
+            "_polyhaven_adapter", lambda: FactoryRegistry.create_polyhaven_adapter(self.blender_connection)
+        )
 
     @property
     def sketchfab_adapter(self) -> object:
-        return self._lazy_get("_sketchfab_adapter", lambda: FactoryRegistry.create_sketchfab_adapter(self.blender_connection))
+        return self._lazy_get(
+            "_sketchfab_adapter", lambda: FactoryRegistry.create_sketchfab_adapter(self.blender_connection)
+        )
 
     @property
     def telemetry(self) -> object:
@@ -144,20 +149,27 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
     @property
     def search_asset_capability(self) -> object:
         return self._lazy_get(
-            "_asset_manager", lambda: FactoryRegistry.create_asset_collector(self.polyhaven_adapter, self.sketchfab_adapter)
+            "_asset_manager",
+            lambda: FactoryRegistry.create_asset_collector(self.polyhaven_adapter, self.sketchfab_adapter),
         )
 
     @property
     def object_operate_capability(self) -> object:
-        return self._lazy_get("_object_operate_manager", lambda: FactoryRegistry.create_object_operate_executor(self.blender))
+        return self._lazy_get(
+            "_object_operate_manager", lambda: FactoryRegistry.create_object_operate_executor(self.blender)
+        )
 
     @property
     def render_operate_capability(self) -> object:
-        return self._lazy_get("_render_operate_manager", lambda: FactoryRegistry.create_render_operate_executor(self.blender))
+        return self._lazy_get(
+            "_render_operate_manager", lambda: FactoryRegistry.create_render_operate_executor(self.blender)
+        )
 
     @property
     def import_export_capability(self) -> object:
-        return self._lazy_get("_import_export_manager", lambda: FactoryRegistry.create_import_export_executor(self.blender))
+        return self._lazy_get(
+            "_import_export_manager", lambda: FactoryRegistry.create_import_export_executor(self.blender)
+        )
 
     @property
     def workflow_orchestrate_capability(self) -> object:
@@ -228,7 +240,8 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         from typing import cast
 
         return cast(
-            ExecuteActionProtocol, self._lazy_get("_execute_action_manager", lambda: FactoryRegistry.create_action_executor(self))
+            ExecuteActionProtocol,
+            self._lazy_get("_execute_action_manager", lambda: FactoryRegistry.create_action_executor(self)),
         )
 
     @property

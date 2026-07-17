@@ -42,7 +42,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
             "polyhaven_asset_adapter",
             "sketchfab_asset_adapter",
             "telemetry_signal_recorder",
-                "scene_inspection_adapter",
+            "scene_inspection_adapter",
             "code_execution_adapter",
             "config_file_loader",
             "scene_operate_executor",
@@ -115,9 +115,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
         return AssetSearchCollector({"polyhaven": cast(Any, polyhaven), "sketchfab": cast(Any, sketchfab)})
 
     @staticmethod
-    def create_workflow_orchestrate_executor(
-        blender_mgr: object, asset_mgr: object
-    ) -> WorkflowProtocol:
+    def create_workflow_orchestrate_executor(blender_mgr: object, asset_mgr: object) -> WorkflowProtocol:
         from capabilities.workflow_orchestrate_executor import WorkflowExecutor
 
         return WorkflowExecutor(cast(Any, blender_mgr), cast(Any, asset_mgr))
@@ -159,9 +157,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
         return SetupExpertOrchestrator(cast(Any, blender_mgr), cast(Any, render_mgr))
 
     @staticmethod
-    def create_asset_expert(
-        asset_mgr: object, blender_mgr: object
-    ) -> SearchExpertOrchestratorAggregate:
+    def create_asset_expert(asset_mgr: object, blender_mgr: object) -> SearchExpertOrchestratorAggregate:
         from .search_expert_orchestrator import SearchExpertOrchestrator
 
         return SearchExpertOrchestrator(cast(Any, asset_mgr), cast(Any, blender_mgr))
@@ -173,9 +169,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
     ) -> RefinementExpertOrchestratorAggregate:
         from .refinement_expert_orchestrator import RefinementExpertOrchestrator
 
-        return RefinementExpertOrchestrator(
-            cast(Any, setup_scene_expert), cast(Any, search_asset_expert)
-        )
+        return RefinementExpertOrchestrator(cast(Any, setup_scene_expert), cast(Any, search_asset_expert))
 
     @staticmethod
     def create_workflow_orchestrator(
@@ -185,9 +179,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
     ) -> WorkflowAgentOrchestratorAggregate:
         from .workflow_agent_orchestrator import WorkflowAgentOrchestrator
 
-        return WorkflowAgentOrchestrator(
-            cast(Any, scene_expert), cast(Any, asset_expert), cast(Any, refinement_expert)
-        )
+        return WorkflowAgentOrchestrator(cast(Any, scene_expert), cast(Any, asset_expert), cast(Any, refinement_expert))
 
     @staticmethod
     def create_core_agent(container: object) -> CoreAgentOrchestratorAggregate:

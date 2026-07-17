@@ -34,16 +34,19 @@ Only fall back to scripting when:
     @staticmethod
     def lighting_expert():
         from agent.system_prompt_manager import get_lighting_expert_prompt
+
         return [{"role": "user", "content": {"type": "text", "text": get_lighting_expert_prompt()}}]
 
     @staticmethod
     def layout_expert():
         from agent.system_prompt_manager import get_layout_expert_prompt
+
         return [{"role": "user", "content": {"type": "text", "text": get_layout_expert_prompt()}}]
 
     @staticmethod
     def text_to_scene_orchestrator():
         from agent.system_prompt_manager import get_text_to_scene_orchestrator_prompt
+
         return [{"role": "user", "content": {"type": "text", "text": get_text_to_scene_orchestrator_prompt()}}]
 
     @staticmethod
@@ -58,18 +61,25 @@ Only fall back to scripting when:
 asset_creation_strategy = PromptHandlerModule.asset_creation_strategy
 register_prompts = PromptHandlerModule.register_prompts
 
+
 # Module-level aliases for backward compatibility
 def get_lighting_expert_prompt():
     from agent.system_prompt_manager import get_lighting_expert_prompt as _get
+
     return _get()
+
 
 def get_layout_expert_prompt():
     from agent.system_prompt_manager import get_layout_expert_prompt as _get
+
     return _get()
+
 
 def get_text_to_scene_orchestrator_prompt():
     from agent.system_prompt_manager import get_text_to_scene_orchestrator_prompt as _get
+
     return _get()
+
 
 asset_creation_strategy = PromptHandlerModule.asset_creation_strategy
 register_prompts = PromptHandlerModule.register_prompts

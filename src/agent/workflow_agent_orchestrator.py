@@ -47,7 +47,6 @@ class WorkflowAgentOrchestrator(WorkflowAgentOrchestratorAggregate):
         asset_search = await self.asset.execute("search", {"query": prompt})
         results["steps"].append({"step": "asset_search", "result": asset_search})
 
-
         # Step 3: Environment & lighting
         env_res = await self.tool_scene_ops.execute("setup_environment", {"hdri_name": "default_studio"})
         results["steps"].append({"step": "environment", "result": env_res})
