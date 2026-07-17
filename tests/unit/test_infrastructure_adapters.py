@@ -25,7 +25,9 @@ from infrastructure.blender_connection_connector import (
     get_blender_connection,
     shutdown_connection,
 )
-from infrastructure.command_catalog_client import CommandCatalogClient
+# ── Dead code cleanup (2026-07-18) ──────────────────────────────────────────
+# command_catalog_client.py was removed as dead code.
+# CommandCatalogClient tests were deleted; use CommandCatalogAdapter instead.
 
 
 @pytest.mark.unit
@@ -501,29 +503,9 @@ class TestBlenderConnectionAndFactory:
             assert conn.sock is None
 
 
-@pytest.mark.unit
-class TestCommandCatalogClient:
-    """Tests for CommandCatalogClient."""
-
-    def test_catalog_client_methods(self):
-        client = CommandCatalogClient()
-        # Verify list_actions
-        cmds = client.list_actions()
-        assert len(cmds) > 0
-
-        # Verify filter_by_domain
-        filtered = client.filter_by_domain("scene")
-        assert len(filtered) > 0
-        for spec in filtered.values():
-            assert spec["domain"] == "scene"
-
-        # Verify specific command retrieval
-        cmd_spec = client.get_command_spec(ActionName("cleanup_scene"))
-        assert cmd_spec is not None
-        assert cmd_spec["domain"] == "scene"
-
-        # Nonexistent command
-        assert client.get_command_spec(ActionName("nonexistent_command_123")) is None
+# ── Dead code cleanup (2026-07-18) ──────────────────────────────────────────
+# TestCommandCatalogClient was removed because command_catalog_client.py was deleted.
+# CommandCatalogAdapter in agent_di_container.py handles catalog operations.
 
 
 @pytest.mark.unit

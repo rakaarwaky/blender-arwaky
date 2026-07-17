@@ -409,15 +409,8 @@ class TestInfrastructureFinalGaps:
             get_blender_connection()
         bcc._default_factory = None
 
-    def test_command_catalog_module_helpers(self):
-        from infrastructure.command_catalog_client import get_command_spec, list_actions_client, filter_by_domain
-        from taxonomy import ActionName, DomainRef
-        spec = get_command_spec(ActionName("cleanup_scene"))
-        assert spec is not None
-        actions = list_actions_client()
-        assert len(actions) > 0
-        filtered = filter_by_domain(DomainRef("scene"))
-        assert len(filtered) > 0
+    # ── Dead code cleanup (2026-07-18) ────────────────────────────────────────
+    # test_command_catalog_module_helpers was removed because command_catalog_client.py was deleted.
 
     def test_config_file_loader_dir_based(self):
         from infrastructure.config_file_loader import ApplicationConfigLoader
@@ -429,45 +422,11 @@ class TestInfrastructureFinalGaps:
                         root = ApplicationConfigLoader.get_project_root()
                         assert PurePosixPath(root) == PurePosixPath("/mock/dir")
 
-    def test_polyhaven_download_error_key(self):
-        from infrastructure.polyhaven_api_client import PolyhavenApiClient
-        conn = MagicMock()
-        conn.send_command.return_value = {"error": "download failed"}
-        client = PolyhavenApiClient(conn)
-        from taxonomy import AssetId, AssetType
-        res = client.download_polyhaven_asset(AssetId("x"), AssetType("hdris"))
-        assert "Error" in str(res)
-
-    def test_polyhaven_download_unknown_type(self):
-        from infrastructure.polyhaven_api_client import PolyhavenApiClient
-        conn = MagicMock()
-        conn.send_command.return_value = {"success": True, "message": "ok"}
-        client = PolyhavenApiClient(conn)
-        from taxonomy import AssetId, AssetType
-        res = client.download_polyhaven_asset(AssetId("x"), AssetType("other"))
-        assert "ok" in str(res)
-
-    def test_telemetry_decorator_record_usage(self):
-        from infrastructure.telemetry_decorator_adapter import TelemetryDecoratorAdapter
-        from taxonomy import ToolName, SuccessFlag, DurationMs
-        recorder = MagicMock()
-        adapter = TelemetryDecoratorAdapter(recorder)
-        adapter._record_usage(ToolName("test"), SuccessFlag(True), DurationMs(100))
-        recorder.record_event.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_telemetry_decorator_async_recorder_failure(self):
-        from infrastructure.telemetry_decorator_adapter import TelemetryDecoratorAdapter
-        from taxonomy import ToolName
-        recorder = MagicMock()
-        adapter = TelemetryDecoratorAdapter(recorder)
-        decorator = adapter._build_decorator(recorder, ToolName("test"))
-        @decorator
-        async def dummy():
-            return "ok"
-        recorder.record_event.side_effect = Exception("disk full")
-        result = await dummy()
-        assert result == "ok"
+    # ── Dead code cleanup (2026-07-18) ────────────────────────────────────────
+    # test_polyhaven_download_error_key and test_polyhaven_download_unknown_type were removed
+    # because polyhaven_api_client.py was deleted.
+    # test_telemetry_decorator_record_usage and test_telemetry_decorator_async_recorder_failure
+    # were removed because telemetry_decorator_adapter.py was deleted.
 
     def test_telemetry_signal_recorder_worker_failure(self):
         from infrastructure.telemetry_signal_recorder import TelemetrySignalRecorder

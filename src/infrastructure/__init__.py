@@ -24,3 +24,11 @@ __all__ = [
     "SceneInspectionAdapter",
     "CodeExecutionAdapter",
 ]
+
+# ── Dead code cleanup (2026-07-18) ──────────────────────────────────────────
+# The following modules were removed as dead code:
+#   - command_catalog_client.py (duplicate of CommandCatalogAdapter in agent_di_container.py)
+#   - polyhaven_api_client.py (unused; PolyhavenAssetAdapter handles all integration)
+#   - sketchfab_api_client.py (unused; SketchfabAssetAdapter handles all integration)
+#   - telemetry_api_util.py (unused; TelemetrySignalRecorder is the active implementation)
+#   - telemetry_decorator_adapter.py (unused; same rationale as above)

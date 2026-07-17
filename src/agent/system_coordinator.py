@@ -37,7 +37,7 @@ def _get_shutdown_connection_fn():
 
 
 def _get_telemetry_config_class():
-    m = importlib.import_module("infrastructure.telemetry_config_loader")
+    m = importlib.import_module("infrastructure.telemetry_signal_recorder")
     return m.TelemetryConfig
 
 
