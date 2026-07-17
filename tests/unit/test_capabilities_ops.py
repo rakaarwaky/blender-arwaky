@@ -291,7 +291,7 @@ class TestRenderOperateExecutor:
 
     @pytest.mark.asyncio
     async def test_get_viewport_screenshot(self, mock_blender):
-        mock_blender.get_screenshot = AsyncMock(return_value=b"bytes")
+        mock_blender.get_screenshot = AsyncMock(return_value=(b"bytes", 1920, 1080))
         executor = RenderOperateExecutor(mock_blender)
 
         res = await executor.get_viewport_screenshot(GetScreenshotRequestVO(max_size=300))

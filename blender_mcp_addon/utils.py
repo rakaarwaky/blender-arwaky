@@ -32,50 +32,48 @@ def _get_aabb(obj):
 def get_viewport_screenshot(filepath):
     """
     Captures a screenshot of the current viewport.
-    FIX 7: If in headless mode, ensure a camera exists and is set as active.
+
+    Headless: requires active camera, uses EEVEE for speed.
+    GUI: uses OpenGL viewport render (no camera needed).
+
+    Returns dict with filepath, width, height for response metadata.
     """
     is_headless = bpy.app.background
 
     if is_headless:
-        # In headless mode, we need an active camera to render
         camera = bpy.context.scene.camera
-        created_temp_camera = False
         if not camera:
-            # Create a temporary camera if none exists
-            bpy.ops.object.camera_add(location=(5, -5, 5), rotation=(1.1, 0, 0.78))
-            camera = bpy.context.active_object
-            bpy.context.scene.camera = camera
-            created_temp_camera = True
-            print("[BlenderMCP] Created temporary camera for headless screenshot")
-            logger.info("Created temporary camera for headless screenshot")
+            raise RuntimeError(
+                "No active camera in scene. "
+                "Set an active camera before taking headless screenshots."
+            )
 
         # Set render settings for quick screenshot
         bpy.context.scene.render.image_settings.file_format = "PNG"
         bpy.context.scene.render.filepath = filepath
 
-        # Use EEVEE/Workbench for fast headless capture
+        # Use EEVEE for fast headless capture (override Cycles if set)
         original_engine = bpy.context.scene.render.engine
         bpy.context.scene.render.engine = "BLENDER_EEVEE"
 
         bpy.ops.render.render(write_still=True)
 
-        # Cleanup temporary camera
-        if created_temp_camera and camera:
-            bpy.data.objects.remove(camera, do_unlink=True)
-            print("[BlenderMCP] Removed temporary camera")
-            logger.info("Removed temporary camera")
-
         # Restore engine
         bpy.context.scene.render.engine = original_engine
     else:
-        # GUI mode: use screencast or opengl render
-        bpy.ops.render.opengl(write_still=True)
-        # The above saves to render.filepath, so we move it
+        # GUI mode: OpenGL render captures viewport as-is
+        bpy.ops.render.render(write_still=True)
         render_path = bpy.context.scene.render.frame_path()
         if os.path.exists(render_path):
             shutil.move(render_path, filepath)
 
-    return filepath
+    # Return actual render dimensions
+    scene = bpy.context.scene
+    return {
+        "filepath": filepath,
+        "width": scene.render.resolution_x,
+        "height": scene.render.resolution_y,
+    }
 
 
 def clean_imported_glb(filepath, mesh_name=None):

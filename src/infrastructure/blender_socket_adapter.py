@@ -98,7 +98,8 @@ class BlenderSocketAdapter(BlenderPort):
             logger.error("Error getting object info: %s", e)
             raise ExecutionError(ErrorMessage(str(e))) from e
 
-    async def get_screenshot(self, max_size: MaxSize | None = None) -> ImageBytes:
+    async def get_screenshot(self, max_size: MaxSize | None = None) -> tuple[ImageBytes, int, int]:
+        """Capture viewport screenshot. Returns (image_bytes, width, height)."""
         max_size = max_size or MaxSize(800)
         temp_path = os.path.join(tempfile.gettempdir(), f"blender_ss_{uuid4().hex}.png")
         try:
@@ -115,7 +116,10 @@ class BlenderSocketAdapter(BlenderPort):
             if not os.path.exists(temp_path):
                 raise ExecutionError(ErrorMessage("Screenshot file was not created by Blender"))
             with open(temp_path, "rb") as f:
-                return ImageBytes(f.read())
+                image_bytes = ImageBytes(f.read())
+            width = result.get("width", 800) if isinstance(result, dict) else 800
+            height = result.get("height", 600) if isinstance(result, dict) else 600
+            return image_bytes, width, height
         except ConnectionError:
             raise
         except asyncio.TimeoutError:

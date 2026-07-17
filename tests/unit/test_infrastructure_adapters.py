@@ -271,12 +271,14 @@ class TestBlenderSocketAdapter:
     @pytest.mark.asyncio
     async def test_get_screenshot_success(self, adapter, mock_conn):
         # We mock tempfile and socket responses
-        mock_conn.send_command.return_value = {}
+        mock_conn.send_command.return_value = {"width": 1920, "height": 1080}
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=b"image_bytes_here")):
                 with patch("os.remove") as mock_remove:
-                    img = await adapter.get_screenshot(MaxSize(800))
+                    img, w, h = await adapter.get_screenshot(MaxSize(800))
                     assert img == b"image_bytes_here"
+                    assert w == 1920
+                    assert h == 1080
                     mock_remove.assert_called_once()
 
     @pytest.mark.asyncio
