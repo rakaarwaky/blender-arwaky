@@ -1,30 +1,33 @@
 """Unit tests for all agent orchestrators and expert agents."""
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, mock_open
-import os
 import json
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
-from taxonomy import (
-    Prompt, JobId, ProviderName, ActionName, Details,
-    DomainRef, FormatRef, SkillName, SectionRef,
-    SearchQuery, AssetId, CoordinateList, RotationVector,
-    RenderEngine, RenderSamples, RuleName, HdriId,
-    BlenderVersion, ErrorMessage
-)
+import pytest
+
+from agent.agent_logic_coordinator import ExpertBaseOrchestrator
+from agent.core_agent_orchestrator import CoreAgentOrchestrator
+from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
+from agent.search_expert_orchestrator import SearchExpertOrchestrator
+from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+from agent.system_coordinator import SystemUtilsCoordinator
+from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
 from contract import (
     AgentDiContainerAggregate,
+    AssetSearchProtocol,
     ExpertBaseOrchestratorAggregate,
-    SceneOperateProtocol,
     RenderOperateProtocol,
-    AssetSearchProtocol
+    SceneOperateProtocol,
 )
-from agent.core_agent_orchestrator import CoreAgentOrchestrator
-from agent.agent_logic_coordinator import ExpertBaseOrchestrator
-from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
-from agent.setup_expert_orchestrator import SetupExpertOrchestrator
-from agent.search_expert_orchestrator import SearchExpertOrchestrator
-from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
-from agent.system_coordinator import SystemUtilsCoordinator
+from taxonomy import (
+    ActionName,
+    AssetId,
+    DomainRef,
+    FormatRef,
+    Prompt,
+    RuleName,
+    SectionRef,
+    SkillName,
+)
 
 
 @pytest.mark.unit
@@ -43,7 +46,7 @@ class TestCoreAgentOrchestrator:
     async def test_execute_code(self, mock_container):
         orchestrator = CoreAgentOrchestrator(mock_container)
         mock_container.code_executor.execute_blender_code = AsyncMock(return_value="executed_successfully")
-        
+
         req = MagicMock()
         req.code = "print('hello')"
         res = await orchestrator.execute_code(req)
@@ -54,7 +57,7 @@ class TestCoreAgentOrchestrator:
     async def test_execute_action(self, mock_container):
         orchestrator = CoreAgentOrchestrator(mock_container)
         mock_container.action_execute_capability.execute = AsyncMock(return_value="done")
-        
+
         res = await orchestrator.execute_action(ActionName("cleanup"), {"force": True})
         assert res == Prompt("done")
         mock_container.action_execute_capability.execute.assert_called_with(ActionName("cleanup"), {"force": True})
@@ -64,7 +67,7 @@ class TestCoreAgentOrchestrator:
         mock_catalog = mock_container.command_catalog
         mock_catalog.list_actions.return_value = ["clean", "render"]
         mock_catalog.get_command_spec.side_effect = lambda a: {"description": f"{a} desc", "domain": "scene"}
-        
+
         # 1. Default (detailed format, all domains)
         res = orchestrator.list_commands()
         data = json.loads(str(res))
@@ -93,7 +96,7 @@ class TestCoreAgentOrchestrator:
 
     def test_read_skill_context(self, mock_container):
         orchestrator = CoreAgentOrchestrator(mock_container)
-        
+
         # SKILL.md not found path
         with patch("os.path.isfile", return_value=False):
             res = orchestrator.read_skill_context(SkillName("dummy"))
@@ -361,7 +364,7 @@ class TestSystemUtilsCoordinator:
     def test_health_check(self):
         with patch("agent.system_coordinator._get_blender_conn_fn") as mock_conn_fn:
             mock_conn_fn.return_value = MagicMock()
-            
+
             with patch("agent.system_coordinator._get_telemetry_config_class") as mock_cfg_cls:
                 mock_cfg = MagicMock()
                 mock_cfg.enabled = True

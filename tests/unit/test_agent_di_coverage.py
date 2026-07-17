@@ -1,5 +1,8 @@
 """Test to close coverage gaps on AgentDiContainer property accessors."""
+import contextlib
+
 import pytest
+
 from agent.agent_di_container import get_container, reset_container
 
 
@@ -15,19 +18,15 @@ class TestAgentDiCoverage:
         c = self._get()
         for attr in ("config", "blender_connection", "blender",
                      "polyhaven_adapter", "sketchfab_adapter"):
-            try:
+            with contextlib.suppress(Exception):
                 _ = getattr(c, attr)
-            except Exception:
-                pass
 
     def test_service_properties(self) -> None:
         c = self._get()
         for attr in ("telemetry", "viewport", "scene_inspector",
                      "code_executor"):
-            try:
+            with contextlib.suppress(Exception):
                 _ = getattr(c, attr)
-            except Exception:
-                pass
 
     def test_capability_properties(self) -> None:
         c = self._get()
@@ -35,16 +34,12 @@ class TestAgentDiCoverage:
                      "object_operate_capability",
                      "render_operate_capability", "import_export_capability",
                      "workflow_orchestrate_capability", "system_utils"):
-            try:
+            with contextlib.suppress(Exception):
                 _ = getattr(c, attr)
-            except Exception:
-                pass
 
     def test_expert_properties(self) -> None:
         c = self._get()
         for attr in ("scene_expert", "asset_expert",
                      "refinement_expert", "workflow_orchestrator"):
-            try:
+            with contextlib.suppress(Exception):
                 _ = getattr(c, attr)
-            except Exception:
-                pass

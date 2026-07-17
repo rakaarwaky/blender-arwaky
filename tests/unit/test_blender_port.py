@@ -1,13 +1,12 @@
 """Tests for contract layer — BlenderPort abstract interface and protocols."""
 import pytest
-from contract import BlenderPort
-from contract.adapter_blender_port import BlenderPort as BlenderPortDirect
+
 from contract import (
-    SceneOperateProtocol,
+    BlenderPort,
     ObjectOperateProtocol,
-    RenderOperateProtocol,
-    ImportExportProtocol,
+    SceneOperateProtocol,
 )
+from contract.adapter_blender_port import BlenderPort as BlenderPortDirect
 
 
 @pytest.mark.unit

@@ -1,24 +1,17 @@
 """Unit tests for the infrastructure asset adapters."""
-import pytest
 from unittest.mock import MagicMock
 
-from taxonomy import (
-    AssetId,
-    AssetType,
-    StatusString,
-    Prompt,
-    ResultUrl,
-    ObjectName,
-    JobId,
-    ProviderError,
-    AssetSearchRequestVO,
-    AssetDownloadRequestVO,
-    StringList,
-    Vector3D,
-    FilePath,
-)
+import pytest
+
 from infrastructure.polyhaven_asset_adapter import PolyhavenAssetAdapter
 from infrastructure.sketchfab_asset_adapter import SketchfabAssetAdapter
+from taxonomy import (
+    AssetDownloadRequestVO,
+    AssetId,
+    AssetSearchRequestVO,
+    FilePath,
+    ProviderError,
+)
 
 
 @pytest.mark.unit

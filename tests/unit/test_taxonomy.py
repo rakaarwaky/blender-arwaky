@@ -1,45 +1,44 @@
 """Unit tests for the taxonomy layer (Value Objects, Entities, Errors)."""
-import pytest
 from uuid import uuid4
-from taxonomy.blender_spatial_vo import Vector3D, BoundingBox, create_float_triplet
+
+import pytest
+
 from taxonomy.blender_job_vo import (
-    JobStatus,
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+    JobStatus,
     create_job_id,
     create_progress,
 )
 from taxonomy.blender_mcp_error import (
-    BlenderMCPError,
-    DomainError,
-    SceneValidationError,
     AssetNotFoundError,
-    ValidationError,
-    ConnectionError,
-    ProviderError,
-    ExecutionError,
     BlenderConnectionError,
+    BlenderMCPError,
+    ConnectionError,
+    DomainError,
+    ExecutionError,
     InvalidCommandError,
+    ProviderError,
+    SceneValidationError,
+    ValidationError,
 )
 from taxonomy.blender_object_entity import (
-    BlenderObject,
-    OBJECT_TYPE_MESH,
     OBJECT_TYPE_CAMERA,
+    OBJECT_TYPE_MESH,
+    BlenderObject,
     create_object_id,
 )
 from taxonomy.blender_scene_entity import SceneAggregate, SceneInfo
+from taxonomy.blender_spatial_vo import BoundingBox, Vector3D, create_float_triplet
 from taxonomy.core_types_vo import (
+    AssetId,
+    ErrorMessage,
     ObjectName,
     ObjectType,
-    ObjectId,
-    JobId,
-    ErrorMessage,
-    Progress,
-    ResultUrl,
-    AssetId,
     ProviderName,
+    ResultUrl,
 )
 
 

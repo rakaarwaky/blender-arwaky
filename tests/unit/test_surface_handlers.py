@@ -1,25 +1,26 @@
 """Unit tests for all surface handlers, entry points, and MCP tool adapters."""
-import pytest
 import asyncio
-import sys
-import json
-import argparse
-from unittest.mock import MagicMock, AsyncMock, patch
-from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from taxonomy import (
-    Prompt, JobId, ProviderName, ActionName, Details,
-    DomainRef, FormatRef, SkillName, SectionRef, ExitCode
-)
-from contract import AgentDiContainerAggregate
-from surfaces.server_instance_handler import ServerInstanceHandler
+import pytest
+
 from surfaces.cli_command_handler import CliCommandHandler
-from surfaces.health_check_handler import HealthCheckHandler
 from surfaces.command_execute_handler import CommandExecuteHandler
 from surfaces.commands_list_handler import CommandsListHandler
+from surfaces.health_check_handler import HealthCheckHandler
 from surfaces.prompt_register_handler import PromptHandlerModule
-from surfaces.skill_read_handler import SkillReadHandler
+from surfaces.server_instance_handler import ServerInstanceHandler
 from surfaces.server_start_handler import ServerStartHandler
+from surfaces.skill_read_handler import SkillReadHandler
+from taxonomy import (
+    ActionName,
+    DomainRef,
+    ExitCode,
+    FormatRef,
+    Prompt,
+    SectionRef,
+    SkillName,
+)
 
 
 @pytest.mark.unit
@@ -54,10 +55,10 @@ class TestServerInstanceHandler:
              patch("surfaces.server_instance_handler.FastMCP") as mock_fastmcp_class, \
              patch("surfaces.tool_registry_handler.register_tools") as mock_reg_tools, \
              patch("surfaces.prompt_register_handler.register_prompts") as mock_reg_prompts:
-            
+
             mock_mcp = MagicMock()
             mock_fastmcp_class.return_value = mock_mcp
-            
+
             res = ServerInstanceHandler.get_mcp_instance()
             assert res == mock_mcp
             mock_fastmcp_class.assert_called_once()
@@ -78,7 +79,7 @@ class TestCliCommandHandler:
     def test_get_orchestrator(self):
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = "mock_orchestrator"
-        
+
         with patch.object(CliCommandHandler, "_get_container", return_value=mock_container):
             with patch.object(CliCommandHandler, "_orchestrator", None):
                 res = CliCommandHandler.get_orchestrator()
@@ -89,12 +90,12 @@ class TestCliCommandHandler:
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = MagicMock()
         mock_container.core_agent_orchestrator.execute_action = AsyncMock(return_value=Prompt("action_done"))
-        
+
         with patch.object(CliCommandHandler, "_get_container", return_value=mock_container):
             with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"cleanup": {}}):
                 action_map = CliCommandHandler.build_action_map()
                 assert "cleanup" in action_map
-                
+
                 # Execute the wrapped action
                 res = asyncio.run(action_map["cleanup"](force=True))
                 assert res == Prompt("action_done")
@@ -108,11 +109,11 @@ class TestCliCommandHandler:
         mock_args.args = '{"force": true}'
         mock_args.json_output = False
         mock_args.log_level = "WARNING"
-        
+
         with patch("argparse.ArgumentParser.parse_args", return_value=mock_args), \
              patch.object(CliCommandHandler, "build_action_map", return_value={"cleanup": AsyncMock(return_value="executed")}), \
              patch("sys.stdout.isatty", return_value=True):
-            
+
             res = CliCommandHandler.main()
             assert res == ExitCode(0)
 
@@ -121,7 +122,7 @@ class TestCliCommandHandler:
         mock_args.action = "cleanup"
         mock_args.args = '{invalid_json}'
         mock_args.log_level = "WARNING"
-        
+
         with patch("argparse.ArgumentParser.parse_args", return_value=mock_args):
             res = CliCommandHandler.main()
             assert res == ExitCode(1)
@@ -136,16 +137,16 @@ class TestHealthCheckHandler:
         mock_mcp = MagicMock()
         mock_tool_decorator = MagicMock()
         mock_mcp.tool.return_value = mock_tool_decorator
-        
+
         HealthCheckHandler.register_health_check(mock_mcp)
         mock_mcp.tool.assert_called_once()
-        
+
         health_fn = mock_tool_decorator.call_args[0][0]
-        
+
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = MagicMock()
         mock_container.core_agent_orchestrator.health_check.return_value = Prompt("healthy")
-        
+
         with patch("agent.agent_di_container.get_container", return_value=mock_container):
             res = await health_fn()
             assert res == Prompt("healthy")
@@ -160,21 +161,21 @@ class TestCommandExecuteHandler:
         mock_mcp = MagicMock()
         mock_tool_decorator = MagicMock()
         mock_mcp.tool.return_value = mock_tool_decorator
-        
+
         CommandExecuteHandler.register_execute_command(mock_mcp)
         mock_mcp.tool.assert_called_once()
-        
+
         exec_fn = mock_tool_decorator.call_args[0][0]
-        
+
         # 1. Success execution
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = MagicMock()
         mock_container.core_agent_orchestrator.execute_action = AsyncMock(return_value=Prompt("action_ok"))
-        
+
         with patch("agent.agent_di_container.get_container", return_value=mock_container):
             res = await exec_fn(ActionName("cleanup"), {"force": True})
             assert res == Prompt("action_ok")
-            
+
         # 2. Success with no args (args=None branch)
         with patch("agent.agent_di_container.get_container", return_value=mock_container):
             res_no_args = await exec_fn(ActionName("cleanup"))
@@ -196,16 +197,16 @@ class TestCommandsListHandler:
         mock_mcp = MagicMock()
         mock_tool_decorator = MagicMock()
         mock_mcp.tool.return_value = mock_tool_decorator
-        
+
         CommandsListHandler.register_list_commands(mock_mcp)
         mock_mcp.tool.assert_called_once()
-        
+
         list_fn = mock_tool_decorator.call_args[0][0]
-        
+
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = MagicMock()
         mock_container.core_agent_orchestrator.list_commands.return_value = Prompt("list_ok")
-        
+
         with patch("agent.agent_di_container.get_container", return_value=mock_container):
             res = list_fn(DomainRef("scene"), FormatRef("summary"))
             assert res == Prompt("list_ok")
@@ -227,12 +228,12 @@ class TestPromptHandlerModule:
         mock_mcp = MagicMock()
         PromptHandlerModule.register_prompts(mock_mcp)
         assert mock_mcp.prompt.call_count == 4
-        
+
         # Test prompt execution wrapper values
         with patch("surfaces.prompt_register_handler.get_lighting_expert_prompt", return_value="lighting_text"), \
              patch("surfaces.prompt_register_handler.get_layout_expert_prompt", return_value="layout_text"), \
              patch("surfaces.prompt_register_handler.get_text_to_scene_orchestrator_prompt", return_value="workflow_text"):
-            
+
             # Retrieve decoratee prompts
             lighting_decorator_fn = mock_mcp.prompt.call_args_list[1][1]["name"]
             assert lighting_decorator_fn == "lighting_expert"
@@ -247,16 +248,16 @@ class TestSkillReadHandler:
         mock_mcp = MagicMock()
         mock_tool_decorator = MagicMock()
         mock_mcp.tool.return_value = mock_tool_decorator
-        
+
         SkillReadHandler.register_read_skill_context(mock_mcp)
         mock_mcp.tool.assert_called_once()
-        
+
         read_fn = mock_tool_decorator.call_args[0][0]
-        
+
         mock_container = MagicMock()
         mock_container.core_agent_orchestrator = MagicMock()
         mock_container.core_agent_orchestrator.read_skill_context.return_value = Prompt("skill_ok")
-        
+
         with patch("agent.agent_di_container.get_container", return_value=mock_container):
             res = read_fn(SkillName("dummy"), SectionRef("architectures"))
             assert res == Prompt("skill_ok")
@@ -279,11 +280,11 @@ class TestServerStartHandler:
     def test_main_sse_transport(self):
         mock_mcp = MagicMock()
         mock_mcp.settings = MagicMock()
-        
+
         with patch("surfaces.server_start_handler.ServerStartHandler._setup_logging") as mock_setup_log, \
              patch("surfaces.server_instance_handler.ServerInstanceHandler.get_mcp_instance", return_value=mock_mcp) as mock_get_mcp, \
              patch("agent.system_coordinator.ServerBootstrapManager.resolve_transport_config", return_value=("sse", "127.0.0.1", "8000")):
-            
+
             ServerStartHandler.main()
             mock_setup_log.assert_called_once()
             mock_get_mcp.assert_called_once()
@@ -294,11 +295,11 @@ class TestServerStartHandler:
     def test_main_stdio_transport(self):
         mock_mcp = MagicMock()
         mock_mcp.settings = MagicMock()
-        
+
         with patch("surfaces.server_start_handler.ServerStartHandler._setup_logging") as mock_setup_log, \
              patch("surfaces.server_instance_handler.ServerInstanceHandler.get_mcp_instance", return_value=mock_mcp) as mock_get_mcp, \
              patch("agent.system_coordinator.ServerBootstrapManager.resolve_transport_config", return_value=("stdio", "", "")):
-            
+
             ServerStartHandler.main()
             mock_setup_log.assert_called_once()
             mock_get_mcp.assert_called_once()

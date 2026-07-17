@@ -1,7 +1,8 @@
 """Unit tests for telemetry configuration (TelemetryConfig)."""
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from infrastructure.telemetry_signal_recorder import TelemetryConfig
 

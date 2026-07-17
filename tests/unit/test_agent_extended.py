@@ -5,20 +5,21 @@ Covers:
 - system_utils_coordinator.py (73% -> 100%)
 - agent_factory_registry.py (74% -> 100%)
 """
-import pytest
 import os
 from unittest.mock import MagicMock, patch
 
-from taxonomy import ConfigPath, ConfigValue
-from agent.system_coordinator import ServerBootstrapManager
-from agent.system_coordinator import (
-    SystemUtilsCoordinator,
-    record_startup,
-    get_blender_connection,
-    shutdown_connection,
-    health_check,
-)
+import pytest
+
 from agent.agent_factory_registry import AgentFactoryRegistry
+from agent.system_coordinator import (
+    ServerBootstrapManager,
+    SystemUtilsCoordinator,
+    get_blender_connection,
+    health_check,
+    record_startup,
+    shutdown_connection,
+)
+from taxonomy import ConfigPath
 
 
 @pytest.mark.unit
@@ -78,7 +79,7 @@ class TestServerBootstrapManager:
         mock_executor = MagicMock()
 
         assert AgentFactoryRegistry.create_config_loader() is not None
-        
+
         with patch("infrastructure.blender_connection_connector.get_blender_connection", return_value=mock_conn):
             assert AgentFactoryRegistry.create_blender_connection() is mock_conn
 
@@ -250,10 +251,6 @@ class TestSystemUtilsCoordinatorExceptionsAndAliases:
         assert "no connection" in str(status["connection_error"])
 
     def test_module_aliases_exist_and_callable(self):
-        from agent.system_coordinator import (
-            record_startup, get_blender_connection,
-            shutdown_connection, health_check,
-        )
         assert callable(record_startup)
         assert callable(get_blender_connection)
         assert callable(shutdown_connection)
@@ -267,14 +264,22 @@ class TestSystemUtilsCoordinatorExceptionsAndAliases:
         self, mock_hc, mock_sd, mock_gb, mock_rs
     ):
         from agent.system_coordinator import (
-            record_startup, get_blender_connection,
-            shutdown_connection, health_check,
+            get_blender_connection as gbc,
         )
-        record_startup()
+        from agent.system_coordinator import (
+            health_check as hc,
+        )
+        from agent.system_coordinator import (
+            record_startup as rs,
+        )
+        from agent.system_coordinator import (
+            shutdown_connection as sc,
+        )
+        rs()
         mock_rs.assert_called_once()
-        get_blender_connection()
+        gbc()
         mock_gb.assert_called_once()
-        shutdown_connection()
+        sc()
         mock_sd.assert_called_once()
-        health_check()
+        hc()
         mock_hc.assert_called_once()

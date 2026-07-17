@@ -1,30 +1,31 @@
 """Unit tests for the infrastructure layer (Adapters, config loader, socket connector)."""
 import os
-import pytest
-import socket
-from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
-from taxonomy import (
-    PythonCode,
-    ObjectName,
-    MaxSize,
-    ActionName,
-    Prompt,
-    ConnectionError,
-    ExecutionError,
-)
-from infrastructure.config_file_loader import (
-    ApplicationConfigLoader,
-)
-from infrastructure.code_execution_adapter import CodeExecutionAdapter
-from infrastructure.blender_socket_adapter import BlenderSocketAdapter
+import pytest
+
 from infrastructure.blender_connection_connector import (
     BlenderConnection,
     BlenderConnectionFactory,
     get_blender_connection,
     shutdown_connection,
 )
+from infrastructure.blender_socket_adapter import BlenderSocketAdapter
+from infrastructure.code_execution_adapter import CodeExecutionAdapter
+from infrastructure.config_file_loader import (
+    ApplicationConfigLoader,
+)
+from taxonomy import (
+    ActionName,
+    ConnectionError,
+    ExecutionError,
+    MaxSize,
+    ObjectName,
+    Prompt,
+    PythonCode,
+)
+
 # ── Dead code cleanup (2026-07-18) ──────────────────────────────────────────
 # command_catalog_client.py was removed as dead code.
 # CommandCatalogClient tests were deleted; use CommandCatalogAdapter instead.
@@ -72,10 +73,9 @@ class TestApplicationConfigLoader:
     def test_get_project_root_fallback_cwd(self):
         from pathlib import PurePosixPath
         # We simulate all exists checks returning False
-        with patch.dict(os.environ, {}, clear=True):
-            with patch.object(Path, "exists", return_value=False):
-                res = ApplicationConfigLoader.get_project_root()
-                assert PurePosixPath(res) == PurePosixPath(Path.cwd().resolve())
+        with patch.dict(os.environ, {}, clear=True), patch.object(Path, "exists", return_value=False):
+            res = ApplicationConfigLoader.get_project_root()
+            assert PurePosixPath(res) == PurePosixPath(Path.cwd().resolve())
 
     def test_load_config_file_not_found(self):
         with patch.object(Path, "exists", return_value=False):
@@ -290,9 +290,8 @@ class TestBlenderSocketAdapter:
     @pytest.mark.asyncio
     async def test_get_screenshot_file_not_created(self, adapter, mock_conn):
         mock_conn.send_command.return_value = {}
-        with patch("os.path.exists", return_value=False):
-            with pytest.raises(ExecutionError):
-                await adapter.get_screenshot()
+        with patch("os.path.exists", return_value=False), pytest.raises(ExecutionError):
+            await adapter.get_screenshot()
 
     @pytest.mark.asyncio
     async def test_get_screenshot_exceptions(self, adapter, mock_conn):
@@ -378,7 +377,7 @@ class TestBlenderConnectionAndFactory:
     def test_read_response_chunks_timeout(self):
         conn = BlenderConnection()
         mock_sock = MagicMock()
-        mock_sock.recv.side_effect = socket.timeout("timeout")
+        mock_sock.recv.side_effect = TimeoutError("timeout")
 
         chunks, completed = conn._read_response_chunks(mock_sock, 1024)
         assert completed is False
@@ -437,7 +436,7 @@ class TestBlenderConnectionAndFactory:
         conn.sock = mock_sock
 
         # Timeout exception
-        mock_sock.sendall.side_effect = socket.timeout()
+        mock_sock.sendall.side_effect = TimeoutError()
         with pytest.raises(Exception) as exc:
             conn.send_command(ActionName("test_cmd"))
         assert "Timeout" in str(exc.value)

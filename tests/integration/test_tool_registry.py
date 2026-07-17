@@ -2,6 +2,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from surfaces.tool_registry_handler import ToolRegistryHandler
 
 

@@ -4,11 +4,12 @@ Mencakup:
 - workflow_operate_protocol.py (78% -> 90%)
 - catalog_command_handler.py (62% -> 85%) - surfaces layer
 """
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from contract.workflow_operate_protocol import WorkflowProtocol
-from taxonomy import SuccessFlag, ProviderName, Prompt
+from taxonomy import Prompt, ProviderName, SuccessFlag
 
 
 class ConcreteWorkflowProtocol(WorkflowProtocol):
@@ -48,12 +49,11 @@ class TestWorkflowProtocol:
 
 from surfaces.catalog_command_handler import (
     CommandCatalogSurfaceHandler,
-    list_commands,
     filter_by_domain,
     get_actions_by_capability,
-    register_command_catalog,
+    list_commands,
 )
-from taxonomy import DomainRef, CapabilityRef
+from taxonomy import CapabilityRef, DomainRef
 
 
 @pytest.mark.unit
@@ -80,7 +80,7 @@ class TestCommandCatalogSurfaceHandler:
 
     def test_filter_by_domain_all_values_match(self):
         result = CommandCatalogSurfaceHandler.filter_by_domain(DomainRef("scene"))
-        for name, spec in result.items():
+        for _name, spec in result.items():
             assert spec.get("domain") == "scene"
 
     def test_filter_by_unknown_domain_empty(self):

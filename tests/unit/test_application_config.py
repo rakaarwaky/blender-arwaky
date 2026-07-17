@@ -1,5 +1,6 @@
 """Tests for application configuration module."""
 import pytest
+
 from infrastructure.config_file_loader import get_config
 
 

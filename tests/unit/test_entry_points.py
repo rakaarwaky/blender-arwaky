@@ -1,8 +1,7 @@
 """Tests for entry point modules (cli_main_entry, mcp_main_entry, src/__init__)."""
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-import surfaces.cli_command_handler
-import surfaces.server_start_handler
 
 
 @pytest.mark.unit
@@ -18,7 +17,7 @@ class TestCliMainEntry:
             mock_exit.assert_called_once_with(0)
 
     def test_main_exit_code(self):
-        with patch("surfaces.cli_command_handler.CliCommandHandler.main", return_value=1) as mock_main, \
+        with patch("surfaces.cli_command_handler.CliCommandHandler.main", return_value=1), \
              patch("sys.exit") as mock_exit:
             from cli_main_entry import main
             main()

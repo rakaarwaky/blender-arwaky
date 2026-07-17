@@ -1,6 +1,8 @@
 """Tests for ExecuteActionCapability."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from capabilities.action_execute_actions import ActionExecuteActions as ExecuteActionCapability
 
 
@@ -8,28 +10,28 @@ from capabilities.action_execute_actions import ActionExecuteActions as ExecuteA
 def mock_orchestrator():
     """Create a mock orchestrator with known methods and DI properties."""
     orch = MagicMock()
-    
+
     # Mock BlenderPort (blender)
     blender = MagicMock()
     blender.get_scene_info = AsyncMock(return_value={"name": "TestScene"})
     blender.get_object_info = AsyncMock(return_value={"name": "Cube"})
     blender.execute_code = AsyncMock(return_value="OK")
     orch.blender = blender
-    
+
     # Mock capability executors
     scene_cap = MagicMock()
     scene_cap.get_scene_info = AsyncMock(return_value={"name": "TestScene"})
     orch.operate_scene_capability = scene_cap
-    
+
     object_cap = MagicMock()
     object_cap.get_object_info = AsyncMock(return_value={"name": "Cube"})
     orch.object_operate_capability = object_cap
-    
+
     # For backward compatibility in tests asserting on mock_orchestrator direct methods
     orch.get_scene_info = scene_cap.get_scene_info
     orch.get_object_info = object_cap.get_object_info
     orch.execute_blender_code = blender.execute_code
-    
+
     return orch
 
 

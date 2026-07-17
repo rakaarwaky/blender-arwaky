@@ -6,59 +6,67 @@ Mencakup:
 - blender_ops_vo.py (BlenderOpsRecord dan variants)
 """
 import pytest
+
 from taxonomy.base_provider_vo import (
-    ProviderVO,
-    AssetSearchRequestVO,
-    AssetMetadataVO,
-    AssetSearchResponseVO,
     AssetDownloadRequestVO,
     AssetDownloadResponseVO,
+    AssetMetadataVO,
+    AssetSearchRequestVO,
+    AssetSearchResponseVO,
+    ProviderVO,
 )
 from taxonomy.blender_asset_vo import (
-    AssetMetadata,
-    ImportedAsset,
     ASSET_TYPE_HDRIS,
-    ASSET_TYPE_TEXTURES,
     ASSET_TYPE_MODELS,
+    ASSET_TYPE_TEXTURES,
     PROVIDER_POLYHAVEN,
     PROVIDER_SKETCHFAB,
+    AssetMetadata,
+    ImportedAsset,
     create_asset_id,
     create_provider_name,
 )
 from taxonomy.blender_ops_vo import (
+    ApplyModifierRequestVO,
     BlenderOpsVO,
     CleanupSceneRequestVO,
     CleanupSceneResponseVO,
-    SetupEnvironmentRequestVO,
-    SetupEnvironmentResponseVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
     CreatePrimitiveRequestVO,
     CreatePrimitiveResponseVO,
-    SetMaterialRequestVO,
-    RenderRequestVO,
-    RenderResponseVO,
-    PlaceAssetRequestVO,
-    PlaceAssetResponseVO,
-    GetObjectInfoRequestVO,
-    SetObjectTransformRequestVO,
     DeleteObjectRequestVO,
-    ApplyModifierRequestVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
     ExportModelRequestVO,
     ExportModelResponseVO,
+    GetObjectInfoRequestVO,
+    GetSceneInfoRequestVO,
+    GetSceneInfoResponseVO,
     GetScreenshotRequestVO,
+    ImportGlbRequestVO,
+    ImportGlbResponseVO,
+    PlaceAssetRequestVO,
+    RenderRequestVO,
+    RenderResponseVO,
     ScreenshotResponseVO,
+    SetMaterialRequestVO,
+    SetObjectTransformRequestVO,
+    SetupEnvironmentRequestVO,
+    SetupEnvironmentResponseVO,
 )
 from taxonomy.blender_spatial_vo import Vector3D
 from taxonomy.core_types_vo import (
-    AssetId, AssetName, AssetType, ProviderName,
-    ThumbnailUrl, ObjectName, FilePath, SuccessFlag,
-    ErrorMessage, JobId, JobState, Progress, SearchQuery,
-    AssetTypeFilter, ResultLimit, AssetCount,
+    AssetCount,
+    AssetId,
+    AssetName,
+    AssetType,
+    AssetTypeFilter,
+    ErrorMessage,
+    FilePath,
+    ObjectName,
+    ProviderName,
+    ResultLimit,
+    SearchQuery,
+    SuccessFlag,
+    ThumbnailUrl,
 )
-
 
 # ─── base_provider_vo.py ──────────────────────────────────────────
 
@@ -205,6 +213,7 @@ class TestBlenderAssetVO:
 
     def test_asset_metadata_with_tags(self):
         from typing import cast
+
         from taxonomy.core_types_vo import TagList
         meta = AssetMetadata(
             id=AssetId("a002"),
@@ -294,7 +303,7 @@ class TestBlenderOpsVO:
         assert resp.success is True
 
     def test_create_primitive_request(self):
-        from taxonomy.core_types_vo import PrimitiveType, CoordinateList
+        from taxonomy.core_types_vo import CoordinateList, PrimitiveType
         req = CreatePrimitiveRequestVO(
             primitive_type=PrimitiveType("SPHERE"),
             location=CoordinateList([0.0, 0.0, 0.0]),
@@ -422,7 +431,7 @@ class TestBlenderOpsVO:
         assert resp.hdri_path == "/tmp/env.hdr"
 
     def test_screenshot_request_and_response(self):
-        from taxonomy.core_types_vo import MaxSize, ImageFormat, ResolutionX, ResolutionY
+        from taxonomy.core_types_vo import ImageFormat, MaxSize, ResolutionX, ResolutionY
         req = GetScreenshotRequestVO(
             max_size=MaxSize(1024),
             format=ImageFormat("jpeg"),
@@ -448,7 +457,7 @@ class TestBlenderOpsVO:
                 location=CoordinateList([0.0, 0.0, 0.0]),
                 scale=CoordinateList([1.0, 1.0]),  # only 2 elements
             )
-        
+
         with pytest.raises(Exception):
             PlaceAssetRequestVO(
                 asset_id=AssetId("asset-1"),
@@ -462,10 +471,9 @@ class TestSceneAggregateExtended:
     """Extra test cases for SceneAggregate to close taxonomy gaps."""
 
     def test_update_object_with_same_name_and_invalid_attribute(self):
+        from taxonomy.blender_object_entity import OBJECT_TYPE_MESH, BlenderObject
         from taxonomy.blender_scene_entity import SceneAggregate
-        from taxonomy.blender_object_entity import BlenderObject, OBJECT_TYPE_MESH
-        from taxonomy.blender_spatial_vo import Vector3D
-        
+
         scene = SceneAggregate()
         obj = BlenderObject(
             name=ObjectName("O1"),
@@ -486,8 +494,9 @@ class TestSceneAggregateExtended:
         assert not hasattr(obj, "nonexistent_attr")
 
     def test_place_asset_request_coordinate_validator_manual_trigger(self):
-        from taxonomy.blender_ops_vo import PlaceAssetRequestVO
         from unittest.mock import MagicMock
+
+        from taxonomy.blender_ops_vo import PlaceAssetRequestVO
         mock_info = MagicMock()
         mock_info.field_name = "scale"
         with pytest.raises(ValueError) as exc_info:
@@ -495,8 +504,9 @@ class TestSceneAggregateExtended:
         assert "must have exactly 3 elements" in str(exc_info.value)
 
     def test_find_object_not_found_throws_validation_error(self):
-        from taxonomy.blender_scene_entity import SceneAggregate, SceneValidationError
         from uuid import uuid4
+
+        from taxonomy.blender_scene_entity import SceneAggregate, SceneValidationError
         scene = SceneAggregate()
         with pytest.raises(SceneValidationError) as exc_info:
             scene.get_object(uuid4())

@@ -1,5 +1,6 @@
 """Tests for DI container wiring."""
 import pytest
+
 from agent.agent_di_container import get_container, reset_container
 
 

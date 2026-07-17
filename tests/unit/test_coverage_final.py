@@ -1,10 +1,10 @@
 """Final coverage gap tests - push src/ to 100%."""
-import pytest
-import json
-import sys
 import subprocess
-from unittest.mock import MagicMock, AsyncMock, patch, mock_open
+import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # =============================================================================
 # CONTRACT LAYER - Abstract method pass lines
@@ -290,7 +290,12 @@ class TestAgentFinalGaps:
         assert "Render manager not injected" in r["error"]
 
     def test_system_utils_coordinator_get_functions(self):
-        from agent.system_coordinator import _get_record_startup, _get_blender_conn_fn, _get_shutdown_connection_fn, _get_telemetry_config_class
+        from agent.system_coordinator import (
+            _get_blender_conn_fn,
+            _get_record_startup,
+            _get_shutdown_connection_fn,
+            _get_telemetry_config_class,
+        )
         rs = _get_record_startup()
         assert callable(rs)
         bcf = _get_blender_conn_fn()
@@ -390,7 +395,6 @@ class TestInfrastructureFinalGaps:
         from infrastructure.blender_connection_connector import BlenderConnection
         conn = BlenderConnection()
         conn.sock = None
-        original_connect = conn.connect
         def fake_connect():
             conn.sock = None
             return True
@@ -399,8 +403,8 @@ class TestInfrastructureFinalGaps:
             conn.send_command("test")
 
     def test_global_get_blender_connection_factory_unexpected_type(self):
-        from infrastructure.blender_connection_connector import get_blender_connection
         import infrastructure.blender_connection_connector as bcc
+        from infrastructure.blender_connection_connector import get_blender_connection
         bcc._blender_connection = None
         mock_factory = MagicMock()
         mock_factory.get_connection.return_value = "not_a_blender_connection"
@@ -413,8 +417,9 @@ class TestInfrastructureFinalGaps:
     # test_command_catalog_module_helpers was removed because command_catalog_client.py was deleted.
 
     def test_config_file_loader_dir_based(self):
-        from infrastructure.config_file_loader import ApplicationConfigLoader
         from pathlib import PurePosixPath
+
+        from infrastructure.config_file_loader import ApplicationConfigLoader
         with patch.dict("os.environ", {"BLENDERMCP_CONFIG_PATH": "/mock/dir"}):
             with patch.object(Path, "is_file", return_value=False):
                 with patch.object(Path, "is_dir", return_value=True):
@@ -429,9 +434,9 @@ class TestInfrastructureFinalGaps:
     # were removed because telemetry_decorator_adapter.py was deleted.
 
     def test_telemetry_signal_recorder_worker_failure(self):
-        from infrastructure.telemetry_signal_recorder import TelemetrySignalRecorder
-        from pathlib import Path
         import tempfile
+
+        from infrastructure.telemetry_signal_recorder import TelemetrySignalRecorder
         conn = MagicMock()
         config = MagicMock()
         config.enabled = True
@@ -463,13 +468,15 @@ class TestSurfacesFinalGaps:
         CommandCatalogSurfaceHandler.register_command_catalog(mcp)
         tool_fn = mock_tool_decorator.call_args[0][0]
         import asyncio
+
         from taxonomy import DomainRef
         res = asyncio.run(tool_fn(DomainRef("scene")))
         assert "scene" in str(res) or isinstance(res, str)
 
     def test_cli_handler_json_output_pydantic(self, capsys):
-        from surfaces.cli_command_handler import CliCommandHandler
         from pydantic import BaseModel
+
+        from surfaces.cli_command_handler import CliCommandHandler
         class FakeModel(BaseModel):
             result: str = "ok"
         mock_args = MagicMock()

@@ -2,12 +2,10 @@
 Targets uncovered lines across agent, surfaces, infrastructure, and entry points.
 """
 
-import pytest
-import json
-import sys
-from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 
 # =============================================================================
 # PART 1: Agent layer

@@ -1,5 +1,6 @@
 """Tests for the command catalog taxonomy module."""
 import pytest
+
 from taxonomy.blender_command_vo import COMMAND_CATALOG, list_actions
 
 

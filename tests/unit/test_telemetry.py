@@ -1,21 +1,30 @@
-import os
-import json
-import pytest
 import asyncio
+import json
+import os
 import tempfile
-from unittest.mock import MagicMock, patch, mock_open
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
-from taxonomy import (
-    CustomerUuid, SessionId, Timestamp, VersionString, PlatformName,
-    ToolName, Prompt, SuccessFlag, DurationMs, ErrorMessage
-)
-from taxonomy.telemetry_event_entity import EventType, TelemetryEvent
+import pytest
+
 from infrastructure.telemetry_signal_recorder import (
     TelemetrySignalRecorder,
     _get_package_version,
     record_startup,
 )
+from taxonomy import (
+    CustomerUuid,
+    DurationMs,
+    ErrorMessage,
+    PlatformName,
+    Prompt,
+    SessionId,
+    SuccessFlag,
+    Timestamp,
+    ToolName,
+    VersionString,
+)
+from taxonomy.telemetry_event_entity import EventType, TelemetryEvent
 
 
 @pytest.mark.unit
@@ -64,13 +73,12 @@ class TestTelemetryRecorder:
 
     def test_telemetry_get_data_directory_platforms(self, mock_conn, mock_config):
         # Windows APPDATA path
-        with patch("sys.platform", "win32"):
-            with patch.dict(os.environ, {"APPDATA": "/mock/appdata"}):
-                recorder = TelemetrySignalRecorder(mock_conn, mock_config)
-                # Normalize separators for cross-platform comparison
-                actual = os.path.normpath(str(recorder._get_data_directory()))
-                expected = os.path.normpath("/mock/appdata/BlenderArwaky")
-                assert expected in actual or os.path.normpath("/mock/appdata") in actual
+        with patch("sys.platform", "win32"), patch.dict(os.environ, {"APPDATA": "/mock/appdata"}):
+            recorder = TelemetrySignalRecorder(mock_conn, mock_config)
+            # Normalize separators for cross-platform comparison
+            actual = os.path.normpath(str(recorder._get_data_directory()))
+            expected = os.path.normpath("/mock/appdata/BlenderArwaky")
+            assert expected in actual or os.path.normpath("/mock/appdata") in actual
 
         # Darwin path
         with patch("sys.platform", "darwin"):
@@ -78,10 +86,9 @@ class TestTelemetryRecorder:
             assert "Library/Application Support" in str(recorder._get_data_directory())
 
         # Linux XDG path
-        with patch("sys.platform", "linux"):
-            with patch.dict(os.environ, {"XDG_DATA_HOME": "/mock/xdg"}):
-                recorder = TelemetrySignalRecorder(mock_conn, mock_config)
-                assert os.path.normpath("/mock/xdg") in os.path.normpath(str(recorder._get_data_directory()))
+        with patch("sys.platform", "linux"), patch.dict(os.environ, {"XDG_DATA_HOME": "/mock/xdg"}):
+            recorder = TelemetrySignalRecorder(mock_conn, mock_config)
+            assert os.path.normpath("/mock/xdg") in os.path.normpath(str(recorder._get_data_directory()))
 
     def test_get_or_create_uuid_read_existing(self, mock_conn, mock_config):
         with tempfile.TemporaryDirectory() as tmpdir:

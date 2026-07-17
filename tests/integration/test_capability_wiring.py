@@ -15,11 +15,11 @@ NOTE: This test suite also documents known architectural findings:
     via their factory functions directly instead.
 """
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent.agent_di_container import get_container, reset_container
+import pytest
 
+from agent.agent_di_container import get_container, reset_container
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -105,8 +105,13 @@ class TestAssetSearchCollectorIntegration:
     def _make_search_response(self, asset_id, name, asset_type, provider_name):
         """Helper: build a valid AssetSearchResponseVO with correct VO types."""
         from taxonomy import (
-            AssetSearchResponseVO, AssetMetadataVO,
-            AssetId, AssetName, AssetType, ProviderName, TagList,
+            AssetId,
+            AssetMetadataVO,
+            AssetName,
+            AssetSearchResponseVO,
+            AssetType,
+            ProviderName,
+            TagList,
         )
         return AssetSearchResponseVO(
             assets=[
@@ -180,7 +185,7 @@ class TestAssetSearchCollectorIntegration:
     async def test_search_all_tolerates_provider_error(self):
         """One failing provider must not crash the entire search."""
         from capabilities.asset_search_collector import AssetSearchCollector
-        from taxonomy import SearchQuery, ProviderError, ErrorMessage
+        from taxonomy import ErrorMessage, ProviderError, SearchQuery
 
         mock_ok = AsyncMock()
         mock_ok.search_assets = AsyncMock(
@@ -244,7 +249,7 @@ class TestActionDispatchIntegration:
     @pytest.mark.asyncio
     async def test_dispatch_propagates_args_to_capability(self):
         from capabilities.action_execute_actions import ActionExecuteActions
-        from taxonomy import CreatePrimitiveResponseVO, SuccessFlag, ObjectName, PrimitiveType
+        from taxonomy import CreatePrimitiveResponseVO, ObjectName, PrimitiveType, SuccessFlag
 
         mock_obj_cap = AsyncMock()
         mock_obj_cap.create_primitive = AsyncMock(

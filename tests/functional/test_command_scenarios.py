@@ -3,7 +3,7 @@ Functional (Scenario) Tests: End-to-End Command Flows.
 
 These tests simulate realistic user-facing workflows within project boundaries.
 No real Blender is required — the Blender socket is mocked at the lowest level
-(BlenderConnection.send_command), but everything above it (DI container, 
+(BlenderConnection.send_command), but everything above it (DI container,
 capabilities, orchestrator, action dispatcher) runs with REAL implementations.
 
 Scenarios covered:
@@ -21,13 +21,13 @@ Scenarios covered:
 12. execute_command("get_object_info") → delegates to object capability
 """
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from agent.agent_di_container import get_container, reset_container
 from taxonomy.blender_object_entity import BlenderObject
 from taxonomy.core_types_vo import ObjectType
-
 
 # ── Helpers & Fixtures ────────────────────────────────────────────────────────
 
@@ -88,7 +88,7 @@ class TestScenarioListCommands:
         from taxonomy import FormatRef
         result = orchestrator.list_commands(format=FormatRef("summary"))
         catalog = json.loads(str(result))
-        for action, spec in catalog.items():
+        for _action, spec in catalog.items():
             # Summary format should NOT have full parameter spec
             assert isinstance(spec, dict)
             assert "description" in spec
@@ -139,7 +139,7 @@ class TestScenarioGetSceneInfo:
 @pytest.mark.functional
 class TestScenarioCreatePrimitive:
     """User asks: 'create a sphere named MySphere at position (1, 2, 3)'
-    
+
     NOTE: create_primitive uses ObjectOperateExecutor which is NOT wired via the
     normal DI container dispatch (missing DI slot). We test the capability
     directly to verify the code generation logic.
@@ -185,7 +185,7 @@ class TestScenarioCreatePrimitive:
     async def test_create_primitive_with_location(self):
         """Direct capability test: location is embedded in generated code."""
         from capabilities.object_operate_executor import ObjectOperateExecutor
-        from taxonomy import CreatePrimitiveRequestVO, ObjectName, PrimitiveType, CoordinateList
+        from taxonomy import CoordinateList, CreatePrimitiveRequestVO, ObjectName, PrimitiveType
 
         mock_blender = MagicMock()
         mock_blender.execute_code = AsyncMock(return_value={})
@@ -206,7 +206,7 @@ class TestScenarioCreatePrimitive:
 @pytest.mark.functional
 class TestScenarioDeleteObject:
     """User asks: 'delete the object named OldMesh'
-    
+
     NOTE: Tested via direct capability (ObjectOperateExecutor) due to
     missing DI slot for object_operate_capability in dispatch stack.
     """
@@ -233,7 +233,7 @@ class TestScenarioDeleteObject:
 @pytest.mark.functional
 class TestScenarioSetObjectTransform:
     """User asks: 'move Cube to (5, 0, 0) and rotate it'
-    
+
     NOTE: Tested via direct capability (ObjectOperateExecutor) due to
     missing DI slot for object_operate_capability in dispatch stack.
     """
@@ -242,7 +242,7 @@ class TestScenarioSetObjectTransform:
     async def test_set_transform_includes_location_in_code(self):
         """Direct capability test: location is embedded in generated bpy code."""
         from capabilities.object_operate_executor import ObjectOperateExecutor
-        from taxonomy import SetObjectTransformRequestVO, ObjectName, CoordinateList
+        from taxonomy import CoordinateList, ObjectName, SetObjectTransformRequestVO
 
         mock_blender = MagicMock()
         mock_blender.execute_code = AsyncMock(return_value={})
@@ -261,7 +261,7 @@ class TestScenarioSetObjectTransform:
     async def test_set_transform_partial_update_no_crash(self):
         """Only location — rotation/scale must be skipped without crash."""
         from capabilities.object_operate_executor import ObjectOperateExecutor
-        from taxonomy import SetObjectTransformRequestVO, ObjectName, CoordinateList, SuccessFlag
+        from taxonomy import CoordinateList, ObjectName, SetObjectTransformRequestVO, SuccessFlag
 
         mock_blender = MagicMock()
         mock_blender.execute_code = AsyncMock(return_value={})
@@ -279,7 +279,7 @@ class TestScenarioSetObjectTransform:
 @pytest.mark.functional
 class TestScenarioSetMaterial:
     """User asks: 'apply a metal material to Sphere'
-    
+
     NOTE: Tested via direct capability (ObjectOperateExecutor) due to
     missing DI slot for object_operate_capability in dispatch stack.
     """
@@ -288,7 +288,7 @@ class TestScenarioSetMaterial:
     async def test_set_material_emits_material_code(self):
         """Direct capability test: material assignment generates correct bpy code."""
         from capabilities.object_operate_executor import ObjectOperateExecutor
-        from taxonomy import SetMaterialRequestVO, ObjectName, MaterialName
+        from taxonomy import MaterialName, ObjectName, SetMaterialRequestVO
 
         mock_blender = MagicMock()
         mock_blender.execute_code = AsyncMock(return_value={})
@@ -316,8 +316,12 @@ class TestScenarioSearchAssets:
         """Replace provider adapters with mocks, run real search_all logic."""
         from capabilities.asset_search_collector import AssetSearchCollector
         from taxonomy import (
-            AssetSearchResponseVO, AssetMetadataVO,
-            SearchQuery, AssetId, AssetName, ProviderName,
+            AssetId,
+            AssetMetadataVO,
+            AssetName,
+            AssetSearchResponseVO,
+            ProviderName,
+            SearchQuery,
         )
 
         mock_poly = AsyncMock()
@@ -490,7 +494,7 @@ class TestScenarioCleanupScene:
 @pytest.mark.functional
 class TestScenarioGetObjectInfo:
     """User asks: 'what are the properties of Cube?'
-    
+
     NOTE: Tested via direct capability (ObjectOperateExecutor) due to
     missing DI slot for object_operate_capability in dispatch stack.
     """
