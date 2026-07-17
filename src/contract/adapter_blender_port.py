@@ -9,6 +9,10 @@ from abc import ABC, abstractmethod
 
 from taxonomy import BlenderObject, ImageBytes, MaxSize, ObjectName, PythonCode, SceneInfo, StatusString
 
+# Type aliases for screenshot parameters
+ViewAngle = str
+ShadingMode = str
+
 
 class BlenderPort(ABC):
     """Port interface for low-level Blender operations via socket connection."""
@@ -29,6 +33,13 @@ class BlenderPort(ABC):
         pass
 
     @abstractmethod
-    async def get_screenshot(self, max_size: MaxSize | None = None) -> ImageBytes:
-        """Capture viewport screenshot as PNG bytes."""
+    async def get_screenshot(
+        self,
+        max_size: MaxSize | None = None,
+        view_angle: ViewAngle = "PERSPECTIVE",
+        shading_mode: ShadingMode = "MATERIAL",
+        show_overlays: bool = True,
+        focus_object: ObjectName | None = None,
+    ) -> tuple[ImageBytes, int, int]:
+        """Capture viewport screenshot. Returns (image_bytes, width, height)."""
         pass

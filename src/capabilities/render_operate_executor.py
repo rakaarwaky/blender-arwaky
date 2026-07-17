@@ -152,7 +152,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
         logger.info("Applying composition rule: %s", rule)
 
         rule_val = str(rule).lower()
-        guide_set = "{'THIRDS'}" if rule_val == "thirds" else "{'GOLDEN'}" if rule_val == "golden" else "{}"
+        guide_set = "{'THIRDS'}" if rule_val == "thirds" else "{'GOLDEN'}" if rule_val == "golden" else "set()"
         if rule_val not in ("thirds", "golden"):
             logger.warning("Unknown composition rule '%s', applying empty guide set.", rule_val)
 
