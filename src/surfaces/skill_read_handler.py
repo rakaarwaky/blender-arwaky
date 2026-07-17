@@ -30,7 +30,7 @@ class SkillReadHandler:
             Returns:
                 Markdown content of the SKILL.md (or empty string if not found)
             """
-            section = section or SectionRef("")
+            # Keep section as None if not provided (orchestrator handles None vs empty)
             from agent.agent_di_container import get_container
 
             container: AgentDiContainerAggregate = get_container()

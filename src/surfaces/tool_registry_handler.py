@@ -10,13 +10,11 @@ Tool list (unlimited CLI via single entry point):
 All tools delegate to the agent layer; handlers never call capabilities directly.
 """
 
-from contract import CommandCatalogPort
 
 
 class ToolRegistryHandler:
     """Handler for tool registry ."""
 
-    _contract_ref: CommandCatalogPort
     """Registry for all MCP tools. Handlers never call capabilities directly."""
 
     @staticmethod

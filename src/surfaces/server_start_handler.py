@@ -44,7 +44,7 @@ class ServerStartHandler:
 
         if transport == "sse":
             mcp.settings.host = host
-            mcp.settings.port = int(port_str)
+            mcp.settings.port = int(port_str) if port_str.isdigit() else 8000
             mcp.settings.log_level = "INFO"
             logger.info(f"Starting BlenderArwaky SSE server on {host}:{port_str}")
             mcp.run(transport="sse")

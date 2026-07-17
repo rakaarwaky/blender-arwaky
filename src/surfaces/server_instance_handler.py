@@ -68,11 +68,11 @@ class ServerInstanceHandler:
 
             yield startup_data
 
-        except BaseException as e:
+        except Exception as e:
             logger.error(f"Startup error: {e}")
             yield {"blender_connected": False, "startup_error": str(e)}
         finally:
-                logger.info("BlenderArwaky server shut down")
+            logger.info("BlenderArwaky server shut down")
 
     @staticmethod
     def get_mcp_instance(name: ServerName | None = None) -> FastMCP:

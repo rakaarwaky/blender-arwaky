@@ -27,7 +27,7 @@ class CommandCatalogSurfaceHandler:
     def list_commands(domain: DomainRef | None = None) -> StringList:
         domain = domain or DomainRef("all")
         """List available action names, optionally filtered by domain."""
-        if domain == "all":
+        if str(domain) == "all":
             return StringList(CommandCatalog.list_actions())
         return StringList(
             [name for name, spec in CommandCatalog.COMMAND_CATALOG.items() if spec.get("domain") == domain]

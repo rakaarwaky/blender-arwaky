@@ -75,7 +75,6 @@ Examples: `command_execute_handler.py`, `hunyuan_provider_adapter.py`,
 - `_entity` — taxonomy entities
 - `_port` — contract ports
 - `_protocol` — contract protocols
-- `_io` — contract IO schemas
 - `_container` — agent containers
 - `_orchestrator` — agent orchestrators
 

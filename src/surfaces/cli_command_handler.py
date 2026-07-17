@@ -130,12 +130,12 @@ class CliCommandHandler:
             if isinstance(result, BaseModel):
                 print(result.model_dump_json(indent=2))
             else:
-                print(json.dumps(result, indent=2, default=str))
+                print(result if isinstance(result, str) else json.dumps(result, indent=2, default=str))
         else:
             if isinstance(result, str):
                 print(result)
             else:
-                print(json.dumps(result, indent=2, default=str))
+                print(result if isinstance(result, str) else json.dumps(result, indent=2, default=str))
 
         return ExitCode(0)
 
