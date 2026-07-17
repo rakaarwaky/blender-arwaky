@@ -65,7 +65,7 @@ def _safe_str(v: str) -> str:
     return repr(v)
 
 
-def _tuple_str(coords: list[float] | tuple[float, float, float]) -> str:
+def _tuple_str(coords: CoordinateList) -> str:
     """Format a 3-element sequence of floats for embedding in generated Python code."""
     return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
