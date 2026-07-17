@@ -68,7 +68,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "polyhaven_asset_adapter",
         "sketchfab_asset_adapter",
         "telemetry_signal_recorder",
-        "viewport_capture_adapter",
         "scene_inspection_adapter",
         "code_execution_adapter",
         "config_file_loader",
@@ -125,10 +124,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         return self._lazy_get(
             "_telemetry_svc", lambda: FactoryRegistry.create_telemetry_recorder(self.blender_connection, self.config)
         )
-
-    @property
-    def viewport(self) -> object:
-        return self._lazy_get("_viewport_svc", lambda: FactoryRegistry.create_viewport_capture(self.blender_connection))
 
     @property
     def scene_inspector(self) -> object:

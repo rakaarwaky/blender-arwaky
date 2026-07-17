@@ -86,7 +86,6 @@ class TestServerBootstrapManager:
         assert AgentFactoryRegistry.create_polyhaven_adapter(mock_conn) is not None
         assert AgentFactoryRegistry.create_sketchfab_adapter(mock_conn) is not None
         assert AgentFactoryRegistry.create_telemetry_recorder(mock_conn, mock_config) is not None
-        assert AgentFactoryRegistry.create_viewport_capture(mock_conn) is not None
         assert AgentFactoryRegistry.create_scene_inspector(mock_conn, mock_executor) is not None
         assert AgentFactoryRegistry.create_code_execution(mock_conn) is not None
 

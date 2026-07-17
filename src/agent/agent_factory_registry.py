@@ -23,7 +23,6 @@ from contract import (
     SetupExpertOrchestratorAggregate,
     SystemUtilsCoordinatorAggregate,
     TelemetryRecordingPort,
-    ViewportCapturePort,
     WorkflowAgentOrchestratorAggregate,
     WorkflowProtocol,
 )
@@ -43,8 +42,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
             "polyhaven_asset_adapter",
             "sketchfab_asset_adapter",
             "telemetry_signal_recorder",
-                "viewport_capture_adapter",
-            "scene_inspection_adapter",
+                "scene_inspection_adapter",
             "code_execution_adapter",
             "config_file_loader",
             "scene_operate_executor",
@@ -91,12 +89,6 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
         from infrastructure.telemetry_signal_recorder import TelemetrySignalRecorder
 
         return TelemetrySignalRecorder(cast(Any, connection), cast(Any, config))
-
-    @staticmethod
-    def create_viewport_capture(connection: object) -> ViewportCapturePort:
-        from infrastructure.viewport_capture_adapter import ViewportCaptureAdapter
-
-        return ViewportCaptureAdapter(cast(Any, connection))
 
     @staticmethod
     def create_scene_inspector(connection: object, code_executor: object) -> SceneInspectionPort:

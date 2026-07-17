@@ -130,6 +130,17 @@ test = [
     { name = "requests" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "blender-arwaky", extra = ["dev"] },
+]
+lint = [
+    { name = "blender-arwaky", extra = ["lint"] },
+]
+test = [
+    { name = "blender-arwaky", extra = ["test"] },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "bandit", marker = "extra == 'lint'", specifier = ">=1.8.0" },
@@ -149,6 +160,11 @@ requires-dist = [
     { name = "tomli", specifier = ">=2.0.0" },
 ]
 provides-extras = ["test", "lint", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "blender-arwaky", extras = ["dev"] }]
+lint = [{ name = "blender-arwaky", extras = ["lint"] }]
+test = [{ name = "blender-arwaky", extras = ["test"] }]
 
 [[package]]
 name = "certifi"

@@ -11,7 +11,6 @@ from .polyhaven_asset_adapter import PolyhavenAssetAdapter
 from .scene_inspection_adapter import SceneInspectionAdapter
 from .sketchfab_asset_adapter import SketchfabAssetAdapter
 from .telemetry_signal_recorder import TelemetrySignalRecorder
-from .viewport_capture_adapter import ViewportCaptureAdapter
 
 __all__ = [
     "BlenderConnection",
@@ -20,7 +19,6 @@ __all__ = [
     "PolyhavenAssetAdapter",
     "SketchfabAssetAdapter",
     "TelemetrySignalRecorder",
-    "ViewportCaptureAdapter",
     "SceneInspectionAdapter",
     "CodeExecutionAdapter",
 ]
