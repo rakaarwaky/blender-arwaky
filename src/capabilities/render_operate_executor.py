@@ -117,7 +117,8 @@ class RenderOperateExecutor(RenderOperateProtocol):
         engine_str = str(engine).upper()
         logger.info("Setting up render engine: %s", engine_str)
 
-        code = f"import bpy\nbpy.context.scene.render.engine = '{engine_str}'\n"
+        safe_engine = _py_str(engine_str)
+        code = f"import bpy\nbpy.context.scene.render.engine = {safe_engine}\n"
 
         if engine_str == "CYCLES":
             denoise = "True" if use_denoising else "False"
@@ -142,18 +143,16 @@ class RenderOperateExecutor(RenderOperateProtocol):
         logger.info("Applying composition rule: %s", rule)
 
         rule_val = str(rule).lower()
+        guide_set = "{'THIRDS'}" if rule_val == "thirds" else "{'GOLDEN'}" if rule_val == "golden" else "{}"
+        if rule_val not in ("thirds", "golden"):
+            logger.warning("Unknown composition rule '%s', applying empty guide set.", rule_val)
+
         code = (
             "import bpy\n"
             "camera = bpy.data.objects.get('Camera')\n"
             "if camera and camera.type == 'CAMERA':\n"
-            "    camera.data.show_guide = True\n"
+            f"    camera.data.show_guide = {guide_set}\n"
         )
-        if rule_val == "thirds":
-            code += "    camera.data.show_guide_rule_of_thirds = True\n"
-        elif rule_val == "golden":
-            code += "    camera.data.show_guide_golden_ratio = True\n"
-        else:
-            logger.warning("Unknown composition rule '%s', defaulting to generic guide only.", rule_val)
 
         try:
             await self.blender.execute_code(PythonCode(code))
