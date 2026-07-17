@@ -162,7 +162,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
 
     @staticmethod
     def create_system_utils() -> SystemUtilsCoordinatorAggregate:
-        from .system_utils_coordinator import SystemUtilsCoordinator
+        from .system_coordinator import SystemUtilsCoordinator
 
         return SystemUtilsCoordinator()
 

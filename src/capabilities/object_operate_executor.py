@@ -31,6 +31,44 @@ from taxonomy import (
 
 logger = logging.getLogger("BlenderMCPServer")
 
+# Mapping from human-readable modifier names to Blender's internal enum strings.
+# This prevents the bug where .upper() produces invalid enums like "SUBDIVISION SURFACE".
+MODIFIER_MAP: dict[str, str] = {
+    "subsurf": "SUBSURF",
+    "subdivision surface": "SUBSURF",
+    "mirror": "MIRROR",
+    "bevel": "BEVEL",
+    "solidify": "SOLIDIFY",
+    "array": "ARRAY",
+    "displace": "DISPLACE",
+    "curve": "CURVE",
+    "deflect": "DEFLECT",
+    "edge split": "EDGE_SPLIT",
+    "extrude region": "EXTRUDE_REGION",
+    "mesh deform": "MESH_DEFORM",
+    "rigid body": "RIGID_BODY",
+    "shrink wrap": "SHRINKWRAP",
+    "simplify": "SIMPLE_DEFORM",
+    "smoke": "SMOKE",
+    "soft body": "SOFT_BODY",
+    "spring": "SPRING",
+    "surface fdt": "SURFACE_FDT",
+}
+
+
+def _safe_str(v: str) -> str:
+    """Safely embed a string into generated Python code using repr().
+
+    This prevents code injection attacks where user input containing quotes
+    or special characters could be executed as Python code.
+    """
+    return repr(v)
+
+
+def _tuple_str(coords: list[float] | tuple[float, float, float]) -> str:
+    """Format a 3-element sequence of floats for embedding in generated Python code."""
+    return f"({coords[0]}, {coords[1]}, {coords[2]})"
+
 
 class ObjectOperateExecutor(ObjectOperateProtocol):
     """Business logic for object manipulation (transform, material, etc.)."""
@@ -43,15 +81,16 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
         if request.object_name:
             code = (
                 "import bpy\n"
-                f"obj = bpy.data.objects.get('{request.object_name}')\n"
-                "if obj:\n"
-                f"    obj.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})\n"
+                f"obj = bpy.data.objects.get({_safe_str(str(request.object_name))})\n"
+                "if obj is None:\n"
+                '    raise ValueError("Object not found in scene.")\n'
+                f"obj.location = {_tuple_str(request.location)}\n"
             )
         else:
             code = (
                 "import bpy\n"
                 "for obj in bpy.context.selected_objects:\n"
-                f"    obj.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})\n"
+                f"    obj.location = {_tuple_str(request.location)}\n"
             )
         try:
             await self.blender.execute_code(PythonCode(code))
@@ -78,15 +117,14 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
 
     async def set_object_transform(self, request: SetObjectTransformRequestVO) -> SetObjectTransformResponseVO:
         logger.info(f"Setting transform for object {request.object_name}")
-        lines = ["import bpy", f"obj = bpy.data.objects.get('{request.object_name}')", "if obj:"]
+        lines = ["import bpy", f"obj = bpy.data.objects.get({_safe_str(str(request.object_name))})", "if obj is None:"]
+        lines.append('    raise ValueError("Object not found in scene.")')
         if request.location is not None:
-            lines.append(f"    obj.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})")
+            lines.append(f"obj.location = {_tuple_str(request.location)}")
         if request.rotation is not None:
-            lines.append(
-                f"    obj.rotation_euler = ({request.rotation[0]}, {request.rotation[1]}, {request.rotation[2]})"
-            )
+            lines.append(f"obj.rotation_euler = {_tuple_str(request.rotation)}")
         if request.scale is not None:
-            lines.append(f"    obj.scale = ({request.scale[0]}, {request.scale[1]}, {request.scale[2]})")
+            lines.append(f"obj.scale = {_tuple_str(request.scale)}")
         code = "\n".join(lines)
         try:
             await self.blender.execute_code(PythonCode(code))
@@ -101,9 +139,10 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
         logger.info(f"Deleting object {request.object_name}")
         code = (
             "import bpy\n"
-            f"obj = bpy.data.objects.get('{request.object_name}')\n"
-            "if obj:\n"
-            "    bpy.data.objects.remove(obj, do_unlink=True)\n"
+            f"obj = bpy.data.objects.get({_safe_str(str(request.object_name))})\n"
+            "if obj is None:\n"
+            '    raise ValueError("Object not found in scene.")\n'
+            "bpy.data.objects.remove(obj, do_unlink=True)\n"
         )
         try:
             await self.blender.execute_code(PythonCode(code))
@@ -128,23 +167,31 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
             "monkey": "bpy.ops.mesh.primitive_monkey_add",
             "plane": "bpy.ops.mesh.primitive_plane_add",
         }
-        op = ops_map.get(ptype, "bpy.ops.mesh.primitive_cube_add")
-
-        kwargs = []
-        if request.location is not None:
-            kwargs.append(f"location=({request.location[0]}, {request.location[1]}, {request.location[2]})")
-        if request.scale is not None:
-            kwargs.append(f"scale=({request.scale[0]}, {request.scale[1]}, {request.scale[2]})")
-
-        args_str = ", ".join(kwargs)
-
-        code = f"import bpy\n{op}({args_str})\n"
-        if request.name:
-            code += (
-                f"created_obj = bpy.context.active_object\nif created_obj:\n    created_obj.name = '{request.name}'\n"
-            )
+        # Handle Enum-style strings like "primitivetype.sphere" by extracting the part after '.'
+        if "." in ptype:
+            ptype = ptype.split(".")[-1]
 
         try:
+            op = ops_map.get(ptype)
+            if op is None:
+                raise ValueError(f"Unsupported primitive type: {request.primitive_type}")
+
+            kwargs = []
+            if request.location is not None:
+                kwargs.append(f"location={_tuple_str(request.location)}")
+            if request.scale is not None:
+                kwargs.append(f"scale={_tuple_str(request.scale)}")
+
+            args_str = ", ".join(kwargs)
+
+            code = f"import bpy\n{op}({args_str})\n"
+            if request.name:
+                code += (
+                    f"created_obj = bpy.context.active_object\n"
+                    f"if created_obj:\n"
+                    f"    created_obj.name = {_safe_str(str(request.name))}\n"
+                )
+
             await self.blender.execute_code(PythonCode(code))
             return CreatePrimitiveResponseVO(
                 success=SuccessFlag(True),
@@ -160,15 +207,18 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
         logger.info(f"Setting material {request.material_name} on object {request.object_name}")
         code = (
             "import bpy\n"
-            f"obj = bpy.data.objects.get('{request.object_name}')\n"
-            f"mat = bpy.data.materials.get('{request.material_name}')\n"
+            f"obj = bpy.data.objects.get({_safe_str(str(request.object_name))})\n"
+            "if obj is None:\n"
+            '    raise ValueError("Object not found in scene.")\n'
+            "if obj.type != 'MESH':\n"
+            '    raise ValueError(f"Object {obj.name!r} is not a mesh; cannot set material.")\n'
+            f"mat = bpy.data.materials.get({_safe_str(str(request.material_name))})\n"
             f"if not mat:\n"
-            f"    mat = bpy.data.materials.new(name='{request.material_name}')\n"
-            f"if obj:\n"
-            f"    if len(obj.data.materials) == 0:\n"
-            f"        obj.data.materials.append(mat)\n"
-            f"    else:\n"
-            f"        obj.data.materials[0] = mat\n"
+            f"    mat = bpy.data.materials.new(name={_safe_str(str(request.material_name))})\n"
+            "if len(obj.data.materials) == 0:\n"
+            "    obj.data.materials.append(mat)\n"
+            "else:\n"
+            "    obj.data.materials[0] = mat\n"
         )
         try:
             await self.blender.execute_code(PythonCode(code))
@@ -184,14 +234,25 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
 
     async def apply_modifier(self, request: ApplyModifierRequestVO) -> ApplyModifierResponseVO:
         logger.info(f"Applying modifier {request.modifier_name} on object {request.object_name}")
+        # Map human-readable names to Blender's internal enum strings.
+        mod_type_key = str(request.modifier_name).lower()
+        mod_type_enum = MODIFIER_MAP.get(mod_type_key)
+        if mod_type_enum is None:
+            raise ValueError(f"Unsupported modifier type: {request.modifier_name}")
+
         code = (
             "import bpy\n"
-            f"obj = bpy.data.objects.get('{request.object_name}')\n"
-            f"if obj:\n"
-            f"    mod_type = '{request.modifier_name}'.upper()\n"
-            f"    mod = obj.modifiers.new(name='{request.modifier_name}', type=mod_type)\n"
-            f"    bpy.context.view_layer.objects.active = obj\n"
-            f"    bpy.ops.object.modifier_apply(modifier=mod.name)\n"
+            f"obj = bpy.data.objects.get({_safe_str(str(request.object_name))})\n"
+            "if obj is None:\n"
+            '    raise ValueError("Object not found in scene.")\n'
+            f"mod_type = {_safe_str(mod_type_enum)}\n"
+            f"mod = obj.modifiers.new(name={_safe_str(str(request.modifier_name))}, type=mod_type)\n"
+            # Deselect all objects, then select the target for modifier_apply operator.
+            "for o in bpy.context.selected_objects:\n"
+            "    o.select_set(False)\n"
+            "obj.select_set(True)\n"
+            "bpy.context.view_layer.objects.active = obj\n"
+            "bpy.ops.object.modifier_apply(modifier=mod.name)\n"
         )
         try:
             await self.blender.execute_code(PythonCode(code))

@@ -271,7 +271,7 @@ class TestServerStartHandler:
 
     def test_setup_logging(self, tmp_path):
         log_file = str(tmp_path / "test.log")
-        with patch("agent.server_bootstrap_manager.ServerBootstrapManager.resolve_log_file", return_value=log_file), \
+        with patch("agent.system_coordinator.ServerBootstrapManager.resolve_log_file", return_value=log_file), \
              patch("logging.basicConfig") as mock_basic_config:
             ServerStartHandler._setup_logging()
             mock_basic_config.assert_called_once()
@@ -282,7 +282,7 @@ class TestServerStartHandler:
         
         with patch("surfaces.server_start_handler.ServerStartHandler._setup_logging") as mock_setup_log, \
              patch("surfaces.server_instance_handler.ServerInstanceHandler.get_mcp_instance", return_value=mock_mcp) as mock_get_mcp, \
-             patch("agent.server_bootstrap_manager.ServerBootstrapManager.resolve_transport_config", return_value=("sse", "127.0.0.1", "8000")):
+             patch("agent.system_coordinator.ServerBootstrapManager.resolve_transport_config", return_value=("sse", "127.0.0.1", "8000")):
             
             ServerStartHandler.main()
             mock_setup_log.assert_called_once()
@@ -297,7 +297,7 @@ class TestServerStartHandler:
         
         with patch("surfaces.server_start_handler.ServerStartHandler._setup_logging") as mock_setup_log, \
              patch("surfaces.server_instance_handler.ServerInstanceHandler.get_mcp_instance", return_value=mock_mcp) as mock_get_mcp, \
-             patch("agent.server_bootstrap_manager.ServerBootstrapManager.resolve_transport_config", return_value=("stdio", "", "")):
+             patch("agent.system_coordinator.ServerBootstrapManager.resolve_transport_config", return_value=("stdio", "", "")):
             
             ServerStartHandler.main()
             mock_setup_log.assert_called_once()

@@ -324,7 +324,7 @@ class TestHealthCheckIntegration:
     """System health check must return a valid structured response."""
 
     def test_health_check_returns_dict_with_required_keys(self):
-        from agent.system_utils_coordinator import health_check
+        from agent.system_coordinator import health_check
 
         with patch("infrastructure.blender_connection_connector.get_blender_connection",
                    side_effect=ConnectionError("Blender not running")):
@@ -335,7 +335,7 @@ class TestHealthCheckIntegration:
         assert "status" in result
 
     def test_health_check_degraded_when_blender_offline(self):
-        from agent.system_utils_coordinator import health_check
+        from agent.system_coordinator import health_check
 
         with patch("infrastructure.blender_connection_connector.get_blender_connection",
                    side_effect=ConnectionError("not running")):
@@ -345,7 +345,7 @@ class TestHealthCheckIntegration:
         assert result["status"] == "degraded"
 
     def test_health_check_healthy_when_blender_connected(self):
-        from agent.system_utils_coordinator import health_check
+        from agent.system_coordinator import health_check
 
         mock_conn = MagicMock()
         with patch("infrastructure.blender_connection_connector.get_blender_connection",

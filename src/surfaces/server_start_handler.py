@@ -6,7 +6,7 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
-from agent.server_bootstrap_manager import ServerBootstrapManager
+from agent.system_coordinator import ServerBootstrapManager
 from contract import ServerBootstrapManagerAggregate
 
 from .server_instance_handler import ServerInstanceHandler

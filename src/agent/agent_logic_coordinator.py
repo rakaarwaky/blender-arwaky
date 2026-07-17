@@ -13,7 +13,7 @@ ARCHITECTURAL NOTE:
 import logging
 
 from contract import AgentBaseContainerAggregate, ExpertBaseOrchestratorAggregate
-from taxonomy import ApplicationConfigVo
+from taxonomy import ApplicationConfigVo, ObjectName, SuccessFlag
 
 logger = logging.getLogger("BlenderMCPServer.Agents")
 
@@ -86,3 +86,36 @@ class ContainerLogic(AgentBaseContainerAggregate):
 
         # ── surface-facing catalog ────────────────────────────────────────────
         self._command_catalog: object | None = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AgentBaseContainer (merged from agent_base_container.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class AgentBaseContainer(ContainerLogic, AgentBaseContainerAggregate):
+    """Base container handling infrastructure and capability managers."""
+
+    _success_ref: SuccessFlag = SuccessFlag(True)
+
+    def __init__(self) -> None:
+        super().__init__()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ExpertBaseOrchestrator (merged from expert_base_orchestrator.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class ExpertBaseOrchestrator(ExpertOrchestratorLogic, ExpertBaseOrchestratorAggregate):
+    """Base expert agent."""
+
+    _success_ref: SuccessFlag = SuccessFlag(True)
+    _obj_ref: ObjectName = ObjectName("ref")
+
+    def __init__(self, name: str = "ExpertBaseOrchestrator"):
+        super().__init__(name)
+
+    async def execute(self, *_args, **_kwargs) -> dict[str, object]:
+        """Default execution logic."""
+        return {"success": True, "message": "Base expert execution"}

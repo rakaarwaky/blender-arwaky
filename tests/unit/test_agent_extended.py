@@ -10,8 +10,8 @@ import os
 from unittest.mock import MagicMock, patch
 
 from taxonomy import ConfigPath, ConfigValue
-from agent.server_bootstrap_manager import ServerBootstrapManager
-from agent.system_utils_coordinator import (
+from agent.system_coordinator import ServerBootstrapManager
+from agent.system_coordinator import (
     SystemUtilsCoordinator,
     record_startup,
     get_blender_connection,
@@ -25,26 +25,26 @@ from agent.agent_factory_registry import AgentFactoryRegistry
 class TestServerBootstrapManager:
     """Complete unit tests for ServerBootstrapManager."""
 
-    @patch("agent.server_bootstrap_manager.get_project_root", return_value="/mock/root")
+    @patch("agent.system_coordinator.get_project_root", return_value="/mock/root")
     def test_get_project_root(self, mock_root):
         assert ServerBootstrapManager.get_project_root() == "/mock/root"
 
-    @patch("agent.server_bootstrap_manager.get_config")
+    @patch("agent.system_coordinator.get_config")
     def test_get_config_value(self, mock_get_config):
         mock_get_config.return_value = "custom_val"
         assert ServerBootstrapManager().get(ConfigPath("server.host"), "127.0.0.1") == "custom_val"
         mock_get_config.assert_called_once_with(ConfigPath("server.host"), "127.0.0.1")
 
-    @patch("agent.server_bootstrap_manager.get_project_root", return_value="/mock/root")
-    @patch("agent.server_bootstrap_manager.get_config", side_effect=["logs_dir", "server_run.log"])
+    @patch("agent.system_coordinator.get_project_root", return_value="/mock/root")
+    @patch("agent.system_coordinator.get_config", side_effect=["logs_dir", "server_run.log"])
     @patch("os.makedirs")
     def test_resolve_log_file(self, mock_makedirs, mock_get_config, mock_root):
         log_file = ServerBootstrapManager.resolve_log_file()
         assert os.path.normpath(str(log_file)) == os.path.normpath("/mock/root/logs_dir/server_run.log")
         mock_makedirs.assert_called_once_with(os.path.normpath("/mock/root/logs_dir"), exist_ok=True)
 
-    @patch("agent.server_bootstrap_manager.get_project_root", return_value="/mock/root")
-    @patch("agent.server_bootstrap_manager.get_config", side_effect=["logs_dir", "server_run.log"])
+    @patch("agent.system_coordinator.get_project_root", return_value="/mock/root")
+    @patch("agent.system_coordinator.get_config", side_effect=["logs_dir", "server_run.log"])
     @patch("os.makedirs")
     def test_to_request_dict(self, mock_makedirs, mock_get_config, mock_root):
         req_dict = ServerBootstrapManager().to_request_dict()
@@ -58,7 +58,7 @@ class TestServerBootstrapManager:
         assert port == "9000"
 
     @patch.dict(os.environ, {}, clear=True)
-    @patch("agent.server_bootstrap_manager.get_config", side_effect=["stdio", "127.0.0.1", 8000])
+    @patch("agent.system_coordinator.get_config", side_effect=["stdio", "127.0.0.1", 8000])
     def test_resolve_transport_config_from_config_defaults(self, mock_get_config):
         transport, host, port = ServerBootstrapManager.resolve_transport_config()
         assert transport == "stdio"
@@ -119,13 +119,13 @@ class TestAgentBaseContainer:
     """Tests for AgentBaseContainer (0% coverage)."""
 
     def test_can_instantiate(self):
-        from agent.agent_base_container import AgentBaseContainer
+        from agent.agent_logic_coordinator import AgentBaseContainer
         instance = AgentBaseContainer()
         assert instance._success_ref is True
         assert hasattr(instance, "_lazy_get")
 
     def test_inherits_from_aggregate(self):
-        from agent.agent_base_container import AgentBaseContainer
+        from agent.agent_logic_coordinator import AgentBaseContainer
         from contract import AgentBaseContainerAggregate
         assert issubclass(AgentBaseContainer, AgentBaseContainerAggregate)
 
@@ -186,7 +186,7 @@ class TestCommandCatalogAdapter:
     """Tests for CommandCatalogAdapter (77% coverage)."""
 
     def test_get_command_spec_existing(self):
-        from agent.command_catalog_registry import CommandCatalogAdapter
+        from agent.agent_di_container import CommandCatalogAdapter
         from taxonomy.blender_command_vo import CommandCatalog
         adapter = CommandCatalogAdapter()
         # Use a real command from the catalog
@@ -197,21 +197,21 @@ class TestCommandCatalogAdapter:
             assert spec is not None
 
     def test_get_command_spec_nonexistent(self):
-        from agent.command_catalog_registry import CommandCatalogAdapter
+        from agent.agent_di_container import CommandCatalogAdapter
         from taxonomy import ActionName
         adapter = CommandCatalogAdapter()
         spec = adapter.get_command_spec(ActionName("does_not_exist_42"))
         assert spec is None
 
     def test_list_actions(self):
-        from agent.command_catalog_registry import CommandCatalogAdapter
+        from agent.agent_di_container import CommandCatalogAdapter
         adapter = CommandCatalogAdapter()
         actions = adapter.list_actions()
         assert len(actions) > 0
         assert all(hasattr(a, "value") or isinstance(a, str) for a in actions)
 
     def test_filter_by_domain(self):
-        from agent.command_catalog_registry import CommandCatalogAdapter
+        from agent.agent_di_container import CommandCatalogAdapter
         from taxonomy import DomainRef
         adapter = CommandCatalogAdapter()
         filtered = adapter.filter_by_domain(DomainRef("scene"))
@@ -220,7 +220,7 @@ class TestCommandCatalogAdapter:
             assert spec["domain"] == "scene"
 
     def test_filter_by_domain_empty(self):
-        from agent.command_catalog_registry import CommandCatalogAdapter
+        from agent.agent_di_container import CommandCatalogAdapter
         from taxonomy import DomainRef
         adapter = CommandCatalogAdapter()
         filtered = adapter.filter_by_domain(DomainRef("nonexistent_domain_xyz"))
@@ -233,16 +233,16 @@ class TestCommandCatalogAdapter:
 class TestSystemUtilsCoordinatorExceptionsAndAliases:
     """Covers edge cases, exceptions, and module-level aliases in SystemUtilsCoordinator."""
 
-    @patch("agent.system_utils_coordinator._get_record_startup", side_effect=Exception("failed"))
+    @patch("agent.system_coordinator._get_record_startup", side_effect=Exception("failed"))
     def test_record_startup_exception_handling(self, mock_startup):
         SystemUtilsCoordinator.record_startup()
 
-    @patch("agent.system_utils_coordinator._get_shutdown_connection_fn", side_effect=Exception("failed"))
+    @patch("agent.system_coordinator._get_shutdown_connection_fn", side_effect=Exception("failed"))
     def test_shutdown_connection_exception_handling(self, mock_shutdown):
         SystemUtilsCoordinator.shutdown_connection()
 
-    @patch("agent.system_utils_coordinator._get_blender_conn_fn", side_effect=RuntimeError("no connection"))
-    @patch("agent.system_utils_coordinator._get_telemetry_config_class", side_effect=ImportError("no class"))
+    @patch("agent.system_coordinator._get_blender_conn_fn", side_effect=RuntimeError("no connection"))
+    @patch("agent.system_coordinator._get_telemetry_config_class", side_effect=ImportError("no class"))
     def test_health_check_failed_connections_and_telemetry(self, mock_telemetry, mock_conn):
         status = SystemUtilsCoordinator.health_check()
         assert status["blender_connected"] is False
@@ -251,7 +251,7 @@ class TestSystemUtilsCoordinatorExceptionsAndAliases:
         assert "no connection" in str(status["connection_error"])
 
     def test_module_aliases_exist_and_callable(self):
-        from agent.system_utils_coordinator import (
+        from agent.system_coordinator import (
             record_startup, get_blender_connection,
             shutdown_connection, health_check,
         )
@@ -260,14 +260,14 @@ class TestSystemUtilsCoordinatorExceptionsAndAliases:
         assert callable(shutdown_connection)
         assert callable(health_check)
 
-    @patch("agent.system_utils_coordinator.record_startup")
-    @patch("agent.system_utils_coordinator.get_blender_connection")
-    @patch("agent.system_utils_coordinator.shutdown_connection")
-    @patch("agent.system_utils_coordinator.health_check")
+    @patch("agent.system_coordinator.record_startup")
+    @patch("agent.system_coordinator.get_blender_connection")
+    @patch("agent.system_coordinator.shutdown_connection")
+    @patch("agent.system_coordinator.health_check")
     def test_module_aliases_delegate_to_class_methods(
         self, mock_hc, mock_sd, mock_gb, mock_rs
     ):
-        from agent.system_utils_coordinator import (
+        from agent.system_coordinator import (
             record_startup, get_blender_connection,
             shutdown_connection, health_check,
         )

@@ -29,9 +29,34 @@ from taxonomy import ApplicationConfigVo, SuccessFlag
 
 from .agent_factory_registry import AgentFactoryRegistry as FactoryRegistry
 from .agent_logic_coordinator import ContainerLogic
-from .command_catalog_registry import CommandCatalogAdapter
 
 logger = logging.getLogger("BlenderMCPServer")
+
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CommandCatalogAdapter (merged from command_catalog_registry.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from taxonomy import ActionName, DomainRef, FilePath
+from taxonomy.blender_command_vo import CommandCatalog, CommandSpec
+
+
+class CommandCatalogAdapter(CommandCatalogPort):
+    """Adapter that exposes taxonomy CommandCatalog through CommandCatalogPort."""
+
+    _contract_name: str = "CommandCatalogAdapter"
+    _compliance: FilePath | None = None
+
+    def get_command_spec(self, action: ActionName) -> CommandSpec | None:
+        return CommandCatalog.COMMAND_CATALOG.get(str(action))
+
+    def list_actions(self) -> list[ActionName]:
+        return [ActionName(k) for k in CommandCatalog.COMMAND_CATALOG]
+
+    def filter_by_domain(self, domain: DomainRef) -> dict[ActionName, CommandSpec]:
+        return {ActionName(k): v for k, v in CommandCatalog.COMMAND_CATALOG.items() if v.get("domain") == domain}
 
 
 class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
@@ -56,7 +81,6 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "scene_inspection_adapter",
         "code_execution_adapter",
         "config_file_loader",
-        "command_catalog_client",
         "scene_operate_executor",
         "object_operate_executor",
         "render_operate_executor",
@@ -66,13 +90,10 @@ class AgentDiContainer(ContainerLogic, AgentDiContainerAggregate):
         "action_execute_actions",
         "core_agent_orchestrator",
         "workflow_agent_orchestrator",
-        "system_utils_coordinator",
         "system_prompt_manager",
         "search_expert_orchestrator",
         "refinement_expert_orchestrator",
-        "expert_base_orchestrator",
         "setup_expert_orchestrator",
-        "server_bootstrap_manager",
         "server_bootstrap_coordinator",
     )
 

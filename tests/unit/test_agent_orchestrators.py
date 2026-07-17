@@ -19,12 +19,12 @@ from contract import (
     AssetSearchProtocol
 )
 from agent.core_agent_orchestrator import CoreAgentOrchestrator
-from agent.expert_base_orchestrator import ExpertBaseOrchestrator
+from agent.agent_logic_coordinator import ExpertBaseOrchestrator
 from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
 from agent.setup_expert_orchestrator import SetupExpertOrchestrator
 from agent.search_expert_orchestrator import SearchExpertOrchestrator
 from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
-from agent.system_utils_coordinator import SystemUtilsCoordinator
+from agent.system_coordinator import SystemUtilsCoordinator
 
 
 @pytest.mark.unit
@@ -86,7 +86,7 @@ class TestCoreAgentOrchestrator:
 
     def test_health_check(self, mock_container):
         orchestrator = CoreAgentOrchestrator(mock_container)
-        with patch("agent.system_utils_coordinator.health_check", return_value={"status": "healthy"}):
+        with patch("agent.system_coordinator.health_check", return_value={"status": "healthy"}):
             res = orchestrator.health_check()
             data = json.loads(str(res))
             assert data["status"] == "healthy"
@@ -337,14 +337,14 @@ class TestSystemUtilsCoordinator:
     """Tests for SystemUtilsCoordinator."""
 
     def test_record_startup(self):
-        with patch("agent.system_utils_coordinator._get_record_startup") as mock_get:
+        with patch("agent.system_coordinator._get_record_startup") as mock_get:
             mock_fn = MagicMock()
             mock_get.return_value = mock_fn
             SystemUtilsCoordinator.record_startup()
             mock_fn.assert_called_once()
 
     def test_get_blender_connection(self):
-        with patch("agent.system_utils_coordinator._get_blender_conn_fn") as mock_get:
+        with patch("agent.system_coordinator._get_blender_conn_fn") as mock_get:
             mock_fn = MagicMock()
             mock_fn.return_value = "conn"
             mock_get.return_value = mock_fn
@@ -352,17 +352,17 @@ class TestSystemUtilsCoordinator:
             assert res == "conn"
 
     def test_shutdown_connection(self):
-        with patch("agent.system_utils_coordinator._get_shutdown_connection_fn") as mock_get:
+        with patch("agent.system_coordinator._get_shutdown_connection_fn") as mock_get:
             mock_fn = MagicMock()
             mock_get.return_value = mock_fn
             SystemUtilsCoordinator.shutdown_connection()
             mock_fn.assert_called_once()
 
     def test_health_check(self):
-        with patch("agent.system_utils_coordinator._get_blender_conn_fn") as mock_conn_fn:
+        with patch("agent.system_coordinator._get_blender_conn_fn") as mock_conn_fn:
             mock_conn_fn.return_value = MagicMock()
             
-            with patch("agent.system_utils_coordinator._get_telemetry_config_class") as mock_cfg_cls:
+            with patch("agent.system_coordinator._get_telemetry_config_class") as mock_cfg_cls:
                 mock_cfg = MagicMock()
                 mock_cfg.enabled = True
                 mock_cfg_cls.return_value = MagicMock(return_value=mock_cfg)

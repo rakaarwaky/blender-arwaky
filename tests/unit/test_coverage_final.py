@@ -290,7 +290,7 @@ class TestAgentFinalGaps:
         assert "Render manager not injected" in r["error"]
 
     def test_system_utils_coordinator_get_functions(self):
-        from agent.system_utils_coordinator import _get_record_startup, _get_blender_conn_fn, _get_shutdown_connection_fn, _get_telemetry_config_class
+        from agent.system_coordinator import _get_record_startup, _get_blender_conn_fn, _get_shutdown_connection_fn, _get_telemetry_config_class
         rs = _get_record_startup()
         assert callable(rs)
         bcf = _get_blender_conn_fn()

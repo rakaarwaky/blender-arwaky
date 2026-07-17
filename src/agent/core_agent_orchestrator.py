@@ -79,7 +79,7 @@ class CoreAgentOrchestrator(CoreAgentOrchestratorAggregate):
         """Check system health status."""
         import json
 
-        from .system_utils_coordinator import health_check as _health_check
+        from .system_coordinator import health_check as _health_check
 
         return Prompt(json.dumps(_health_check(), indent=2))
 
