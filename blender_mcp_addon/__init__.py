@@ -12,8 +12,8 @@ bl_info = {
     "name": "Blender Arwaky Addon",
     "author": "Raka Arwaky",
     "description": "Connect Blender to Claude (or any MCP client)",
-    "version": (1, 6, 2),
-    "blender": (3, 0, 0),
+    "version": (1, 6, 5),
+    "blender": (4, 2, 0),
     "location": "View3D -> Sidebar -> BlenderArwaky",
     "category": "Interface",
 }

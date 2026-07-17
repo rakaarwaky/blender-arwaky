@@ -3,15 +3,19 @@ import json
 import logging
 import queue
 import socket
+import struct
 import threading
 import time
 from contextlib import redirect_stdout
 
 import bpy
 
-from . import hunyuan, hyper3d, polyhaven, sketchfab, utils
+from . import polyhaven, sketchfab, utils
 
 logger = logging.getLogger(__name__)
+
+# Max message size (10MB)
+MAX_MESSAGE_SIZE = 10 * 1024 * 1024
 
 
 class BlenderMCPServer:
@@ -25,6 +29,7 @@ class BlenderMCPServer:
         self._timer_handle = None
         self._shutdown_lock = threading.Lock()
         self._shutdown_requested = False
+        self._pending_responses = []  # Track pending res_q for shutdown signaling
 
     def start(self):
         if self.running:
@@ -44,14 +49,14 @@ class BlenderMCPServer:
 
             # Timer for processing commands in main thread (GUI mode)
             if not bpy.app.background:
-                self._timer_handle = bpy.app.timers.register(  # pragma: no cover
+                self._timer_handle = bpy.app.timers.register(
                     self.process_commands, first_interval=0.1, persistent=True
                 )
 
             logger.info("BlenderMCP server started on %s:%s", self.host, self.port)
-        except Exception as e:  # pragma: no cover
-            logger.error("Failed to start server: %s", e)  # pragma: no cover
-            self.stop()  # pragma: no cover
+        except Exception as e:
+            logger.error("Failed to start server: %s", e)
+            self.stop()
 
     def stop(self):
         with self._shutdown_lock:
@@ -60,29 +65,37 @@ class BlenderMCPServer:
             self._shutdown_requested = True
             self.running = False
 
+        # Signal all pending response queues to unblock waiting threads
+        for res_q in self._pending_responses:
+            try:
+                res_q.put_nowait(None)
+            except queue.Full:
+                pass
+        self._pending_responses.clear()
+
         if self.socket:
             try:
                 self.socket.close()
-            except Exception as e:  # pragma: no cover
-                logger.debug("Error closing socket: %s", e)  # pragma: no cover
+            except Exception as e:
+                logger.debug("Error closing socket: %s", e)
             self.socket = None
 
         if self._timer_handle:
-            try:  # pragma: no cover
-                bpy.app.timers.unregister(self.process_commands)  # pragma: no cover
-            except Exception as e:  # pragma: no cover
-                logger.debug("Error unregistering timer: %s", e)  # pragma: no cover
-            self._timer_handle = None  # pragma: no cover
+            try:
+                bpy.app.timers.unregister(self.process_commands)
+            except Exception as e:
+                logger.debug("Error unregistering timer: %s", e)
+            self._timer_handle = None
 
-        # Clear queue to prevent new commands from being processed
+        # Clear queue
         while not self.command_queue.empty():
-            try:  # pragma: no cover
-                self.command_queue.get_nowait()  # pragma: no cover
-            except queue.Empty:  # pragma: no cover
-                break  # pragma: no cover
+            try:
+                self.command_queue.get_nowait()
+            except queue.Empty:
+                break
 
         if self.server_thread:
-            self.server_thread.join(timeout=1.0)
+            self.server_thread.join(timeout=2.0)
             self.server_thread = None
         logger.info("BlenderMCP server stopped")
 
@@ -90,61 +103,82 @@ class BlenderMCPServer:
         while self.running:
             try:
                 client, addr = self.socket.accept()
-                t = threading.Thread(target=self._handle_client, args=(client,))  # pragma: no cover
-                t.daemon = True  # pragma: no cover
-                t.start()  # pragma: no cover
-            except TimeoutError:  # pragma: no cover
-                continue  # pragma: no cover
-            except Exception as e:  # pragma: no cover
-                if self.running:  # pragma: no cover
-                    logger.error("Server accept error: %s", e)  # pragma: no cover
-                time.sleep(0.1)  # pragma: no cover
+                t = threading.Thread(target=self._handle_client, args=(client,))
+                t.daemon = True
+                t.start()
+            except TimeoutError:
+                continue
+            except Exception as e:
+                if self.running:
+                    logger.error("Server accept error: %s", e)
+                time.sleep(0.1)
 
     def _handle_client(self, client):
-        client.settimeout(30.0)  # pragma: no cover
-        buffer = b""  # pragma: no cover
-        try:  # pragma: no cover
-            while self.running:  # pragma: no cover
-                try:  # pragma: no cover
-                    data = client.recv(8192)  # pragma: no cover
-                    if not data:  # pragma: no cover
-                        break  # pragma: no cover
-                    buffer += data  # pragma: no cover
-                    # pragma: no cover
-                    try:  # pragma: no cover
-                        decoded = buffer.decode("utf-8")  # pragma: no cover
-                        command = json.loads(decoded)  # pragma: no cover
-                        buffer = b""  # pragma: no cover
-                        # pragma: no cover
-                        res_q = queue.Queue()  # pragma: no cover
-                        self.command_queue.put((command, client, res_q))  # pragma: no cover
-                        # Use timeout to prevent infinite blocking
-                        try:  # pragma: no cover
-                            res_q.get(timeout=180.0)  # Match RECEIVE_TIMEOUT  # pragma: no cover
-                        except queue.Empty:  # pragma: no cover
-                            logger.warning(
-                                "Command %s timed out waiting for execution", command.get("type")
-                            )  # pragma: no cover
-                            client.sendall(
-                                json.dumps(
-                                    {  # pragma: no cover
-                                        "status": "error",  # pragma: no cover
-                                        "message": "Command execution timed out",  # pragma: no cover
-                                    }
-                                ).encode("utf-8")
-                            )  # pragma: no cover
-                    except json.JSONDecodeError:  # pragma: no cover
-                        continue  # Wait for more data  # pragma: no cover
-                except TimeoutError:  # pragma: no cover
-                    continue  # pragma: no cover
-                except (ConnectionError, BrokenPipeError, OSError) as e:  # pragma: no cover
-                    logger.error("Client connection error: %s", e)  # pragma: no cover
-                    break  # pragma: no cover
-        finally:  # pragma: no cover
+        """Handle a single client connection with length-prefixed message framing."""
+        client.settimeout(30.0)
+        try:
+            while self.running:
+                try:
+                    # Read 4-byte length header
+                    header = b""
+                    while len(header) < 4:
+                        chunk = client.recv(4 - len(header))
+                        if not chunk:
+                            return
+                        header += chunk
+
+                    msg_len = struct.unpack("!I", header)[0]
+                    if msg_len > MAX_MESSAGE_SIZE:
+                        logger.warning("Message too large: %d bytes", msg_len)
+                        return
+
+                    # Read message body
+                    body = b""
+                    while len(body) < msg_len:
+                        chunk = client.recv(min(8192, msg_len - len(body)))
+                        if not chunk:
+                            return
+                        body += chunk
+
+                    command = json.loads(body.decode("utf-8"))
+
+                    res_q = queue.Queue()
+                    self._pending_responses.append(res_q)
+                    try:
+                        self.command_queue.put((command, client, res_q))
+                        try:
+                            res_q.get(timeout=30.0)
+                        except queue.Empty:
+                            logger.warning("Command %s timed out", command.get("type"))
+                            self._send_response(client, {"status": "error", "message": "Command timed out"})
+                    finally:
+                        try:
+                            self._pending_responses.remove(res_q)
+                        except ValueError:
+                            pass
+
+                except TimeoutError:
+                    continue
+                except (ConnectionError, BrokenPipeError, OSError) as e:
+                    logger.error("Client connection error: %s", e)
+                    break
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    logger.warning("Invalid message: %s", e)
+                    continue
+        finally:
             try:
                 client.close()
-            except Exception as e:
-                logger.debug("Error closing client socket: %s", e)
+            except Exception:
+                pass
+
+    def _send_response(self, client, response):
+        """Send a length-prefixed JSON response."""
+        try:
+            data = json.dumps(response).encode("utf-8")
+            header = struct.pack("!I", len(data))
+            client.sendall(header + data)
+        except Exception as e:
+            logger.debug("Error sending response: %s", e)
 
     def process_commands(self):
         if self._shutdown_requested:
@@ -154,32 +188,24 @@ class BlenderMCPServer:
             try:
                 cmd, client, res_q = self.command_queue.get_nowait()
                 try:
-                    # Skip if shutdown requested during processing
                     if self._shutdown_requested:
-                        break  # pragma: no cover
+                        break
                     response = self.execute_command(cmd)
-                    client.sendall(json.dumps(response).encode("utf-8"))
-                except Exception as e:  # pragma: no cover
+                    self._send_response(client, response)
+                except Exception as e:
                     logger.exception("Exec error: %s", e)
-                    try:  # pragma: no cover
-                        client.sendall(  # pragma: no cover
-                            json.dumps({"status": "error", "message": str(e)}).encode(  # pragma: no cover
-                                "utf-8"  # pragma: no cover
-                            )  # pragma: no cover
-                        )  # pragma: no cover
-                    except Exception as send_err:
-                        logger.debug("Error sending error response: %s", send_err)
+                    self._send_response(client, {"status": "error", "message": str(e)})
                 finally:
                     res_q.put(True)
-            except queue.Empty:  # pragma: no cover
-                break  # pragma: no cover
+            except queue.Empty:
+                break
         return 0.1
 
     def execute_command(self, command):
         cmd_type = command.get("type")
         params = command.get("params", {})
 
-        # Dispatch table
+        # Dispatch table (removed hunyuan/hyper3d handlers)
         handlers = {
             "get_scene_info": self.get_scene_info,
             "get_object_info": self.get_object_info,
@@ -193,18 +219,10 @@ class BlenderMCPServer:
             "get_polyhaven_status": polyhaven.get_polyhaven_status,
             "get_polyhaven_asset_details": polyhaven.get_polyhaven_asset_details,
             "get_sketchfab_status": sketchfab.get_sketchfab_status,
-            "get_hyper3d_status": hyper3d.get_hyper3d_status,
-            "get_hunyuan3d_status": hunyuan.get_hunyuan3d_status,
             "get_telemetry_consent": self.get_telemetry_consent,
-            "create_rodin_job": hyper3d.create_rodin_job,
-            "poll_rodin_job_status": hyper3d.poll_rodin_job_status,
-            "import_generated_asset": hyper3d.import_generated_asset,
             "search_sketchfab_models": sketchfab.search_sketchfab_models,
             "get_sketchfab_model_preview": sketchfab.get_sketchfab_model_preview,
             "download_sketchfab_model": sketchfab.download_sketchfab_model,
-            "create_hunyuan_job": hunyuan.create_hunyuan_job,
-            "poll_hunyuan_job_status": hunyuan.poll_hunyuan_job_status,
-            "import_generated_asset_hunyuan": hunyuan.import_generated_asset_hunyuan,
         }
 
         handler = handlers.get(cmd_type)
@@ -212,12 +230,7 @@ class BlenderMCPServer:
             return {"status": "error", "message": f"Unknown command: {cmd_type}"}
 
         try:
-            # Handle methods vs functions
-            if hasattr(handler, "__self__") and handler.__self__ == self:
-                result = handler(**params)
-            else:
-                # Most are externalized functions now
-                result = handler(**params)
+            result = handler(**params)
             return {"status": "success", "result": result}
         except Exception as e:
             logger.exception("Command execution failed: %s", command.get("type"))
@@ -225,9 +238,12 @@ class BlenderMCPServer:
 
     def get_scene_info(self):
         scene = bpy.context.scene
+        total_objects = len(scene.objects)
         return {
             "name": scene.name,
             "objects": [{"name": o.name, "type": o.type} for o in scene.objects[:50]],
+            "total_count": total_objects,
+            "truncated": total_objects > 50,
         }
 
     def get_object_info(self, name):
@@ -246,18 +262,15 @@ class BlenderMCPServer:
         out = io.StringIO()
         try:
             with redirect_stdout(out):
-                # exec is intentional: this is the core feature
-                # of the BlenderArwaky addon (expose Python execution to MCP clients)
                 exec(code, {"bpy": bpy, "mathutils": __import__("mathutils")})  # nosec B102
             return {"executed": True, "result": out.getvalue()}
         except Exception as e:
             return {"executed": False, "error": str(e)}
 
     def get_telemetry_consent(self):
-        # Get telemetry consent from addon preferences
         try:
             addon_prefs = bpy.context.preferences.addons[__package__].preferences
-            return {  # pragma: no cover
+            return {
                 "consent": getattr(addon_prefs, "telemetry_consent", False),
                 "message": "Telemetry consent status retrieved",
             }

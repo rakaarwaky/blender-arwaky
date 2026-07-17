@@ -29,6 +29,50 @@ def _get_aabb(obj):
     return (min_x, max_x, min_y, max_y, min_z, max_z)
 
 
+def _get_3d_space():
+    """Get the 3D viewport space data."""
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            return area.spaces.active
+    return None
+
+
+def _save_viewport_state(space_data):
+    """Save viewport settings for later restore."""
+    if not space_data:
+        return None
+    return {
+        "shading": space_data.shading.type,
+        "overlays": space_data.overlay.show_overlays,
+    }
+
+
+def _restore_viewport_state(space_data, state):
+    """Restore viewport settings."""
+    if space_data and state:
+        space_data.shading.type = state["shading"]
+        space_data.overlay.show_overlays = state["overlays"]
+
+
+def _save_render_state():
+    """Save render settings for later restore."""
+    scene = bpy.context.scene
+    return {
+        "engine": scene.render.engine,
+        "filepath": scene.render.filepath,
+        "file_format": scene.render.image_settings.file_format,
+    }
+
+
+def _restore_render_state(state):
+    """Restore render settings."""
+    if state:
+        scene = bpy.context.scene
+        scene.render.engine = state["engine"]
+        scene.render.filepath = state["filepath"]
+        scene.render.image_settings.file_format = state["file_format"]
+
+
 def get_viewport_screenshot(
     filepath,
     view_angle="PERSPECTIVE",
@@ -50,30 +94,18 @@ def get_viewport_screenshot(
     """
     is_headless = bpy.app.background
 
-    if is_headless:
-        camera = bpy.context.scene.camera
-        if not camera:
-            raise RuntimeError(
-                "No active camera in scene. "
-                "Set an active camera before taking headless screenshots."
-            )
+    # Save render state (both modes)
+    render_state = _save_render_state()
 
-        # Save and apply viewport settings for AI optimization
-        space_data = None
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                space_data = area.spaces.active
-                break
+    # Save viewport state
+    space_data = _get_3d_space()
+    viewport_state = _save_viewport_state(space_data)
 
+    try:
+        # Apply viewport overrides
         if space_data:
-            original_shading = space_data.shading.type
-            original_overlays = space_data.overlay.show_overlays
-
-            # Apply shading mode
             if shading_mode in ("WIREFRAME", "SOLID", "MATERIAL", "RENDERED"):
                 space_data.shading.type = shading_mode
-
-            # Apply overlay setting
             space_data.overlay.show_overlays = show_overlays
 
         # Focus on specific object if requested
@@ -84,77 +116,45 @@ def get_viewport_screenshot(
                 obj.select_set(True)
                 bpy.ops.view3d.view_selected(use_all_regions=False)
 
-        # Set render settings for quick screenshot
-        bpy.context.scene.render.image_settings.file_format = "PNG"
-        bpy.context.scene.render.filepath = filepath
+        if is_headless:
+            camera = bpy.context.scene.camera
+            if not camera:
+                raise RuntimeError(
+                    "No active camera in scene. "
+                    "Set an active camera before taking headless screenshots."
+                )
 
-        # Use EEVEE for fast headless capture (override Cycles if set)
-        original_engine = bpy.context.scene.render.engine
-        bpy.context.scene.render.engine = "BLENDER_EEVEE"
+            # Set render settings for quick screenshot
+            bpy.context.scene.render.image_settings.file_format = "PNG"
+            bpy.context.scene.render.filepath = filepath
 
-        bpy.ops.render.render(write_still=True)
+            # Use EEVEE for fast headless capture
+            bpy.context.scene.render.engine = "BLENDER_EEVEE"
 
-        # Restore engine
-        bpy.context.scene.render.engine = original_engine
+            bpy.ops.render.render(write_still=True)
+        else:
+            # Apply view angle (not needed for headless - camera determines view)
+            view_map = {"TOP": "TOP", "FRONT": "FRONT", "SIDE": "SIDE"}
+            if view_angle in view_map:
+                bpy.ops.view3d.viewnumpad(type=view_map[view_angle])
 
-        # Restore viewport settings
-        if space_data:
-            space_data.shading.type = original_shading
-            space_data.overlay.show_overlays = original_overlays
-    else:
-        # GUI mode: apply viewport overrides temporarily
-        space_data = None
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                space_data = area.spaces.active
-                break
+            # Take screenshot
+            bpy.ops.render.render(write_still=True)
+            render_path = bpy.context.scene.render.frame_path()
+            if os.path.exists(render_path):
+                shutil.move(render_path, filepath)
 
-        if space_data:
-            original_shading = space_data.shading.type
-            original_overlays = space_data.overlay.show_overlays
-
-            # Apply shading mode
-            if shading_mode in ("WIREFRAME", "SOLID", "MATERIAL", "RENDERED"):
-                space_data.shading.type = shading_mode
-
-            # Apply overlay setting
-            space_data.overlay.show_overlays = show_overlays
-
-        # Focus on specific object if requested
-        if focus_object:
-            obj = bpy.data.objects.get(focus_object)
-            if obj:
-                bpy.context.view_layer.objects.active = obj
-                obj.select_set(True)
-                bpy.ops.view3d.view_selected(use_all_regions=False)
-
-        # Apply view angle
-        view_map = {
-            "TOP": "TOP",
-            "FRONT": "FRONT",
-            "SIDE": "SIDE",
+        # Return actual render dimensions
+        scene = bpy.context.scene
+        return {
+            "filepath": filepath,
+            "width": scene.render.resolution_x,
+            "height": scene.render.resolution_y,
         }
-        if view_angle in view_map:
-            bpy.ops.view3d.viewnumpad(type=view_map[view_angle])
-
-        # Take screenshot
-        bpy.ops.render.render(write_still=True)
-        render_path = bpy.context.scene.render.frame_path()
-        if os.path.exists(render_path):
-            shutil.move(render_path, filepath)
-
-        # Restore viewport settings
-        if space_data:
-            space_data.shading.type = original_shading
-            space_data.overlay.show_overlays = original_overlays
-
-    # Return actual render dimensions
-    scene = bpy.context.scene
-    return {
-        "filepath": filepath,
-        "width": scene.render.resolution_x,
-        "height": scene.render.resolution_y,
-    }
+    finally:
+        # Always restore settings
+        _restore_viewport_state(space_data, viewport_state)
+        _restore_render_state(render_state)
 
 
 def clean_imported_glb(filepath, mesh_name=None):

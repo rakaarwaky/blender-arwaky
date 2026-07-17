@@ -9,6 +9,16 @@ import requests  # type: ignore
 REQ_HEADERS = {"User-Agent": "blender-mcp"}
 
 
+def _safe_extract_zip(zip_path, extract_dir):
+    """Extract ZIP with path traversal protection."""
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        for member in zip_ref.namelist():
+            member_path = os.path.realpath(os.path.join(extract_dir, member))
+            if not member_path.startswith(os.path.realpath(extract_dir)):
+                raise RuntimeError(f"Zip path traversal attempt: {member}")
+        zip_ref.extractall(extract_dir)
+
+
 def get_polyhaven_categories(asset_type: str) -> dict:
     """Get categories for a specific asset type from Polyhaven."""
     try:
@@ -130,7 +140,7 @@ def download_polyhaven_asset(
         extract_dir = os.path.join(temp_dir, "extracted")  # pragma: no cover
         os.makedirs(extract_dir, exist_ok=True)  # pragma: no cover
         with zipfile.ZipFile(zip_path, "r") as zip_ref:  # pragma: no cover
-            zip_ref.extractall(extract_dir)  # pragma: no cover
+            _safe_extract_zip(zip_path, extract_dir)  # pragma: no cover
 
         # If it's a model, try to import it
         if asset_type == "models":  # pragma: no cover
@@ -208,8 +218,6 @@ def set_texture(object_name: str, texture_id: str) -> dict:
         # For now, we'll look in the PolyHaven cache directory
 
         import glob
-        import os
-        import tempfile
 
         from .config import get_config
 
