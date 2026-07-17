@@ -467,31 +467,31 @@ class TestActionExecuteActions:
     @pytest.mark.asyncio
     async def test_execute_invalid_capability_format(self):
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "InvalidFormatNoDot"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "InvalidFormatNoDot"}}):
             res = await dispatcher.execute(ActionName("some_action"))
-            assert "Invalid capability format" in str(res)
+            assert "Malformed capability ref" in str(res)
 
     @pytest.mark.asyncio
     async def test_execute_resolve_capability_error(self):
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "BlenderPort.execute_code"}):
-            with patch.object(dispatcher, "_resolve_capability", side_effect=Exception("DI resolution failed")):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "BlenderPort.execute_code"}}):
+            with patch.object(dispatcher, "_resolve_capability", return_value=None):
                 res = await dispatcher.execute(ActionName("some_action"))
-                assert "DI resolution failed" in str(res)
+                assert "No capability" in str(res)
 
     @pytest.mark.asyncio
     async def test_execute_no_capability_matched(self):
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "NonexistentProtocol.method"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "NonexistentProtocol.method"}}):
             res = await dispatcher.execute(ActionName("some_action"))
-            assert "No capability matched" in str(res)
+            assert "No capability" in str(res)
 
     @pytest.mark.asyncio
     async def test_execute_method_not_found(self):
         mock_orchestrator = MagicMock()
         mock_orchestrator.blender = MagicMock(spec=[])  # no methods
         dispatcher = ActionExecuteActions(orchestrator=mock_orchestrator)
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "BlenderPort.nonexistent_method"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "BlenderPort.nonexistent_method"}}):
             res = await dispatcher.execute(ActionName("some_action"))
             assert "has no method" in str(res)
 
@@ -513,7 +513,7 @@ class TestActionExecuteActions:
         dispatcher = ActionExecuteActions(orchestrator=mock_orchestrator)
 
         # 1. Success with Pydantic dump
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "SceneOperateProtocol.dummy"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "SceneOperateProtocol.dummy"}}):
             res = await dispatcher.execute(ActionName("some_action"), args={"param": 1})
             assert "success" in str(res)
 
@@ -521,7 +521,7 @@ class TestActionExecuteActions:
         async def dict_method(**kwargs):
             return {"data": 123}
         mock_cap.dummy = dict_method
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "SceneOperateProtocol.dummy"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "SceneOperateProtocol.dummy"}}):
             res2 = await dispatcher.execute(ActionName("some_action"))
             assert "123" in str(res2)
 
@@ -529,7 +529,7 @@ class TestActionExecuteActions:
         async def fail_method(**kwargs):
             raise Exception("method failure")
         mock_cap.dummy = fail_method
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "SceneOperateProtocol.dummy"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "SceneOperateProtocol.dummy"}}):
             res3 = await dispatcher.execute(ActionName("some_action"))
             assert "method failure" in str(res3)
 
@@ -569,11 +569,11 @@ class TestActionExecuteActions:
     async def test_execute_non_dict_args(self):
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
         res = await dispatcher.execute(ActionName("get_scene_info"), args="not_a_dict")
-        assert "must be a dictionary" in str(res)
+        assert "must be a dict" in str(res)
 
-    def test_serialize_result_plain_string(self):
+    def test_serialize_plain_string(self):
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        result = dispatcher._serialize_result("plain_string_result")
+        result = dispatcher._serialize("plain_string_result")
         assert result == "plain_string_result"
 
     def test_sanitize_args_strips_and_truncates(self):

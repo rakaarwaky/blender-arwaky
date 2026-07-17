@@ -5,9 +5,12 @@ This capability is the sole entry point for executing any BlenderArwaky action.
 Handlers (MCP tools, CLI) delegate here — they contain no business logic.
 """
 
+import asyncio
 import inspect
+import json
 import logging
 import re
+import typing
 from typing import Any
 
 from pydantic import BaseModel
@@ -23,12 +26,50 @@ MAX_ACTION_NAME_LENGTH = 100
 MAX_STRING_ARG_LENGTH = 50_000
 ACTION_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
+# Dispatch timeout (seconds) — prevents stuck Blender calls from blocking the server
+DISPATCH_TIMEOUT_S: float = 30.0
+
+# Protocol name → orchestrator attribute mapping (Open/Closed: add new entries here)
+_PROTOCOL_ATTR: dict[str, str] = {
+    "BlenderPort": "blender",
+    "SceneOperateProtocol": "operate_scene_capability",
+    "AssetSearchProtocol": "search_asset_capability",
+    "AssetProviderPort": "search_asset_capability",
+    "ObjectOperateProtocol": "object_operate_capability",
+    "RenderOperateProtocol": "render_operate_capability",
+    "ImportExportProtocol": "import_export_capability",
+}
+
+
+def _unwrap_annotation(annotation: Any) -> Any | None:
+    """Unwrap Optional/Annotated/Union type hints to get the underlying type."""
+    if annotation is inspect.Parameter.empty:
+        return None
+
+    origin = typing.get_origin(annotation)
+    if origin is None:
+        # Plain type (e.g. GetScreenshotRequestVO)
+        return annotation if isinstance(annotation, type) else None
+
+    # Handle Optional[X] (Union[X, None]) and Annotated[X, ...]
+    if origin is typing.Union:
+        args = [a for a in typing.get_args(annotation) if a is not type(None)]
+        return args[0] if len(args) == 1 and isinstance(args[0], type) else None
+
+    # Annotated[X, metadata] — return the first arg
+    if origin is typing.Annotated:
+        args = typing.get_args(annotation)
+        return args[0] if args and isinstance(args[0], type) else None
+
+    return None
+
 
 class ActionExecuteActions(ExecuteActionProtocol):
     """Dispatches actions to the orchestrator based on COMMAND_CATALOG."""
 
     def __init__(self, orchestrator: Any):
-        self.orchestrator = orchestrator
+        self._orch = orchestrator
+        self._sig_cache: dict[Any, inspect.Signature] = {}
 
     async def execute(self, action: ActionName, args: Details | None = None) -> Prompt:
         """Execute an action via the orchestrator.
@@ -40,109 +81,83 @@ class ActionExecuteActions(ExecuteActionProtocol):
         Returns:
             JSON string result (pydantic model dumped) or plain text wrapped in Prompt
         """
-        if args is None:
-            args = {}
+        args = args or {}
 
-        # Validate action name format
-        validation_error = self._validate_action_name(str(action))
-        if validation_error:
-            return Prompt(validation_error)
-
-        # Validate and sanitize arguments
+        if err := self._validate_action_name(str(action)):
+            return Prompt(err)
         if not isinstance(args, dict):
-            return Prompt(f"Error: 'args' must be a dictionary, got {type(args).__name__}.")
-        args = self._sanitize_args(args)
+            return Prompt(f"Error: 'args' must be a dict, got {type(args).__name__}.")
 
-        # Get command spec from catalog
-        spec = self._get_command_spec(str(action))
+        spec = CommandCatalog.COMMAND_CATALOG.get(str(action))
         if spec is None:
             return Prompt(f"Error: Unknown action '{action}'. Use list_commands() to discover.")
 
-        # Extract capability reference: "Protocol.method_name"
-        capability_ref = spec.get("capability", "")
-        if "." not in capability_ref:
-            return Prompt(f"Error: Invalid capability format for action '{action}'.")
+        cap_ref = spec.get("capability")
+        if not cap_ref or "." not in cap_ref:
+            return Prompt(f"Error: Malformed capability ref for action '{action}'.")
 
-        protocol_name, method_name = capability_ref.rsplit(".", 1)
+        protocol_name, method_name = cap_ref.rsplit(".", 1)
 
-        # Resolve capability from the DI container/orchestrator
-        try:
-            cap = self._resolve_capability(protocol_name)
-        except Exception as e:
-            return Prompt(f"Error resolving capability '{protocol_name}' for action '{action}': {e}")
-
+        cap = self._resolve_capability(protocol_name)
         if cap is None:
-            return Prompt(f"Error: No capability matched protocol '{protocol_name}' for action '{action}'.")
+            return Prompt(f"Error: No capability for protocol '{protocol_name}' (action '{action}').")
 
-        # Get method from capability
-        if not hasattr(cap, method_name):
-            return Prompt(f"Error: Capability '{protocol_name}' has no method '{method_name}' for action '{action}'.")
+        method = getattr(cap, method_name, None)
+        if method is None:
+            return Prompt(f"Error: '{protocol_name}' has no method '{method_name}' (action '{action}').")
 
-        method = getattr(cap, method_name)
+        args = self._sanitize_args(args)
 
-        # Call the method — construct RequestVO if method expects a typed model
+        logger.info("dispatch action=%s protocol=%s method=%s args_keys=%s", action, protocol_name, method_name, list(args))
+
         try:
-            result = await self._invoke_method(method, args)
-            return Prompt(self._serialize_result(result))
+            raw = self._invoke(method, args)
+            result = await asyncio.wait_for(raw, timeout=DISPATCH_TIMEOUT_S) if asyncio.iscoroutine(raw) else raw
+        except asyncio.TimeoutError:
+            logger.warning("action=%s timed out after %ss", action, DISPATCH_TIMEOUT_S)
+            return Prompt(json.dumps({"error": "timeout", "action": str(action)}))
         except Exception as e:
-            import json
-
+            logger.exception("action=%s failed", action)
             return Prompt(json.dumps({"error": str(e), "action": str(action)}, indent=2))
 
-    def _resolve_capability(self, protocol_name: str) -> Any | None:
-        """Dynamically resolve the correct capability class from the orchestrator."""
-        if protocol_name == "BlenderPort":
-            return self.orchestrator.blender
-        elif protocol_name == "SceneOperateProtocol":
-            return self.orchestrator.operate_scene_capability
-        elif protocol_name == "AssetSearchProtocol" or protocol_name == "AssetProviderPort":
-            return self.orchestrator.search_asset_capability
-        elif protocol_name == "ObjectOperateProtocol":
-            return self.orchestrator.object_operate_capability
-        elif protocol_name == "RenderOperateProtocol":
-            return self.orchestrator.render_operate_capability
-        elif protocol_name == "ImportExportProtocol":
-            return self.orchestrator.import_export_capability
-        return None
+        return Prompt(self._serialize(result))
 
-    @staticmethod
-    def _invoke_method(method: Any, args: dict[str, Any]) -> Any:
+    def _resolve_capability(self, protocol_name: str) -> Any | None:
+        """Resolve capability from the orchestrator via protocol→attribute mapping."""
+        attr = _PROTOCOL_ATTR.get(protocol_name)
+        if attr is None:
+            return None
+        return getattr(self._orch, attr, None)
+
+    def _invoke(self, method: Any, args: dict[str, Any]) -> Any:
         """Invoke a capability method, auto-constructing RequestVO when needed.
 
         Protocol methods expecting a typed RequestVO (pydantic BaseModel) as their
         first parameter receive a constructed instance. Methods with direct scalar
-        parameters receive unpacked kwargs (original behavior).
+        parameters receive unpacked kwargs.
         """
-        sig = inspect.signature(method)
-        params = [p for p in sig.parameters.values() if p.name != "self"]
+        sig = self._sig_cache.get(id(method))
+        if sig is None:
+            sig = inspect.signature(method)
+            self._sig_cache[id(method)] = sig
+
+        params = list(sig.parameters.values())
 
         if params:
             first = params[0]
-            annotation = first.annotation
-            if (
-                annotation is not inspect.Parameter.empty
-                and isinstance(annotation, type)
-                and issubclass(annotation, BaseModel)
-            ):
-                request_obj = annotation(**args)
-                return method(request_obj)
+            unwrapped = _unwrap_annotation(first.annotation)
+            if unwrapped is not None and issubclass(unwrapped, BaseModel):
+                return method(unwrapped(**args))
 
         return method(**args)
 
-    def _serialize_result(self, result: Any) -> str:
-        """Serialize capability method execution result to standard string or JSON."""
+    def _serialize(self, result: Any) -> str:
+        """Serialize capability method execution result to JSON or string."""
         if hasattr(result, "model_dump_json"):
-            s: str = result.model_dump_json(indent=2)
-            return s
+            return result.model_dump_json(indent=2)
         if isinstance(result, dict):
-            import json
-
             return json.dumps(result, indent=2, default=str)
         return str(result)
-
-    def _get_command_spec(self, action: str) -> CommandSpec | None:
-        """Retrieve command spec from COMMAND_CATALOG."""
-        return CommandCatalog.COMMAND_CATALOG.get(action)
 
     @staticmethod
     def _validate_action_name(action: str) -> str | None:
@@ -153,8 +168,8 @@ class ActionExecuteActions(ExecuteActionProtocol):
             return f"Error: Action name exceeds {MAX_ACTION_NAME_LENGTH} characters."
         if not ACTION_NAME_PATTERN.match(action):
             return (
-                f"Error: Invalid action name '{action}'. "
-                f"Must be lowercase alphanumeric with underscores (e.g. 'get_scene_info')."
+                f"Error: Invalid action name \'{action}\'. "
+                f"Must be lowercase alphanumeric with underscores (e.g. \'get_scene_info\')."
             )
         return None
 
@@ -164,12 +179,13 @@ class ActionExecuteActions(ExecuteActionProtocol):
         sanitized: Details = {}
         for key, value in args.items():
             if isinstance(value, str):
+                original_len = len(value)
                 value = value.strip()
-                if len(value) > MAX_STRING_ARG_LENGTH:
+                if original_len > MAX_STRING_ARG_LENGTH:
                     logger.warning(
-                        "Argument '%s' truncated from %d to %d chars",
+                        "Argument \'%s\' truncated from %d to %d chars",
                         key,
-                        len(value),
+                        original_len,
                         MAX_STRING_ARG_LENGTH,
                     )
                     value = value[:MAX_STRING_ARG_LENGTH]

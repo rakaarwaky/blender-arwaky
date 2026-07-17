@@ -288,19 +288,19 @@ class TestActionDispatchIntegration:
         assert "error" in parsed
 
     @pytest.mark.asyncio
-    async def test_serialize_result_handles_dict(self):
+    async def test_serialize_handles_dict(self):
         """Dict results must be JSON serialized correctly."""
         from capabilities.action_execute_actions import ActionExecuteActions
 
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        result = dispatcher._serialize_result({"key": "value", "count": 42})
+        result = dispatcher._serialize({"key": "value", "count": 42})
 
         parsed = json.loads(result)
         assert parsed["key"] == "value"
         assert parsed["count"] == 42
 
     @pytest.mark.asyncio
-    async def test_serialize_result_handles_pydantic_model(self):
+    async def test_serialize_handles_pydantic_model(self):
         """Pydantic models must be serialized via model_dump_json."""
         from capabilities.action_execute_actions import ActionExecuteActions
         from taxonomy import GetSceneInfoResponseVO, SuccessFlag
@@ -311,7 +311,7 @@ class TestActionDispatchIntegration:
             message="ok"
         )
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
-        result = dispatcher._serialize_result(model)
+        result = dispatcher._serialize(model)
 
         parsed = json.loads(result)
         assert "success" in parsed or "scene_info" in parsed

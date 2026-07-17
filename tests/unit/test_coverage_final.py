@@ -319,7 +319,7 @@ class TestCapabilitiesFinalGaps:
         mock_orch = MagicMock()
         mock_orch.operate_scene_capability = mock_cap
         dispatcher = ActionExecuteActions(orchestrator=mock_orch)
-        with patch.object(dispatcher, "_get_command_spec", return_value={"capability": "SceneOperateProtocol.dummy"}):
+        with patch("taxonomy.blender_command_vo.CommandCatalog.COMMAND_CATALOG", {"some_action": {"capability": "SceneOperateProtocol.dummy"}}):
             res = await dispatcher.execute("some_action")
             assert "plain_string_result" in str(res)
 
