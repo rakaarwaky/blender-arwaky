@@ -17,13 +17,14 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from contract import BlenderConnectionPort, TelemetryRecordingPort
+from contract import BlenderConnectionPort, ConfigPort, ConfigValue, TelemetryRecordingPort
 from taxonomy import (
     ActionName,
     BlenderVersion,
     CustomerUuid,
     Details,
     DurationMs,
+    EnabledFlag,
     ErrorMessage,
     PlatformName,
     Prompt,
@@ -293,11 +294,6 @@ class TelemetrySignalRecorder(TelemetryRecordingPort):
 # ═══════════════════════════════════════════════════════════════════════════════
 # TelemetryConfig (merged from telemetry_config_loader.py)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-import os
-
-from contract import ConfigPort, ConfigValue
-from taxonomy import EnabledFlag
 
 
 class TelemetryConfig(ConfigPort):

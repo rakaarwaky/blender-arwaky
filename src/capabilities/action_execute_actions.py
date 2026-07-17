@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from contract import ExecuteActionProtocol
 from taxonomy import ActionName, Details, Prompt
-from taxonomy.blender_command_vo import CommandCatalog, CommandSpec
+from taxonomy.blender_command_vo import CommandCatalog
 
 logger = logging.getLogger("BlenderMCPServer")
 

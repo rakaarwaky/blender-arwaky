@@ -25,7 +25,8 @@ from contract import (
     CoreAgentOrchestratorAggregate,
     ExecuteActionProtocol,
 )
-from taxonomy import ApplicationConfigVo, SuccessFlag
+from taxonomy import ActionName, ApplicationConfigVo, DomainRef, FilePath, SuccessFlag
+from taxonomy.blender_command_vo import CommandCatalog, CommandSpec
 
 from .agent_factory_registry import AgentFactoryRegistry as FactoryRegistry
 from .agent_logic_coordinator import ContainerLogic
@@ -38,10 +39,6 @@ logger = logging.getLogger("BlenderMCPServer")
 # ═══════════════════════════════════════════════════════════════════════════════
 # CommandCatalogAdapter (merged from command_catalog_registry.py)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-from taxonomy import ActionName, DomainRef, FilePath
-from taxonomy.blender_command_vo import CommandCatalog, CommandSpec
-
 
 class CommandCatalogAdapter(CommandCatalogPort):
     """Adapter that exposes taxonomy CommandCatalog through CommandCatalogPort."""

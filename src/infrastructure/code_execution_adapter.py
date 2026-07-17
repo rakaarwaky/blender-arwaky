@@ -13,64 +13,49 @@ logger = logging.getLogger("BlenderMCPServer")
 # Maximum code length (chars) to prevent abuse
 MAX_CODE_LENGTH = 10_000
 
-# Blocked patterns — dangerous system-level operations
-# Checked via regex against submitted code
-BLOCKED_PATTERNS: list[re.Pattern[str]] = [
+# Blocked patterns — dangerous system-level operations.
+# These are pre-filters to catch common abuse; they are NOT a security boundary.
+# The actual execution happens inside Blender's trusted process, so the real
+# trust model is: "reject obviously malicious payloads before forwarding."
+# Regex-based filtering is inherently bypassable (e.g., getattr(os, "system")),
+# AST parsing or a proper sandbox would be stronger controls.
+_BLOCKED: list[tuple[re.Pattern[str], str]] = [
     # OS-level operations
-    re.compile(r"\bos\.system\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.popen\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.exec\w*\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.spawn\w*\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.remove\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.unlink\s*\(", re.IGNORECASE),
-    re.compile(r"\bos\.rmdir\s*\(", re.IGNORECASE),
+    (re.compile(r"\bos\.system\s*\(", re.IGNORECASE), "os.system()"),
+    (re.compile(r"\bos\.popen\s*\(", re.IGNORECASE), "os.popen()"),
+    (re.compile(r"\bos\.exec\w*\s*\(", re.IGNORECASE), "os.exec*()"),
+    (re.compile(r"\bos\.spawn\w*\s*\(", re.IGNORECASE), "os.spawn*()"),
+    (re.compile(r"\bos\.remove\s*\(", re.IGNORECASE), "os.remove()"),
+    (re.compile(r"\bos\.unlink\s*\(", re.IGNORECASE), "os.unlink()"),
+    (re.compile(r"\bos\.rmdir\s*\(", re.IGNORECASE), "os.rmdir()"),
     # Subprocess / shell
-    re.compile(r"\bsubprocess\b", re.IGNORECASE),
-    re.compile(r"\bshutil\.rmtree\s*\(", re.IGNORECASE),
-    re.compile(r"\bshutil\.move\s*\(", re.IGNORECASE),
+    (re.compile(r"\bsubprocess\b", re.IGNORECASE), "subprocess"),
+    (re.compile(r"\bshutil\.rmtree\s*\(", re.IGNORECASE), "shutil.rmtree()"),
+    (re.compile(r"\bshutil\.move\s*\(", re.IGNORECASE), "shutil.move()"),
     # Dynamic import / code execution
-    re.compile(r"__import__\s*\("),
-    re.compile(r"\bimportlib\b"),
-    re.compile(r"\beval\s*\("),
-    re.compile(r"\bexec\s*\("),
-    re.compile(r"\bcompile\s*\("),
+    (re.compile(r"__import__\s*\("), "__import__()"),
+    (re.compile(r"\bimportlib\b"), "importlib"),
+    (re.compile(r"\beval\s*\("), "eval()"),
+    (re.compile(r"\bexec\s*\("), "exec()"),
+    (re.compile(r"\bcompile\s*\("), "compile()"),
     # File system access
-    re.compile(r"\bopen\s*\("),
+    (re.compile(r"\bopen\s*\("), "open()"),
     # Network
-    re.compile(r"\bsocket\s*\.\s*socket\s*\("),
-    re.compile(r"\brequests\.(get|post|put|delete|patch)\s*\("),
-    re.compile(r"\burllib\b"),
-]
-
-# Descriptive names for log messages (must match BLOCKED_PATTERNS 1:1)
-BLOCKED_DESCRIPTIONS = [
-    "os.system()",
-    "os.popen()",
-    "os.exec*()",
-    "os.spawn*()",
-    "os.remove()",
-    "os.unlink()",
-    "os.rmdir()",
-    "subprocess",
-    "shutil.rmtree()",
-    "shutil.move()",
-    "__import__()",
-    "importlib",
-    "eval()",
-    "exec()",
-    "compile()",
-    "open()",
-    "socket.socket()",
-    "requests HTTP",
-    "urllib",
+    (re.compile(r"\bsocket\s*\.\s*socket\s*\("), "socket.socket()"),
+    (re.compile(r"\brequests\.(get|post|put|delete|patch)\s*\("), "requests HTTP"),
+    (re.compile(r"\burllib\b"), "urllib"),
 ]
 
 
 def validate_code(code: str) -> None:
-    """Validate code for safety before execution.
+    """Validate code for abuse prevention before execution.
 
-    Raises ValidationError if the code contains blocked patterns
+    Raises ValidationError if the code contains known-bad patterns
     or exceeds length limits.
+
+    NOTE: This is a pre-filter, not a security boundary. Regex-based
+    filtering is inherently bypassable (e.g., getattr(os, "system")).
+    The actual execution happens inside Blender's trusted process.
     """
     if not code or not code.strip():
         raise ValidationError(ErrorMessage("Code cannot be empty"))
@@ -80,7 +65,7 @@ def validate_code(code: str) -> None:
             ErrorMessage(f"Code exceeds maximum length of {MAX_CODE_LENGTH} characters (received {len(code)})")
         )
 
-    for pattern, description in zip(BLOCKED_PATTERNS, BLOCKED_DESCRIPTIONS, strict=True):
+    for pattern, description in _BLOCKED:
         if pattern.search(code):
             logger.warning(
                 "Blocked code execution attempt: pattern '%s' detected",
@@ -102,13 +87,16 @@ class CodeExecutionAdapter(CodeExecutionPort):
         self._connection_port = connection_port
 
     async def execute_blender_code(self, code: Prompt) -> Prompt:
-        """Execute Python code in Blender with safety validation.
+        """Execute Python code in Blender via IPC.
 
-        Parameters:
-        - code: The Python code to execute (must use bpy API only)
+        This method validates the code against a denylist of dangerous
+        patterns (regex pre-filter), then forwards it to Blender through
+        the socket adapter. It does NOT sandbox the code — the actual
+        execution happens inside Blender's trusted process.
 
         Returns:
-        - Prompt with execution result or validation error message
+            Prompt with either a success message (containing the result)
+            or an error message (validation failure or IPC exception).
         """
         code_str = str(code)
 
@@ -136,7 +124,11 @@ class CodeExecutionAdapter(CodeExecutionPort):
                     ActionName("execute_code"), {"code": code_str}
                 ),
             )
+            # result is a dict from send_command; extract 'result' safely
             return Prompt(f"Code executed successfully: {result.get('result', '')}")
+        except ValidationError:
+            # Re-raise validation errors (shouldn't reach here, but be safe)
+            raise
         except Exception:
             logger.exception("Error executing code in Blender")
             return Prompt("Internal server error during code execution.")
