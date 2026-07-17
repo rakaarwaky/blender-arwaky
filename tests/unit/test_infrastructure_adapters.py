@@ -242,8 +242,9 @@ class TestBlenderSocketAdapter:
     async def test_get_object_info(self, adapter, mock_conn):
         # Object not found
         mock_conn.send_command.return_value = None
-        obj = await adapter.get_object_info(ObjectName("Nonexistent"))
-        assert obj is None
+        from taxonomy import ExecutionError
+        with pytest.raises(ExecutionError):
+            await adapter.get_object_info(ObjectName("Nonexistent"))
 
         # Object found
         from taxonomy.blender_spatial_vo import Vector3D
@@ -258,9 +259,10 @@ class TestBlenderSocketAdapter:
         assert obj is not None
         assert obj.name == "Cube"
 
-        # General error raises None
-        mock_conn.send_command.side_effect = Exception()
-        assert await adapter.get_object_info(ObjectName("Cube")) is None
+        # General error raises ExecutionError
+        mock_conn.send_command.side_effect = Exception("Something broke")
+        with pytest.raises(ExecutionError):
+            await adapter.get_object_info(ObjectName("Cube"))
 
         mock_conn.send_command.side_effect = ConnectionError()
         with pytest.raises(ConnectionError):
