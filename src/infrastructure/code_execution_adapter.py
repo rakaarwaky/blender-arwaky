@@ -1,10 +1,11 @@
 """Code execution adapter with input validation and safety checks."""
 
+import asyncio
 import logging
 import re
 
 from contract import BlenderConnectionPort, CodeExecutionPort
-from taxonomy import ActionName, Prompt, SuccessFlag
+from taxonomy import ActionName, Prompt
 from taxonomy.blender_mcp_error import ErrorMessage, ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -13,8 +14,9 @@ logger = logging.getLogger("BlenderMCPServer")
 MAX_CODE_LENGTH = 10_000
 
 # Blocked patterns — dangerous system-level operations
-# These are checked as regex patterns against the submitted code
+# Checked via regex against submitted code
 BLOCKED_PATTERNS: list[re.Pattern[str]] = [
+    # OS-level operations
     re.compile(r"\bos\.system\s*\(", re.IGNORECASE),
     re.compile(r"\bos\.popen\s*\(", re.IGNORECASE),
     re.compile(r"\bos\.exec\w*\s*\(", re.IGNORECASE),
@@ -22,17 +24,25 @@ BLOCKED_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\bos\.remove\s*\(", re.IGNORECASE),
     re.compile(r"\bos\.unlink\s*\(", re.IGNORECASE),
     re.compile(r"\bos\.rmdir\s*\(", re.IGNORECASE),
+    # Subprocess / shell
     re.compile(r"\bsubprocess\b", re.IGNORECASE),
     re.compile(r"\bshutil\.rmtree\s*\(", re.IGNORECASE),
     re.compile(r"\bshutil\.move\s*\(", re.IGNORECASE),
+    # Dynamic import / code execution
     re.compile(r"__import__\s*\("),
     re.compile(r"\bimportlib\b"),
+    re.compile(r"\beval\s*\("),
+    re.compile(r"\bexec\s*\("),
+    re.compile(r"\bcompile\s*\("),
+    # File system access
+    re.compile(r"\bopen\s*\("),
+    # Network
     re.compile(r"\bsocket\s*\.\s*socket\s*\("),
     re.compile(r"\brequests\.(get|post|put|delete|patch)\s*\("),
     re.compile(r"\burllib\b"),
 ]
 
-# Descriptive names for log messages
+# Descriptive names for log messages (must match BLOCKED_PATTERNS 1:1)
 BLOCKED_DESCRIPTIONS = [
     "os.system()",
     "os.popen()",
@@ -46,6 +56,10 @@ BLOCKED_DESCRIPTIONS = [
     "shutil.move()",
     "__import__()",
     "importlib",
+    "eval()",
+    "exec()",
+    "compile()",
+    "open()",
     "socket.socket()",
     "requests HTTP",
     "urllib",
@@ -66,7 +80,7 @@ def validate_code(code: str) -> None:
             ErrorMessage(f"Code exceeds maximum length of {MAX_CODE_LENGTH} characters (received {len(code)})")
         )
 
-    for pattern, description in zip(BLOCKED_PATTERNS, BLOCKED_DESCRIPTIONS, strict=False):
+    for pattern, description in zip(BLOCKED_PATTERNS, BLOCKED_DESCRIPTIONS, strict=True):
         if pattern.search(code):
             logger.warning(
                 "Blocked code execution attempt: pattern '%s' detected",
@@ -84,20 +98,17 @@ def validate_code(code: str) -> None:
 class CodeExecutionAdapter(CodeExecutionPort):
     """Wrapper class for code execution functions with input validation."""
 
-    _success_ref: SuccessFlag = SuccessFlag(True)
-
     def __init__(self, connection_port: BlenderConnectionPort):
         self._connection_port = connection_port
 
     async def execute_blender_code(self, code: Prompt) -> Prompt:
-        """
-        Execute Python code in Blender with safety validation.
+        """Execute Python code in Blender with safety validation.
 
         Parameters:
         - code: The Python code to execute (must use bpy API only)
 
-        Raises:
-        - ValidationError: If code contains blocked patterns or is too long
+        Returns:
+        - Prompt with execution result or validation error message
         """
         code_str = str(code)
 
@@ -117,8 +128,15 @@ class CodeExecutionAdapter(CodeExecutionPort):
         )
 
         try:
-            result = self._connection_port.send_command(ActionName("execute_code"), {"code": code_str})
+            # Offload synchronous IPC call to thread pool to avoid blocking event loop
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self._connection_port.send_command(
+                    ActionName("execute_code"), {"code": code_str}
+                ),
+            )
             return Prompt(f"Code executed successfully: {result.get('result', '')}")
-        except Exception as e:
-            logger.error("Error executing code: %s", e)
-            return Prompt(f"Error executing code: {e}")
+        except Exception:
+            logger.exception("Error executing code in Blender")
+            return Prompt("Internal server error during code execution.")

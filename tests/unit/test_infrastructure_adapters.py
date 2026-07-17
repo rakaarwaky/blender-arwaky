@@ -125,7 +125,7 @@ class TestCodeExecutionAdapter:
         adapter = CodeExecutionAdapter(mock_conn)
 
         res = await adapter.execute_blender_code(Prompt("print('hello')"))
-        assert "Connection lost" in str(res)
+        assert "Internal server error" in str(res)
 
     @pytest.mark.asyncio
     async def test_execute_code_blocked_os_system(self):
