@@ -32,9 +32,14 @@ from taxonomy import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-def _py_str(value: str) -> str:
-    """Safely escape a string for inclusion in generated Python code."""
+def _py_str(value: object) -> str:
+    """Safely escape a value for inclusion in generated Python code."""
     return json.dumps(str(value))
+
+
+def _format_coord(coord: object) -> str:
+    """Safely format a coordinate value as a float for Python code."""
+    return str(float(coord))
 
 
 class RenderOperateExecutor(RenderOperateProtocol):
@@ -63,8 +68,8 @@ class RenderOperateExecutor(RenderOperateProtocol):
     ) -> Prompt:
         logger.info("Setting up camera at %s", location)
 
-        loc = f"({location[0]}, {location[1]}, {location[2]})"
-        rot = f"({rotation[0]}, {rotation[1]}, {rotation[2]})"
+        loc = f"({_format_coord(location[0])}, {_format_coord(location[1])}, {_format_coord(location[2])})"
+        rot = f"({_format_coord(rotation[0])}, {_format_coord(rotation[1])}, {_format_coord(rotation[2])})"
 
         code = (
             "import bpy\n"
@@ -76,7 +81,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
             f"camera.rotation_euler = {rot}\n"
         )
         if target is not None:
-            tgt = f"({target[0]}, {target[1]}, {target[2]})"
+            tgt = f"({_format_coord(target[0])}, {_format_coord(target[1])}, {_format_coord(target[2])})"
             code += (
                 "target_name = 'MCP_CameraTarget'\n"
                 "target_obj = bpy.data.objects.get(target_name)\n"
@@ -136,7 +141,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
         rule = rule or RuleName("thirds")
         logger.info("Applying composition rule: %s", rule)
 
-        rule_val = str(rule)
+        rule_val = str(rule).lower()
         code = (
             "import bpy\n"
             "camera = bpy.data.objects.get('Camera')\n"
@@ -147,6 +152,8 @@ class RenderOperateExecutor(RenderOperateProtocol):
             code += "    camera.data.show_guide_rule_of_thirds = True\n"
         elif rule_val == "golden":
             code += "    camera.data.show_guide_golden_ratio = True\n"
+        else:
+            logger.warning("Unknown composition rule '%s', defaulting to generic guide only.", rule_val)
 
         try:
             await self.blender.execute_code(PythonCode(code))
