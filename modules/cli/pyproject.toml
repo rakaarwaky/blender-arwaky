@@ -1,0 +1,13 @@
+[project]
+name = "blender-arwaky-cli"
+version = "1.6.5"
+description = "BlenderArwaky standalone CLI for Blender lifecycle management"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["."]

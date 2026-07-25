@@ -1,20 +1,21 @@
-"""BlenderArwaky shared domain types — taxonomy layer.
+"""BlenderArwaky shared domain types — taxonomy + contract layers.
 
 Organized by domain:
-- common/: Core VOs, errors, constants (cross-cutting)
-- scene/: Scene info and request/response VOs
-- object/: Blender object entity, constants, request/response VOs
-- render/: Render request/response VOs
-- asset_io/: Import/export request/response VOs
-- asset_provider/: Asset constants and provider VOs
-- job/: Job state constants and status entity
-- telemetry/: Event constants and telemetry event entity
+- common/: Core cross-cutting features
+- config/: Application config
+- scene/: Scene info,
+- object/: Blender object
+- render/: Render
+- asset/: Import/export provider asset
+- job/: Job state
+- telemetry/: Event telemetry
 """
 
 from . import (
     asset_io,
     asset_provider,
     common,
+    config,
     job,
     object,
     render,
@@ -115,6 +116,7 @@ from .common.taxonomy_domain_error import (
     BlenderConnectionFailure,
     BlenderMCPError,
     ConnectionError,
+    ConnectionFailure,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -123,9 +125,12 @@ from .common.taxonomy_domain_error import (
     ValidationError,
 )
 
+from .common.taxonomy_core_vo import ErrorMessage
+
 from .common.taxonomy_command_catalog_constant import (
     ACTION_NAMES,
     COMMAND_CATALOG,
+    CommandCatalog,
     CommandSpec,
 )
 
@@ -257,38 +262,42 @@ from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 # === Contract layer exports (organized by domain) ===
 
-# Protocols
-from .scene.contract_scene_operate_protocol import ContractSceneOperateProtocol
+# Protocols (business behavior contracts)
+from .scene.scene_operate_protocol import SceneOperateProtocol
+from .object.object_operate_protocol import ObjectOperateProtocol
+from .render.render_operate_protocol import RenderOperateProtocol
+from .asset_io.import_export_protocol import ImportExportProtocol
+from .asset_provider.asset_search_protocol import AssetSearchProtocol
+from .common.workflow_protocol import WorkflowProtocol
+from .common.execute_action_protocol import ExecuteActionProtocol
 
-from .object.contract_object_operate_protocol import ContractObjectOperateProtocol
+# Ports (infrastructure-facing contracts)
+from .object.blender_port import BlenderPort
+from .object.connection_port import BlenderConnectionPort
+from .object.connection_factory_port import BlenderConnectionFactoryPort
+from .object.code_execution_port import CodeExecutionPort
+from .config.config_port import ConfigPort
+from .common.command_catalog_port import CommandCatalogPort
+from .scene.scene_inspection_port import SceneInspectionPort
+from .render.viewport_capture_port import ViewportCapturePort
+from .asset_provider.asset_provider_port import AssetProviderPort
+from .asset_provider.sketchfab_api_port import SketchfabApiPort
+from .asset_provider.polyhaven_api_port import PolyhavenApiPort
+from .telemetry.telemetry_recording_port import TelemetryRecordingPort
 
-from .render.contract_render_operate_protocol import ContractRenderOperateProtocol
-
-from .asset_io.contract_import_export_protocol import ContractImportExportProtocol
-
-from .asset_provider.contract_asset_search_protocol import ContractAssetSearchProtocol
-
-# Cross-cutting protocols
-from .common.contract_workflow_protocol import ContractWorkflowProtocol
-
-from .common.contract_execute_action_protocol import ContractExecuteActionProtocol
-
-# Ports
-from .common.contract_blender_port import ContractBlenderPort
-
-from .common.contract_blender_connection_port import ContractBlenderConnectionPort
-
-from .common.contract_config_port import ContractConfigPort
-
-from .common.contract_command_catalog_port import ContractCommandCatalogPort
-
-from .common.contract_code_execution_port import ContractCodeExecutionPort
-
-from .scene.contract_scene_inspection_port import ContractSceneInspectionPort
-
-from .asset_provider.contract_asset_provider_port import ContractAssetProviderPort
-
-from .telemetry.contract_telemetry_port import ContractTelemetryRecordingPort
+# Aggregates (structural contracts for agents)
+from .common.core_agent_aggregate import CoreAgentOrchestratorAggregate
+from .common.agent_di_aggregate import AgentDiContainerAggregate
+from .common.agent_factory_aggregate import AgentFactoryRegistryAggregate
+from .common.agent_base_aggregate import AgentBaseContainerAggregate
+from .common.expert_base_aggregate import ExpertBaseOrchestratorAggregate
+from .common.workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
+from .common.refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
+from .common.search_expert_aggregate import SearchExpertOrchestratorAggregate
+from .common.setup_expert_aggregate import SetupExpertOrchestratorAggregate
+from .common.server_bootstrap_aggregate import ServerBootstrapManagerAggregate
+from .common.system_prompt_aggregate import SystemPromptManagerAggregate
+from .common.system_utils_aggregate import SystemUtilsCoordinatorAggregate
 
 __all__ = [
     # Domain folders
@@ -328,6 +337,7 @@ __all__ = [
     "AssetTypeFilter",
     "Prompt",
     "ErrorString",
+    "ErrorMessage",
     "SearchQuery",
     "NextPageToken",
     "ResultUrl",
@@ -400,6 +410,7 @@ __all__ = [
     "AssetNotFoundError",
     "ValidationError",
     "ConnectionError",
+    "ConnectionFailure",
     "ProviderError",
     "ExecutionError",
     "BlenderConnectionFailure",
@@ -431,6 +442,7 @@ __all__ = [
     "OBJECT_TYPE_VOLUME",
     "ALLOWED_OBJECT_TYPES",
     "COMMAND_CATALOG",
+    "CommandCatalog",
     "CommandSpec",
     "ACTION_NAMES",
     "RENDER_ENGINE_CYCLES",
@@ -447,20 +459,37 @@ __all__ = [
     "create_provider_name",
     "create_progress",
     # Contracts — Protocols
-    "ContractSceneOperateProtocol",
-    "ContractObjectOperateProtocol",
-    "ContractRenderOperateProtocol",
-    "ContractImportExportProtocol",
-    "ContractAssetSearchProtocol",
-    "ContractWorkflowProtocol",
-    "ContractExecuteActionProtocol",
+    "SceneOperateProtocol",
+    "ObjectOperateProtocol",
+    "RenderOperateProtocol",
+    "ImportExportProtocol",
+    "AssetSearchProtocol",
+    "WorkflowProtocol",
+    "ExecuteActionProtocol",
     # Contracts — Ports
-    "ContractBlenderPort",
-    "ContractBlenderConnectionPort",
-    "ContractConfigPort",
-    "ContractCommandCatalogPort",
-    "ContractCodeExecutionPort",
-    "ContractSceneInspectionPort",
-    "ContractAssetProviderPort",
-    "ContractTelemetryRecordingPort",
+    "BlenderPort",
+    "BlenderConnectionPort",
+    "BlenderConnectionFactoryPort",
+    "CodeExecutionPort",
+    "ConfigPort",
+    "CommandCatalogPort",
+    "SceneInspectionPort",
+    "ViewportCapturePort",
+    "AssetProviderPort",
+    "SketchfabApiPort",
+    "PolyhavenApiPort",
+    "TelemetryRecordingPort",
+    # Contracts — Aggregates
+    "CoreAgentOrchestratorAggregate",
+    "AgentDiContainerAggregate",
+    "AgentFactoryRegistryAggregate",
+    "AgentBaseContainerAggregate",
+    "ExpertBaseOrchestratorAggregate",
+    "WorkflowAgentOrchestratorAggregate",
+    "RefinementExpertOrchestratorAggregate",
+    "SearchExpertOrchestratorAggregate",
+    "SetupExpertOrchestratorAggregate",
+    "ServerBootstrapManagerAggregate",
+    "SystemPromptManagerAggregate",
+    "SystemUtilsCoordinatorAggregate",
 ]

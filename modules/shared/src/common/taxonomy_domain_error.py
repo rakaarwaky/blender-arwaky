@@ -99,3 +99,7 @@ class InvalidCommandError(DomainError):
 
     def __init__(self, message: ErrorString | None = None) -> None:
         super().__init__(message or ErrorString("Invalid command"))
+
+
+# Backward-compatible alias for N818 (ConnectionFailure vs ConnectionError)
+ConnectionFailure = ConnectionError

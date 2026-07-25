@@ -4,10 +4,7 @@
 
 ## Project Overview
 
-BlenderArwaky connects **Blender 3D** to AI agents over the Model Context Protocol (MCP).
-
-- **Stack:** Python 3.10+, FastMCP, Blender 5.1+, AES Architecture
-- **Entry Points:** `surfaces.mcp_server_entry` (MCP server) and `surfaces.cli_main_entry` (CLI mode)
+BlenderArwaky connects **Blender 3D** to AI agents over the Model Context Protocol (MCP). Python 3.10+, FastMCP, Blender 5.1+, AES Architecture
 
 ---
 
@@ -26,5 +23,5 @@ BlenderArwaky connects **Blender 3D** to AI agents over the Model Context Protoc
 
 ## Workspace Structure
 
-- `modules/shared/src/` — Shared taxonomy domain modules (`taxonomy_<concern>_<role>.py`)
+- `modules/` Blender MCP + CLI
 - `blender_mcp_addon/` — Blender addon (TCP server)

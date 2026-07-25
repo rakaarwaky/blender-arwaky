@@ -1,17 +1,21 @@
-"""Asset provider domain — taxonomy types and contracts."""
+"""Asset Provider domain — taxonomy types and contracts."""
 
 from . import (
-    contract_asset_provider_port,
-    contract_asset_search_protocol,
     taxonomy_asset_constant,
     taxonomy_asset_data_vo,
     taxonomy_asset_request_vo,
+    asset_provider_port,
+    asset_search_protocol,
+    polyhaven_api_port,
+    sketchfab_api_port,
 )
 
 __all__ = [
-    "contract_asset_provider_port",
-    "contract_asset_search_protocol",
     "taxonomy_asset_constant",
     "taxonomy_asset_data_vo",
     "taxonomy_asset_request_vo",
+    "asset_provider_port",
+    "asset_search_protocol",
+    "polyhaven_api_port",
+    "sketchfab_api_port",
 ]

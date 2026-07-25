@@ -1,0 +1,14 @@
+[project]
+name = "blender-arwaky-shared"
+version = "1.6.5"
+description = "BlenderArwaky shared taxonomy, contracts, and utilities"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["common", "config", "scene", "object", "render", "asset_io", "asset_provider", "job", "telemetry"]

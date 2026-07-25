@@ -119,7 +119,7 @@ from modules.shared.src import (
 )
 
 # Object request/response VOs
-from modules.shared.src.taxonomy_object_request_vo import (
+from modules.shared.src.object.taxonomy_object_request_vo import (
     ApplyModifierRequestVO,
     ApplyModifierResponseVO,
     CreatePrimitiveRequestVO,
@@ -137,7 +137,7 @@ from modules.shared.src.taxonomy_object_request_vo import (
 )
 
 # Render request/response VOs
-from modules.shared.src.taxonomy_render_request_vo import (
+from modules.shared.src.render.taxonomy_render_request_vo import (
     GetScreenshotRequestVO,
     RenderRequestVO,
     RenderResponseVO,
@@ -145,7 +145,7 @@ from modules.shared.src.taxonomy_render_request_vo import (
 )
 
 # Asset request/response VOs
-from modules.shared.src.taxonomy_asset_request_vo import (
+from modules.shared.src.asset_provider.taxonomy_asset_request_vo import (
     AssetDownloadRequestVO,
     AssetDownloadResponseVO,
     AssetSearchRequestVO,
@@ -153,7 +153,7 @@ from modules.shared.src.taxonomy_asset_request_vo import (
 )
 
 # Import/Export VOs
-from modules.shared.src.taxonomy_import_export_vo import (
+from modules.shared.src.asset_io.taxonomy_import_export_vo import (
     ExportModelRequestVO,
     ExportModelResponseVO,
     ImportGlbRequestVO,
@@ -161,7 +161,7 @@ from modules.shared.src.taxonomy_import_export_vo import (
 )
 
 # Asset constants
-from modules.shared.src.taxonomy_asset_constant import (
+from modules.shared.src.asset_provider.taxonomy_asset_constant import (
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
     ASSET_TYPE_TEXTURES,
@@ -170,7 +170,7 @@ from modules.shared.src.taxonomy_asset_constant import (
 )
 
 # Object constants
-from modules.shared.src.taxonomy_object_constant import (
+from modules.shared.src.object.taxonomy_object_constant import (
     ALLOWED_OBJECT_TYPES,
     OBJECT_TYPE_ARMATURE,
     OBJECT_TYPE_CAMERA,
@@ -188,7 +188,7 @@ from modules.shared.src.taxonomy_object_constant import (
 )
 
 # Job state constants
-from modules.shared.src.taxonomy_job_state_constant import (
+from modules.shared.src.job.taxonomy_job_state_constant import (
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
@@ -196,14 +196,14 @@ from modules.shared.src.taxonomy_job_state_constant import (
 )
 
 # Command catalog
-from modules.shared.src.taxonomy_command_catalog_constant import (
+from modules.shared.src.common.taxonomy_command_catalog_constant import (
     ACTION_NAMES,
     COMMAND_CATALOG,
     CommandSpec,
 )
 
 # Errors (ConnectionFailure alias for N818)
-from modules.shared.src.taxonomy_domain_error import (
+from modules.shared.src.common.taxonomy_domain_error import (
     AssetNotFoundError,
     BlenderConnectionFailure,
     BlenderMCPError,
@@ -217,30 +217,30 @@ from modules.shared.src.taxonomy_domain_error import (
 )
 
 # Value objects
-from modules.shared.src.taxonomy_vector3d_vo import Vector3D
-from modules.shared.src.taxonomy_bounding_box_vo import BoundingBox
-from modules.shared.src.taxonomy_asset_data_vo import (
+from modules.shared.src.common.taxonomy_vector3d_vo import Vector3D
+from modules.shared.src.common.taxonomy_bounding_box_vo import BoundingBox
+from modules.shared.src.asset_provider.taxonomy_asset_data_vo import (
     AssetMetadata,
     ImportedAsset,
     create_asset_id,
     create_provider_name,
 )
-from modules.shared.src.taxonomy_scene_info_vo import SceneInfo
-from modules.shared.src.taxonomy_app_config_vo import ApplicationConfig
+from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo
+from modules.shared.src.common.taxonomy_app_config_vo import ApplicationConfig
 
 # Entities
-from modules.shared.src.taxonomy_blender_object_entity import (
+from modules.shared.src.object.taxonomy_blender_object_entity import (
     BlenderObject,
     create_object_id,
 )
-from modules.shared.src.taxonomy_job_status_entity import (
+from modules.shared.src.job.taxonomy_job_status_entity import (
     JobStatus,
     create_job_id,
     create_progress,
 )
 
 # Events
-from modules.shared.src.taxonomy_telemetry_event import EventType, TelemetryEvent
+from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 # Backward-compatible aliases
 ConnectionFailure = ConnectionError
