@@ -1,8 +1,11 @@
-"""
-Dispatcher: Route MCP actions to AgentOrchestrator.
+"""Agent: Action dispatcher — routes MCP actions to the correct AgentOrchestrator.
 
-This capability is the sole entry point for executing any BlenderArwaky action.
+This is the sole entry point for executing any BlenderArwaky action.
 Handlers (MCP tools, CLI) delegate here — they contain no business logic.
+
+Structure:
+  1. Constants & imports
+  2. ActionDispatcher — resolves protocol→capability, invokes method via orchestrator
 """
 
 import asyncio
@@ -18,7 +21,7 @@ from pydantic import BaseModel
 from modules.shared.src.common.contract_execute_action_protocol import ExecuteActionProtocol
 from modules.shared.src.common.taxonomy_command_catalog_constant import CommandCatalog
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
-from .object_type_utility import unwrap_annotation
+from modules.shared.src.object.utility_object_type import unwrap_annotation
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -42,7 +45,7 @@ _PROTOCOL_ATTR: dict[str, str] = {
 }
 
 
-class ActionExecuteActions(ExecuteActionProtocol):
+class ActionDispatcher(ExecuteActionProtocol):
     """Dispatches actions to the orchestrator based on COMMAND_CATALOG."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -176,4 +179,3 @@ class ActionExecuteActions(ExecuteActionProtocol):
                     value = value[:MAX_STRING_ARG_LENGTH]
             sanitized[key] = value
         return sanitized
-
