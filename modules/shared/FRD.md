@@ -2,122 +2,207 @@
 
 ## System Overview
 
-The shared module provides the domain foundation (taxonomy) and public interface definitions (contracts) used across all feature modules. It defines the stable language of the domain and the behavioral contracts that decouple layers.
-
-Domain folders organize types by business concern: common, config, scene, object, render, asset_io, asset_provider, job, telemetry.
+The shared module provides the domain foundation (taxonomy) and public interface definitions (contracts) used across all feature modules. Each feature's FR describes what it needs from shared.
 
 ## Functional Requirements
 
-### FR-SHR-001: Core Value Objects
+### FR-SHR-ASSET: Shared Types for Asset Feature
 
-- **Description**: Define branded NewType primitives for type-safe domain modeling
-- **Input**: None (definition only)
-- **Output**: 93+ NewType wrappers (ActionName, ObjectId, AssetId, etc.)
-- **Business Rules**: Each VO must be semantically distinct; no implicit conversion between VOs
-- **Edge Cases**: Empty strings, max length violations, invalid characters
-- **Error Handling**: Type errors caught at compile time via static analysis
+**Taxonomy needed:**
+- VOs: AssetId, AssetName, AssetType, ProviderName, SearchQuery, StringList, TagList, ThumbnailUrl, FilePath, ObjectName, SuccessFlag, ErrorMessage, AssetCount, EnabledFlag, ImageBytes, ResultLimit, ScaleFactor, StatusString
+- Errors: ProviderError
+- Constants: (none — asset constants are in shared/src/asset/)
 
-### FR-SHR-002: Rich Value Objects
+**Contracts needed:**
+- `AssetProviderPort` — provider adapter interface
+- `AssetSearchProtocol` — multi-provider search interface
+- `ImportExportProtocol` — GLB/OBJ import/export interface
+- `BlenderConnectionPort` — connection to Blender for asset operations
 
-- **Description**: Immutable data structures with computed properties
-- **Input**: Constructor parameters
-- **Output**: Vector3D (arithmetic ops), BoundingBox (containment checks), SceneInfo, AssetMetadata
-- **Business Rules**: VOs are frozen/immutable; computed properties are pure functions
-- **Edge Cases**: Zero-vector division, empty bounding boxes, null optional fields
-- **Error Handling**: ValueError for invalid constructor parameters
+---
 
-### FR-SHR-003: Domain Error Hierarchy
+### FR-SHR-OBJECT: Shared Types for Object Feature
 
-- **Description**: Typed exception hierarchy for domain-specific error handling
-- **Input**: Error conditions
-- **Output**: BlenderMCPError → DomainError → {SceneValidationError, AssetNotFoundError, ConnectionError, ...}
-- **Business Rules**: Each error carries structured details for MCP error responses
-- **Edge Cases**: Nested exceptions, error chaining
-- **Error Handling**: All errors implement `to_mcp_format()` for client consumption
+**Taxonomy needed:**
+- VOs: ActionName, Details, Prompt, PythonCode, HdriId, SearchQuery, SuccessFlag, ObjectName, FilePath
+- Errors: BlenderMCPError, SceneValidationError
+- Constants: CommandCatalog, ALLOWED_OBJECT_TYPES, OBJECT_TYPE_*
 
-### FR-SHR-004: Command Catalog
+**Contracts needed:**
+- `ObjectOperateProtocol` — object manipulation interface
+- `ExecuteActionProtocol` — universal action dispatch interface
+- `WorkflowProtocol` — multi-step workflow interface
+- `BlenderPort` — Blender adapter interface
+- `SceneOperateProtocol` — scene operations (for import/place)
 
-- **Description**: Single source-of-truth mapping of action names to capability contracts
-- **Input**: Action name string
-- **Output**: CommandSpec with description, capability reference, parameters, domain, return type
-- **Business Rules**: 15+ actions registered; action names are lowercase alphanumeric with underscores
-- **Edge Cases**: Unknown action names, malformed capability references
-- **Error Handling**: InvalidCommandError for unknown actions
+**Request/Response VOs (shared/src/object/):**
+- PlaceAssetRequestVO, CreatePrimitiveRequestVO, SetObjectTransformRequestVO
+- SetMaterialRequestVO, ApplyModifierRequestVO, DeleteObjectRequestVO, GetObjectInfoRequestVO
 
-### FR-SHR-005: Contract Protocols
+---
 
-- **Description**: ABC interfaces defining inbound behavior for capabilities
-- **Input**: Method calls with typed parameters
-- **Output**: Typed return values (RequestVO → ResponseVO)
-- **Business Rules**: Protocols define behavior only; no implementation; depend on taxonomy only
-- **Edge Cases**: Optional parameters, union return types
-- **Error Handling**: AbstractMethodError if not implemented
+### FR-SHR-RENDER: Shared Types for Render Feature
 
-### FR-SHR-006: Contract Aggregates
+**Taxonomy needed:**
+- VOs: FilePath, ImageBytes, MaxSize, ResolutionX, ResolutionY, RenderSamples, UseDenoising, SuccessFlag
 
-- **Description**: Facade interfaces for agent orchestrators, consumed by surfaces
-- **Input**: Method calls via aggregate interface
-- **Output**: Prompt (JSON string) responses
-- **Business Rules**: Aggregates hide capabilities from surfaces; one aggregate per orchestrator
-- **Edge Cases**: Missing aggregate implementations, circular dependencies
-- **Error Handling**: Delegated to underlying capabilities
+**Contracts needed:**
+- `RenderOperateProtocol` — render operations interface
+- `BlenderPort` — Blender adapter interface
 
-### FR-SHR-007: Contract Ports
+**Request/Response VOs (shared/src/render/):**
+- GetScreenshotRequestVO, RenderRequestVO, RenderResponseVO, ScreenshotResponseVO
 
-- **Description**: Infrastructure-facing interfaces for external adapters
-- **Input**: External system calls
-- **Output**: Typed port responses
-- **Business Rules**: Ports define adapter contracts; implemented by infrastructure layer
-- **Edge Cases**: Connection timeouts, invalid responses
-- **Error Handling**: ConnectionError, ProviderError for external failures
+---
+
+### FR-SHR-SCENE: Shared Types for Scene Feature
+
+**Taxonomy needed:**
+- VOs: ActionName, Prompt, ObjectName, ObjectType, BlenderObject, BlenderObjectList, SceneInfo, Vector3D
+
+**Contracts needed:**
+- `SceneOperateProtocol` — scene operations interface
+- `SceneInspectionPort` — scene inspection interface
+- `BlenderConnectionPort` — connection to Blender
+- `CodeExecutionPort` — code execution in Blender
+- `BlenderPort` — Blender adapter interface
+
+**Request/Response VOs (shared/src/scene/):**
+- GetSceneInfoRequestVO, CleanupSceneRequestVO, SetupEnvironmentRequestVO
+
+---
+
+### FR-SHR-SERVER: Shared Types for Server Feature
+
+**Taxonomy needed:**
+- VOs: ActionName, Prompt, PythonCode, StatusString, ErrorMessage, ConfigPath, ConfigValue
+- Errors: ValidationError, ExecutionError, BlenderConnectionFailure
+
+**Contracts needed:**
+- `BlenderConnectionPort` — TCP socket connection interface
+- `BlenderConnectionFactoryPort` — connection factory interface
+- `CodeExecutionPort` — code execution interface
+- `BlenderPort` — Blender adapter interface
+
+---
+
+### FR-SHR-MCP: Shared Types for MCP Feature
+
+**Taxonomy needed:**
+- VOs: ActionName, Details, Prompt, FilePath, ObjectName, ServerName, DomainRef, FormatRef, CapabilityRef, SectionRef, SkillName, StringList
+- Constants: CommandCatalog, CommandSpec, ACTION_NAMES
+
+**Contracts needed:**
+- `CommandCatalogPort` — command catalog interface
+
+---
+
+### FR-SHR-TELEMETRY: Shared Types for Telemetry Feature
+
+**Taxonomy needed:**
+- Events: EventType, TelemetryEvent
+- Constants: EVENT_TYPE_STARTUP, EVENT_TYPE_TOOL_EXECUTION, EVENT_TYPE_PROMPT_SENT, EVENT_TYPE_CONNECTION, EVENT_TYPE_ERROR
+
+**Contracts needed:**
+- `TelemetryRecordingPort` — event recording interface
+
+---
+
+### FR-SHR-CONFIG: Shared Types for Config Feature
+
+**Taxonomy needed:**
+- VOs: ConfigPath, ConfigValue, FilePath
+
+**Contracts needed:**
+- `ConfigPort` — configuration access interface
+
+---
+
+### FR-SHR-JOB: Shared Types for Job Feature
+
+**Taxonomy needed:**
+- Entity: JobStatus
+- Constants: JOB_STATE_PENDING, JOB_STATE_RUNNING, JOB_STATE_COMPLETED, JOB_STATE_FAILED
+
+**Contracts needed:**
+- (none — job is self-contained)
+
+---
+
+### FR-SHR-CLI: Shared Types for CLI Feature
+
+**Taxonomy needed:**
+- (minimal — CLI is standalone)
+
+**Contracts needed:**
+- (none — CLI is standalone)
+
+---
+
+### FR-SHR-COMMON: Common Taxonomy
+
+**Core VOs (shared/src/common/taxonomy_core_vo.py):**
+- 93+ NewType wrappers used across all features
+- Organized by domain: identity, name, type, path, numeric, flag, string, config
+
+**Domain Errors (shared/src/common/taxonomy_domain_error.py):**
+- BlenderMCPError → DomainError → specific errors
+- Used by: asset, object, scene, server, render, config, mcp
+
+**Command Catalog (shared/src/common/taxonomy_command_catalog_constant.py):**
+- CommandCatalog, CommandSpec, ACTION_NAMES
+- Used by: mcp, object
+
+**Rich VOs (shared/src/common/):**
+- Vector3D, BoundingBox — used by object, scene
+- ApplicationConfig — used by config
 
 ## API Contract
 
-
-| Operation                 | Input         | Output             | Description               |
-| --------------------------- | --------------- | -------------------- | --------------------------- |
-| `execute_code`            | PythonCode    | Status             | Execute code in Blender   |
-| `get_scene_info`          | None          | SceneInfo          | Get current scene state   |
-| `cleanup_scene`           | CleanupScene  | CleanupScene       | Clean scene objects       |
-| `place_asset`             | PlaceAsset    | PlaceAsset         | Place asset in scene      |
-| `get_viewport_screenshot` | GetScreenshot | ScreenshotResponse | Capture viewport          |
-| `execute`                 | DetailsAction | Prompt             | Universal action dispatch |
+| Feature | Taxonomy Types | Contract Types | Total |
+|---------|---------------|----------------|-------|
+| asset | 12 VOs, 1 error | 4 contracts | 17 |
+| object | 9 VOs, 2 errors, 3 constants | 5 contracts | 19 |
+| render | 7 VOs | 2 contracts | 9 |
+| scene | 6 VOs | 5 contracts | 11 |
+| server | 6 VOs, 3 errors | 4 contracts | 13 |
+| mcp | 10 VOs, 3 constants | 1 contract | 14 |
+| telemetry | 2 events, 5 constants | 1 contract | 8 |
+| config | 3 VOs | 1 contract | 4 |
+| job | 1 entity, 4 constants | 0 | 5 |
+| cli | 0 | 0 | 0 |
 
 ## Integration Points
 
 - **Internal**: All feature modules depend on shared taxonomy and contracts
-- **External**: None ConstantCompile-time literal value
+- **External**: None
 
-## Non-functional Requirements (Detailed)
+## Non-functional Requirements
 
 - Performance: Import time < 100ms for full barrel
 - Type Safety: 100% type hint coverage on public APIs
-- Stability: Backward-compatible changes only; breaking changes require major version
+- Stability: Backward-compatible changes only
 
-## Test Scenarios / QA Checklist
+## Test Scenarios
 
-- [ ]  All NewType VOs import correctly from barrel
-- [ ]  All contract ABCs raise TypeError if instantiated directly
-- [ ]  Command catalog contains all registered actions
-- [ ]  Error hierarchy serializes to MCP-compatible format
-- [ ]  Vector3D arithmetic operations produce correct results
-- [ ]  BoundingBox containment checks work for edge cases
+- [ ] Each feature can import its required shared types
+- [ ] All NewType VOs are distinct (no implicit conversion)
+- [ ] All contract ABCs raise TypeError if instantiated directly
+- [ ] Command catalog contains all registered actions
+- [ ] Error hierarchy serializes to MCP-compatible format
 
 ## Assumptions & Constraints
 
-- Python 3.10+ required (union types, match statements)
-- No runtime dependencies beyond stdlib (pure domain definitions)
+- Python 3.10+ required
+- No runtime dependencies beyond stdlib
 - Taxonomy must not import from any other layer
 
 ## Glossary
 
-- **_vo**: Value Object — immutable data concept with structural equality
-- **_entity**: Stateful domain concept with identity
-- **_event:** Immutable domain fact
-- **_error**: Domain-level error
-- **utility_**: contains low-level technical mechanics
-- **_protocol**: ABC interface defining inbound behavior implemented by capabilties, consumed by agent
-- **_aggregate**: Facade interface implemented by agent, consumed by surface
+- **taxonomy_**: Domain foundation layer (VOs, entities, errors, constants)
+- **contract_**: Public interface definitions (protocols, ports)
+- **_protocol**: ABC implemented by capabilities, consumed by agent
+- **_port**: ABC implemented by infrastructure, consumed by capabilities
 
 ## Reference
 
