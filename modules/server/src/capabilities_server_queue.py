@@ -1,7 +1,8 @@
-"""Utility: FIFO execution queue for serialized Blender operations.
+"""Capabilities: Execution queue for serialized Blender operations.
 
-Stateless queue management with configurable depth limit and wait timeout.
-Used to serialize requests due to Blender's single-threaded bpy constraint.
+FIFO queue with depth limit and wait timeout that serializes requests
+to prevent concurrent bpy access in Blender's single-threaded environment.
+Implements IExecutionQueueProtocol.
 """
 
 from __future__ import annotations
@@ -12,7 +13,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..server.taxonomy_server_error import QueueFullError, QueueTimeoutError
+from modules.shared.src.server.contract_queue_protocol import IExecutionQueueProtocol
+from modules.shared.src.server.taxonomy_server_error import QueueFullError, QueueTimeoutError
+from modules.shared.src.server.taxonomy_server_vo import ExecutionResult
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -32,11 +35,11 @@ class QueueItem:
     request_id: str
     payload: dict[str, Any]
     enqueued_at: float = field(default_factory=time.monotonic)
-    result: Any = None
+    result: ExecutionResult | None = None
     error: Exception | None = None
 
 
-class ExecutionQueue:
+class ExecutionQueue(IExecutionQueueProtocol):
     """FIFO execution queue with depth limit and wait timeout.
 
     Serializes requests to prevent concurrent bpy access.
@@ -53,10 +56,10 @@ class ExecutionQueue:
         self,
         request_id: str,
         payload: dict[str, Any],
-    ) -> QueueItem:
+    ) -> str:
         """Add item to queue. Raises QueueFullError if depth limit exceeded.
 
-        Returns the QueueItem after successful enqueue.
+        Returns request_id after successful enqueue.
         """
         async with self._lock:
             if len(self._queue) >= self._config.max_depth:
@@ -67,10 +70,10 @@ class ExecutionQueue:
             item = QueueItem(request_id=request_id, payload=payload)
             self._queue.append(item)
             logger.info("Enqueued request %s (%d/%d)", request_id, len(self._queue), self._config.max_depth)
-            return item
+            return request_id
 
-    async def dequeue(self) -> QueueItem | None:
-        """Remove and return the next item from the queue.
+    async def dequeue(self) -> str | None:
+        """Remove and return the next request_id from the queue.
 
         Returns None if queue is empty.
         """
@@ -79,20 +82,24 @@ class ExecutionQueue:
                 return None
             item = self._queue.pop(0)
             logger.info("Dequeued request %s (%d remaining)", item.request_id, len(self._queue))
-            return item
+            return item.request_id
 
     async def wait_for_completion(
         self,
-        item: QueueItem,
+        request_id: str,
         timeout_ms: float | None = None,
-    ) -> Any:
+    ) -> ExecutionResult:
         """Wait for a queued item to be processed and return result.
 
         Raises QueueTimeoutError if wait exceeds timeout_ms (or config default).
-        Returns the result stored in the QueueItem.
         """
         timeout_ms = timeout_ms or self._config.wait_timeout_ms
         timeout_s = timeout_ms / 1000.0
+
+        # Find the item by request_id
+        item = await self._find_item(request_id)
+        if item is None:
+            raise QueueTimeoutError(f"Item not found: {request_id}")
 
         # Poll until item has a result or error
         deadline = time.monotonic() + timeout_s
@@ -103,7 +110,7 @@ class ExecutionQueue:
                 return item.result
             if time.monotonic() > deadline:
                 raise QueueTimeoutError(
-                    f"Queue wait timeout after {timeout_ms}ms for request {item.request_id}"
+                    f"Queue wait timeout after {timeout_ms}ms for request {request_id}"
                 )
             await asyncio.sleep(0.05)  # 50ms poll interval
 
@@ -111,3 +118,11 @@ class ExecutionQueue:
         """Return current queue depth."""
         async with self._lock:
             return len(self._queue)
+
+    async def _find_item(self, request_id: str) -> QueueItem | None:
+        """Find queue item by request_id."""
+        async with self._lock:
+            for item in self._queue:
+                if item.request_id == request_id:
+                    return item
+            return None

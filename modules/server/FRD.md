@@ -3,7 +3,7 @@
 
 ## System Overview
 
-The server module manages TCP socket communication between the blender-arwaky server and the Blender addon. It handles connection lifecycle, code execution, and Blender-side operations. This module is the bridge between the AI & User  to  the Blender runtime. It follows a AES Architechture pattern
+The server module manages TCP socket communication between the blender-arwaky server and the Blender addon. It handles connection lifecycle, code execution, and Blender-side operations. This module is the bridge between external consumers (MCP, CLI) and the Blender runtime. It follows a AES Architechture pattern
 
 The module treats user-provided code as untrusted or semi-trusted input and applies layered protection: server-side static validation using AST-based analysis, and runtime sandbox enforcement on the Blender addon side. All operations that access Blender’s Python API (`bpy`) are serialized through a single execution queue because `bpy` is not thread-safe and must run on Blender’s main thread.
 
@@ -14,7 +14,7 @@ The module also defines connection state handling, heartbeat behavior, protocol 
 ### FR-SRV-001: Manage Blender Socket Connection
 
 - **Description:** Establish and maintain TCP socket connection to Blender addon
-- **Input:** ConnectionConfig (host, port, transport_type, timeout, retry_policy, auth_token, protocol_version, heartbeat_interval_seconds, heartbeat_failure_threshold)
+- **Input:** ConnectionConfig (host, port, timeout, retry_policy, auth_token, protocol_version, heartbeat_interval_seconds, heartbeat_failure_threshold)
 - **Output:** Active socket connection and current `ConnectionStatus`
 - **Business Rules:**
   - Auto-reconnect on failure with max 3 retry attempts using exponential backoff with jitter (1s, 2s, 4s)
@@ -99,45 +99,27 @@ The module also defines connection state handling, heartbeat behavior, protocol 
 ### FR-SRV-004: Connection Factory
 
 - **Description:** Create new Blender connection instances based on configuration
-- **Input:** ConnectionConfig (transport_type: "socket"|"stdio", host, port, timeout, retry_policy, auth_token, protocol_version, max_payload_bytes, heartbeat_interval_seconds, heartbeat_failure_threshold, allowed_directories)
+- **Input:** ConnectionConfig (host, port, timeout, retry_policy, auth_token, protocol_version, max_payload_bytes, heartbeat_interval_seconds, heartbeat_failure_threshold, allowed_directories)
 - **Output:** contract_blender_connection_protocol instance
 - **Business Rules:**
-  - Supports multiple connection strategies (TCP socket, stdio pipe)
   - Factory validates configuration before instantiation
-  - Returns appropriate adapter implementation based on transport_type
-  - For `transport_type="socket"`, host and port are required
-  - For `transport_type="stdio"`, executable command or process configuration is required
+  - Returns BlenderConnection adapter implementation
+  - Host and port are required
   - Port must be valid, range 1–65535
   - Timeout must be greater than zero and within configured maximum
   - Retry policy must be within configured min/max bounds
   - Protocol version must be supported by server
   - Authentication token must be present when connecting to non-local target if authentication is enabled
   - Configuration object should be immutable after creation
-- **Edge Cases:** Invalid configuration, unsupported transport type, missing required fields, invalid port, invalid timeout, unsupported protocol version, missing auth token for remote connection, invalid allowed directory configuration
+- **Edge Cases:** Invalid configuration, missing required fields, invalid port, invalid timeout, unsupported protocol version, missing auth token for remote connection, invalid allowed directory configuration
 - **Error Handling:** `ConnectionConfigError` for factory failures with descriptive validation message
-
-### FR-SRV-005: Socket Adapter Surface
-
-- **Description:** Surface layer for Blender socket operations; maps MCP tool calls to Blender operations
-- **Input:** MCP tool calls (structured tool input schema)
-- **Output:** Delegated to Blender via connection; returns MCP-compatible response
-- **Business Rules:**
-  - Thin wrapper responsible for mapping MCP tool inputs to respective Blender commands or code execution payloads
-  - Strictly no business logic in the surface layer
-  - Surface layer may perform DTO mapping and schema validation only
-  - Surface layer must not implement retry logic, queueing, security policy, sandbox enforcement, or timeout policy
-  - Translates MCP response format to/from Blender response format
-  - Maps domain errors into MCP-compatible error responses
-  - Error mapping should preserve whether error is retryable or non-retryable when supported by MCP layer
-- **Edge Cases:** Connection lost during operation, MCP tool schema mismatch, oversized response, unauthorized request, protocol mismatch, unexpected adapter failure
-- **Error Handling:** Delegates to connection error handling; wraps unexpected errors as `AdapterSurfaceError`
 
 ## API Contract
 
 
 | Operation               | Input            | Output                | Description                                  |
 | ------------------------- | ------------------ | ----------------------- | ---------------------------------------------- |
-| `connect`               | ConnectionConfig | contract_blender_connection_protocol | Establish connection (socket/stdio)          |
+| `connect`               | ConnectionConfig | contract_blender_connection_protocol | Establish TCP socket connection              |
 | `disconnect`            | —               | —                    | Close connection gracefully                  |
 | `send_command`          | ActionName, dict | dict                  | Send command to Blender (5s timeout)         |
 | `execute_blender_code`  | Prompt (str)     | ExecutionResult       | Execute Python code in Blender (30s timeout) |
@@ -154,7 +136,7 @@ Additional contract behavior:
 - `submit_async_task` returns `{task_id, status}` where initial status is usually `pending`
 - `poll_task_result` returns task status and, when finished, final `ExecutionResult`
 - `poll_task_result` should not require Blender main-thread execution queue if task state is stored locally
-- `get_connection_status` returns `ConnectionStatus {state, transport_type, host, port, last_error, last_heartbeat_at, reconnect_attempts, protocol_version}`
+- `get_connection_status` returns `ConnectionStatus {state, host, port, last_error, last_heartbeat_at, reconnect_attempts, protocol_version}`
 - All requests should include `request_id`
 - All responses should include corresponding `request_id`
 - All messages must be UTF-8 encoded JSON
@@ -170,7 +152,6 @@ Additional contract behavior:
 - **External:**
   - Blender addon (TCP socket listener on configurable port)
   - Blender Python API (`bpy`) — accessed exclusively through the addon
-  - stdio process runtime when transport_type is `stdio`
   - optional secret store or environment configuration for authentication token
 
 ## Non-functional Requirements
@@ -219,8 +200,6 @@ Additional contract behavior:
 - Send command with invalid arguments returns `ValidationError`
 - Send command with malformed JSON response returns parse/provider error
 - Factory creates socket connection with valid config
-- Factory creates stdio connection with valid config
-- Factory rejects unsupported transport type
 - Factory rejects invalid port
 - Factory rejects missing required fields
 - Factory rejects unsupported protocol version
@@ -228,23 +207,18 @@ Additional contract behavior:
 - Queue depth limit (50) enforced; excess requests rejected with `QueueFullError`
 - Queued request exceeding wait timeout returns `QueueTimeoutError`
 - Control operations do not block behind Blender execution queue when designed to bypass it
-- MCP tool call maps correctly to Blender command via adapter surface
-- Adapter surface maps domain errors to MCP-compatible errors
-- Unexpected adapter failure returns `AdapterSurfaceError`
 - Protocol message with malformed JSON is handled safely
 - Protocol message with missing `request_id` is handled according to protocol rules
 - Large response payload is truncated or rejected based on configured limit
-- Stdio process crash triggers connection failure handling
-- Stdio malformed JSON response is handled safely
 
 ## Assumptions & Constraints
 
-- Blender addon must be running and listening on TCP socket (or stdio pipe)
+- Blender addon must be running and listening on TCP socket
 - Single connection per server instance
 - Code execution has 30-second timeout (configurable via ConnectionConfig)
 - Command execution has 5-second timeout by default
 - Some commands may define custom timeout metadata
-- Because Blender's Python API (`bpy`) is not thread-safe and runs on the main thread, all concurrent requests from the MCP server are serialized (queued) to prevent race conditions and Blender crashes
+- Because Blender's Python API (`bpy`) is not thread-safe and runs on the main thread, all concurrent requests from external consumers (MCP, CLI) are serialized (queued) to prevent race conditions and Blender crashes
 - Blocked patterns list is maintained in config and updated as needed
 - Blender addon protocol version must match or be compatible with server protocol version
 - User-provided code is treated as untrusted or semi-trusted input
@@ -262,16 +236,15 @@ Additional contract behavior:
 ## Glossary
 
 - **MCP (Model Context Protocol):** Standard protocol for AI agent tool integration; defines how the AI agent invokes tools and receives results
-- **contract_blender_connection_protocol:** Contract (interface) for Blender TCP/stdio communication
+- **contract_blender_connection_protocol:** Contract (interface) for Blender TCP communication
 - **contract_code_execution_protocol:** Contract (interface) for Python code execution in Blender
-- **surface_socket_command:** Surface layer for Blender socket operations; maps MCP calls to Blender operations
-- **ConnectionConfig:** Configuration object containing transport_type, host, port, timeout, retry_policy, authentication settings, protocol version, payload limits, heartbeat settings, and allowed directories
+- **ConnectionConfig:** Configuration object containing host, port, timeout, retry_policy, authentication settings, protocol version, payload limits, heartbeat settings, and allowed directories
 - **ExecutionResult:** Standardized response object for code execution containing status, data, error details, execution_time_ms, and truncation flag
 - **Blocked Patterns:** Configurable list of forbidden Python patterns/modules to prevent security violations
 - **AST Validation:** Static code analysis based on Python Abstract Syntax Tree, used to detect forbidden constructs more reliably than regex/string matching
 - **Runtime Sandbox:** Enforcement mechanism on the Blender addon side that restricts file access, module usage, and unsafe operations during actual code execution
 - **Allowed Directory:** Directory explicitly permitted for file write or file access operations
-- **ConnectionStatus:** Object describing current connection state, transport type, endpoint info, last heartbeat, reconnect attempts, protocol version, and last error
+- **ConnectionStatus:** Object describing current connection state, endpoint info, last heartbeat, reconnect attempts, protocol version, and last error
 - **TaskStatus:** Object describing async task lifecycle state, including pending, running, success, error, timeout, and cancelled
 - **QueueFullError:** Error raised when serialized execution queue has reached maximum depth
 - **QueueTimeoutError:** Error raised when a queued operation waits longer than configured queue wait timeout

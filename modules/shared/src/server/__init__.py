@@ -1,4 +1,4 @@
-"""Server domain — taxonomy, contracts, and constants for Blender TCP/stdio communication.
+"""Server domain — taxonomy, contracts, and constants for Blender TCP communication.
 
 Taxonomy: VOs (ConnectionStatus, ExecutionResult, TaskStatus, ConnectionConfig),
 errors (SecurityViolationError, ExecutionTimeoutError, etc.), and constants.
@@ -7,7 +7,8 @@ Contracts: IBlenderServerAggregate — unified facade for connection lifecycle
 and code execution operations. Implemented by Agent layer.
 
 Protocols: IBlenderConnectionProtocol, IBlenderSocketAdapterProtocol,
-ICodeExecutionProtocol — implemented by Capabilities.
+ICodeExecutionProtocol, IExecutionQueueProtocol, ITaskManagerProtocol
+— implemented by Capabilities.
 """
 
 # ─── Taxonomy ──────────────────────────────────────────────────
@@ -28,10 +29,8 @@ from .taxonomy_server_constant import (
     RETRY_BASE_DELAY_SECONDS,
     RETRY_MAX_DELAY_SECONDS,
     TRANSPORT_SOCKET,
-    TRANSPORT_STDIO,
 )
 from .taxonomy_server_error import (
-    AdapterSurfaceError,
     AuthenticationError,
     BlenderConnectionExhausted,
     CommandTimeoutError,
@@ -66,13 +65,48 @@ from .contract_code_execution_protocol import ICodeExecutionProtocol
 from .contract_connection_protocol import IBlenderConnectionProtocol
 from .contract_socket_adapter_protocol import IBlenderSocketAdapterProtocol
 from .contract_command_protocol import IBlenderCommandProtocol
+from .contract_queue_protocol import IExecutionQueueProtocol
+from .contract_task_manager_protocol import ITaskManagerProtocol
 
-# ─── Utility (stateless standalone functions & classes) ───────
+# ─── Utility (stateless standalone functions) ─────────────────
 
-from .utility_server_validator import validate_code_ast, check_payload_size
+from .utility_server_io import (
+    format_bytes,
+    generate_temp_path,
+    is_safe_path,
+    read_file_bytes,
+    sanitize_filename,
+    safe_remove,
+    truncate_bytes,
+    truncate_text,
+    write_file_bytes,
+    write_file_text,
+)
 from .utility_server_message import encode_message, decode_message_header, decode_message_payload, build_request, parse_response
-from .utility_server_queue import ExecutionQueue, QueueConfig
-from .utility_server_task_manager import TaskManager, TaskManagerConfig
+from .utility_server_string import (
+    camel_to_snake,
+    contains_any,
+    ends_with_any,
+    escape_json_string,
+    is_valid_python_identifier,
+    normalize_newlines,
+    safe_decode,
+    safe_encode,
+    safe_float,
+    safe_int,
+    sanitize_whitespace,
+    starts_with_any,
+    truncate_string,
+)
+from .utility_server_time import (
+    calculate_deadline,
+    format_duration,
+    is_past_deadline,
+    ms_to_seconds,
+    remaining_ms,
+    seconds_to_ms,
+)
+from .utility_server_validator import validate_code_ast, check_payload_size
 
 __all__ = [
     # ─── Taxonomy ───────────────────────────────────────────────
@@ -87,7 +121,6 @@ __all__ = [
     "TaskState",
     # ─── Constants ──────────────────────────────────────────────
     "TRANSPORT_SOCKET",
-    "TRANSPORT_STDIO",
     "CONNECTION_TIMEOUT_SECONDS",
     "DEFAULT_HOST",
     "DEFAULT_PORT",
@@ -114,7 +147,6 @@ __all__ = [
     "ProtocolVersionMismatchError",
     "ConnectionClosedError",
     "BlenderConnectionExhausted",
-    "AdapterSurfaceError",
     # ─── Contracts (Aggregate) ──────────────────────────────────
     "IBlenderServerAggregate",
     # ─── Contracts (Protocols) ──────────────────────────────────
@@ -122,16 +154,47 @@ __all__ = [
     "IBlenderConnectionProtocol",
     "ICodeExecutionProtocol",
     "IBlenderSocketAdapterProtocol",
+    "IExecutionQueueProtocol",
+    "ITaskManagerProtocol",
     # ─── Utility ────────────────────────────────────────────────
     "validate_code_ast",
     "check_payload_size",
-    "ExecutionQueue",
-    "QueueConfig",
-    "TaskManager",
-    "TaskManagerConfig",
     "encode_message",
     "decode_message_header",
     "decode_message_payload",
     "build_request",
     "parse_response",
+    # IO helpers
+    "generate_temp_path",
+    "read_file_bytes",
+    "write_file_bytes",
+    "write_file_text",
+    "safe_remove",
+    "truncate_bytes",
+    "truncate_text",
+    "format_bytes",
+    "sanitize_filename",
+    "is_safe_path",
+    # Time helpers
+    "ms_to_seconds",
+    "seconds_to_ms",
+    "format_duration",
+    "calculate_deadline",
+    "is_past_deadline",
+    "remaining_ms",
+    # String helpers
+    "sanitize_whitespace",
+    "normalize_newlines",
+    "truncate_string",
+    "safe_decode",
+    "safe_encode",
+    "starts_with_any",
+    "ends_with_any",
+    "contains_any",
+    "safe_int",
+    "safe_float",
+    "camel_to_snake",
+    "snake_to_camel",
+    "escape_json_string",
+    "is_valid_python_identifier",
 ]

@@ -1,21 +1,19 @@
-"""Utility: Async task lifecycle management.
+"""Capabilities: Task lifecycle management for async Blender operations.
 
-Stateless standalone functions and an in-memory store for tracking
-async code execution tasks. Supports submit, poll, cancel, and TTL expiry.
+In-memory store for tracking async code execution tasks.
+Implements ITaskManagerProtocol.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
 from uuid import uuid4
 
-from ..common.taxonomy_core_vo import ErrorMessage
-from ..server.taxonomy_server_error import TaskNotFoundError
-from ..server.taxonomy_server_vo import ExecutionResult, ExecutionStatus, TaskState, TaskStatus
+from modules.shared.src.server.contract_task_manager_protocol import ITaskManagerProtocol
+from modules.shared.src.server.taxonomy_server_error import TaskNotFoundError
+from modules.shared.src.server.taxonomy_server_vo import ExecutionResult, TaskState, TaskStatus
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -25,7 +23,6 @@ class TaskManagerConfig:
     """Configuration for task manager."""
 
     retention_seconds: float = 600.0  # 10 minutes default
-    max_tasks: int = 100
 
 
 @dataclass
@@ -39,7 +36,7 @@ class TaskEntry:
     completed_at: float | None = None
 
 
-class TaskManager:
+class TaskManager(ITaskManagerProtocol):
     """In-memory store for async task lifecycle management.
 
     Tracks task states: pending → running → success/error/timeout/cancel.
@@ -65,18 +62,14 @@ class TaskManager:
         """Get task status. Raises TaskNotFoundError if not found or expired."""
         entry = self._tasks.get(task_id)
         if entry is None:
-            raise TaskNotFoundError(
-                ErrorMessage(f"Task not found: {task_id}")
-            )
+            raise TaskNotFoundError(f"Task not found: {task_id}")
 
         # Check TTL expiry
         if entry.completed_at is not None:
             elapsed = time.monotonic() - entry.completed_at
             if elapsed > self._config.retention_seconds:
                 del self._tasks[task_id]
-                raise TaskNotFoundError(
-                    ErrorMessage(f"Task expired: {task_id}")
-                )
+                raise TaskNotFoundError(f"Task expired: {task_id}")
 
         return TaskStatus(
             task_id=entry.task_id,
@@ -104,7 +97,7 @@ class TaskManager:
         if entry:
             entry.state = "error"
             entry.result = ExecutionResult(
-                status=ExecutionStatus("error"),
+                status="error",
                 error={"type": "ExecutionError", "message": error},
             )
             entry.completed_at = time.monotonic()
@@ -115,7 +108,7 @@ class TaskManager:
         if entry:
             entry.state = "timeout"
             entry.result = ExecutionResult(
-                status=ExecutionStatus("error"),
+                status="error",
                 error={"type": "ExecutionTimeoutError", "message": "Task timed out"},
             )
             entry.completed_at = time.monotonic()

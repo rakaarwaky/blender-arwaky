@@ -16,13 +16,13 @@ from modules.shared.src.server import (
     ConnectionConfig,
     ConnectionStatus,
     ExecutionErrorDetail,
-    ExecutionQueue,
     ExecutionResult,
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
+    IExecutionQueueProtocol,
+    ITaskManagerProtocol,
     QueueFullError,
     QueueTimeoutError,
-    TaskManager,
     TaskNotFoundError,
 )
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -47,20 +47,19 @@ class ServerOrchestrator(IBlenderServerAggregate):
     - FR-SRV-001: Connection lifecycle with heartbeat and reconnect
     - FR-SRV-002: Code execution with AST validation and queue management
     - FR-SRV-003: Command dispatch with timeout enforcement
-    - FR-SRV-004: Connection factory pattern (delegated to BlenderConnectionFactory)
-    - FR-SRV-005: Socket adapter surface (delegated to BlenderSocketAdapter)
+    - FR-SRV-004: Connection factory pattern
     """
 
     def __init__(
         self,
         connection: IBlenderConnectionProtocol,
         code_executor: Any,  # ICodeExecutionProtocol
-        queue: ExecutionQueue | None = None,
-        task_manager: TaskManager | None = None,
+        queue: IExecutionQueueProtocol | None = None,
+        task_manager: ITaskManagerProtocol | None = None,
     ) -> None:
         self._connection = connection
         self._code_executor = code_executor
-        self._queue = queue or ExecutionQueue()
+        self._queue = queue
         self._task_manager = task_manager
 
     # ─── Block 2: Aggregate Implementation ──────────────────────
@@ -102,7 +101,8 @@ class ServerOrchestrator(IBlenderServerAggregate):
         start = time.monotonic()
         try:
             # Enqueue for serialized bpy access
-            await self._queue.enqueue(request_id, {"code": code})
+            if self._queue is not None:
+                await self._queue.enqueue(request_id, {"code": code})
 
             # Execute through capability layer
             result = await self._code_executor.execute_blender_code(Prompt(code))
@@ -212,7 +212,8 @@ class ServerOrchestrator(IBlenderServerAggregate):
         start = time.monotonic()
         try:
             # Enqueue for serialized bpy access (control ops may bypass)
-            await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
+            if self._queue is not None:
+                await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
 
             # Dispatch through connection protocol
             result = self._connection.send_command(ActionName(action), params)
