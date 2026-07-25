@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..asset_provider.asset_search_protocol import AssetSearchProtocol
-    from ..scene.scene_operate_protocol import SceneOperateProtocol
+    from ..scene.contract_scene_operate_protocol import SceneOperateProtocol
 
 from ..common.contract_workflow_protocol import WorkflowProtocol
 from ..common.taxonomy_core_vo import HdriId, Prompt, PythonCode, SearchQuery, SuccessFlag

@@ -261,26 +261,26 @@ from .asset.taxonomy_import_export_vo import (
 # === Contract layer exports (organized by domain) ===
 
 # Protocols (business behavior contracts)
-from .scene.scene_operate_protocol import SceneOperateProtocol
-from .object.object_operate_protocol import ObjectOperateProtocol
-from .render.render_operate_protocol import RenderOperateProtocol
-from .asset.asset_search_protocol import AssetSearchProtocol
-from .asset.import_export_protocol import ImportExportProtocol
+from .scene.contract_scene_operate_protocol import SceneOperateProtocol
+from .object.contract_object_operate_protocol import ObjectOperateProtocol
+from .render.contract_render_operate_protocol import RenderOperateProtocol
+from .asset.contract_asset_search_protocol import AssetSearchProtocol
+from .asset.contract_import_export_protocol import ImportExportProtocol
 from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Ports (infrastructure-facing contracts)
-from .object.blender_port import BlenderPort
-from .object.connection_port import BlenderConnectionPort
-from .object.connection_factory_port import BlenderConnectionFactoryPort
-from .object.code_execution_port import CodeExecutionPort
+from .object.contract_blender_port import BlenderPort
+from .object.contract_connection_port import BlenderConnectionPort
+from .object.contract_connection_factory_port import BlenderConnectionFactoryPort
+from .object.contract_code_execution_port import CodeExecutionPort
 from .common.contract_command_catalog_port import CommandCatalogPort
-from .scene.scene_inspection_port import SceneInspectionPort
-from .render.viewport_capture_port import ViewportCapturePort
-from .asset.asset_provider_port import AssetProviderPort
-from .asset.polyhaven_api_port import PolyhavenApiPort
-from .asset.sketchfab_api_port import SketchfabApiPort
-from .telemetry.telemetry_recording_port import TelemetryRecordingPort
+from .scene.contract_scene_inspection_port import SceneInspectionPort
+from .render.contract_viewport_capture_port import ViewportCapturePort
+from .asset.contract_asset_provider_port import AssetProviderPort
+from .asset.contract_polyhaven_api_port import PolyhavenApiPort
+from .asset.contract_sketchfab_api_port import SketchfabApiPort
+from .telemetry.contract_telemetry_recording_port import TelemetryRecordingPort
 
 # Aggregates (structural contracts for agents)
 from .common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
