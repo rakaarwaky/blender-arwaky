@@ -2,11 +2,11 @@
 
 ## System Overview
 
-The scene module manages Blender scene-level operations — information retrieval, environment setup, and cleanup. It provides the scene operate protocol, scene inspection port, and the setup expert orchestrator.
+The scene module manages Blender scene-level operations — information retrieval, environment setup, and cleanup. It provides the scene operate protocol and scene inspection capabilities. Orchestration is handled by the agent layer.
 
 ## Functional Requirements
 
-### FR-001: Get Scene Info
+### SCN-001: Get Scene Info
 
 - **Description**: Retrieve current scene state including all objects, render engine, and resolution
 - **Input**: GetSceneInfoRequestVO (empty)
@@ -15,7 +15,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: Empty scene, no active object, missing render engine
 - **Error Handling**: ConnectionError if Blender not connected
 
-### FR-002: Cleanup Scene
+### SCN-002: Cleanup Scene
 
 - **Description**: Remove objects from scene based on cleanup mode
 - **Input**: CleanupSceneRequestVO (mode: KEEP_CAMERA | KEEP_LIGHTS | REMOVE_ALL)
@@ -24,7 +24,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: Scene already empty, only camera/light remaining, linked objects
 - **Error Handling**: SceneValidationError for invalid cleanup mode
 
-### FR-003: Setup Environment
+### SCN-003: Setup Environment
 
 - **Description**: Configure HDRI lighting and environment settings
 - **Input**: SetupEnvironmentRequestVO (hdri_id, strength)
@@ -33,7 +33,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: HDRI not found, invalid strength value, existing environment
 - **Error Handling**: AssetNotFoundError for missing HDRI
 
-### FR-004: Scene Inspection
+### SCN-004: Scene Inspection
 
 - **Description**: Query scene/object information through Blender connection
 - **Input**: Inspection queries (get_scene_info, get_object_info)
@@ -41,15 +41,6 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Business Rules**: Queries must be valid Blender operations; responses must be structured
 - **Edge Cases**: Connection timeout, invalid response, Blender error
 - **Error Handling**: BlenderConnectionFailure, ExecutionError
-
-### FR-005: Setup Expert Orchestrator
-
-- **Description**: Multi-step scene composition with camera, lighting, and environment
-- **Input**: Scene composition parameters
-- **Output**: Composed scene ready for rendering
-- **Business Rules**: Follows AES agent layer rules; orchestrates capabilities sequentially
-- **Edge Cases**: Partial failure in multi-step workflow, missing assets
-- **Error Handling**: Escalates to caller; does not handle errors internally
 
 ## API Contract
 
@@ -61,14 +52,13 @@ The scene module manages Blender scene-level operations — information retrieva
 
 ## Integration Points
 
-- **Internal**: shared (taxonomy VOs, contracts)
-- **External**: Blender addon (TCP socket), Poly Haven (HDRI assets)
+- **Internal**: shared (taxonomy VOs, contracts), server (Blender connection), asset (HDRI download)
+- **External**: Blender Python API (bpy) — via server module
 
-## Non-functional Requirements (Detailed)
+## Non-functional Requirements
 
 - Performance: Scene info retrieval within 1 second
 - Reliability: Cleanup operations are atomic (all-or-nothing)
-- Security: No arbitrary code execution from scene operations
 
 ## Test Scenarios / QA Checklist
 
@@ -77,12 +67,11 @@ The scene module manages Blender scene-level operations — information retrieva
 - [ ] Cleanup with REMOVE_ALL removes all objects
 - [ ] Setup environment with valid HDRI succeeds
 - [ ] Setup environment with missing HDRI returns AssetNotFoundError
-- [ ] Socket connection handles timeout gracefully
 
 ## Assumptions & Constraints
 
 - Blender must be running with addon enabled
-- HDRI assets must be downloaded before environment setup
+- HDRI assets must be downloaded before environment setup (via asset module)
 
 ## Glossary
 
@@ -94,3 +83,4 @@ The scene module manages Blender scene-level operations — information retrieva
 
 - PRD: [../../PRD.md](../../PRD.md)
 - FRD shared: [../shared/FRD.md](../shared/FRD.md)
+- FRD asset: [../asset/FRD.md](../asset/FRD.md)

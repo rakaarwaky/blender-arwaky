@@ -5,7 +5,7 @@ from typing import cast
 import yaml
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigValue
-from ..config.config_port import ConfigPort
+from .contract_config import ConfigPort
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 
 

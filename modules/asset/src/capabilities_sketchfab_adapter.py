@@ -5,39 +5,29 @@ Infrastructure: Adapter for Sketchfab Asset Provider.
 import logging
 from typing import cast
 
-from modules.shared.src.common import (
+from modules.shared.src.asset import (
     AssetProviderPort,
-    BlenderConnectionPort,
+    AssetDownloadRequestVO as AssetDownloadRequestIO,
+    AssetDownloadResponseVO as AssetDownloadResponseIO,
+    AssetMetadataVO as AssetMetadataIO,
+    AssetSearchRequestVO as AssetSearchRequestIO,
+    AssetSearchResponseVO as AssetSearchResponseIO,
 )
-from modules.shared.src.common import (
+from modules.shared.src.asset import AssetMetadata
+from modules.shared.src.object.contract_connection import BlenderConnectionPort
+from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     AssetCount,
     AssetId,
-    AssetMetadata,
     AssetName,
     AssetType,
     ErrorMessage,
     FilePath,
-    ProviderError,
     ProviderName,
     SuccessFlag,
     TagList,
 )
-from modules.shared.src.common import (
-    AssetDownloadRequestVO as AssetDownloadRequestIO,
-)
-from modules.shared.src.common import (
-    AssetDownloadResponseVO as AssetDownloadResponseIO,
-)
-from modules.shared.src.common import (
-    AssetMetadataVO as AssetMetadataIO,
-)
-from modules.shared.src.common import (
-    AssetSearchRequestVO as AssetSearchRequestIO,
-)
-from modules.shared.src.common import (
-    AssetSearchResponseVO as AssetSearchResponseIO,
-)
+from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
 logger = logging.getLogger("BlenderMCPServer")
 

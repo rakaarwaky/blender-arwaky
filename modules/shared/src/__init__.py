@@ -270,17 +270,17 @@ from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Ports (infrastructure-facing contracts)
-from .object.contract_blender_port import BlenderPort
-from .object.contract_connection_port import BlenderConnectionPort
-from .object.contract_connection_factory_port import BlenderConnectionFactoryPort
-from .object.contract_code_execution_port import CodeExecutionPort
-from .common.contract_command_catalog_port import CommandCatalogPort
-from .scene.contract_scene_inspection_port import SceneInspectionPort
-from .render.contract_viewport_capture_port import ViewportCapturePort
-from .asset.contract_asset_provider_port import AssetProviderPort
-from .asset.contract_polyhaven_api_port import PolyhavenApiPort
-from .asset.contract_sketchfab_api_port import SketchfabApiPort
-from .telemetry.contract_telemetry_recording_port import TelemetryRecordingPort
+from .object.contract_blender import BlenderPort
+from .object.contract_connection import BlenderConnectionPort
+from .object.contract_connection_factory import BlenderConnectionFactoryPort
+from .object.contract_code_execution import CodeExecutionPort
+from .common.contract_command_catalog import CommandCatalogPort
+from .scene.contract_scene_inspection import SceneInspectionPort
+from .render.contract_viewport_capture import ViewportCapturePort
+from .asset.contract_asset_provider import AssetProviderPort
+from .asset.contract_polyhaven_api import PolyhavenApiPort
+from .asset.contract_sketchfab_api import SketchfabApiPort
+from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
 
 # Aggregates (structural contracts for agents)
 from .common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate

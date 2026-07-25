@@ -4,7 +4,7 @@ import logging
 from typing import Any, cast
 
 from modules.asset.contract_import_export_protocol import ImportExportProtocol
-from modules.asset.contract_asset_provider_port import AssetProviderPort
+from modules.asset.contract_asset_provider import AssetProviderPort
 from modules.asset.contract_asset_search_protocol import AssetSearchProtocol
 from ..common.agent_factory_aggregate import AgentFactoryRegistryAggregate
 from ..common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
@@ -15,15 +15,15 @@ from ..common.agent_setup_expert_aggregate import SetupExpertOrchestratorAggrega
 from ..common.agent_system_utils_aggregate import SystemUtilsCoordinatorAggregate
 from ..common.agent_workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
 from ..common.contract_workflow_protocol import WorkflowProtocol
-from modules.config.config_port import ConfigPort
-from ..object.contract_blender_port import BlenderPort
-from ..object.contract_code_execution_port import CodeExecutionPort
-from ..object.contract_connection_port import BlenderConnectionPort
+from modules.config.contract_config import ConfigPort
+from ..object.contract_blender import BlenderPort
+from ..object.contract_code_execution import CodeExecutionPort
+from ..object.contract_connection import BlenderConnectionPort
 from ..object.contract_object_operate_protocol import ObjectOperateProtocol
 from ..render.contract_render_operate_protocol import RenderOperateProtocol
-from ..scene.contract_scene_inspection_port import SceneInspectionPort
+from ..scene.contract_scene_inspection import SceneInspectionPort
 from ..scene.scene_operate_protocol import SceneOperateProtocol
-from ..telemetry.contract_telemetry_recording_port import TelemetryRecordingPort
+from ..telemetry.contract_telemetry_recording import TelemetryRecordingPort
 from ..common.taxonomy_core_vo import SuccessFlag
 
 logger = logging.getLogger("BlenderMCPServer.Factory")

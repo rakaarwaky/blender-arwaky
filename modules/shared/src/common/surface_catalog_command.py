@@ -12,7 +12,7 @@ AES Compliance:
 """
 
 # Import canonical catalog from taxonomy (single source of truth)
-from ..common.contract_command_catalog_port import CommandCatalogPort
+from ..common.contract_command_catalog import CommandCatalogPort
 from ..common.taxonomy_core_vo import CapabilityRef, DomainRef, Prompt, StringList
 from ..common.taxonomy_command_catalog_constant import CommandCatalog
 

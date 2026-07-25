@@ -11,7 +11,7 @@ import time
 from typing import Any
 
 from modules.shared.src import BlenderConnectionFactoryPort, BlenderConnectionPort, ConfigPort
-from modules.shared.src import 
+from modules.shared.src import (
     ActionName,
     BlenderConnectionFailure,
     ConfigPath,

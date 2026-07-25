@@ -9,7 +9,7 @@ AES Port layer — depends only on taxonomy entities and other ports.
 
 from abc import ABC, abstractmethod
 
-from .contract_connection_port import BlenderConnectionPort
+from .contract_connection import BlenderConnectionPort
 
 
 class BlenderConnectionFactoryPort(ABC):
