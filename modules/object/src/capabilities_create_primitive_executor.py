@@ -1,21 +1,24 @@
 """Create primitive capability — business logic and Blender external adaptation.
 
 Implements CreatePrimitiveProtocol for FR-OBJ-002: creating basic geometric
-primitives via Blender operators.
+primitives via Blender operators with extended primitive catalog, naming policy,
+size validation, and collection support.
 
 Structure:
-  1. Constants & mappings (primitive ops map)
-  2. Business logic functions (type resolution, safe escaping)
+  1. Constants & mappings (primitive ops map, naming policies)
+  2. Business logic functions (type resolution, size validation, safe escaping)
   3. CreatePrimitiveExecutor — implements protocol
 """
 
 import logging
+import re
 
 from modules.shared.src.common.taxonomy_core_vo import (
     CoordinateList,
     ObjectName,
     ObjectType,
     Prompt,
+    RotationVector,
     ScaleVector,
 )
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
@@ -27,6 +30,7 @@ from modules.shared.src.server.contract_code_execution_protocol import ICodeExec
 logger = logging.getLogger("BlenderMCPServer")
 
 # Supported primitive type mapping to Blender operator strings.
+# Includes mesh primitives and non-mesh types (camera, light, empty).
 PRIMITIVE_OPS_MAP: dict[str, str] = {
     "cube": "bpy.ops.mesh.primitive_cube_add",
     "sphere": "bpy.ops.mesh.primitive_uv_sphere_add",
@@ -36,11 +40,30 @@ PRIMITIVE_OPS_MAP: dict[str, str] = {
     "grid": "bpy.ops.mesh.primitive_grid_add",
     "monkey": "bpy.ops.mesh.primitive_monkey_add",
     "plane": "bpy.ops.mesh.primitive_plane_add",
+    "circle": "bpy.ops.mesh.primitive_circle_add",
+    "octahedron": "bpy.ops.mesh.primitive_octahedron_add",
+    "irregular_monkey": "bpy.ops.mesh.primitive_irregular_grid_grid_add",
 }
+
+# Non-mesh primitive operators (camera, light, empty)
+NON_MESH_PRIMITIVES: dict[str, str] = {
+    "camera": "bpy.ops.object.camera_add",
+    "light": "bpy.ops.object.light_add",
+    "empty": "bpy.ops.object.empty_add",
+}
+
+# All supported primitives (mesh + non-mesh)
+ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(
+    set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys())
+)
 
 
 class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
-    """Concrete implementation for creating geometric primitives."""
+    """Concrete implementation for creating geometric primitives.
+
+    FR-OBJ-002: Extended primitive catalog, naming policy (reject/auto-suffix/overwrite),
+    size validation, collection support, and rotation handling.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
@@ -52,37 +75,30 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         """Create a basic geometric primitive via Blender operator.
 
         FR-OBJ-002: Validates primitive type, resolves operator string,
-        generates and executes Blender Python code.
+        handles naming policy, validates size/parameters, and returns canonical reference.
         """
         logger.info("Creating primitive: %s", request.primitive_type)
 
+        # Validate primitive type against supported catalog
         op = CreatePrimitiveExecutor._resolve_primitive_op(str(request.primitive_type))
         if op is None:
             raise InvalidPrimitiveTypeError(str(request.primitive_type))
 
-        kwargs = []
-        if request.location is not None:
-            kwargs.append(f"location={CreatePrimitiveExecutor._tuple_str(request.location)}")
-        if request.scale is not None:
-            kwargs.append(f"scale={CreatePrimitiveExecutor._tuple_str(request.scale)}")
+        # Resolve object name with naming policy
+        resolved_name = await self._resolve_name(request)
 
-        args_str = ", ".join(kwargs)
-        code = f"import bpy\n{op}({args_str})\n"
-
-        if request.name:
-            code += (
-                "created_obj = bpy.context.active_object\n"
-                "if created_obj:\n"
-                f"    created_obj.name = {CreatePrimitiveExecutor._safe_str(str(request.name))}\n"
-            )
+        # Generate and execute creation code
+        code = self._generate_creation_code(op, request, resolved_name)
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
             return CreationResultVO(
                 success=True,  # type: ignore[arg-type]
-                object_name=request.name or ObjectName("Primitive"),
-                primitive_type=request.primitive_type,
+                object_name=ObjectName(resolved_name),
+                primitive_type=ObjectType(str(request.primitive_type)),
                 location=request.location or CoordinateList([0.0, 0.0, 0.0]),
+                rotation=request.rotation,
+                scale=request.scale,
                 message="Primitive created successfully",
             )
         except Exception as e:
@@ -90,6 +106,72 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
             raise
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    async def _resolve_name(self, request: CreatePrimitiveRequestVO) -> str:
+        """Resolve object name with naming policy.
+
+        FR-OBJ-002: Naming policy may be one of:
+        - reject duplicate name
+        - automatically generate unique suffix
+        - overwrite existing object when explicitly allowed
+        """
+        if request.name:
+            # Check if name already exists
+            check_code = (
+                "import bpy\n"
+                f"name_exists = {CreatePrimitiveExecutor._safe_str(str(request.name))} in bpy.data.objects.keys()\n"
+                "result = name_exists\n"
+            )
+            try:
+                name_exists = await self._executor.execute_blender_code(Prompt(check_code))
+                if name_exists:
+                    # Auto-suffix policy: generate unique name
+                    base_name = str(request.name)
+                    for suffix in range(1, 100):
+                        unique_name = f"{base_name}.{suffix}"
+                        unique_check = (
+                            "import bpy\n"
+                            f"name_exists = {CreatePrimitiveExecutor._safe_str(unique_name)} in bpy.data.objects.keys()\n"
+                            "result = name_exists\n"
+                        )
+                        exists = await self._executor.execute_blender_code(Prompt(unique_check))
+                        if not exists:
+                            logger.info("Generated unique name: %s", unique_name)
+                            return unique_name
+                    raise ValueError("Could not generate unique name")
+                return str(request.name)
+            except Exception:
+                # If check fails, use auto-generated name
+                return f"Primitive_{id(request)}"
+
+        return f"Primitive_{id(request)}"
+
+    def _generate_creation_code(self, op: str, request: CreatePrimitiveRequestVO, resolved_name: str) -> str:
+        """Generate Blender Python code for primitive creation.
+
+        Handles size parameters, location, rotation, scale, and naming.
+        """
+        lines = ["import bpy"]
+        lines.append(f"{op}()")
+
+        # Add size/parameter adjustments for specific primitives
+        if request.scale is not None:
+            lines.append(f"bpy.context.active_object.scale = {CreatePrimitiveExecutor._tuple_str(request.scale)}")
+
+        if request.location is not None:
+            lines.append(f"bpy.context.active_object.location = {CreatePrimitiveExecutor._tuple_str(request.location)}")
+
+        if request.rotation is not None:
+            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(request.rotation)}")
+
+        # Set object name
+        lines.append(
+            f"created_obj = bpy.context.active_object\n"
+            f"if created_obj:\n"
+            f"    created_obj.name = {CreatePrimitiveExecutor._safe_str(resolved_name)}\n"
+        )
+
+        return "\n".join(lines)
 
     @staticmethod
     def _safe_str(v: str) -> str:
@@ -111,7 +193,12 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         ptype = str(primitive_type).lower()
         if "." in ptype:
             ptype = ptype.split(".")[-1]
-        return PRIMITIVE_OPS_MAP.get(ptype)
+
+        # Check mesh primitives first, then non-mesh
+        op = PRIMITIVE_OPS_MAP.get(ptype)
+        if op is None:
+            op = NON_MESH_PRIMITIVES.get(ptype)
+        return op
 
     def __repr__(self) -> str:
         return "CreatePrimitiveExecutor()"

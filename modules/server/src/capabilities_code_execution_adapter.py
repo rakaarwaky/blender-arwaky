@@ -1,8 +1,8 @@
 """Capability: Code execution with AST-based validation and safety checks.
 
 Implements ICodeExecutionProtocol — handles Python code validation via
-AST analysis, socket-based execution forwarding, and result formatting
-per FRD-SRV-002 / FRD-SRV-005.
+AST analysis, socket-based execution forwarding, payload size enforcement,
+output truncation, and result formatting per FR-SRV-002.
 """
 
 from __future__ import annotations
@@ -17,14 +17,15 @@ from uuid import uuid4
 from modules.shared.src.server import (
     IBlenderConnectionProtocol,
     ICodeExecutionProtocol,
+    check_payload_size,
     ExecutionResult,
     ExecutionStatus,
     SecurityViolationError,
     TaskNotFoundError,
+    MAX_CODE_PAYLOAD_BYTES,
 )
 from modules.shared.src.server import DEFAULT_TASK_RETENTION_SECONDS
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
-from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -95,25 +96,28 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def execute_blender_code(self, code: Prompt) -> Prompt:
+    async def execute_blender_code(self, code: Prompt) -> ExecutionResult:  # FR-SRV-002
         """Execute Python code in Blender via IPC.
 
-        Validates code against AST-based denylist (FRD-SRV-002),
-        then forwards to Blender through the socket adapter.
-
+        Validates code against AST-based denylist (FR-SRV-002),
+        enforces payload size limits, and returns standardized ExecutionResult.
+        
         Raises:
-            SecurityViolationError: if code contains blocked patterns.
+            SecurityViolationError: if code contains blocked patterns or exceeds size.
             ValidationError: if code is empty or syntax error.
         """
         code_str = str(code)
 
-        # AST-based validation (FRD-SRV-002 requirement)
+        # Enforce payload size limit (FR-SRV-002)
+        check_payload_size(code_str, MAX_CODE_PAYLOAD_BYTES)
+
+        # AST-based validation (FR-SRV-002 requirement)
         _validate_code_ast(code_str)
 
         # Audit log — record all code execution attempts
         logger.info(
-            "Executing Blender code (length=%d chars): %.100s%s",
-            len(code_str),
+            "Executing Blender code (length=%d bytes): %.100s%s",
+            len(code_str.encode("utf-8")),
             code_str,
             "..." if len(code_str) > 100 else "",
         )
@@ -125,7 +129,21 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 None,
                 lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code_str}),
             )
-            return Prompt(f"Code executed successfully: {result.get('result', '')}")
+            
+            # Truncate output if too large (FR-SRV-002)
+            data = result.get("result", "")
+            truncated = False
+            max_output_bytes = 10_000  # 10KB max output
+            
+            if isinstance(data, str) and len(data.encode("utf-8")) > max_output_bytes:
+                data = data[:max_output_bytes] + "\n...[truncated]"
+                truncated = True
+            
+            return ExecutionResult(
+                status=ExecutionStatus("success"),
+                data=data,
+                truncated=truncated,
+            )
         except SecurityViolationError:
             raise
         except ValidationError:

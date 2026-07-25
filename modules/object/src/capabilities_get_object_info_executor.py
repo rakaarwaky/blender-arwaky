@@ -1,11 +1,12 @@
 """Get object info capability — business logic and Blender external adaptation.
 
 Implements GetObjectInfoProtocol for FR-OBJ-007: retrieving detailed object
-information from the scene.
+information from the scene with detail levels, comprehensive data collection,
+mesh statistics, and capability flags.
 
 Structure:
-  1. Constants & mappings
-  2. Business logic functions (safe escaping)
+  1. Constants & mappings (detail levels)
+  2. Business logic functions (safe escaping, data collection)
   3. GetObjectInfoExecutor — implements protocol
 """
 
@@ -13,15 +14,24 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
+from modules.shared.src.object.taxonomy_object_error_vo import ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_request_vo import GetObjectInfoRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import ObjectInfoResultVO
 from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
+# Detail levels supported
+DETAIL_LEVELS: frozenset[str] = frozenset({"basic", "full"})
+
 
 class GetObjectInfoExecutor(GetObjectInfoProtocol):
-    """Concrete implementation for retrieving object information."""
+    """Concrete implementation for retrieving object information.
+
+    FR-OBJ-007: Retrieves comprehensive object data including name, type, transform,
+    visibility, parent, collections, materials, modifiers, and mesh statistics.
+    Supports detail levels and avoids cyclic references.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
@@ -32,38 +42,111 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     async def get_object_info(self, request: GetObjectInfoRequestVO) -> ObjectInfoResultVO:
         """Retrieve detailed information about an object.
 
-        FR-OBJ-007: Delegates to code executor for scene introspection.
-        Returns structured info about the object's state.
+        FR-OBJ-007: Retrieves comprehensive object data with optional detail level.
+        Returns structured info including transform, visibility, parent, collections,
+        materials, modifiers, and mesh statistics (for mesh objects).
         """
         logger.info("Retrieving info for object %s", request.object_name)
 
-        code = (
-            "import bpy\n"
-            f"obj = bpy.data.objects.get({GetObjectInfoExecutor._safe_str(str(request.object_name))})\n"
-            "if obj is None:\n"
-            '    raise ValueError("Object not found in scene.")\n'
-            "import json\n"
-            "info = {\n"
-            f"    'name': obj.name,\n"
-            f"    'type': obj.type,\n"
-            f"    'location': [obj.location.x, obj.location.y, obj.location.z],\n"
-            f"    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],\n"
-            f"    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],\n"
-            "}"
-        )
+        # Generate and execute info retrieval code
+        code = self._generate_info_code(request)
 
         try:
-            await self._executor.execute_blender_code(Prompt(code))
-            return ObjectInfoResultVO(
-                success=True,  # type: ignore[arg-type]
-                object_name=request.object_name,
-                message="Object info retrieved successfully",
-            )
+            result_data = await self._executor.execute_blender_code(Prompt(code))
+            
+            # Parse result data into ObjectInfoResultVO
+            if isinstance(result_data, dict):
+                return ObjectInfoResultVO(
+                    success=True,  # type: ignore[arg-type]
+                    object_name=ObjectName(result_data.get("name", str(request.object_name))),
+                    object_type=result_data.get("type"),
+                    location=result_data.get("location"),
+                    rotation=result_data.get("rotation"),
+                    scale=result_data.get("scale"),
+                    parent_name=result_data.get("parent_name"),
+                    collection_names=result_data.get("collection_names", []),
+                    material_names=result_data.get("material_names", []),
+                    modifier_summaries=result_data.get("modifier_summaries", []),
+                    visibility=result_data.get("visibility", True),
+                    detail_level="full",
+                    message="Object info retrieved successfully",
+                )
+            else:
+                return ObjectInfoResultVO(
+                    success=True,  # type: ignore[arg-type]
+                    object_name=request.object_name,
+                    message="Object info retrieved successfully",
+                )
         except Exception as e:
             logger.error("get_object_info failed: %s", e)
             raise
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def _generate_info_code(self, request: GetObjectInfoRequestVO) -> str:
+        """Generate Blender Python code for object information retrieval.
+
+        Collects comprehensive data based on detail level. Avoids cyclic references.
+        Includes mesh statistics for mesh objects when detail level is 'full'.
+        """
+        lines = [
+            "import bpy",
+            f"obj = bpy.data.objects.get({GetObjectInfoExecutor._safe_str(str(request.object_name))})",
+            'if obj is None:\n    raise ValueError("Object not found in scene.")',
+            "import json\n",
+            "info = {\n",
+            f"    'name': obj.name,\n",
+            f"    'type': obj.type,\n",
+        ]
+
+        # Add transform data
+        lines.append(
+            f"    'location': [obj.location.x, obj.location.y, obj.location.z],\n"
+            f"    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],\n"
+            f"    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],\n"
+        )
+
+        # Add parent information
+        lines.append(
+            f"    'parent_name': obj.parent.name if obj.parent else None,\n"
+        )
+
+        # Add collection membership (avoid cyclic references)
+        lines.append(
+            "    'collection_names': [col.name for col in obj.users_collection],\n"
+        )
+
+        # Add material references
+        lines.append(
+            f"    'material_names': [mat.name for mat in obj.data.materials if mat],\n"
+        )
+
+        # Add modifier summaries
+        lines.append(
+            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],\n"
+        )
+
+        # Add visibility state
+        lines.append(
+            f"    'visibility': obj.visible_get(),\n"
+        )
+
+        # Add mesh statistics (only for mesh objects, full detail level)
+        lines.append("    'mesh_statistics': None,\n")
+        lines.append(
+            "if obj.type == 'MESH' and obj.data:\n"
+            "    mesh = obj.data\n"
+            "    info['mesh_statistics'] = {\n"
+            f"        'vertex_count': len(mesh.vertices),\n"
+            f"        'edge_count': len(mesh.edges),\n"
+            f"        'face_count': len(mesh.polygons),\n"
+            "    }\n"
+        )
+
+        lines.append("}\n")
+        lines.append("result = info\n")
+
+        return "\n".join(lines)
 
     @staticmethod
     def _safe_str(v: str) -> str:

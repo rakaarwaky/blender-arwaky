@@ -145,3 +145,62 @@ ErrorMessage = ErrorString
 
 # BlenderObjectList placeholder (resolved at runtime)
 BlenderObjectList = NewType("BlenderObjectList", list[Any])
+
+# ============================================================
+# CONFIGURATION METADATA (FR-CFG-001, FR-CFG-005)
+# ============================================================
+
+SourceLocation = NewType("SourceLocation", str | None)
+ParseWarning = NewType("ParseWarning", str)
+ValidationWarning = NewType("ValidationWarning", str)
+OverrideCount = NewType("OverrideCount", int)
+
+
+class ConfigMetadata:
+    """Immutable metadata about configuration loading (FR-CFG-001, FR-CFG-005)."""
+
+    __slots__ = ("_source", "_exists", "_overrides", "_parse_warnings", "_validation_warnings")
+
+    def __init__(
+        self,
+        source: SourceLocation | None = None,
+        exists: bool = False,
+        overrides: OverrideCount = 0,
+        parse_warnings: list[ParseWarning] | None = None,
+        validation_warnings: list[ValidationWarning] | None = None,
+    ) -> None:
+        self._source = source
+        self._exists = exists
+        self._overrides = overrides
+        self._parse_warnings = list(parse_warnings) if parse_warnings else []
+        self._validation_warnings = list(validation_warnings) if validation_warnings else []
+
+    @property
+    def source(self) -> SourceLocation:
+        return self._source
+
+    @property
+    def exists(self) -> bool:
+        return self._exists
+
+    @property
+    def overrides(self) -> OverrideCount:
+        return self._overrides
+
+    @property
+    def parse_warnings(self) -> list[ParseWarning]:
+        return list(self._parse_warnings)
+
+    @property
+    def validation_warnings(self) -> list[ValidationWarning]:
+        return list(self._validation_warnings)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize metadata for diagnostics (secrets excluded)."""
+        return {
+            "source": self._source,
+            "exists": self._exists,
+            "overrides": self._overrides,
+            "parse_warnings": self._parse_warnings,
+            "validation_warnings": self._validation_warnings,
+        }

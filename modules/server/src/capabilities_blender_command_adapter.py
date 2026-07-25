@@ -2,6 +2,7 @@
 
 Implements IBlenderCommandProtocol — dispatches named commands to the
 Blender addon via TCP socket with configurable timeout per FR-SRV-003.
+Includes argument schema validation.
 """
 
 from __future__ import annotations
@@ -15,9 +16,11 @@ from modules.shared.src.server import (
     CommandTimeoutError,
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
+    get_command_schema,
 )
 from modules.shared.src.server import DEFAULT_COMMAND_TIMEOUT_MS
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -36,11 +39,12 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         action: ActionName,
         params: dict[str, Any] | None = None,
         timeout_ms: float | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # FR-SRV-003
         """Dispatch a named command to Blender addon.
 
         Routes through TCP socket; response parsed as JSON.
         Default timeout: DEFAULT_COMMAND_TIMEOUT_MS (5000ms).
+        Validates command arguments against schema per FR-SRV-003.
         Raises CommandTimeoutError if response exceeds timeout.
 
         Args:
@@ -52,8 +56,16 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
             Command result dict with status, data, error, execution_time_ms.
 
         Raises:
+            ValidationError: if command arguments are invalid.
             CommandTimeoutError: if response exceeds configured timeout.
         """
+        # Validate command arguments against schema (FR-SRV-003)
+        action_str = str(action) if not isinstance(action, str) else action
+        try:
+            get_command_schema(action_str)  # Validates command exists
+        except Exception as e:
+            raise ValidationError(ErrorMessage(f"Invalid command: {action_str}")) from e
+
         timeout_s = (timeout_ms or DEFAULT_COMMAND_TIMEOUT_MS) / 1000.0
         start = time.monotonic()
 

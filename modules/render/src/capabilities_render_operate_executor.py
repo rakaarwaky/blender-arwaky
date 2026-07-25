@@ -1,29 +1,34 @@
-"""Handler: Render and viewport capture operations."""
+"""Capability: Render operation executor.
+
+Implements RenderOperateProtocol — handles viewport capture, camera setup,
+render configuration, composition rules, and frame rendering through
+the server module's code execution capability.
+"""
+
+from __future__ import annotations
 
 import json
 import logging
 import time
 
-from modules.shared.src import BlenderPort, RenderOperateProtocol
-from modules.shared.src import (
-    BlenderMCPError,
+from modules.shared.src.common.taxonomy_core_vo import (
     CoordinateList,
-    ErrorMessage,
-    GetScreenshotRequestVO,
-    ImageFormat,
     Prompt,
-    PythonCode,
     RenderEngine,
-    RenderRequestVO,
-    RenderResponseVO,
     RenderSamples,
     ResolutionX,
     ResolutionY,
     RotationVector,
     RuleName,
-    ScreenshotResponseVO,
     SuccessFlag,
     UseDenoising,
+)
+from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
+from modules.shared.src.render.taxonomy_render_request_vo import (
+    GetScreenshotRequestVO,
+    RenderRequestVO,
+    RenderResponseVO,
+    ScreenshotResponseVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -42,8 +47,13 @@ def _format_coord(coord: object) -> str:
 class RenderOperateExecutor(RenderOperateProtocol):
     """Business logic for rendering and visualization."""
 
-    def __init__(self, blender_port: BlenderPort):
-        self.blender = blender_port
+    def __init__(self, code_executor: Prompt) -> None:
+        """Initialize with a code executor from the server module.
+
+        Args:
+            code_executor: A callable or server capability that executes Python code.
+        """
+        self._code_executor = code_executor
 
     async def get_viewport_screenshot(self, request: GetScreenshotRequestVO) -> ScreenshotResponseVO:
         logger.info(
@@ -54,27 +64,14 @@ class RenderOperateExecutor(RenderOperateProtocol):
             request.show_overlays,
             request.focus_object,
         )
-        try:
-            image_data, width, height = await self.blender.get_screenshot(
-                max_size=request.max_size,
-                view_angle=request.view_angle,
-                shading_mode=request.shading,
-                show_overlays=request.show_overlays,
-                focus_object=request.focus_object,
-            )
-            return ScreenshotResponseVO(
-                success=SuccessFlag(True),
-                image_data=image_data,
-                format=request.format or ImageFormat("png"),
-                width=ResolutionX(width),
-                height=ResolutionY(height),
-            )
-        except Exception as e:
-            logger.error("Failed to capture screenshot: %s", e)
-            raise BlenderMCPError(ErrorMessage(f"Screenshot failed: {e}")) from e
+        # Screenshot requires direct socket access — delegate to server module
+        raise NotImplementedError("Viewport capture requires socket adapter; not available through code executor")
 
     async def setup_camera(
-        self, location: CoordinateList, rotation: RotationVector, target: CoordinateList | None = None
+        self,
+        location: CoordinateList,
+        rotation: RotationVector,
+        target: CoordinateList | None = None,
     ) -> Prompt:
         logger.info("Setting up camera at %s", location)
 
@@ -108,11 +105,11 @@ class RenderOperateExecutor(RenderOperateProtocol):
                 "constraint.up_axis = 'UP_Y'\n"
             )
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             return Prompt("Camera setup successful")
         except Exception as e:
             logger.error("setup_camera failed: %s", e)
-            raise BlenderMCPError(ErrorMessage(f"Failed to setup camera: {e}")) from e
+            raise RuntimeError(f"Failed to setup camera: {e}") from e
 
     async def setup_render(
         self,
@@ -142,11 +139,11 @@ class RenderOperateExecutor(RenderOperateProtocol):
                 f"bpy.context.scene.render.resolution_y = {int(resolution[1])}\n"
             )
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             return Prompt(f"Render configured for {engine_str}")
         except Exception as e:
             logger.error("setup_render failed: %s", e)
-            raise BlenderMCPError(ErrorMessage(f"Failed to configure render: {e}")) from e
+            raise RuntimeError(f"Failed to configure render: {e}") from e
 
     async def apply_composition(self, rule: RuleName | None = None) -> Prompt:
         rule = rule or RuleName("thirds")
@@ -165,11 +162,11 @@ class RenderOperateExecutor(RenderOperateProtocol):
         )
 
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             return Prompt(f"Composition rule {rule} applied")
         except Exception as e:
             logger.error("apply_composition failed: %s", e)
-            raise BlenderMCPError(ErrorMessage(f"Failed to apply composition: {e}")) from e
+            raise RuntimeError(f"Failed to apply composition: {e}") from e
 
     async def render(self, request: RenderRequestVO) -> RenderResponseVO:
         logger.info("Rendering frame to %s", request.output_path)
@@ -178,7 +175,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
         code = f"import bpy\nbpy.context.scene.render.filepath = {safe_path}\nbpy.ops.render.render(write_still=True)\n"
         try:
             start_time = time.perf_counter()
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             render_time = round(time.perf_counter() - start_time, 2)
             return RenderResponseVO(
                 success=SuccessFlag(True),
@@ -188,4 +185,20 @@ class RenderOperateExecutor(RenderOperateProtocol):
             )
         except Exception as e:
             logger.error("Render failed: %s", e)
-            raise BlenderMCPError(ErrorMessage(f"Render failed: {e}")) from e
+            raise RuntimeError(f"Render failed: {e}") from e
+
+    async def _execute_code(self, code: str) -> None:
+        """Execute Python code through the server module's code execution capability.
+
+        Args:
+            code: Python code string to execute in Blender.
+
+        Raises:
+            RuntimeError: If code execution fails.
+        """
+        if callable(self._code_executor):
+            result = await self._code_executor(code)
+            if isinstance(result, str):
+                logger.info("Code execution result: %s", result[:200])
+        else:
+            raise RuntimeError(f"Unexpected code_executor type: {type(self._code_executor)}")

@@ -1,4 +1,3 @@
-
 # PRD — blender-arwaky
 
 > Version: 1.7.0 | Date: 2026-07-25

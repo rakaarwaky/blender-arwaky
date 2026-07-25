@@ -28,6 +28,8 @@ class ConnectionStatus:
     last_heartbeat_at: float | None = None  # Unix timestamp
     reconnect_attempts: int = 0
     protocol_version: str | None = None
+    heartbeat_interval_seconds: int | None = None
+    heartbeat_failure_threshold: int | None = None
 
 
 # ============================================================

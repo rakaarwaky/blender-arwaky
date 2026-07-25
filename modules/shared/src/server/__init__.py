@@ -115,6 +115,7 @@ from .utility_server_time import (
     seconds_to_ms,
 )
 from .utility_server_validator import validate_code_ast, check_payload_size
+from .utility_server_schema import validate_command_args, get_command_schema
 
 __all__ = [
     # ─── Taxonomy ───────────────────────────────────────────────
@@ -169,6 +170,8 @@ __all__ = [
     # ─── Utility ────────────────────────────────────────────────
     "validate_code_ast",
     "check_payload_size",
+    "validate_command_args",
+    "get_command_schema",
     "encode_message",
     "decode_message_header",
     "decode_message_payload",

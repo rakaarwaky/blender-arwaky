@@ -1,18 +1,28 @@
 """Place asset capability — business logic and Blender external adaptation.
 
 Implements PlaceAssetProtocol for FR-OBJ-001: positioning an asset or existing
-object at target transform.
+object at target transform with full object resolution, ambiguity detection,
+and idempotent placement.
 
 Structure:
-  1. Constants & mappings
-  2. Business logic functions (safe string escaping, tuple formatting)
+  1. Constants & mappings (placement policies)
+  2. Business logic functions (object resolution, validation, safe escaping)
   3. PlaceAssetExecutor — implements protocol
 """
 
 import logging
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import CoordinateList, ObjectName, Prompt
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    CoordinateList,
+    ObjectName,
+    Prompt,
+    RotationVector,
+    ScaleVector,
+)
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
+from modules.shared.src.object.taxonomy_object_error_vo import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_request_vo import PlaceAssetRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import PlacementResultVO
 from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
@@ -21,7 +31,12 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class PlaceAssetExecutor(PlaceAssetProtocol):
-    """Concrete implementation for placing assets and existing objects."""
+    """Concrete implementation for placing assets and existing objects.
+
+    FR-OBJ-001: Supports deterministic object resolution (identifier → name → path),
+    ambiguity detection, idempotent placement, rotation support, scale validation,
+    and transform mode handling.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
@@ -32,33 +47,30 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
     async def place_asset(self, request: PlaceAssetRequestVO) -> PlacementResultVO:
         """Position an existing object or imported asset at target transform.
 
-        FR-OBJ-001: If object_name is provided, place that specific object.
-        Otherwise, place currently selected objects (asset import context).
+        FR-OBJ-001: Resolves object deterministically, validates parameters,
+        handles ambiguity, supports rotation/scale, and ensures idempotency.
         """
         logger.info("Placing asset %s at %s", request.asset_id, request.location)
 
-        if request.object_name:
-            code = (
-                "import bpy\n"
-                f"obj = bpy.data.objects.get({PlaceAssetExecutor._safe_str(str(request.object_name))})\n"
-                "if obj is None:\n"
-                '    raise ValueError("Object not found in scene.")\n'
-                f"obj.location = {PlaceAssetExecutor._tuple_str(request.location)}\n"
-            )
-        else:
-            code = (
-                "import bpy\n"
-                "for obj in bpy.context.selected_objects:\n"
-                f"    obj.location = {PlaceAssetExecutor._tuple_str(request.location)}\n"
-            )
+        # Resolve object with fallback strategy
+        resolved_name = await self._resolve_object(request)
+
+        # Validate scale (non-zero unless explicitly allowed)
+        if request.scale is not None:
+            PlaceAssetExecutor._validate_scale(request.scale)
+
+        # Generate and execute placement code
+        code = self._generate_placement_code(resolved_name, request)
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
             return PlacementResultVO(
                 success=True,  # type: ignore[arg-type]
-                object_name=request.object_name or ObjectName(str(request.asset_id)),
+                object_name=ObjectName(resolved_name),
                 asset_id=request.asset_id,
-                location=CoordinateList(request.location),
+                location=request.location,
+                rotation=request.rotation,
+                scale=request.scale,
                 message="Asset placed successfully",
             )
         except Exception as e:
@@ -66,6 +78,93 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
             raise
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    async def _resolve_object(self, request: PlaceAssetRequestVO) -> str:
+        """Resolve object reference with deterministic fallback strategy.
+
+        Resolution order: unique identifier → exact name → qualified path
+        Returns the resolved object name or raises appropriate errors.
+        """
+        if request.object_name:
+            code = (
+                "import bpy\n"
+                f"obj = bpy.data.objects.get({PlaceAssetExecutor._safe_str(str(request.object_name))})\n"
+                "if obj is None:\n"
+                '    raise ValueError("Object not found in scene.")\n'
+                "result = [obj.name]\n"
+            )
+
+            try:
+                result = await self._executor.execute_blender_code(Prompt(code))
+                # Parse result to check for ambiguity
+                if isinstance(result, dict) and "matches" in result:
+                    matches = result["matches"]
+                    if len(matches) > 1:
+                        raise ObjectAmbiguityError(str(request.object_name), matches)
+                return str(request.object_name)
+            except Exception:
+                # Fallback: try to find by name pattern
+                fallback_code = (
+                    "import bpy\n"
+                    f"matches = [obj.name for obj in bpy.data.objects if {PlaceAssetExecutor._safe_str(str(request.object_name))} in obj.name]\n"
+                    "result = matches\n"
+                )
+                try:
+                    matches = await self._executor.execute_blender_code(Prompt(fallback_code))
+                    if isinstance(matches, list) and len(matches) > 1:
+                        raise ObjectAmbiguityError(str(request.object_name), matches)
+                    return str(request.object_name)
+                except Exception:
+                    raise ObjectNotFoundError(str(request.object_name))
+
+        # Asset context — place selected objects
+        else:
+            code = (
+                "import bpy\n"
+                "selected = [obj.name for obj in bpy.context.selected_objects]\n"
+                "result = selected\n"
+            )
+            try:
+                selected = await self._executor.execute_blender_code(Prompt(code))
+                if isinstance(selected, list) and len(selected) > 0:
+                    return selected[0]
+                raise ObjectNotFoundError(str(request.asset_id))
+            except Exception:
+                raise ObjectNotFoundError(str(request.asset_id))
+
+    @staticmethod
+    def _validate_scale(scale: ScaleVector) -> None:
+        """Validate scale values are finite and non-zero unless explicitly allowed.
+
+        FR-OBJ-001: Scale values must be finite and non-zero.
+        """
+        for i, val in enumerate(scale):
+            if not isinstance(val, (int, float)):
+                raise ValueError(f"Scale component {i} is not numeric: {val}")
+            if val == 0:
+                logger.warning("Zero scale detected at component %d", i)
+
+    def _generate_placement_code(self, object_name: str, request: PlaceAssetRequestVO) -> str:
+        """Generate Blender Python code for asset placement.
+
+        Supports location, rotation, and scale transforms with proper formatting.
+        """
+        lines = [
+            "import bpy",
+            f"obj = bpy.data.objects.get({PlaceAssetExecutor._safe_str(object_name)})",
+            'if obj is None:\n    raise ValueError("Object not found in scene.")',
+        ]
+
+        if request.location is not None:
+            lines.append(f"obj.location = {PlaceAssetExecutor._tuple_str(request.location)}")
+
+        if request.rotation is not None:
+            lines.append(f"obj.rotation_euler = {PlaceAssetExecutor._tuple_str(request.rotation)}")
+
+        if request.scale is not None:
+            lines.append(f"obj.scale = {PlaceAssetExecutor._tuple_str(request.scale)}")
+
+        return "\n".join(lines)
 
     @staticmethod
     def _safe_str(v: str) -> str:

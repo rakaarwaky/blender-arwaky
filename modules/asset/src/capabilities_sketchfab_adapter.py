@@ -1,22 +1,23 @@
+"""Capability: Sketchfab Asset Provider adapter.
+
+Implements AssetProviderPort — fetches asset metadata and downloads from
+the Sketchfab API through the server module's command dispatch capability.
 """
-Infrastructure: Adapter for Sketchfab Asset Provider.
-"""
+
+from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from modules.shared.src.asset import (
+    AssetDownloadRequestVO,
+    AssetDownloadResponseVO,
     AssetProviderPort,
-    AssetDownloadRequestVO as AssetDownloadRequestIO,
-    AssetDownloadResponseVO as AssetDownloadResponseIO,
-    AssetMetadataVO as AssetMetadataIO,
-    AssetSearchRequestVO as AssetSearchRequestIO,
-    AssetSearchResponseVO as AssetSearchResponseIO,
+    AssetSearchRequestVO,
+    AssetSearchResponseVO,
 )
-from modules.shared.src.asset import AssetMetadata
-from modules.shared.src.object.contract_connection import BlenderConnectionPort
+from modules.shared.src.asset import AssetMetadata, AssetMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
-    ActionName,
     AssetCount,
     AssetId,
     AssetName,
@@ -29,28 +30,32 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
+if TYPE_CHECKING:
+    from modules.shared.src.server.contract_command_protocol import IBlenderCommandProtocol
+
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class SketchfabAssetAdapter(AssetProviderPort):
     """Implementation of AssetProviderPort for Sketchfab."""
 
-    def __init__(self, connection: BlenderConnectionPort):
+    def __init__(self, command_sender: IBlenderCommandProtocol) -> None:  # type: ignore[name-defined]
+        """Initialize with a command sender from the server module.
+
+        Args:
+            command_sender: A callable that sends commands to Blender.
+        """
+        self._command_sender = command_sender
         self.provider_name = "Sketchfab"
-        self._connection = connection
 
-    def _get_conn(self) -> BlenderConnectionPort:
-        return self._connection
-
-    async def search_assets(self, request: AssetSearchRequestIO) -> AssetSearchResponseIO:
+    async def search_assets(self, request: AssetSearchRequestVO) -> AssetSearchResponseVO:
         try:
-            conn = self._get_conn()
-
-            result = conn.send_command(
-                ActionName("search_sketchfab_models"), {"query": request.query, "count": 20, "downloadable": True}
+            result = await self._command_sender(
+                "search_sketchfab_models",
+                {"query": str(request.query), "count": 20, "downloadable": True},
             )
 
-            assets = []
+            assets: list[AssetMetadata] = []
             for model in result.get("results", []):
                 assets.append(
                     AssetMetadata(
@@ -61,9 +66,9 @@ class SketchfabAssetAdapter(AssetProviderPort):
                         tags=cast(TagList, []),
                     )
                 )
-            return AssetSearchResponseIO(
+            return AssetSearchResponseVO(
                 assets=[
-                    AssetMetadataIO(
+                    AssetMetadataVO(
                         id=a.id,
                         name=a.name,
                         type=a.type,
@@ -78,14 +83,13 @@ class SketchfabAssetAdapter(AssetProviderPort):
                 provider=ProviderName(self.provider_name),
             )
         except Exception as e:
-            logger.error(f"Sketchfab search error: {str(e)}")
-            raise ProviderError(ErrorMessage(str(e))) from e
+            logger.error("Sketchfab search error: %s", e)
+            raise ProviderError(str(e)) from e
 
     async def get_asset_details(self, asset_id: str) -> AssetMetadata | None:
         """Get detailed info for a Sketchfab model."""
         try:
-            conn = self._get_conn()
-            result = conn.send_command(ActionName("get_sketchfab_model_preview"), {"uid": asset_id})
+            result = await self._command_sender("get_sketchfab_model_preview", {"uid": asset_id})
             if isinstance(result, dict) and "error" in result:
                 logger.warning("Sketchfab get_asset_details error: %s", result["error"])
                 return None
@@ -97,24 +101,23 @@ class SketchfabAssetAdapter(AssetProviderPort):
                 tags=cast(TagList, []),
             )
         except Exception as e:
-            logger.error(f"Sketchfab details error: {str(e)}")
+            logger.error("Sketchfab details error: %s", e)
             return None
 
-    async def download_asset(self, request: AssetDownloadRequestIO) -> AssetDownloadResponseIO:
+    async def download_asset(self, request: AssetDownloadRequestVO) -> AssetDownloadResponseVO:
         try:
-            conn = self._get_conn()
             target_size = 1.0
-            result = conn.send_command(
-                ActionName("download_sketchfab_model"),
-                {"uid": request.asset_id, "normalize_size": True, "target_size": target_size},
+            result = await self._command_sender(
+                "download_sketchfab_model",
+                {"uid": str(request.asset_id), "normalize_size": True, "target_size": target_size},
             )
             if not result.get("success"):
-                raise ProviderError(ErrorMessage(result.get("message", "Download failed")))
-            return AssetDownloadResponseIO(
+                raise ProviderError(result.get("message", "Download failed"))
+            return AssetDownloadResponseVO(
                 success=SuccessFlag(True),
                 file_path=FilePath(",".join(result.get("imported_objects", []))),
-                message=ErrorMessage("Download successful"),
+                message=ErrorMessage("Download successful"),  # type: ignore[arg-type]
             )
         except Exception as e:
-            logger.error(f"Sketchfab download error: {str(e)}")
-            raise ProviderError(ErrorMessage(str(e))) from e
+            logger.error("Sketchfab download error: %s", e)
+            raise ProviderError(str(e)) from e

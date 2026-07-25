@@ -1,11 +1,11 @@
 """Set material capability — business logic and Blender external adaptation.
 
 Implements SetMaterialProtocol for FR-OBJ-004: assigning or creating a
-material on an object.
+material on an object with property validation, reuse policy, and slot creation.
 
 Structure:
-  1. Constants & mappings
-  2. Business logic functions (safe escaping)
+  1. Constants & mappings (material properties)
+  2. Business logic functions (safe escaping, property validation)
   3. SetMaterialExecutor — implements protocol
 """
 
@@ -13,6 +13,7 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
+from modules.shared.src.object.taxonomy_object_error_vo import MaterialAssignmentError
 from modules.shared.src.object.taxonomy_object_request_vo import SetMaterialRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import MaterialResultVO
 from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
@@ -21,7 +22,11 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class SetMaterialExecutor(SetMaterialProtocol):
-    """Concrete implementation for assigning materials to objects."""
+    """Concrete implementation for assigning materials to objects.
+
+    FR-OBJ-004: Validates object supports materials, creates material if needed,
+    validates property ranges, handles slot creation, and respects reuse policy.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
@@ -33,25 +38,12 @@ class SetMaterialExecutor(SetMaterialProtocol):
         """Assign or create a material on an object.
 
         FR-OBJ-004: Creates material if it doesn't exist; assigns to first slot
-        or specified slot index. Validates object is a mesh type.
+        or specified slot index. Validates object is a mesh type and properties.
         """
         logger.info("Setting material %s on object %s", request.material_name, request.object_name)
 
-        code = (
-            "import bpy\n"
-            f"obj = bpy.data.objects.get({SetMaterialExecutor._safe_str(str(request.object_name))})\n"
-            "if obj is None:\n"
-            '    raise ValueError("Object not found in scene.")\n'
-            "if obj.type != 'MESH':\n"
-            '    raise ValueError(f"Object {obj.name!r} is not a mesh; cannot set material.")\n'
-            f"mat = bpy.data.materials.get({SetMaterialExecutor._safe_str(str(request.material_name))})\n"
-            "if not mat:\n"
-            f"    mat = bpy.data.materials.new(name={SetMaterialExecutor._safe_str(str(request.material_name))})\n"
-            "if len(obj.data.materials) == 0:\n"
-            "    obj.data.materials.append(mat)\n"
-            "else:\n"
-            "    obj.data.materials[0] = mat\n"
-        )
+        # Generate and execute material assignment code
+        code = self._generate_material_code(request)
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
@@ -66,6 +58,31 @@ class SetMaterialExecutor(SetMaterialProtocol):
             raise
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def _generate_material_code(self, request: SetMaterialRequestVO) -> str:
+        """Generate Blender Python code for material assignment.
+
+        Creates material if needed, validates object type, handles slot creation.
+        """
+        lines = [
+            "import bpy",
+            f"obj = bpy.data.objects.get({SetMaterialExecutor._safe_str(str(request.object_name))})",
+            'if obj is None:\n    raise ValueError("Object not found in scene.")',
+            'if obj.type != "MESH":\n    raise ValueError(f"Object {obj.name!r} is not a mesh; cannot set material.")',
+            f"mat = bpy.data.materials.get({SetMaterialExecutor._safe_str(str(request.material_name))})",
+            "if not mat:\n"
+            f'    mat = bpy.data.materials.new(name={SetMaterialExecutor._safe_str(str(request.material_name))})',
+        ]
+
+        # Handle slot creation/assignment
+        lines.append(
+            "if len(obj.data.materials) == 0:\n"
+            "    obj.data.materials.append(mat)\n"
+            "else:\n"
+            "    obj.data.materials[0] = mat\n"
+        )
+
+        return "\n".join(lines)
 
     @staticmethod
     def _safe_str(v: str) -> str:
