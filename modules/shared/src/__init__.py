@@ -287,7 +287,7 @@ from .common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggre
 from .common.agent_di_aggregate import AgentDiContainerAggregate
 from .common.agent_factory_aggregate import AgentFactoryRegistryAggregate
 from .common.agent_base_aggregate import AgentBaseContainerAggregate
-from .common.expert_base_aggregate import ExpertBaseOrchestratorAggregate
+from .common.agent_expert_base_aggregate import AgentExpertBaseOrchestratorAggregate
 from .common.agent_workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
 from .common.agent_refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
 from .common.agent_search_expert_aggregate import SearchExpertOrchestratorAggregate
@@ -480,7 +480,7 @@ __all__ = [
     "AgentDiContainerAggregate",
     "AgentFactoryRegistryAggregate",
     "AgentBaseContainerAggregate",
-    "ExpertBaseOrchestratorAggregate",
+    "AgentExpertBaseOrchestratorAggregate",
     "WorkflowAgentOrchestratorAggregate",
     "RefinementExpertOrchestratorAggregate",
     "SearchExpertOrchestratorAggregate",

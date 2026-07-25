@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import FilePath, ObjectName
 
-from .command_catalog_port import CommandCatalogPort
-from .core_agent_aggregate import CoreAgentOrchestratorAggregate
-from .execute_action_protocol import ExecuteActionProtocol
+from .contract_command_catalog_port import CommandCatalogPort
+from .agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
+from .contract_execute_action_protocol import ExecuteActionProtocol
 
 
 class AgentDiContainerAggregate(ABC):
