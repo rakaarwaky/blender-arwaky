@@ -1,67 +1,24 @@
-"""Taxonomy barrel: re-export all domain model entities, errors, and value objects."""
+"""Taxonomy barrel: re-export all domain model entities, errors, and value objects.
 
-# Errors
-# Provider & Blender DTOs
-from .base_provider_vo import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
-    AssetMetadataVO,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
-    GenerationStartRequestVO,
-    GenerationStartResponseVO,
-    GenerationStatusRequestVO,
-    GenerationStatusResponseVO,
-    ImportGeneratedAssetRequestVO,
-    ImportGeneratedAssetResponseVO,
-    ProviderVO,
-)
-from .blender_asset_vo import (
+All types are defined in modules/shared/src/blender_arwaky/ with proper AES prefixes.
+This file provides backward-compatible imports for existing layer files.
+"""
+
+# Core types (NewType branded primitives)
+from modules.shared.src.blender_arwaky.constant_core_types import *  # noqa: F401 F403
+
+# Asset type & provider constants
+from modules.shared.src.blender_arwaky.constant_asset_types import (  # noqa: F401
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
     ASSET_TYPE_TEXTURES,
     PROVIDER_POLYHAVEN,
     PROVIDER_SKETCHFAB,
-    AssetMetadata,
-    ImportedAsset,
-    create_asset_id,
     create_provider_name,
 )
 
-# Command Catalog Data
-from .blender_command_vo import (
-    CommandCatalog,
-    CommandSpec,
-)
-
-# Application Configuration
-from .blender_config_vo import (
-    ApplicationConfigVo,
-)
-from .blender_job_vo import (
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
-    JobStatus,
-    create_job_id,
-    create_progress,
-)
-from .blender_mcp_error import (
-    AssetNotFoundError,
-    BlenderConnectionFailure,
-    BlenderMCPError,
-    ConnectionFailure,
-    DomainError,
-    ExecutionError,
-    InvalidCommandError,
-    ProviderError,
-    SceneValidationError,
-    ValidationError,
-)
-
-# Entity models
-from .blender_object_entity import (
+# Object type constants
+from modules.shared.src.blender_arwaky.constant_object_types import (  # noqa: F401
     ALLOWED_OBJECT_TYPES,
     OBJECT_TYPE_ARMATURE,
     OBJECT_TYPE_CAMERA,
@@ -76,146 +33,66 @@ from .blender_object_entity import (
     OBJECT_TYPE_POINTCLOUD,
     OBJECT_TYPE_SURFACE,
     OBJECT_TYPE_VOLUME,
+)
+
+# Job state constants & factories
+from modules.shared.src.blender_arwaky.constant_job_states import (  # noqa: F401
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+    create_job_id,
+    create_progress,
+)
+
+# Event type constant
+from modules.shared.src.blender_arwaky.constant_event_type import EventType  # noqa: F401
+
+# Command catalog
+from modules.shared.src.blender_arwaky.constant_command_catalog import (  # noqa: F401
+    COMMAND_CATALOG,
+    CommandCatalog,
+)
+
+# Errors (ConnectionFailure renamed to ConnectionError per N818)
+from modules.shared.src.blender_arwaky.error_domain_error import (  # noqa: F401
+    AssetNotFoundError,
+    BlenderConnectionFailure,
+    BlenderMCPError,
+    ConnectionError,
+    DomainError,
+    ExecutionError,
+    InvalidCommandError,
+    ProviderError,
+    SceneValidationError,
+    ValidationError,
+)
+
+# Value objects
+from modules.shared.src.blender_arwaky.vo_vector3d import Vector3D  # noqa: F401
+from modules.shared.src.blender_arwaky.vo_bounding_box import BoundingBox  # noqa: F401
+from modules.shared.src.blender_arwaky.vo_asset_data import (  # noqa: F401
+    AssetMetadata,
+    ImportedAsset,
+    create_asset_id,
+)
+from modules.shared.src.blender_arwaky.vo_scene_info import SceneInfo  # noqa: F401
+from modules.shared.src.blender_arwaky.vo_app_config import ApplicationConfig  # noqa: F401
+
+# Entities
+from modules.shared.src.blender_arwaky.entity_blender_object import (  # noqa: F401
     BlenderObject,
     create_object_id,
 )
-from .blender_ops_vo import (
-    ApplyModifierRequestVO,
-    ApplyModifierResponseVO,
-    BlenderOpsVO,
-    CleanupSceneRequestVO,
-    CleanupSceneResponseVO,
-    CreatePrimitiveRequestVO,
-    CreatePrimitiveResponseVO,
-    DeleteObjectRequestVO,
-    DeleteObjectResponseVO,
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    GetObjectInfoRequestVO,
-    GetObjectInfoResponseVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
-    GetScreenshotRequestVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
-    PlaceAssetRequestVO,
-    PlaceAssetResponseVO,
-    RenderRequestVO,
-    RenderResponseVO,
-    ScreenshotResponseVO,
-    SetMaterialRequestVO,
-    SetMaterialResponseVO,
-    SetObjectTransformRequestVO,
-    SetObjectTransformResponseVO,
-    SetupEnvironmentRequestVO,
-    SetupEnvironmentResponseVO,
-)
-from .blender_scene_entity import (
-    RENDER_ENGINE_CYCLES,
-    RENDER_ENGINE_EEVEE,
-    SceneAggregate,
-    SceneInfo,
-)
+from modules.shared.src.blender_arwaky.entity_job_status import JobStatus  # noqa: F401
 
-# Spatial types
-from .blender_spatial_vo import (
-    BoundingBox,
-    Vector3D,
-    create_float_triplet,
-)
+# Events
+from modules.shared.src.blender_arwaky.event_telemetry import TelemetryEvent  # noqa: F401
 
-# Branded primitives (NewTypes)
-from .core_types_vo import (
-    ActionName,
-    AssetCount,
-    AssetId,
-    AssetIdList,
-    AssetName,
-    AssetType,
-    AssetTypeFilter,
-    BBoxIntegers,
-    BlenderObjectList,
-    BlenderVersion,
-    CapabilityRef,
-    CleanupMode,
-    ConfigPath,
-    ConfigValue,
-    CoordinateList,
-    # New VOs added to fix AES006 primitive violations
-    CustomerUuid,
-    Details,
-    DirectoryPath,
-    DomainRef,
-    DurationMs,
-    EnabledFlag,
-    ErrorMessage,
-    ExitCode,
-    ExportFormat,
-    FilePath,
-    FormatRef,
-    HdriId,
-    ImageBytes,
-    ImageFormat,
-    IterationCount,
-    JobId,
-    JobState,
-    LightStrength,
-    MaterialName,
-    MaxImageSize,
-    MaxSize,
-    ModifierName,
-    NextPageToken,
-    ObjectCount,
-    ObjectIdList,
-    ObjectName,
-    ObjectType,
-    ParentId,
-    PlatformName,
-    PortNumber,
-    PrimitiveType,
-    Progress,
-    Prompt,
-    ProviderName,
-    PythonCode,
-    RenderEngine,
-    RenderSamples,
-    RenderTime,
-    ResolutionX,
-    ResolutionY,
-    ResultLimit,
-    ResultUrl,
-    RotationVector,
-    RuleName,
-    SampleCount,
-    ScaleFactor,
-    ScaleVector,
-    SceneId,
-    SceneRuleSetName,
-    SearchQuery,
-    SectionRef,
-    ServerName,
-    SessionId,
-    # Surface-typed primitives
-    SkillName,
-    StatusString,
-    StringList,
-    SuccessFlag,
-    TagList,
-    TaskUuid,
-    ThumbnailUrl,
-    Timestamp,
-    ToolName,
-    UseDenoising,
-    UserId,
-    VersionString,
-    WorkflowName,
-)
-
-# Telemetry types
-from .telemetry_event_entity import (
-    EventType,
-    TelemetryEvent,
-)
+# Backward-compatible aliases
+ConnectionFailure = ConnectionError  # type: ignore[misc]  # noqa: A003
+ApplicationConfigVo = ApplicationConfig  # type: ignore[misc]  # noqa: A003
+CommandSpec = dict[str, any]  # type: ignore[misc]  # noqa: F405
 
 __all__ = [
     # Errors
@@ -224,7 +101,8 @@ __all__ = [
     "SceneValidationError",
     "AssetNotFoundError",
     "ValidationError",
-    "ConnectionFailure",
+    "ConnectionError",
+    "ConnectionFailure",  # deprecated alias
     "ProviderError",
     "ExecutionError",
     "BlenderConnectionFailure",
@@ -242,7 +120,7 @@ __all__ = [
     "Prompt",
     "ActionName",
     "RenderEngine",
-    "ErrorMessage",
+    "ErrorString",
     # Asset/Render/Image/Material VOs
     "AssetType",
     "ImageFormat",
@@ -323,7 +201,6 @@ __all__ = [
     "JobStatus",
     "AssetMetadata",
     "ImportedAsset",
-    "SceneAggregate",
     # Object type constants
     "OBJECT_TYPE_MESH",
     "OBJECT_TYPE_CAMERA",
@@ -337,7 +214,6 @@ __all__ = [
     "OBJECT_TYPE_LATTICE",
     "OBJECT_TYPE_GPENCIL",
     "OBJECT_TYPE_VOLUME",
-    "OBJECT_TYPE_POINTCLOUD",
     "ALLOWED_OBJECT_TYPES",
     # Render engine constants
     "RENDER_ENGINE_CYCLES",
@@ -371,49 +247,9 @@ __all__ = [
     "TelemetryEvent",
     # Command Catalog Data
     "CommandCatalog",
+    "COMMAND_CATALOG",
     "CommandSpec",
     # Application Configuration
-    "ApplicationConfigVo",
-    # Provider & Blender DTOs
-    "ProviderVO",
-    "BlenderOpsVO",
-    "AssetSearchRequestVO",
-    "AssetMetadataVO",
-    "AssetSearchResponseVO",
-    "AssetDownloadRequestVO",
-    "AssetDownloadResponseVO",
-    "GenerationStartRequestVO",
-    "GenerationStartResponseVO",
-    "GenerationStatusRequestVO",
-    "GenerationStatusResponseVO",
-    "ImportGeneratedAssetRequestVO",
-    "ImportGeneratedAssetResponseVO",
-    "CleanupSceneRequestVO",
-    "CleanupSceneResponseVO",
-    "SetupEnvironmentRequestVO",
-    "SetupEnvironmentResponseVO",
-    "GetSceneInfoRequestVO",
-    "GetSceneInfoResponseVO",
-    "PlaceAssetRequestVO",
-    "PlaceAssetResponseVO",
-    "GetObjectInfoRequestVO",
-    "GetObjectInfoResponseVO",
-    "SetObjectTransformRequestVO",
-    "SetObjectTransformResponseVO",
-    "DeleteObjectRequestVO",
-    "DeleteObjectResponseVO",
-    "CreatePrimitiveRequestVO",
-    "CreatePrimitiveResponseVO",
-    "SetMaterialRequestVO",
-    "SetMaterialResponseVO",
-    "ApplyModifierRequestVO",
-    "ApplyModifierResponseVO",
-    "RenderRequestVO",
-    "RenderResponseVO",
-    "GetScreenshotRequestVO",
-    "ScreenshotResponseVO",
-    "ImportGlbRequestVO",
-    "ImportGlbResponseVO",
-    "ExportModelRequestVO",
-    "ExportModelResponseVO",
+    "ApplicationConfig",
+    "ApplicationConfigVo",  # deprecated alias
 ]
