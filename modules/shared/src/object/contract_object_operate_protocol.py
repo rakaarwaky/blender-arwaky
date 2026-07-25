@@ -1,75 +1,37 @@
-"""Object domain contract: object operations protocol (ABC based).
+"""Object domain contract: backward compatibility re-exports.
 
-Capabilities implement this protocol. The Agent layer depends on it;
-the Surface layer depends on the Aggregate, not this Protocol.
+All individual protocols have been split into separate files for the
+"1 capabilities = 1 FR" architecture. This file re-exports the old
+monolithic protocol for backward compatibility with existing consumers.
+
+New code should import from individual protocol files:
+  - contract_place_asset_protocol
+  - contract_create_primitive_protocol
+  - contract_set_transform_protocol
+  - contract_set_material_protocol
+  - contract_apply_modifier_protocol
+  - contract_delete_object_protocol
+  - contract_get_object_info_protocol
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+# Re-export all individual protocols for backward compatibility
+from .contract_apply_modifier_protocol import ApplyModifierProtocol
+from .contract_create_primitive_protocol import CreatePrimitiveProtocol
+from .contract_delete_object_protocol import DeleteObjectProtocol
+from .contract_get_object_info_protocol import GetObjectInfoProtocol
+from .contract_place_asset_protocol import PlaceAssetProtocol
+from .contract_set_material_protocol import SetMaterialProtocol
+from .contract_set_transform_protocol import SetObjectTransformProtocol
 
-from .taxonomy_object_request_vo import (
-    ApplyModifierRequestVO,
-    CreatePrimitiveRequestVO,
-    DeleteObjectRequestVO,
-    GetObjectInfoRequestVO,
-    PlaceAssetRequestVO,
-    SetMaterialRequestVO,
-    SetObjectTransformRequestVO,
-)
-from .taxonomy_object_result_vo import (
-    CreationResultVO,
-    DeletionResultVO,
-    MaterialResultVO,
-    ModifierResultVO,
-    ObjectInfoResultVO,
-    PlacementResultVO,
-    TransformResultVO,
-)
-
-
-class ObjectOperateProtocol(ABC):
-    """Protocol interface for object-level manipulation in Blender.
-
-    Implemented by Capabilities (ObjectOperateExecutor). Consumed by the
-    Agent orchestrator via constructor injection.
-    """
-
-    @abstractmethod
-    async def place_asset(self, request: PlaceAssetRequestVO) -> PlacementResultVO:
-        """Position an existing object or imported asset at target transform."""
-        pass
-
-    @abstractmethod
-    async def create_primitive(self, request: CreatePrimitiveRequestVO) -> CreationResultVO:
-        """Create a basic geometric or scene primitive."""
-        pass
-
-    @abstractmethod
-    async def set_object_transform(
-        self, request: SetObjectTransformRequestVO
-    ) -> TransformResultVO:
-        """Modify location, rotation, or scale of an existing object."""
-        pass
-
-    @abstractmethod
-    async def set_material(self, request: SetMaterialRequestVO) -> MaterialResultVO:
-        """Assign or create a material for an object."""
-        pass
-
-    @abstractmethod
-    async def apply_modifier(self, request: ApplyModifierRequestVO) -> ModifierResultVO:
-        """Add, update, remove, or apply a modifier on an object."""
-        pass
-
-    @abstractmethod
-    async def delete_object(self, request: DeleteObjectRequestVO) -> DeletionResultVO:
-        """Remove an object from the scene."""
-        pass
-
-    @abstractmethod
-    async def get_object_info(
-        self, request: GetObjectInfoRequestVO
-    ) -> ObjectInfoResultVO:
-        """Retrieve detailed information about a specific object."""
-        pass
+# Re-export old monolithic protocol for backward compatibility
+__all__ = [
+    "ApplyModifierProtocol",
+    "CreatePrimitiveProtocol",
+    "DeleteObjectProtocol",
+    "GetObjectInfoProtocol",
+    "PlaceAssetProtocol",
+    "SetMaterialProtocol",
+    "SetObjectTransformProtocol",
+]

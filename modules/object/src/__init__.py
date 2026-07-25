@@ -2,10 +2,10 @@
 
 Layers:
   - Taxonomy (shared/src/object/)   → VOs, Entities, Events, Errors, Constants
-  - Contract (shared/src/object/)   → Protocol + Aggregate ABCs
-  - Capabilities                     → ObjectOperateExecutor (implements Protocol)
-  - Agent                            → ObjectOrchestrator (implements Aggregate)
-  - Root                             → ObjectContainer (DI wiring)
+  - Contract (shared/src/object/)   → 7 individual protocols + Aggregate ABCs
+  - Capabilities (7 executors)      → One per FR operation
+  - Agent                           → ObjectOrchestrator (implements Aggregate facade)
+  - Root                            → ObjectContainer (DI wiring)
 
 Surface layer is intentionally absent — MCP/CLI command handlers live in
 their respective feature modules (modules/mcp, modules/cli).

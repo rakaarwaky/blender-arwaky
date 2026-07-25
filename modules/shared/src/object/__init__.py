@@ -1,7 +1,7 @@
 """Object domain — taxonomy types and contracts.
 
 Provides Value Objects, Entities, Events, Errors, Constants, Requests/Results,
-Protocol, and Aggregate facade for all 7 object manipulation operations per the Object FRD.
+7 individual Protocol interfaces, and Aggregate facade for all 7 object manipulation operations per the Object FRD.
 """
 
 from . import (
@@ -13,12 +13,24 @@ from . import (
     taxonomy_object_request_vo,
     taxonomy_object_result_vo,
 )
+from .contract_apply_modifier_protocol import ApplyModifierProtocol
+from .contract_create_primitive_protocol import CreatePrimitiveProtocol
+from .contract_delete_object_protocol import DeleteObjectProtocol
+from .contract_get_object_info_protocol import GetObjectInfoProtocol
 from .contract_object_operate_aggregate import ObjectOperateAggregate
-from .contract_object_operate_protocol import ObjectOperateProtocol
+from .contract_place_asset_protocol import PlaceAssetProtocol
+from .contract_set_material_protocol import SetMaterialProtocol
+from .contract_set_transform_protocol import SetObjectTransformProtocol
 
 __all__ = [
+    "ApplyModifierProtocol",
+    "CreatePrimitiveProtocol",
+    "DeleteObjectProtocol",
+    "GetObjectInfoProtocol",
     "ObjectOperateAggregate",
-    "ObjectOperateProtocol",
+    "PlaceAssetProtocol",
+    "SetMaterialProtocol",
+    "SetObjectTransformProtocol",
     "taxonomy_blender_object_entity",
     "taxonomy_object_constant",
     "taxonomy_object_error_vo",
@@ -27,3 +39,4 @@ __all__ = [
     "taxonomy_object_request_vo",
     "taxonomy_object_result_vo",
 ]
+

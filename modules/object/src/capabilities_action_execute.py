@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from modules.shared.src.common.contract_execute_action_protocol import ExecuteActionProtocol
 from modules.shared.src.common.taxonomy_command_catalog_constant import CommandCatalog
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
+from .object_type_utility import unwrap_annotation
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -39,29 +40,6 @@ _PROTOCOL_ATTR: dict[str, str] = {
     "RenderOperateProtocol": "render_operate_capability",
     "ImportExportProtocol": "import_export_capability",
 }
-
-
-def _unwrap_annotation(annotation: Any) -> Any | None:
-    """Unwrap Optional/Annotated/Union type hints to get the underlying type."""
-    if annotation is inspect.Parameter.empty:
-        return None
-
-    origin = typing.get_origin(annotation)
-    if origin is None:
-        # Plain type (e.g. GetScreenshotRequestVO)
-        return annotation if isinstance(annotation, type) else None
-
-    # Handle Optional[X] (Union[X, None]) and Annotated[X, ...]
-    if origin is typing.Union:
-        args = [a for a in typing.get_args(annotation) if a is not type(None)]
-        return args[0] if len(args) == 1 and isinstance(args[0], type) else None
-
-    # Annotated[X, metadata] — return the first arg
-    if origin is typing.Annotated:
-        args = typing.get_args(annotation)
-        return args[0] if args and isinstance(args[0], type) else None
-
-    return None
 
 
 class ActionExecuteActions(ExecuteActionProtocol):
@@ -127,6 +105,8 @@ class ActionExecuteActions(ExecuteActionProtocol):
 
         return Prompt(self._serialize(result))
 
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+
     def _resolve_capability(self, protocol_name: str) -> Any | None:
         """Resolve capability from the orchestrator via protocol→attribute mapping."""
         attr = _PROTOCOL_ATTR.get(protocol_name)
@@ -150,7 +130,7 @@ class ActionExecuteActions(ExecuteActionProtocol):
 
         if params:
             first = params[0]
-            unwrapped = _unwrap_annotation(first.annotation)
+            unwrapped = unwrap_annotation(first.annotation)
             if unwrapped is not None and issubclass(unwrapped, BaseModel):
                 return method(unwrapped(**args))
 
@@ -196,3 +176,4 @@ class ActionExecuteActions(ExecuteActionProtocol):
                     value = value[:MAX_STRING_ARG_LENGTH]
             sanitized[key] = value
         return sanitized
+

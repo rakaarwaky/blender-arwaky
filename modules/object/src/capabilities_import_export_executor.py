@@ -1,57 +1,66 @@
-"""Handler: Import/Export file exchange operations."""
+"""Handler: Import/Export file exchange operations.
 
-import json
+Implements ImportExportProtocol for GLB import and model export operations.
+Depends on ICodeExecutionProtocol for Blender code execution (not raw port).
+"""
+
 import logging
 
-from modules.shared.src import (
-    BlenderMCPError,
-    BlenderPort,
-    ErrorMessage,
+from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
+from modules.shared.src.object.contract_import_export_protocol import ImportExportProtocol
+from modules.shared.src.object.taxonomy_import_export_error_vo import ImportError, ExportError
+from modules.shared.src.object.taxonomy_import_export_request_vo import (
     ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportExportProtocol,
     ImportGlbRequestVO,
-    ImportGlbResponseVO,
-    ObjectName,
-    PythonCode,
-    SuccessFlag,
 )
+from modules.shared.src.object.taxonomy_import_export_result_vo import (
+    ExportModelResponseVO,
+    ImportGlbResponseVO,
+)
+from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
-
-
-def _safe_str(value: object) -> str:
-    """Safely escape a string for inclusion in generated Python code."""
-    return json.dumps(str(value))
 
 
 class ImportExportExecutor(ImportExportProtocol):
     """Business logic for file exchange operations."""
 
-    def __init__(self, blender_port: BlenderPort):
-        self.blender = blender_port
+    # ─── Block 1: Class Definition & Constructor ──────────────
+    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+        self._executor = code_executor
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def import_glb(self, request: ImportGlbRequestVO) -> ImportGlbResponseVO:
-        logger.info(f"Importing GLB from {request.file_path}")
-        safe_path = _safe_str(str(request.file_path))
+        """Import a GLB/GLTF file into the Blender scene.
+
+        FR-IMP-001: Imports the specified file path, optionally renames
+        the active object to the requested name.
+        """
+        logger.info("Importing GLB from %s", request.file_path)
+        safe_path = ImportExportExecutor._safe_str(str(request.file_path))
         code = f"import bpy\nbpy.ops.import_scene.gltf(filepath={safe_path})\n"
         if request.object_name:
-            safe_name = _safe_str(str(request.object_name))
+            safe_name = ImportExportExecutor._safe_str(str(request.object_name))
             code += f"imported_obj = bpy.context.active_object\nif imported_obj:\n    imported_obj.name = {safe_name}\n"
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._executor.execute_blender_code(Prompt(code))
             return ImportGlbResponseVO(
-                success=SuccessFlag(True),
+                success=True,  # type: ignore[arg-type]
                 object_name=request.object_name or ObjectName("ImportedModel"),
                 file_path=request.file_path,
                 message="Import successful",
             )
         except Exception as e:
-            logger.error(f"Import failed: {e}")
-            raise BlenderMCPError(ErrorMessage(f"Import failed: {e}")) from e
+            logger.error("Import failed: %s", e)
+            raise ImportError(f"Import failed: {e}") from e
 
     async def export_model(self, request: ExportModelRequestVO) -> ExportModelResponseVO:
-        logger.info(f"Exporting model {request.object_name} to {request.file_path}")
+        """Export a Blender object to GLTF format.
+
+        FR-IMP-002: Selects the named object and exports it to the specified path.
+        """
+        logger.info("Exporting model %s to %s", request.object_name, request.file_path)
         code = (
             "import bpy\n"
             f"obj = bpy.data.objects.get('{request.object_name}')\n"
@@ -62,13 +71,22 @@ class ImportExportExecutor(ImportExportProtocol):
             f"    bpy.ops.export_scene.gltf(filepath='{request.file_path}', use_selection=True)\n"
         )
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._executor.execute_blender_code(Prompt(code))
             return ExportModelResponseVO(
-                success=SuccessFlag(True),
+                success=True,  # type: ignore[arg-type]
                 file_path=request.file_path,
                 object_name=request.object_name,
                 message="Export successful",
             )
         except Exception as e:
-            logger.error(f"Export failed: {e}")
-            raise BlenderMCPError(ErrorMessage(f"Export failed: {e}")) from e
+            logger.error("Export failed: %s", e)
+            raise ExportError(f"Export failed: {e}") from e
+
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+
+    @staticmethod
+    def _safe_str(value: object) -> str:
+        """Safely escape a string for inclusion in generated Python code."""
+        import json
+
+        return json.dumps(str(value))
