@@ -59,7 +59,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
 
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(self._connection.send_command, action, params),
+                self._connection.send_command(action, params),
                 timeout=timeout_s,
             )
             elapsed_ms = (time.monotonic() - start) * 1000

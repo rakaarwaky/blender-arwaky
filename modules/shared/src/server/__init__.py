@@ -84,7 +84,13 @@ from .utility_server_io import (
     write_file_bytes,
     write_file_text,
 )
-from .utility_server_message import encode_message, decode_message_header, decode_message_payload, build_request, parse_response
+from .utility_server_message import (
+    encode_message,
+    decode_message_header,
+    decode_message_payload,
+    build_request,
+    parse_response,
+)
 from .utility_server_string import (
     camel_to_snake,
     contains_any,

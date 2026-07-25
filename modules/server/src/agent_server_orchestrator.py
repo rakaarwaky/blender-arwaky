@@ -58,7 +58,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
 
         Orchestrates connection via IBlenderConnectionProtocol.
         """
-        self._connection.connect(config.host or "localhost", config.port or 9876)
+        await self._connection.connect()
         return ConnectionStatus(
             state="connected",
             transport_type=config.transport_type,
@@ -69,7 +69,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
 
     async def disconnect(self) -> None:
         """Graceful disconnect. Idempotent."""
-        self._connection.disconnect()
+        await self._connection.disconnect()
 
     async def get_status(self) -> ConnectionStatus:
         """Return current connection state with metadata."""
@@ -205,7 +205,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
                 await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
 
             # Dispatch through connection protocol
-            result = self._connection.send_command(ActionName(action), params)
+            result = await self._connection.send_command(ActionName(action), params)
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.info(
                 "Command %s completed in %.1fms",

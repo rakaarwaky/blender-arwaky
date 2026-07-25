@@ -6,6 +6,7 @@ and connection status reporting per FRD-SRV-001 / FRD-SRV-004.
 """
 
 from __future__ import annotations
+from typing import Any
 
 import contextlib
 import json
@@ -15,15 +16,13 @@ import select
 import socket
 import threading
 import time
-from typing import Any
+
 
 from modules.shared.src.server import (
     AuthenticationError,
     BlenderConnectionExhausted,
     IBlenderConnectionProtocol,
     ProtocolVersionMismatchError,
-)
-from modules.shared.src.server import (
     CONNECTION_TIMEOUT_SECONDS,
     MAX_RECONNECT_ATTEMPTS,
     RETRY_BASE_DELAY_SECONDS,
@@ -57,7 +56,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def connect(self) -> SuccessFlag:
+    async def connect(self) -> SuccessFlag:
         """Connect to Blender with exponential backoff retries.
 
         Implements FRD-SRV-001: auto-reconnect with max 3 retry attempts
@@ -92,9 +91,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                         )
                         time.sleep(delay)
 
-            raise BlenderConnectionExhausted(
-                ErrorMessage("Failed to connect after all retry attempts")
-            )
+            raise BlenderConnectionExhausted(ErrorMessage("Failed to connect after all retry attempts"))
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ────────
     def __repr__(self) -> str:
@@ -106,7 +103,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 self.sock.close()
             self.sock = None
 
-    def disconnect(self):
+    async def disconnect(self):
         """Disconnect from Blender. Thread-safe."""
         with self._lock:
             self._close_socket()
@@ -170,15 +167,21 @@ class BlenderConnection(IBlenderConnectionProtocol):
         except json.JSONDecodeError as e:
             raise ExecutionError(ErrorMessage("Incomplete JSON response received")) from e
 
-    def receive_full_response(self, sock: socket.socket, buffer_size: int = 8192) -> bytes:
-        chunks, completed = self._read_response_chunks(sock, buffer_size)
+    async def receive_full_response(self, buffer_size: int = 8192) -> bytes:
+        """Receive complete JSON response from socket in chunks.
+
+        Uses self.sock (the active connection socket).
+        """
+        if self.sock is None:
+            raise BlenderConnectionFailure(ErrorMessage("No active socket connection"))
+        chunks, completed = self._read_response_chunks(self.sock, buffer_size)
         if completed:
             return b"".join(chunks)
         if chunks:
             return self._finalize_chunks(chunks)
         raise BlenderConnectionFailure(ErrorMessage("No data received"))
 
-    def is_connected(self) -> SuccessFlag:
+    async def is_connected(self) -> SuccessFlag:
         return SuccessFlag(self._is_socket_alive())  # pragma: no cover
 
     def _handle_command_response(self, response_data: bytes) -> dict[str, Any]:
@@ -193,9 +196,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
         result: dict[str, Any] = response.get("result", {})
         return result
 
-    def send_command(self, command_type: ActionName, params: Details | None = None) -> Details:
+    async def send_command(self, command_type: ActionName, params: Details | None = None) -> Details:
         with self._lock:
-            if self.sock is None and not self.connect():
+            if self.sock is None and not await self.connect():
                 raise ConnectionError("Not connected to Blender")
 
             active_sock = self.sock
@@ -210,7 +213,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 active_sock.settimeout(RECEIVE_TIMEOUT)
                 active_sock.sendall(json.dumps(command).encode("utf-8"))
                 logger.info("Command sent, waiting for response...")
-                response_data = self.receive_full_response(active_sock)
+                response_data = await self.receive_full_response()
                 logger.info(f"Received {len(response_data)} bytes of data")
 
                 return self._handle_command_response(response_data)
