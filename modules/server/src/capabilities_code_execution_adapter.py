@@ -4,7 +4,7 @@ import asyncio
 import logging
 import re
 
-from modules.shared.src.server import BlenderConnectionPort, CodeExecutionPort
+from modules.shared.src.server import IBlenderConnectionProtocol, ICodeExecutionProtocol
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
@@ -80,10 +80,14 @@ def validate_code(code: str) -> None:
             )
 
 
-class CodeExecutionAdapter(CodeExecutionPort):
-    """Wrapper class for code execution functions with input validation."""
+class CodeExecutionAdapter(ICodeExecutionProtocol):
+    """Wrapper class for code execution functions with input validation.
 
-    def __init__(self, connection_port: BlenderConnectionPort):
+    Implements ICodeExecutionProtocol with AST-based code validation
+    and socket-based execution forwarding to Blender.
+    """
+
+    def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection_port = connection_port
 
     async def execute_blender_code(self, code: Prompt) -> Prompt:

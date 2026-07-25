@@ -1,13 +1,116 @@
-"""Server domain — taxonomy types and contracts."""
+"""Server domain — taxonomy, contracts, and constants for Blender TCP/stdio communication.
 
-from .contract_blender import BlenderPort
-from .contract_connection import BlenderConnectionPort
-from .contract_connection_factory import BlenderConnectionFactoryPort
-from .contract_code_execution import CodeExecutionPort
+Taxonomy: VOs (ConnectionStatus, ExecutionResult, TaskStatus, ConnectionConfig),
+errors (SecurityViolationError, ExecutionTimeoutError, etc.), and constants.
+
+Contracts: IBlenderServerAggregate — unified facade for connection lifecycle
+and code execution operations. Implemented by Agent layer.
+
+Protocols: IBlenderConnectionProtocol, IBlenderSocketAdapterProtocol,
+ICodeExecutionProtocol — implemented by Capabilities.
+"""
+
+# ─── Taxonomy ──────────────────────────────────────────────────
+
+from .taxonomy_server_constant import (
+    CONNECTION_TIMEOUT_SECONDS,
+    DEFAULT_COMMAND_TIMEOUT_MS,
+    DEFAULT_EXECUTION_TIMEOUT_MS,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_QUEUE_WAIT_TIMEOUT_MS,
+    DEFAULT_TASK_RETENTION_SECONDS,
+    HEARTBEAT_FAILURE_THRESHOLD,
+    HEARTBEAT_INTERVAL_SECONDS,
+    MAX_CODE_PAYLOAD_BYTES,
+    MAX_RECONNECT_ATTEMPTS,
+    QUEUE_MAX_DEPTH,
+    RETRY_BASE_DELAY_SECONDS,
+    RETRY_MAX_DELAY_SECONDS,
+    TRANSPORT_SOCKET,
+    TRANSPORT_STDIO,
+)
+from .taxonomy_server_error import (
+    AdapterSurfaceError,
+    AuthenticationError,
+    BlenderConnectionExhausted,
+    CommandTimeoutError,
+    ConnectionClosedError,
+    ConnectionConfigError,
+    ExecutionTimeoutError,
+    ProtocolVersionMismatchError,
+    QueueFullError,
+    QueueTimeoutError,
+    SecurityViolationError,
+    TaskNotFoundError,
+)
+from .taxonomy_server_vo import (
+    ConnectionConfig,
+    ConnectionStatus,
+    ExecutionErrorDetail,
+    ExecutionResult,
+    ExecutionStatus,
+    HeartbeatConfig,
+    RetryPolicy,
+    TaskStatus,
+    TaskState,
+)
+
+# ─── Contracts (Aggregate — single unified facade) ─────────────
+
+from .contract_server_aggregate import IBlenderServerAggregate
+
+# ─── Contracts (Protocols — implemented by Capabilities) ──────
+
+from .contract_code_execution_protocol import ICodeExecutionProtocol
+from .contract_connection_protocol import IBlenderConnectionProtocol
+from .contract_socket_adapter_protocol import IBlenderSocketAdapterProtocol
 
 __all__ = [
-    "BlenderPort",
-    "BlenderConnectionPort",
-    "BlenderConnectionFactoryPort",
-    "CodeExecutionPort",
+    # ─── Taxonomy ───────────────────────────────────────────────
+    "ConnectionConfig",
+    "ConnectionStatus",
+    "ExecutionErrorDetail",
+    "ExecutionResult",
+    "ExecutionStatus",
+    "HeartbeatConfig",
+    "RetryPolicy",
+    "TaskStatus",
+    "TaskState",
+    # ─── Constants ──────────────────────────────────────────────
+    "TRANSPORT_SOCKET",
+    "TRANSPORT_STDIO",
+    "CONNECTION_TIMEOUT_SECONDS",
+    "DEFAULT_HOST",
+    "DEFAULT_PORT",
+    "DEFAULT_EXECUTION_TIMEOUT_MS",
+    "DEFAULT_COMMAND_TIMEOUT_MS",
+    "MAX_CODE_PAYLOAD_BYTES",
+    "HEARTBEAT_INTERVAL_SECONDS",
+    "HEARTBEAT_FAILURE_THRESHOLD",
+    "MAX_RECONNECT_ATTEMPTS",
+    "RETRY_BASE_DELAY_SECONDS",
+    "RETRY_MAX_DELAY_SECONDS",
+    "QUEUE_MAX_DEPTH",
+    "DEFAULT_QUEUE_WAIT_TIMEOUT_MS",
+    "DEFAULT_TASK_RETENTION_SECONDS",
+    # ─── Errors ─────────────────────────────────────────────────
+    "SecurityViolationError",
+    "ExecutionTimeoutError",
+    "QueueFullError",
+    "QueueTimeoutError",
+    "CommandTimeoutError",
+    "TaskNotFoundError",
+    "ConnectionConfigError",
+    "AuthenticationError",
+    "ProtocolVersionMismatchError",
+    "ConnectionClosedError",
+    "BlenderConnectionExhausted",
+    "AdapterSurfaceError",
+    # ─── Contracts (Aggregate) ──────────────────────────────────
+    "IBlenderServerAggregate",
+    # ─── Contracts (Protocols) ──────────────────────────────────
+    "IBlenderConnectionProtocol",
+    "ICodeExecutionProtocol",
+    "IBlenderSocketAdapterProtocol",
 ]

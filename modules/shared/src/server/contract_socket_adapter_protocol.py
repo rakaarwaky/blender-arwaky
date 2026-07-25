@@ -1,8 +1,9 @@
-"""
-Contract: Port interface for Blender socket adapter.
+"""Contract: Protocol for Blender socket adapter operations.
 
-This port defines the interface that all Blender connection adapters must implement.
-AES Port layer — depends only on taxonomy entities.
+Implemented by Capabilities that handle low-level Blender operations
+via socket connection (execute_code, get_scene_info, get_object_info,
+get_screenshot).
+AES Protocol layer — depends only on Taxonomy.
 """
 
 from abc import ABC, abstractmethod
@@ -11,13 +12,9 @@ from ..common.taxonomy_core_vo import ImageBytes, MaxSize, ObjectName, PythonCod
 from ..object.taxonomy_blender_object_entity import BlenderObject
 from ..scene.taxonomy_scene_info_vo import SceneInfo
 
-# Type aliases for screenshot parameters
-ViewAngle = str
-ShadingMode = str
 
-
-class BlenderPort(ABC):
-    """Port interface for low-level Blender operations via socket connection."""
+class IBlenderSocketAdapterProtocol(ABC):
+    """Protocol for low-level Blender operations via socket connection."""
 
     @abstractmethod
     async def execute_code(self, code: PythonCode) -> StatusString:
@@ -38,8 +35,8 @@ class BlenderPort(ABC):
     async def get_screenshot(
         self,
         max_size: MaxSize | None = None,
-        view_angle: ViewAngle = "PERSPECTIVE",
-        shading_mode: ShadingMode = "MATERIAL",
+        view_angle: str = "PERSPECTIVE",
+        shading_mode: str = "MATERIAL",
         show_overlays: bool = True,
         focus_object: ObjectName | None = None,
     ) -> tuple[ImageBytes, int, int]:

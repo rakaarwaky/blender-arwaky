@@ -269,11 +269,13 @@ from .asset.contract_import_export_protocol import ImportExportProtocol
 from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
-# Ports (infrastructure-facing contracts)
-from .server.contract_blender import BlenderPort
-from .server.contract_connection import BlenderConnectionPort
-from .server.contract_connection_factory import BlenderConnectionFactoryPort
-from .server.contract_code_execution import CodeExecutionPort
+# Protocols (inbound behavior interfaces — Capabilities implement these)
+from .server import (
+    IBlenderConnectionProtocol,
+    IBlenderSocketAdapterProtocol,
+    ICodeExecutionProtocol,
+    IBlenderServerAggregate,
+)
 from .common.contract_command_catalog import CommandCatalogPort
 from .scene.contract_scene_inspection import SceneInspectionPort
 from .render.contract_viewport_capture import ViewportCapturePort
@@ -449,11 +451,13 @@ __all__ = [
     "AssetSearchProtocol",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
+    # Protocols — Server domain (inbound behavior)
+    "IBlenderConnectionProtocol",
+    "IBlenderSocketAdapterProtocol",
+    "ICodeExecutionProtocol",
+    # Aggregates — Server domain (facade for Surface)
+    "IBlenderServerAggregate",
     # Contracts — Ports
-    "BlenderPort",
-    "BlenderConnectionPort",
-    "BlenderConnectionFactoryPort",
-    "CodeExecutionPort",
     "CommandCatalogPort",
     "SceneInspectionPort",
     "ViewportCapturePort",

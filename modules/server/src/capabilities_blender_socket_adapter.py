@@ -9,18 +9,17 @@ import os
 import tempfile
 from uuid import uuid4
 
-from modules.shared.src.server import BlenderConnectionPort, BlenderPort
+from modules.shared.src.server import IBlenderConnectionProtocol, IBlenderSocketAdapterProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     ErrorMessage,
-    ExecutionError,
     ImageBytes,
     MaxSize,
     ObjectName,
     PythonCode,
-    SceneInfo,
     StatusString,
 )
+from modules.shared.src.common.taxonomy_domain_error import ExecutionError
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -28,13 +27,13 @@ logger = logging.getLogger("BlenderMCPServer")
 IPC_TIMEOUT_S: float = 30.0
 
 
-class BlenderSocketAdapter(BlenderPort):
-    """Implementation of BlenderPort using a persistent socket connection."""
+class BlenderSocketAdapter(IBlenderSocketAdapterProtocol):
+    """Implementation of IBlenderSocketAdapterProtocol using a persistent socket connection."""
 
-    def __init__(self, connection_port: BlenderConnectionPort):
+    def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection = connection_port
 
-    def _get_conn(self) -> BlenderConnectionPort:
+    def _get_conn(self) -> IBlenderConnectionProtocol:
         """Internal helper for connection access."""
         if not self._connection:
             raise ConnectionError(ErrorMessage("Blender connection not initialized"))

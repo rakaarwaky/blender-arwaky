@@ -131,6 +131,12 @@ ScaleFactor = NewType("ScaleFactor", float)
 ImageBytes = NewType("ImageBytes", bytes)
 BBoxIntegers = NewType("BBoxIntegers", list[int])
 
+# Server-specific VOs for request correlation
+RequestId = NewType("RequestId", str)
+QueueWaitMs = NewType("QueueWaitMs", float)
+ProtocolVersion = NewType("ProtocolVersion", str)
+AuthToken = NewType("AuthToken", str)
+
 # Details type alias (used in error handling)
 Details = dict[str, Any]
 

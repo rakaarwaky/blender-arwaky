@@ -10,7 +10,7 @@ import threading
 import time
 from typing import Any
 
-from modules.shared.src.server import BlenderConnectionFactoryPort, BlenderConnectionPort
+from modules.shared.src.server import IBlenderConnectionProtocol
 from modules.config.src.contract_config import ConfigPort
 from modules.shared.src import (
     ActionName,
@@ -29,10 +29,14 @@ RETRY_DELAY = 1.0
 RECEIVE_TIMEOUT = 180.0
 
 
-class BlenderConnection(BlenderConnectionPort):
-    """Manages persistent socket connection to Blender addon"""
+class BlenderConnection(IBlenderConnectionProtocol):
+    """Manages persistent socket connection to Blender addon.
 
-    def __init__(self, host: str = "localhost", port: int = 9876):
+    Implements IBlenderConnectionProtocol for TCP socket connection
+    lifecycle, heartbeat monitoring, and command dispatch.
+    """
+
+    def __init__(self, host: str = "localhost", port: int = 9876) -> None:
         self.host = host
         self.port = port
         self.sock: socket.socket | None = None
@@ -202,10 +206,11 @@ class BlenderConnection(BlenderConnectionPort):
 # ─── BlenderConnectionFactory ─────────────────────────────────────────────────
 
 
-class BlenderConnectionFactory(BlenderConnectionFactoryPort):
+class BlenderConnectionFactory:
     """Factory that creates and manages a singleton BlenderConnection.
 
-    Accepts ConfigPort for reading host/port from config.yaml.
+    Provides factory pattern with ConfigPort for reading host/port from config.
+    Not a protocol implementor — just a static factory utility.
     """
 
     def __init__(self, config: ConfigPort | None = None) -> None:
@@ -213,7 +218,7 @@ class BlenderConnectionFactory(BlenderConnectionFactoryPort):
         self._connection: BlenderConnection | None = None
         self._lock = threading.Lock()
 
-    def get_connection(self) -> BlenderConnectionPort:
+    def get_connection(self) -> IBlenderConnectionProtocol:
         host = "localhost"
         port = 9876
         if self._config is not None:
