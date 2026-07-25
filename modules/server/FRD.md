@@ -1,4 +1,3 @@
-
 # FRD — Server Feature Module
 
 ## System Overview
@@ -11,7 +10,7 @@ The module also defines connection state handling, heartbeat behavior, protocol 
 
 ## Functional Requirements
 
-### FR-SRV-001: Manage Blender Socket Connection
+### FR-SRV-001: Blender Socket Connection
 
 - **Description:** Establish and maintain TCP socket connection to Blender addon
 - **Input:** ConnectionConfig (host, port, timeout, retry_policy, auth_token, protocol_version, heartbeat_interval_seconds, heartbeat_failure_threshold)
@@ -72,7 +71,7 @@ The module also defines connection state handling, heartbeat behavior, protocol 
 - **Edge Cases:** Code execution timeout, syntax error, Blender exception, Blender crash during execution, blocked pattern detected, obfuscated blocked pattern, oversized payload, oversized output, non-serializable return value, connection lost during execution, async task expired, async task cancelled, queue full, queue wait timeout
 - **Error Handling:** `ExecutionError` with error details from Blender; `SecurityViolationError` for blocked patterns; `ExecutionTimeoutError` for timeout; `QueueFullError` when queue depth limit exceeded; `QueueTimeoutError` when request waits too long in queue; `TaskNotFoundError` for unknown/expired async task; `BlenderConnectionFailure` for connection loss
 
-### FR-SRV-003: Send Blender Commands
+### FR-SRV-003: Blender Commands
 
 - **Description:** Dispatch named commands to Blender addon
 - **Input:** ActionName (enum), command arguments (dict), optional timeout_ms
@@ -117,15 +116,15 @@ The module also defines connection state handling, heartbeat behavior, protocol 
 ## API Contract
 
 
-| Operation               | Input            | Output                | Description                                  |
-| ------------------------- | ------------------ | ----------------------- | ---------------------------------------------- |
+| Operation               | Input            | Output                               | Description                                  |
+| ------------------------- | ------------------ | -------------------------------------- | ---------------------------------------------- |
 | `connect`               | ConnectionConfig | contract_blender_connection_protocol | Establish TCP socket connection              |
-| `disconnect`            | —               | —                    | Close connection gracefully                  |
-| `send_command`          | ActionName, dict | dict                  | Send command to Blender (5s timeout)         |
-| `execute_blender_code`  | Prompt (str)     | ExecutionResult       | Execute Python code in Blender (30s timeout) |
-| `submit_async_task`     | Prompt (str)     | task_id (str)         | Submit long-running code for async execution |
-| `poll_task_result`      | task_id (str)    | ExecutionResult       | Poll async task status and result            |
-| `get_connection_status` | —               | ConnectionStatus      | Return current connection state              |
+| `disconnect`            | —               | —                                   | Close connection gracefully                  |
+| `send_command`          | ActionName, dict | dict                                 | Send command to Blender (5s timeout)         |
+| `execute_blender_code`  | Prompt (str)     | ExecutionResult                      | Execute Python code in Blender (30s timeout) |
+| `submit_async_task`     | Prompt (str)     | task_id (str)                        | Submit long-running code for async execution |
+| `poll_task_result`      | task_id (str)    | ExecutionResult                      | Poll async task status and result            |
+| `get_connection_status` | —               | ConnectionStatus                     | Return current connection state              |
 
 Additional contract behavior:
 

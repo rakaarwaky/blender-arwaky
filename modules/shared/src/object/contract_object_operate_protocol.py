@@ -25,7 +25,9 @@ from .contract_place_asset_protocol import PlaceAssetProtocol
 from .contract_set_material_protocol import SetMaterialProtocol
 from .contract_set_transform_protocol import SetObjectTransformProtocol
 
-# Re-export old monolithic protocol for backward compatibility
+# Re-export aggregate facade as ObjectOperateProtocol for backward compatibility
+from .contract_object_operate_aggregate import ObjectOperateAggregate as ObjectOperateProtocol
+
 __all__ = [
     "ApplyModifierProtocol",
     "CreatePrimitiveProtocol",
@@ -34,4 +36,5 @@ __all__ = [
     "PlaceAssetProtocol",
     "SetMaterialProtocol",
     "SetObjectTransformProtocol",
+    "ObjectOperateProtocol",
 ]

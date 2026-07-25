@@ -1,13 +1,16 @@
 """Server feature module — Blender TCP socket communication.
 
 Layers:
-  - agent_server_orchestrator.py → Agent: ServerOrchestrator (IBlenderServerAggregate)
-  - capabilities_blender_connection.py → Capabilities: BlenderConnection, BlenderConnectionFactory
-  - capabilities_blender_socket_adapter.py → Capabilities: BlenderSocketAdapter
-  - capabilities_code_execution_adapter.py → Capabilities: CodeExecutionAdapter
-  - capabilities_blender_command_adapter.py → Capabilities: BlenderCommandAdapter
-  - capabilities_server_queue.py → Capabilities: ExecutionQueue (IExecutionQueueProtocol)
-  - capabilities_server_task_manager.py → Capabilities: TaskManager (ITaskManagerProtocol)
+  - Taxonomy (shared): ConnectionStatus, ExecutionResult, TaskStatus, ConnectionConfig, errors, constants
+  - Contracts (shared): IBlenderServerAggregate, protocol ABCs
+  - Utility (shared): IO, message framing, string helpers, time utils, AST validator
+  - Capabilities: BlenderConnection, BlenderSocketAdapter, CodeExecutionAdapter,
+                  BlenderCommandAdapter, ExecutionQueue, TaskManager
+  - Agent: ServerOrchestrator (IBlenderServerAggregate)
+  - Root: ServerContainer (DI container wiring all layers)
+
+Note: No Surface layer — server is an internal module.
+Surface handlers live in CLI and MCP modules.
 """
 
 from .agent_server_orchestrator import ServerOrchestrator
@@ -17,11 +20,12 @@ from .capabilities_blender_socket_adapter import BlenderSocketAdapter
 from .capabilities_code_execution_adapter import CodeExecutionAdapter
 from .capabilities_server_queue import ExecutionQueue
 from .capabilities_server_task_manager import TaskManager
+from .root_server_container import ServerContainer, create_container
 
 __all__ = [
-    # Agent
+    # ─── Agent ────────────────────────────────────────────────
     "ServerOrchestrator",
-    # Capabilities
+    # ─── Capabilities ─────────────────────────────────────────
     "BlenderCommandAdapter",
     "BlenderConnection",
     "BlenderConnectionFactory",
@@ -29,4 +33,7 @@ __all__ = [
     "CodeExecutionAdapter",
     "ExecutionQueue",
     "TaskManager",
+    # ─── Root (DI Container) ──────────────────────────────────
+    "ServerContainer",
+    "create_container",
 ]

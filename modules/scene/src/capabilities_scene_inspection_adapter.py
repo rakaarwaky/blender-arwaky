@@ -1,52 +1,54 @@
+"""Capability: Scene inspection adapter.
+
+Implements SceneInspectionPort — handles scene info, object info, and cleanup
+through the server module's command dispatch and code execution capabilities.
+"""
+
+from __future__ import annotations
+
 import json
 import logging
 
-from modules.shared.src import BlenderConnectionPort, CodeExecutionPort, SceneInspectionPort
-from modules.shared.src.common import ActionName, BlenderObject, BlenderObjectList, ObjectName, ObjectType, Prompt, SceneInfo, Vector3D
+from modules.shared.src.common.taxonomy_core_vo import ActionName, ObjectName, Prompt
+from modules.shared.src.scene.contract_scene_inspection import SceneInspectionPort
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class SceneInspectionAdapter(SceneInspectionPort):
-    """Wrapper class for scene inspection functions."""
+    """Scene inspection functions via server command dispatch."""
 
-    _scene_entity_ref: SceneInfo = SceneInfo(objects=BlenderObjectList([]))
-    _object_entity_ref: BlenderObject = BlenderObject(
-        name=ObjectName("ref"),
-        type=ObjectType("MESH"),
-        location=Vector3D(0.0, 0.0, 0.0),
-        rotation=Vector3D(0.0, 0.0, 0.0),
-        scale=Vector3D(1.0, 1.0, 1.0),
-    )
+    def __init__(self, command_sender: Prompt, code_executor: Prompt) -> None:
+        """Initialize with server module capabilities.
 
-    def __init__(self, connection_port: BlenderConnectionPort, execution_port: CodeExecutionPort):
-        self._connection_port = connection_port
-        self._execution_port = execution_port
+        Args:
+            command_sender: A callable that sends commands to Blender.
+            code_executor: A callable that executes Python code in Blender.
+        """
+        self._command_sender = command_sender
+        self._code_executor = code_executor
 
     async def get_scene_info(self) -> Prompt:
-        """Get detailed information about the current Blender scene."""
         try:
-            result = self._connection_port.send_command(ActionName("get_scene_info"))
+            result = self._command_sender(ActionName("get_scene_info"))
             return Prompt(json.dumps(result, indent=2))
         except Exception as e:
-            logger.error(f"Error getting scene info from Blender: {str(e)}")
-            return Prompt(f"Error getting scene info: {str(e)}")
+            logger.error("Error getting scene info from Blender: %s", e)
+            return Prompt(f"Error getting scene info: {e}")
 
     async def get_object_info(self, object_name: ObjectName) -> Prompt:
-        """Get detailed info about a specific object in the scene."""
         try:
-            result = self._connection_port.send_command(ActionName("get_object_info"), {"name": object_name})
+            result = self._command_sender(ActionName("get_object_info"), {"name": object_name})
             return Prompt(json.dumps(result, indent=2))
         except Exception as e:
-            logger.error(f"Error getting object info from Blender: {str(e)}")
-            return Prompt(f"Error getting object info: {str(e)}")
+            logger.error("Error getting object info from Blender: %s", e)
+            return Prompt(f"Error getting object info: {e}")
 
     async def cleanup_scene(self) -> Prompt:
-        """Remove all objects from the scene."""
         code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
         try:
-            result = await self._execution_port.execute_blender_code(Prompt(code))
+            result = await self._code_executor(Prompt(code))
             return result
         except Exception as e:
-            logger.error(f"Cleanup failed: {e}")
+            logger.error("Cleanup failed: %s", e)
             return Prompt(f"Error cleaning scene: {e}")

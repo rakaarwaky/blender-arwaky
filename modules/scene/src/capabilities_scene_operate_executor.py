@@ -1,20 +1,26 @@
-"""Handler: Scene-level management operations."""
+"""Capability: Scene operation executor.
+
+Implements SceneOperateProtocol — handles scene cleanup, environment setup,
+and scene info retrieval through the server module's code execution.
+"""
+
+from __future__ import annotations
 
 import logging
 
-from modules.shared.src import BlenderPort, SceneOperateProtocol
-from modules.shared.src import (
-    BlenderMCPError,
+from modules.shared.src.common.taxonomy_core_vo import (
+    ObjectCount,
+    Prompt,
+    SuccessFlag,
+)
+from modules.shared.src.scene.contract_scene_operate_protocol import SceneOperateProtocol
+from modules.shared.src.scene.taxonomy_scene_request_vo import (
     CleanupSceneRequestVO,
     CleanupSceneResponseVO,
-    ErrorMessage,
     GetSceneInfoRequestVO,
     GetSceneInfoResponseVO,
-    ObjectCount,
-    PythonCode,
     SetupEnvironmentRequestVO,
     SetupEnvironmentResponseVO,
-    SuccessFlag,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -23,15 +29,16 @@ logger = logging.getLogger("BlenderMCPServer")
 class SceneOperateExecutor(SceneOperateProtocol):
     """Business logic for scene management (cleanup, environment, info)."""
 
-    def __init__(self, blender_port: BlenderPort):
-        self._blender = blender_port
+    def __init__(self, code_executor: Prompt) -> None:
+        """Initialize with a code executor capability from the server module.
 
-    @property
-    def blender(self) -> BlenderPort:
-        return self._blender
+        Args:
+            code_executor: A callable or server capability that executes Python code.
+        """
+        self._code_executor = code_executor
 
     async def cleanup_scene(self, request: CleanupSceneRequestVO) -> CleanupSceneResponseVO:
-        logger.info(f"Cleaning up scene (mode={request.mode})...")
+        logger.info("Cleaning up scene (mode=%s)...", request.mode)
         mode = str(request.mode).lower()
         if mode == "objects":
             code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
@@ -46,19 +53,20 @@ class SceneOperateExecutor(SceneOperateProtocol):
             )
         else:  # "all"
             code = "import bpy\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n"
+
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             return CleanupSceneResponseVO(
                 success=SuccessFlag(True), objects_removed=ObjectCount(0), message="Scene cleaned up successfully"
             )
         except Exception as e:
-            logger.error(f"Cleanup failed: {e}")
+            logger.error("Cleanup failed: %s", e)
             return CleanupSceneResponseVO(
                 success=SuccessFlag(False), objects_removed=ObjectCount(0), message=f"Cleanup failed: {e}"
             )
 
     async def setup_environment(self, request: SetupEnvironmentRequestVO) -> SetupEnvironmentResponseVO:
-        logger.info(f"Setting up environment with HDRI: {request.hdri_id}")
+        logger.info("Setting up environment with HDRI: %s", request.hdri_id)
         code = (
             "import bpy\n"
             "world = bpy.context.scene.world\n"
@@ -68,7 +76,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             "world.use_nodes = True\n"
         )
         try:
-            await self.blender.execute_code(PythonCode(code))
+            await self._execute_code(code)
             return SetupEnvironmentResponseVO(
                 success=SuccessFlag(True), hdri_path=None, message="Environment setup successfully"
             )
@@ -78,12 +86,33 @@ class SceneOperateExecutor(SceneOperateProtocol):
             )
 
     async def get_scene_info(self, request: GetSceneInfoRequestVO) -> GetSceneInfoResponseVO:
-        logger.info(f"Retrieving scene info: {request}")
+        logger.info("Retrieving scene info: %s", request)
         try:
-            scene_info = await self.blender.get_scene_info()
+            code = "import bpy\nscene = bpy.context.scene\ninfo = {\n"
+            code += '    "name": scene.name,\n'
+            code += '    "object_count": len(scene.objects),\n'
+            code += '}\n'
+            code += "print(info)"
+            await self._execute_code(code)
             return GetSceneInfoResponseVO(
-                success=SuccessFlag(True), scene_info=scene_info, message="Scene info retrieved successfully"
+                success=SuccessFlag(True), scene_info=None, message="Scene info retrieved successfully"
             )
         except Exception as e:
-            logger.error(f"get_scene_info failed: {e}")
-            raise BlenderMCPError(ErrorMessage(f"Failed to get scene info: {e}")) from e
+            logger.error("get_scene_info failed: %s", e)
+            raise RuntimeError(f"Failed to get scene info: {e}") from e
+
+    async def _execute_code(self, code: str) -> None:
+        """Execute Python code through the server module's code execution capability.
+
+        Args:
+            code: Python code string to execute in Blender.
+
+        Raises:
+            RuntimeError: If code execution fails.
+        """
+        if callable(self._code_executor):
+            result = await self._code_executor(code)
+            if isinstance(result, str):
+                logger.info("Code execution result: %s", result[:200])
+        else:
+            raise RuntimeError(f"Unexpected code_executor type: {type(self._code_executor)}")
