@@ -17,20 +17,12 @@ from modules.shared.src.server import (
     ICodeExecutionProtocol,
     IExecutionQueueProtocol,
     ITaskManagerProtocol,
-)
-from modules.shared.src.server import (
     QueueConfig,
     TaskManagerConfig,
 )
 
-# Lazy imports to avoid circular deps at module load time
 if TYPE_CHECKING:
-    from .agent_server_orchestrator import ServerOrchestrator
-    from .capabilities_blender_command_adapter import BlenderCommandAdapter
-    from .capabilities_blender_connection import BlenderConnection, BlenderConnectionFactory
-    from .capabilities_code_execution_adapter import CodeExecutionAdapter
-    from .capabilities_server_queue import ExecutionQueue
-    from .capabilities_server_task_manager import TaskManager
+    pass
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -62,6 +54,8 @@ class ServerContainer:
 
     def _build_connection(self) -> IBlenderConnectionProtocol:
         """Build and return the Blender connection capability."""
+        from .capabilities_blender_connection import BlenderConnection
+
         conn = BlenderConnection(host=self._host, port=self._port)
         logger.info("Created connection to %s:%d", self._host, self._port)
         return conn
@@ -71,6 +65,8 @@ class ServerContainer:
         connection: IBlenderConnectionProtocol,
     ) -> IBlenderCommandProtocol:
         """Build command dispatch capability."""
+        from .capabilities_blender_command_adapter import BlenderCommandAdapter
+
         return BlenderCommandAdapter(connection)
 
     def _build_code_executor(
@@ -78,14 +74,20 @@ class ServerContainer:
         connection: IBlenderConnectionProtocol,
     ) -> ICodeExecutionProtocol:
         """Build code execution capability with AST validation."""
+        from .capabilities_code_execution_adapter import CodeExecutionAdapter
+
         return CodeExecutionAdapter(connection)
 
     def _build_queue(self) -> IExecutionQueueProtocol:
         """Build serialized execution queue."""
+        from .capabilities_server_queue import ExecutionQueue
+
         return ExecutionQueue(config=self._queue_config)
 
     def _build_task_manager(self) -> ITaskManagerProtocol:
         """Build async task lifecycle manager."""
+        from .capabilities_server_task_manager import TaskManager
+
         return TaskManager(config=self._task_config)
 
     def get_aggregate(self) -> IBlenderServerAggregate:
@@ -109,6 +111,7 @@ class ServerContainer:
             task_manager = self._build_task_manager()
             code_executor = self._build_code_executor(connection)
             command_adapter = self._build_command_adapter(connection)
+            logger.debug("Command adapter initialized: %s", command_adapter)
 
             from .agent_server_orchestrator import ServerOrchestrator
 

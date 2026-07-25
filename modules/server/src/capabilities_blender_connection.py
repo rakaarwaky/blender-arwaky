@@ -6,30 +6,17 @@ and connection status reporting per FR-SRV-001 / FR-SRV-004.
 """
 
 from __future__ import annotations
-from typing import Any
 
 import contextlib
 import json
 import logging
 import os
-import random
 import select
 import socket
 import threading
 import time
+from typing import Any
 
-
-from modules.shared.src.server import (
-    AuthenticationError,
-    BlenderConnectionExhausted,
-    ConnectionConfigError,
-    IBlenderConnectionProtocol,
-    ProtocolVersionMismatchError,
-    CONNECTION_TIMEOUT_SECONDS,
-    MAX_RECONNECT_ATTEMPTS,
-    RETRY_BASE_DELAY_SECONDS,
-    RETRY_MAX_DELAY_SECONDS,
-)
 from modules.config.src.contract_config import ConfigPort
 from modules.shared.src import (
     ActionName,
@@ -40,7 +27,16 @@ from modules.shared.src import (
     ExecutionError,
     SuccessFlag,
 )
-from modules.shared.src.server import ConnectionStatus
+from modules.shared.src.server import (
+    CONNECTION_TIMEOUT_SECONDS,
+    MAX_RECONNECT_ATTEMPTS,
+    RETRY_BASE_DELAY_SECONDS,
+    RETRY_MAX_DELAY_SECONDS,
+    BlenderConnectionExhausted,
+    ConnectionConfigError,
+    ConnectionStatus,
+    IBlenderConnectionProtocol,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -60,19 +56,19 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self.port = port
         self.sock: socket.socket | None = None
         self._lock = threading.Lock()
-        
+
         # Heartbeat configuration (FR-SRV-001)
         self._heartbeat_interval = 10  # seconds
         self._heartbeat_failure_threshold = 3
         self._consecutive_failures = 0
         self._last_heartbeat_at: float | None = None
-        
+
         # Connection state tracking (FR-SRV-001)
         self._state: str = "disconnected"
         self._reconnect_attempts: int = 0
         self._protocol_version: str | None = None
         self._last_error: str | None = None
-        
+
         # Heartbeat thread
         self._heartbeat_thread: threading.Thread | None = None
         self._stop_heartbeat = threading.Event()
@@ -91,7 +87,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
             # Update state
             self._state = "connecting"
             self._last_error = None
-            
+
             if self.sock is not None:
                 if self._is_socket_alive():
                     return SuccessFlag(True)
@@ -102,18 +98,18 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.sock.settimeout(CONNECTION_TIMEOUT_SECONDS)
                     self.sock.connect((self.host, self.port))
-                    
+
                     # Update state on success
                     self._state = "connected"
                     self._reconnect_attempts = attempt + 1
                     self._consecutive_failures = 0
                     self._last_heartbeat_at = time.time()
                     logger.info("Connected to Blender at %s:%d", self.host, self.port)
-                    
+
                     # Start heartbeat monitoring
                     self._start_heartbeat()
                     return SuccessFlag(True)
-                    
+
                 except Exception as e:
                     self._state = "failed"
                     self._last_error = str(e)
@@ -124,14 +120,14 @@ class BlenderConnection(IBlenderConnectionProtocol):
                         e,
                     )
                     self._close_socket()
-                    
+
                     if attempt < MAX_RECONNECT_ATTEMPTS - 1:
                         # Exponential backoff with jitter (FR-SRV-001)
                         base_delay = min(
                             RETRY_BASE_DELAY_SECONDS * (2**attempt),
                             RETRY_MAX_DELAY_SECONDS,
                         )
-                        jitter = random.uniform(0, 0.5 * base_delay)
+                        jitter = (time.monotonic() % 0.5) * base_delay
                         delay = base_delay + jitter
                         logger.debug("Waiting %.1f seconds before reconnect attempt %d", delay, attempt + 2)
                         time.sleep(delay)
@@ -141,13 +137,13 @@ class BlenderConnection(IBlenderConnectionProtocol):
             raise BlenderConnectionExhausted(ErrorMessage("Failed to connect after all retry attempts"))
 
     # ─── Heartbeat Management (FR-SRV-001) ──────────────────
-    
+
     def _start_heartbeat(self) -> None:
         """Start heartbeat monitoring thread."""
         self._stop_heartbeat.clear()
         self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
         self._heartbeat_thread.start()
-    
+
     def _heartbeat_loop(self) -> None:
         """Heartbeat monitoring loop. Checks connection liveness periodically."""
         while not self._stop_heartbeat.is_set():
@@ -155,7 +151,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 time.sleep(self._heartbeat_interval)
                 if self._stop_heartbeat.is_set():
                     break
-                
+
                 # Check if socket is alive
                 if not self._is_socket_alive():
                     self._consecutive_failures += 1
@@ -164,7 +160,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                         self._consecutive_failures,
                         self._heartbeat_failure_threshold,
                     )
-                    
+
                     if self._consecutive_failures >= self._heartbeat_failure_threshold:
                         self._state = "reconnecting"
                         logger.info("Heartbeat threshold reached, triggering reconnect")
@@ -175,18 +171,18 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     # Success - reset failure count
                     self._consecutive_failures = 0
                     self._last_heartbeat_at = time.time()
-                    
+
             except Exception as e:
                 logger.error("Heartbeat error: %s", e)
                 self._consecutive_failures += 1
-    
+
     def _reconnect_background(self) -> None:
         """Background reconnect attempt."""
         try:
             self.connect()
         except Exception as e:
             logger.error("Background reconnect failed: %s", e)
-    
+
     def stop_heartbeat(self) -> None:
         """Stop heartbeat monitoring thread."""
         self._stop_heartbeat.set()
@@ -195,7 +191,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self._heartbeat_thread = None
 
     # ─── Block 3: Protocol Method Implementation & Helpers ──────
-    
+
     async def get_status(self) -> ConnectionStatus:  # FR-SRV-001
         """Return current connection state with metadata."""
         return ConnectionStatus(
@@ -405,7 +401,7 @@ class BlenderConnectionFactory:
         """
         host = "localhost"
         port = 9876
-        
+
         if self._config is not None:
             host_val = self._config.get(ConfigPath("blender.host"), "localhost")
             host = str(host_val) if host_val is not None else "localhost"
@@ -416,7 +412,7 @@ class BlenderConnectionFactory:
         env_host = os.getenv("BLENDER_HOST")
         if env_host:
             host = env_host
-        
+
         env_port = os.getenv("BLENDER_PORT")
         if env_port:
             port = int(env_port)

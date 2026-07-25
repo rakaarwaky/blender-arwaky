@@ -12,78 +12,42 @@ import asyncio
 import logging
 import time
 from typing import Any
-from uuid import uuid4
 
+from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
+from modules.shared.src.common.taxonomy_domain_error import SecurityViolationError, ValidationError
 from modules.shared.src.server import (
-    IBlenderConnectionProtocol,
-    ICodeExecutionProtocol,
-    check_payload_size,
+    DEFAULT_TASK_RETENTION_SECONDS,
+    MAX_CODE_PAYLOAD_BYTES,
     ExecutionResult,
     ExecutionStatus,
-    SecurityViolationError,
+    IBlenderConnectionProtocol,
+    ICodeExecutionProtocol,
     TaskNotFoundError,
-    MAX_CODE_PAYLOAD_BYTES,
+    check_payload_size,
 )
-from modules.shared.src.server import DEFAULT_TASK_RETENTION_SECONDS
-from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
 
 logger = logging.getLogger("BlenderMCPServer")
 
 # Default AST-based blocked patterns for code validation (FRD-SRV-002)
 _BLOCKED_ATTRS: set[str] = {
-    "system", "popen", "exec_module", "load_module",
-    "rmtree", "move", "unlink", "remove", "rmdir",
+    "system",
+    "popen",
+    "exec_module",
+    "load_module",
+    "rmtree",
+    "move",
+    "unlink",
+    "remove",
+    "rmdir",
 }
 
 _BLOCKED_MODULES: set[str] = {
-    "subprocess", "importlib", "socket", "requests", "urllib",
+    "subprocess",
+    "importlib",
+    "socket",
+    "requests",
+    "urllib",
 }
-
-
-def _validate_code_ast(code: str) -> None:
-    """AST-based static analysis for blocked Python constructs.
-
-    Implements FRD-SRV-002: code validated before sending using
-    AST-based static analysis, not only regex or simple string matching.
-
-    Raises SecurityViolationError if any blocked pattern is detected.
-    Server-side validation is a pre-filter only; Blender addon must
-    perform runtime enforcement as the final authority.
-    """
-    try:
-        tree = ast.parse(code)
-    except SyntaxError as e:
-        raise ValidationError(ErrorMessage(f"Invalid syntax in submitted code: {e}"))
-
-    for node in ast.walk(tree):
-        # Check attribute calls (e.g., os.system, subprocess.Popen)
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Attribute):
-                attr_name = node.func.attr
-                if attr_name in _BLOCKED_ATTRS:
-                    raise SecurityViolationError(
-                        ErrorMessage(f"Blocked construct detected: {attr_name}")
-                    )
-
-        # Check module imports
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name in _BLOCKED_MODULES:
-                        raise SecurityViolationError(
-                            ErrorMessage(f"Blocked module import: {alias.name}")
-                        )
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                if node.module in _BLOCKED_MODULES:
-                    raise SecurityViolationError(
-                        ErrorMessage(f"Blocked module import: {node.module}")
-                    )
-
-        # Check eval/exec/compile/__import__ calls
-        if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec", "compile", "__import__"):
-            raise SecurityViolationError(
-                ErrorMessage(f"Blocked function call: {node.func.id}")
-            )
 
 
 class CodeExecutionAdapter(ICodeExecutionProtocol):
@@ -101,7 +65,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
 
         Validates code against AST-based denylist (FR-SRV-002),
         enforces payload size limits, and returns standardized ExecutionResult.
-        
+
         Raises:
             SecurityViolationError: if code contains blocked patterns or exceeds size.
             ValidationError: if code is empty or syntax error.
@@ -127,18 +91,20 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code_str}),
+                lambda: self._connection_port.send_command(
+                    ActionName("execute_code"), {"code": code_str}
+                ),
             )
-            
+
             # Truncate output if too large (FR-SRV-002)
             data = result.get("result", "")
             truncated = False
             max_output_bytes = 10_000  # 10KB max output
-            
+
             if isinstance(data, str) and len(data.encode("utf-8")) > max_output_bytes:
                 data = data[:max_output_bytes] + "\n...[truncated]"
                 truncated = True
-            
+
             return ExecutionResult(
                 status=ExecutionStatus("success"),
                 data=data,
@@ -156,14 +122,14 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         """Submit long-running code for async execution. Returns task_id and status."""
         _validate_code_ast(code)
 
-        task_id = f"task_{request_id}_{uuid4().hex[:8]}"
+        task_id = f"task_{request_id}_{int(time.monotonic() * 1000) % 1000000:06d}"
         self._tasks[task_id] = {
             "state": "pending",
             "code": code,
             "created_at": time.monotonic(),
             "result": None,
         }
-        logger.info("Submitted async task %s", task_id)
+        logger.info("Submitted async task %s for request %s", task_id, request_id)
 
         # Start async execution in background
         asyncio.ensure_future(self._run_async_task(task_id, code))
@@ -180,7 +146,9 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code}),
+                lambda: self._connection_port.send_command(
+                    ActionName("execute_code"), {"code": code}
+                ),
             )
             task = self._tasks.get(task_id)
             if task:
@@ -194,10 +162,11 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 task["result"] = {"error": str(e)}
                 task["completed_at"] = time.monotonic()
 
-    async def poll_task_result(self, task_id: str, request_id: str) -> ExecutionResult:
+    async def poll_task_result(self, task_id: str, request_id: str = "") -> ExecutionResult:
         """Poll async task status and final result."""
         task = self._tasks.get(task_id)
         if task is None:
+            logger.debug("Task %s not found for request %s", task_id, request_id)
             raise TaskNotFoundError(ErrorMessage(f"Task not found: {task_id}"))
 
         # Check TTL expiry
@@ -230,3 +199,54 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ────────
     def __repr__(self) -> str:
         return "CodeExecutionAdapter()"
+
+
+def _validate_code_ast(code: str) -> None:
+    """AST-based static analysis for blocked Python constructs.
+
+    Implements FRD-SRV-002: code validated before sending using
+    AST-based static analysis, not only regex or simple string matching.
+
+    Raises SecurityViolationError if any blocked pattern is detected.
+    Server-side validation is a pre-filter only; Blender addon must
+    perform runtime enforcement as the final authority.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        raise ValidationError(ErrorMessage(f"Invalid syntax in submitted code: {e}")) from e
+
+    for node in ast.walk(tree):
+        # Check attribute calls (e.g., os.system, subprocess.Popen)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in _BLOCKED_ATTRS
+        ):
+            raise SecurityViolationError(
+                ErrorMessage(f"Blocked construct detected: {node.func.attr}")
+            )
+
+        # Check module imports
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in _BLOCKED_MODULES:
+                        raise SecurityViolationError(
+                            ErrorMessage(f"Blocked module import: {alias.name}")
+                        )
+            elif isinstance(node, ast.ImportFrom) and node.module and node.module in _BLOCKED_MODULES:
+                raise SecurityViolationError(
+                    ErrorMessage(f"Blocked module import: {node.module}")
+                )
+
+        # Check eval/exec/compile/__import__ calls
+        if isinstance(node.func, ast.Name) and node.func.id in (
+            "eval",
+            "exec",
+            "compile",
+            "__import__",
+        ):
+            raise SecurityViolationError(
+                ErrorMessage(f"Blocked function call: {node.func.id}")
+            )

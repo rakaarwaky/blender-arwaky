@@ -12,15 +12,15 @@ import logging
 import time
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
 from modules.shared.src.server import (
+    DEFAULT_COMMAND_TIMEOUT_MS,
     CommandTimeoutError,
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
     get_command_schema,
 )
-from modules.shared.src.server import DEFAULT_COMMAND_TIMEOUT_MS
-from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage
-from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 

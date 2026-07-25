@@ -11,6 +11,11 @@ import logging
 import time
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    Prompt,
+    StatusString,
+)
 from modules.shared.src.server import (
     CommandTimeoutError,
     ConnectionConfig,
@@ -22,14 +27,7 @@ from modules.shared.src.server import (
     IExecutionQueueProtocol,
     ITaskManagerProtocol,
     QueueFullError,
-    QueueTimeoutError,
     TaskNotFoundError,
-)
-from modules.shared.src.common.taxonomy_core_vo import (
-    ActionName,
-    ErrorMessage,
-    Prompt,
-    StatusString,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -73,11 +71,13 @@ class ServerOrchestrator(IBlenderServerAggregate):
 
     async def get_status(self) -> ConnectionStatus:
         """Return current connection state with metadata."""
+        host_val = str(getattr(self._connection, "host", "localhost"))
+        port_val = int(getattr(self._connection, "port", 9876))
         return ConnectionStatus(
             state="connected",
             transport_type="socket",
-            host=self._connection.host,  # type: ignore[attr-defined]
-            port=self._connection.port,  # type: ignore[attr-defined]
+            host=host_val,
+            port=port_val,
         )
 
     async def execute_code(self, code: str, request_id: str) -> ExecutionResult:
@@ -113,7 +113,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
             )
         except Exception as e:
             elapsed_ms = (time.monotonic() - start) * 1000
-            logger.error("Code execution failed: %s", e)
+            logger.error("Code execution failed for request %s: %s", request_id, e)
             return ExecutionResult(
                 status=StatusString("error"),
                 error=ExecutionErrorDetail(
@@ -129,6 +129,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
         Creates task entry with configurable TTL retention via TaskManager,
         returns task_id and initial pending status per FRD-SRV-002.
         """
+        logger.info("Submitting async task for request %s (code length=%d)", request_id, len(code))
         if self._task_manager is None:
             # Fallback to in-memory tracking if no TaskManager configured
             task_id = f"task_{request_id}_{int(time.monotonic() * 1000)}"
@@ -137,12 +138,13 @@ class ServerOrchestrator(IBlenderServerAggregate):
         task_id = self._task_manager.create_task(request_id)
         return {"task_id": task_id, "status": "pending"}
 
-    async def poll_task_result(self, task_id: str, request_id: str) -> ExecutionResult:
+    async def poll_task_result(self, task_id: str, request_id: str = "") -> ExecutionResult:
         """Poll async task status and final result.
 
         Returns ExecutionResult with current task state. Unknown or
         expired tasks raise TaskNotFoundError per FRD-SRV-002.
         """
+        logger.debug("Polling task %s for request %s", task_id, request_id)
         if self._task_manager is not None:
             try:
                 task_status = self._task_manager.get_task(task_id)
@@ -205,7 +207,11 @@ class ServerOrchestrator(IBlenderServerAggregate):
                 await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
 
             # Dispatch through connection protocol
-            result = await self._connection.send_command(ActionName(action), params)
+            cmd_params = dict(params or {})
+            if timeout_ms is not None:
+                cmd_params["timeout_ms"] = timeout_ms
+
+            result = await self._connection.send_command(ActionName(action), cmd_params)
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.info(
                 "Command %s completed in %.1fms",

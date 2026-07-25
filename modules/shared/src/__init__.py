@@ -283,7 +283,10 @@ from .render.contract_viewport_capture import ViewportCapturePort
 from .asset.contract_asset_provider import AssetProviderPort
 from .asset.contract_polyhaven_api import PolyhavenApiPort
 from .asset.contract_sketchfab_api import SketchfabApiPort
+from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
+from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
 from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
+from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
 
 __all__ = [
     # Domain folders
@@ -466,6 +469,9 @@ __all__ = [
     "AssetProviderPort",
     "SketchfabApiPort",
     "PolyhavenApiPort",
+    "TelemetryClassificationPort",
+    "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
+    "TelemetrySessionManagementPort",
     # Contracts — Aggregates
 ]

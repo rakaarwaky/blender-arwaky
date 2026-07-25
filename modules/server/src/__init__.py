@@ -16,7 +16,6 @@ Surface handlers live in CLI and MCP modules.
 from .agent_server_orchestrator import ServerOrchestrator
 from .capabilities_blender_command_adapter import BlenderCommandAdapter
 from .capabilities_blender_connection import BlenderConnection, BlenderConnectionFactory
-from .capabilities_blender_socket_adapter import BlenderSocketAdapter
 from .capabilities_code_execution_adapter import CodeExecutionAdapter
 from .capabilities_server_queue import ExecutionQueue
 from .capabilities_server_task_manager import TaskManager
@@ -29,7 +28,6 @@ __all__ = [
     "BlenderCommandAdapter",
     "BlenderConnection",
     "BlenderConnectionFactory",
-    "BlenderSocketAdapter",
     "CodeExecutionAdapter",
     "ExecutionQueue",
     "TaskManager",
