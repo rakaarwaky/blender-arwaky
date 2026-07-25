@@ -2,10 +2,7 @@
 
 import logging
 
-from modules.shared.src.common import (
-    BlenderPort,
-    ObjectOperateProtocol,
-)
+from modules.shared.src import BlenderPort, ObjectOperateProtocol
 from modules.shared.src.common import (
     ApplyModifierRequestVO,
     ApplyModifierResponseVO,

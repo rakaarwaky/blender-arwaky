@@ -4,7 +4,7 @@ import asyncio
 import logging
 import re
 
-from modules.shared.src.common import BlenderConnectionPort, CodeExecutionPort
+from modules.shared.src import BlenderConnectionPort, CodeExecutionPort
 from modules.shared.src.common import ActionName, ErrorMessage, Prompt
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 

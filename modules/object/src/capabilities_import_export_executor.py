@@ -3,10 +3,7 @@
 import json
 import logging
 
-from modules.shared.src.common import (
-    BlenderPort,
-    ImportExportProtocol,
-)
+from modules.shared.src import BlenderPort, ImportExportProtocol
 from modules.shared.src.common import (
     BlenderMCPError,
     ErrorMessage,
