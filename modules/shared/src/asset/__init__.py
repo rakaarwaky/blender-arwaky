@@ -31,11 +31,11 @@ from .taxonomy_import_export_vo import (
     ImportGlbResponseVO,
 )
 
-from .asset_provider_port import AssetProviderPort
-from .asset_search_protocol import AssetSearchProtocol
-from .import_export_protocol import ImportExportProtocol
-from .polyhaven_api_port import PolyhavenApiPort
-from .sketchfab_api_port import SketchfabApiPort
+from .contract_asset_provider_port import AssetProviderPort
+from .contract_asset_search_protocol import AssetSearchProtocol
+from .contract_import_export_protocol import ImportExportProtocol
+from .contract_polyhaven_api_port import PolyhavenApiPort
+from .contract_sketchfab_api_port import SketchfabApiPort
 
 __all__ = [
     # Constants
