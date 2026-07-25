@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from ..common.taxonomy_core_vo import Details, FilePath, StatusString
 
 
-class ExpertBaseOrchestratorAggregate(ABC):
+class AgentExpertBaseOrchestratorAggregate(ABC):
     """Interface for ExpertBaseOrchestrator."""
 
     _contract_name: StatusString = StatusString("ExpertBaseOrchestratorAggregate")

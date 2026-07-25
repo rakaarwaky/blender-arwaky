@@ -7,7 +7,7 @@ import logging
 import sys
 
 from modules.shared.src.common.agent_system_coordinator import ServerBootstrapManager
-from ..common.server_bootstrap_aggregate import ServerBootstrapManagerAggregate
+from ..common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
 
 from .surface_server_instance import ServerInstanceHandler
 

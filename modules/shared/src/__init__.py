@@ -266,15 +266,15 @@ from .object.object_operate_protocol import ObjectOperateProtocol
 from .render.render_operate_protocol import RenderOperateProtocol
 from .asset.asset_search_protocol import AssetSearchProtocol
 from .asset.import_export_protocol import ImportExportProtocol
-from .common.workflow_protocol import WorkflowProtocol
-from .common.execute_action_protocol import ExecuteActionProtocol
+from .common.contract_workflow_protocol import WorkflowProtocol
+from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Ports (infrastructure-facing contracts)
 from .object.blender_port import BlenderPort
 from .object.connection_port import BlenderConnectionPort
 from .object.connection_factory_port import BlenderConnectionFactoryPort
 from .object.code_execution_port import CodeExecutionPort
-from .common.command_catalog_port import CommandCatalogPort
+from .common.contract_command_catalog_port import CommandCatalogPort
 from .scene.scene_inspection_port import SceneInspectionPort
 from .render.viewport_capture_port import ViewportCapturePort
 from .asset.asset_provider_port import AssetProviderPort
@@ -283,18 +283,18 @@ from .asset.sketchfab_api_port import SketchfabApiPort
 from .telemetry.telemetry_recording_port import TelemetryRecordingPort
 
 # Aggregates (structural contracts for agents)
-from .common.core_agent_aggregate import CoreAgentOrchestratorAggregate
+from .common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
 from .common.agent_di_aggregate import AgentDiContainerAggregate
 from .common.agent_factory_aggregate import AgentFactoryRegistryAggregate
 from .common.agent_base_aggregate import AgentBaseContainerAggregate
 from .common.expert_base_aggregate import ExpertBaseOrchestratorAggregate
-from .common.workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
-from .common.refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
-from .common.search_expert_aggregate import SearchExpertOrchestratorAggregate
-from .common.setup_expert_aggregate import SetupExpertOrchestratorAggregate
-from .common.server_bootstrap_aggregate import ServerBootstrapManagerAggregate
-from .common.system_prompt_aggregate import SystemPromptManagerAggregate
-from .common.system_utils_aggregate import SystemUtilsCoordinatorAggregate
+from .common.agent_workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
+from .common.agent_refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
+from .common.agent_search_expert_aggregate import SearchExpertOrchestratorAggregate
+from .common.agent_setup_expert_aggregate import SetupExpertOrchestratorAggregate
+from .common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
+from .common.agent_system_prompt_aggregate import SystemPromptManagerAggregate
+from .common.agent_system_utils_aggregate import SystemUtilsCoordinatorAggregate
 
 __all__ = [
     # Domain folders

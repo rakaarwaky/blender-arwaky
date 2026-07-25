@@ -9,7 +9,7 @@ import logging
 from typing import Any, cast
 
 from ..common.agent_di_aggregate import AgentDiContainerAggregate
-from ..common.core_agent_aggregate import CoreAgentOrchestratorAggregate
+from ..common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
 from ..common.taxonomy_core_vo import ActionName, Details, DomainRef, FormatRef, ObjectName, Prompt, SectionRef, SkillName, SuccessFlag
 
 logger = logging.getLogger("BlenderMCPServer.CoreAgent")

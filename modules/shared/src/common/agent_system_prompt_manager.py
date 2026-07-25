@@ -2,7 +2,7 @@
 Agentic Orchestration: Specialized Prompt Templates for BlenderArwaky Experts.
 """
 
-from ..common.system_prompt_aggregate import SystemPromptManagerAggregate
+from ..common.agent_system_prompt_aggregate import SystemPromptManagerAggregate
 from ..common.taxonomy_core_vo import ObjectName, SuccessFlag
 
 

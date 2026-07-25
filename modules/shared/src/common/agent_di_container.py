@@ -21,9 +21,9 @@ import logging
 import threading
 
 from ..common.agent_di_aggregate import AgentDiContainerAggregate
-from ..common.command_catalog_port import CommandCatalogPort
-from ..common.core_agent_aggregate import CoreAgentOrchestratorAggregate
-from ..common.execute_action_protocol import ExecuteActionProtocol
+from ..common.contract_command_catalog_port import CommandCatalogPort
+from ..common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
+from ..common.contract_execute_action_protocol import ExecuteActionProtocol
 from ..common.taxonomy_core_vo import ActionName, DomainRef, FilePath, SuccessFlag
 from ..common.taxonomy_app_config_vo import ApplicationConfigVo
 from ..common.taxonomy_command_catalog_constant import CommandCatalog, CommandSpec

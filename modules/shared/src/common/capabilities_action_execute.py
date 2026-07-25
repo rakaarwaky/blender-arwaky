@@ -15,7 +15,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from ..common.execute_action_protocol import ExecuteActionProtocol
+from ..common.contract_execute_action_protocol import ExecuteActionProtocol
 from ..common.taxonomy_core_vo import ActionName, Details, Prompt
 from ..common.taxonomy_command_catalog_constant import CommandCatalog
 

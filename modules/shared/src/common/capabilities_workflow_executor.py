@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ..asset_provider.asset_search_protocol import AssetSearchProtocol
     from ..scene.scene_operate_protocol import SceneOperateProtocol
 
-from ..common.workflow_protocol import WorkflowProtocol
+from ..common.contract_workflow_protocol import WorkflowProtocol
 from ..common.taxonomy_core_vo import HdriId, Prompt, PythonCode, SearchQuery, SuccessFlag
 from ..common.taxonomy_domain_error import BlenderMCPError
 from ..scene import CleanupSceneRequestVO, SetupEnvironmentRequestVO

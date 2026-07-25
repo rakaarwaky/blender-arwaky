@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from ..common.expert_base_aggregate import ExpertBaseOrchestratorAggregate
-from ..common.workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
+from ..common.agent_workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
 from ..common.taxonomy_core_vo import SuccessFlag
 from ..scene.taxonomy_scene_info_vo import SceneInfo
 

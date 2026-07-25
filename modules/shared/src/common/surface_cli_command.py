@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from modules.shared.src.common.agent_di_container import AgentDiContainer
 
 from ..common.agent_di_aggregate import AgentDiContainerAggregate
-from ..common.core_agent_aggregate import CoreAgentOrchestratorAggregate
+from ..common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
 from ..common.taxonomy_core_vo import Details, ExitCode, Prompt
 
 # ── Path setup ────────────────────────────────────────────────────────────────

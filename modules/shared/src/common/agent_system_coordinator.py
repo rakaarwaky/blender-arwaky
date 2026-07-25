@@ -9,8 +9,8 @@ import importlib
 import logging
 import os
 
-from ..common.server_bootstrap_aggregate import ServerBootstrapManagerAggregate
-from ..common.system_utils_aggregate import SystemUtilsCoordinatorAggregate
+from ..common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
+from ..common.agent_system_utils_aggregate import SystemUtilsCoordinatorAggregate
 from modules.shared.src.config.config_loader import get_config, get_project_root
 from ..common.taxonomy_core_vo import ConfigPath, ConfigValue, DirectoryPath, FilePath, ObjectName, SuccessFlag
 
