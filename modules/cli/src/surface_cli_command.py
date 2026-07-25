@@ -21,8 +21,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from modules.shared.src.common.agent_di_container import AgentDiContainer
 
-from ..common.agent_di_aggregate import AgentDiContainerAggregate
-from ..common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
 from ..common.taxonomy_core_vo import Details, ExitCode, Prompt
 
 # ── Path setup ────────────────────────────────────────────────────────────────
@@ -36,9 +34,7 @@ logger = logging.getLogger("blender-arwaky-cli_entry_point")
 class CliCommandHandler:
     """Handler for CLI help command."""
 
-    _contract_ref: AgentDiContainerAggregate
 
-    _orchestrator: CoreAgentOrchestratorAggregate | None = None
 
     @classmethod
     def _get_container(cls) -> AgentDiContainer:
@@ -51,7 +47,6 @@ class CliCommandHandler:
         return container
 
     @classmethod
-    def get_orchestrator(cls) -> CoreAgentOrchestratorAggregate:
         """Lazy-load CoreAgentOrchestrator from DI container."""
         if cls._orchestrator is None:
             container = cls._get_container()

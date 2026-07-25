@@ -282,20 +282,6 @@ from .asset.contract_polyhaven_api import PolyhavenApiPort
 from .asset.contract_sketchfab_api import SketchfabApiPort
 from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
 
-# Aggregates (structural contracts for agents)
-from .common.agent_core_orchestrator_aggregate import CoreAgentOrchestratorAggregate
-from .common.agent_di_aggregate import AgentDiContainerAggregate
-from .common.agent_factory_aggregate import AgentFactoryRegistryAggregate
-from .common.agent_base_aggregate import AgentBaseContainerAggregate
-from .common.agent_expert_base_aggregate import AgentExpertBaseOrchestratorAggregate
-from .common.agent_workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
-from .common.agent_refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
-from .common.agent_search_expert_aggregate import SearchExpertOrchestratorAggregate
-from .common.agent_setup_expert_aggregate import SetupExpertOrchestratorAggregate
-from .common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
-from .common.agent_system_prompt_aggregate import SystemPromptManagerAggregate
-from .common.agent_system_utils_aggregate import SystemUtilsCoordinatorAggregate
-
 __all__ = [
     # Domain folders
     "common",
@@ -476,16 +462,4 @@ __all__ = [
     "PolyhavenApiPort",
     "TelemetryRecordingPort",
     # Contracts — Aggregates
-    "CoreAgentOrchestratorAggregate",
-    "AgentDiContainerAggregate",
-    "AgentFactoryRegistryAggregate",
-    "AgentBaseContainerAggregate",
-    "AgentExpertBaseOrchestratorAggregate",
-    "WorkflowAgentOrchestratorAggregate",
-    "RefinementExpertOrchestratorAggregate",
-    "SearchExpertOrchestratorAggregate",
-    "SetupExpertOrchestratorAggregate",
-    "ServerBootstrapManagerAggregate",
-    "SystemPromptManagerAggregate",
-    "SystemUtilsCoordinatorAggregate",
 ]

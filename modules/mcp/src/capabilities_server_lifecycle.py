@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 
-from modules.shared.src.common.agent_system_coordinator import record_startup
+from modules.mcp.src.bootstrap import record_startup
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 from .contract_server_bootstrap import ServerBootstrapManagerAggregate
 

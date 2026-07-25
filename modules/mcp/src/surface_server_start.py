@@ -6,8 +6,7 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
-from modules.shared.src.common.agent_system_coordinator import ServerBootstrapManager
-from modules.shared.src.common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
+from modules.mcp.src.bootstrap import ServerBootstrapManager
 
 from .surface_server_instance import ServerInstanceHandler
 
@@ -18,7 +17,6 @@ logger = logging.getLogger("BlenderMCPServer")
 class ServerStartHandler:
     """Handler for server startup sequence."""
 
-    _contract_ref: ServerBootstrapManagerAggregate
     """Handler for server startup and entry point."""
 
     @staticmethod

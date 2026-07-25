@@ -5,14 +5,12 @@ This provides in-context documentation without leaving the chat.
 Surface delegates directly to Agent container aggregate (AES compliant).
 """
 
-from modules.shared.src.common.agent_di_aggregate import AgentDiContainerAggregate
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SectionRef, SkillName
 
 
 class SkillReadHandler:
     """Handler for reading skill documentation."""
 
-    _contract_ref: AgentDiContainerAggregate
 
     @staticmethod
     def register_read_skill_context(mcp):
@@ -31,9 +29,8 @@ class SkillReadHandler:
                 Markdown content of the SKILL.md (or empty string if not found)
             """
             # Keep section as None if not provided (orchestrator handles None vs empty)
-            from modules.shared.src.common.agent_di_container import get_container
+            from modules.mcp.src.container import get_container
 
-            container: AgentDiContainerAggregate = get_container()
             orchestrator = container.core_agent_orchestrator
             return orchestrator.read_skill_context(skill_name, section)
 

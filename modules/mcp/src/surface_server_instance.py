@@ -20,10 +20,9 @@ from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 
-from modules.shared.src.common.agent_system_coordinator import (
+from modules.mcp.src.bootstrap import (
     record_startup,
 )
-from modules.shared.src.common.agent_server_bootstrap_aggregate import ServerBootstrapManagerAggregate
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -36,7 +35,6 @@ _mcp_lock = threading.Lock()
 class ServerInstanceHandler:
     """Handler for MCP server instance lifecycle management."""
 
-    _contract_ref: ServerBootstrapManagerAggregate
 
     @staticmethod
     @asynccontextmanager

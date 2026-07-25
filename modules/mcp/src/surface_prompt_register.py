@@ -33,19 +33,19 @@ Only fall back to scripting when:
 
     @staticmethod
     def lighting_expert():
-        from modules.shared.src.common.agent_system_prompt_manager import get_lighting_expert_prompt
+        from modules.mcp.src.prompts import get_lighting_expert_prompt
 
         return [{"role": "user", "content": {"type": "text", "text": get_lighting_expert_prompt()}}]
 
     @staticmethod
     def layout_expert():
-        from modules.shared.src.common.agent_system_prompt_manager import get_layout_expert_prompt
+        from modules.mcp.src.prompts import get_layout_expert_prompt
 
         return [{"role": "user", "content": {"type": "text", "text": get_layout_expert_prompt()}}]
 
     @staticmethod
     def text_to_scene_orchestrator():
-        from modules.shared.src.common.agent_system_prompt_manager import get_text_to_scene_orchestrator_prompt
+        from modules.mcp.src.prompts import get_text_to_scene_orchestrator_prompt
 
         return [{"role": "user", "content": {"type": "text", "text": get_text_to_scene_orchestrator_prompt()}}]
 
@@ -64,19 +64,19 @@ register_prompts = PromptHandlerModule.register_prompts
 
 # Module-level aliases for backward compatibility
 def get_lighting_expert_prompt():
-    from modules.shared.src.common.agent_system_prompt_manager import get_lighting_expert_prompt as _get
+    from modules.mcp.src.prompts import get_lighting_expert_prompt as _get
 
     return _get()
 
 
 def get_layout_expert_prompt():
-    from modules.shared.src.common.agent_system_prompt_manager import get_layout_expert_prompt as _get
+    from modules.mcp.src.prompts import get_layout_expert_prompt as _get
 
     return _get()
 
 
 def get_text_to_scene_orchestrator_prompt():
-    from modules.shared.src.common.agent_system_prompt_manager import get_text_to_scene_orchestrator_prompt as _get
+    from modules.mcp.src.prompts import get_text_to_scene_orchestrator_prompt as _get
 
     return _get()
 

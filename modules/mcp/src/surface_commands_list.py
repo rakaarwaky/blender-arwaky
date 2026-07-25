@@ -5,7 +5,6 @@ Lists all available actions, their parameters, descriptions, and domains.
 Surface delegates to Agent container via its aggregate contract (AES compliant).
 """
 
-from modules.shared.src.common.agent_di_aggregate import AgentDiContainerAggregate
 from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef, Prompt
 
 
@@ -35,9 +34,8 @@ class CommandsListHandler:
             # to match zero commands and return {}.
             resolved_format = format or FormatRef("detailed")
 
-            from modules.shared.src.common.agent_di_container import get_container
+            from modules.mcp.src.container import get_container
 
-            container: AgentDiContainerAggregate = get_container()
             orchestrator = container.core_agent_orchestrator
             return orchestrator.list_commands(domain, resolved_format)
 
