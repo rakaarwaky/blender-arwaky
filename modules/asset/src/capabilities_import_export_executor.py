@@ -7,14 +7,11 @@ Depends on ICodeExecutionProtocol for Blender code execution (not raw port).
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
-from modules.shared.src.object.contract_import_export_protocol import ImportExportProtocol
-from modules.shared.src.object.taxonomy_import_export_error_vo import ImportError, ExportError
-from modules.shared.src.object.taxonomy_import_export_request_vo import (
+from modules.shared.src.asset.contract_import_export_protocol import ImportExportProtocol
+from modules.shared.src.asset.taxonomy_import_export_vo import (
     ExportModelRequestVO,
-    ImportGlbRequestVO,
-)
-from modules.shared.src.object.taxonomy_import_export_result_vo import (
     ExportModelResponseVO,
+    ImportGlbRequestVO,
     ImportGlbResponseVO,
 )
 from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
@@ -53,7 +50,7 @@ class ImportExportExecutor(ImportExportProtocol):
             )
         except Exception as e:
             logger.error("Import failed: %s", e)
-            raise ImportError(f"Import failed: {e}") from e
+            raise RuntimeError(f"Import failed: {e}") from e
 
     async def export_model(self, request: ExportModelRequestVO) -> ExportModelResponseVO:
         """Export a Blender object to GLTF format.
@@ -80,7 +77,7 @@ class ImportExportExecutor(ImportExportProtocol):
             )
         except Exception as e:
             logger.error("Export failed: %s", e)
-            raise ExportError(f"Export failed: {e}") from e
+            raise RuntimeError(f"Export failed: {e}") from e
 
     # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 

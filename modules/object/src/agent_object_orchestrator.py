@@ -9,6 +9,9 @@ Structure:
 """
 
 import logging
+from typing import Any
+
+import typing as _typing
 
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
@@ -41,7 +44,11 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class ObjectOrchestrator(ObjectOperateAggregate):
-    """Orchestrates object operations through 7 individual capability protocols."""
+    """Orchestrates object operations through 7 individual capability protocols.
+
+    Also optionally exposes cross-module capabilities (import_export, scene, render)
+    for the action dispatcher to route actions to.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
@@ -53,6 +60,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
         apply_modifier_cap: ApplyModifierProtocol,
         delete_object_cap: DeleteObjectProtocol,
         get_object_info_cap: GetObjectInfoProtocol,
+        import_export_cap: _typing.Any = None,  # Optional: from asset module
     ) -> None:
         self._place_asset = place_asset_cap
         self._create_primitive = create_primitive_cap
@@ -61,6 +69,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
         self._apply_modifier = apply_modifier_cap
         self._delete_object = delete_object_cap
         self._get_object_info = get_object_info_cap
+        self._import_export_cap = import_export_cap  # Optional cross-module cap
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
@@ -115,6 +124,14 @@ class ObjectOrchestrator(ObjectOperateAggregate):
         orchestrator and then call individual methods like place_asset().
         """
         return self
+
+    @property
+    def import_export_capability(self) -> Any:
+        """Expose cross-module import/export capability for dispatch.
+
+        Returns the asset module's ImportExportExecutor if wired, else None.
+        """
+        return self._import_export_cap  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         return "ObjectOrchestrator()"

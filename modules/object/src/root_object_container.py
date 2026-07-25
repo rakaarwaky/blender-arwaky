@@ -9,7 +9,7 @@ and provides the assembled aggregate for dependency injection by callers.
 
 Structure:
   1. Constants & imports
-  2. ObjectContainer — wires 7 individual capabilities to aggregate
+  2. ObjectContainer — wires 7 individual capabilities + cross-module caps to aggregate
 """
 
 import logging
@@ -54,6 +54,8 @@ class ObjectContainer:
         Creates the capability → orchestrator chain for each FR:
           code_executor → PlaceAssetExecutor, CreatePrimitiveExecutor, ...
           All 7 → ObjectOrchestrator (implements ObjectOperateAggregate)
+
+        Also wires cross-module capabilities (import_export from asset module).
         """
         if self._wired:
             return
@@ -69,7 +71,16 @@ class ObjectContainer:
         delete_object_cap = DeleteObjectExecutor(self._code_executor)
         get_object_info_cap = GetObjectInfoExecutor(self._code_executor)
 
-        # Agent layer — implements aggregate, depends on all 7 protocols
+        # Cross-module capabilities — from asset module
+        try:
+            from .capabilities_import_export_executor import ImportExportExecutor  # noqa: F401
+
+            import_export_cap = ImportExportExecutor(self._code_executor)
+        except ImportError:
+            # Import executor lives in asset module, not object module
+            import_export_cap = None
+
+        # Agent layer — implements aggregate, depends on all 7 protocols + cross-module caps
         self._orchestrator = ObjectOrchestrator(
             place_asset_cap=place_asset_cap,
             create_primitive_cap=create_primitive_cap,
@@ -78,6 +89,7 @@ class ObjectContainer:
             apply_modifier_cap=apply_modifier_cap,
             delete_object_cap=delete_object_cap,
             get_object_info_cap=get_object_info_cap,
+            import_export_cap=import_export_cap,
         )
 
         self._wired = True
