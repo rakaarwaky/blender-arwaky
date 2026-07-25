@@ -39,8 +39,8 @@ class ObjectPlacedEvent:
 
     object_id: ObjectId
     object_name: ObjectName
-    asset_id: AssetId | None = None
     location: CoordinateList
+    asset_id: AssetId | None = None
     rotation: RotationVector | None = None
     scale: ScaleVector | None = None
     timestamp: Timestamp = field(default_factory=lambda: Timestamp(float("nan")))

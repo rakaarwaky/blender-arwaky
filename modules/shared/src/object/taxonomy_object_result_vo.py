@@ -25,8 +25,8 @@ class PlacementResultVO:
 
     success: SuccessFlag
     object_name: ObjectName
-    asset_id: AssetId | None = None
     location: CoordinateList
+    asset_id: AssetId | None = None
     rotation: RotationVector | None = None
     scale: ScaleVector | None = None
     message: str = ""
