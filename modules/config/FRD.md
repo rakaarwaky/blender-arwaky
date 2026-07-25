@@ -2,7 +2,7 @@
 
 ## System Overview
 
-The config module provides centralized application configuration management. It loads settings from `config.yaml`, supports dot-notation access, and provides the `ConfigPort` contract for dependency inversion.
+The config module provides centralized application configuration management. It loads settings from `config.yaml`, supports dot-notation access, and provides the `contract_config_protocol` for dependency inversion.
 
 ## Functional Requirements
 
@@ -42,9 +42,9 @@ The config module provides centralized application configuration management. It 
 - **Edge Cases**: Concurrent first access, lock contention
 - **Error Handling**: Standard locking behavior
 
-### FR-CFG-005: ConfigPort Contract
+### FR-CFG-005: contract_config_protocol
 
-- **Description**: Abstract port for config access, enabling DI and testing
+- **Description**: Abstract protocol for config access, enabling DI and testing
 - **Input**: ConfigPath, ConfigValue (default)
 - **Output**: ConfigValue
 - **Business Rules**: Implementations must be stateless or thread-safe
@@ -58,7 +58,7 @@ The config module provides centralized application configuration management. It 
 | `load_config` | — | dict[str, ConfigValue] | Load config from YAML |
 | `get_config` | ConfigPath, ConfigValue? | ConfigValue | Dot-notation access |
 | `get_project_root` | — | Path | Resolve project root |
-| `ConfigPort.get` | ConfigPath, ConfigValue? | ConfigValue | Port interface |
+| `contract_config_protocol.get` | ConfigPath, ConfigValue? | ConfigValue | Contract protocol |
 
 ## Integration Points
 
@@ -91,7 +91,7 @@ The config module provides centralized application configuration management. It 
 
 ## Glossary
 
-- **ConfigPort**: Abstract contract for configuration access
+- **contract_config_protocol**: Contract (protocol) for configuration access
 - **ConfigPath**: Dot-notation string for nested config keys (e.g., "server.port")
 - **ConfigValue**: Union type for config values (str, int, dict, list, None)
 

@@ -2,7 +2,7 @@
 
 ## System Overview
 
-The scene module manages Blender scene-level operations — information retrieval, environment setup, and cleanup. It provides the scene operate protocol and scene inspection capabilities. Orchestration is handled by the agent layer.
+The scene module manages Blender scene-level operations — information retrieval and cleanup. It provides the scene operate protocol and scene inspection capabilities. Orchestration is handled by the agent layer.
 
 ## Functional Requirements
 
@@ -24,35 +24,16 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: Scene already empty, only camera/light remaining, linked objects
 - **Error Handling**: SceneValidationError for invalid cleanup mode
 
-### FR-SCN-003: Setup Environment
-
-- **Description**: Configure HDRI lighting and environment settings
-- **Input**: SetupEnvironmentRequestVO (hdri_id, strength)
-- **Output**: SetupEnvironmentResponseVO (success, hdri_path, message)
-- **Business Rules**: HDRI must be available from asset provider; strength 0.0-10.0
-- **Edge Cases**: HDRI not found, invalid strength value, existing environment
-- **Error Handling**: AssetNotFoundError for missing HDRI
-
-### FR-SCN-004: Scene Inspection
-
-- **Description**: Query scene/object information through Blender connection
-- **Input**: Inspection queries (get_scene_info, get_object_info)
-- **Output**: Parsed structured responses
-- **Business Rules**: Queries must be valid Blender operations; responses must be structured
-- **Edge Cases**: Connection timeout, invalid response, Blender error
-- **Error Handling**: BlenderConnectionFailure, ExecutionError
-
 ## API Contract
 
 | Operation | Input | Output | Description |
 |-----------|-------|--------|-------------|
 | `get_scene_info` | GetSceneInfoRequestVO | GetSceneInfoResponseVO | Get scene state |
 | `cleanup_scene` | CleanupSceneRequestVO | CleanupSceneResponseVO | Remove objects |
-| `setup_environment` | SetupEnvironmentRequestVO | SetupEnvironmentResponseVO | Configure HDRI |
 
 ## Integration Points
 
-- **Internal**: shared (taxonomy VOs, contracts), server (Blender connection), asset (HDRI download)
+- **Internal**: shared (taxonomy VOs, contracts), server (Blender connection)
 - **External**: Blender Python API (bpy) — via server module
 
 ## Non-functional Requirements
@@ -65,22 +46,17 @@ The scene module manages Blender scene-level operations — information retrieva
 - [ ] Get scene info returns complete scene state
 - [ ] Cleanup with KEEP_CAMERA preserves camera object
 - [ ] Cleanup with REMOVE_ALL removes all objects
-- [ ] Setup environment with valid HDRI succeeds
-- [ ] Setup environment with missing HDRI returns AssetNotFoundError
 
 ## Assumptions & Constraints
 
 - Blender must be running with addon enabled
-- HDRI assets must be downloaded before environment setup (via asset module)
 
 ## Glossary
 
 - **SceneInfo**: Value object containing full scene state
 - **CleanupMode**: Enum for object preservation strategy
-- **HDRI**: High Dynamic Range Image for environment lighting
 
 ## Reference
 
 - PRD: [../../PRD.md](../../PRD.md)
 - FRD shared: [../shared/FRD.md](../shared/FRD.md)
-- FRD asset: [../asset/FRD.md](../asset/FRD.md)
