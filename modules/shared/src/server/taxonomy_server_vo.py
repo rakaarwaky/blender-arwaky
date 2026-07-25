@@ -121,3 +121,28 @@ class ConnectionConfig:
     heartbeat: HeartbeatConfig | None = None
     max_payload_bytes: int = 1_048_576  # 1 MB default (binary: 1k=1024)
     allowed_directories: list[str] = dc_field(default_factory=list)
+
+
+# ============================================================
+# Queue Configuration
+# ============================================================
+
+
+@dataclass(frozen=True)
+class QueueConfig:
+    """Immutable configuration for execution queue parameters."""
+
+    max_depth: int = 50
+    wait_timeout_ms: float = 10000.0  # 10 seconds default
+
+
+# ============================================================
+# Task Manager Configuration
+# ============================================================
+
+
+@dataclass(frozen=True)
+class TaskManagerConfig:
+    """Immutable configuration for task manager parameters."""
+
+    retention_seconds: float = 600.0  # 10 minutes default

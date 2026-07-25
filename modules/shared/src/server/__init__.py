@@ -50,7 +50,9 @@ from .taxonomy_server_vo import (
     ExecutionResult,
     ExecutionStatus,
     HeartbeatConfig,
+    QueueConfig,
     RetryPolicy,
+    TaskManagerConfig,
     TaskStatus,
     TaskState,
 )
@@ -116,7 +118,9 @@ __all__ = [
     "ExecutionResult",
     "ExecutionStatus",
     "HeartbeatConfig",
+    "QueueConfig",
     "RetryPolicy",
+    "TaskManagerConfig",
     "TaskStatus",
     "TaskState",
     # ─── Constants ──────────────────────────────────────────────

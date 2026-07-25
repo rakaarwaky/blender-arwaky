@@ -36,20 +36,9 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class ServerOrchestrator(IBlenderServerAggregate):
-    """Unified orchestrator for Blender server operations.
+    """Unified orchestrator for Blender server operations."""
 
-    Implements IBlenderServerAggregate to provide a single facade
-    for connection lifecycle, code execution, command dispatch, and
-    async task management. Coordinates capabilities with queue
-    serialization and task lifecycle per FRD-SRV-001 through FRD-SRV-005.
-
-    Orchestrates flows:
-    - FR-SRV-001: Connection lifecycle with heartbeat and reconnect
-    - FR-SRV-002: Code execution with AST validation and queue management
-    - FR-SRV-003: Command dispatch with timeout enforcement
-    - FR-SRV-004: Connection factory pattern
-    """
-
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
         connection: IBlenderConnectionProtocol,
@@ -62,7 +51,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
         self._queue = queue
         self._task_manager = task_manager
 
-    # ─── Block 2: Aggregate Implementation ──────────────────────
+    # ─── Block 2: Aggregate Implementation ───────────────────
 
     async def connect(self, config: ConnectionConfig) -> ConnectionStatus:
         """Establish connection with configuration and handshake.
@@ -241,3 +230,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
                 "error": {"type": type(e).__name__, "message": str(e)},
                 "execution_time_ms": elapsed_ms,
             }
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return "ServerOrchestrator()"

@@ -16,25 +16,20 @@ from modules.shared.src.server import (
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
 )
+from modules.shared.src.server import DEFAULT_COMMAND_TIMEOUT_MS
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage
 
 logger = logging.getLogger("BlenderMCPServer")
 
-# Default command timeout in milliseconds per FR-SRV-003
-DEFAULT_COMMAND_TIMEOUT_MS: float = 5000.0
-
 
 class BlenderCommandAdapter(IBlenderCommandProtocol):
-    """Command dispatch capability for Blender TCP socket operations.
+    """Command dispatch capability for Blender TCP socket operations."""
 
-    Implements IBlenderCommandProtocol with:
-    - TCP socket command routing per FR-SRV-003
-    - Configurable timeout enforcement (default 5s)
-    - JSON response parsing and error handling
-    """
-
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection = connection_port
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def send_command(
         self,
@@ -98,6 +93,10 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
                 "error": {"type": type(e).__name__, "message": str(e)},
                 "execution_time_ms": elapsed_ms,
             }
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return "BlenderCommandAdapter()"
 
     def _send_sync(self, action: ActionName, params: dict[str, Any]) -> dict[str, Any]:
         """Synchronous send_command for use with asyncio.to_thread."""

@@ -46,17 +46,16 @@ RECEIVE_TIMEOUT: float = CONNECTION_TIMEOUT_SECONDS
 
 
 class BlenderConnection(IBlenderConnectionProtocol):
-    """Manages persistent socket connection to Blender addon.
+    """Manages persistent socket connection to Blender addon."""
 
-    Implements IBlenderConnectionProtocol for TCP socket connection
-    lifecycle, heartbeat monitoring, and command dispatch.
-    """
-
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, host: str = "localhost", port: int = 9876) -> None:
         self.host = host
         self.port = port
         self.sock: socket.socket | None = None
         self._lock = threading.Lock()
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     def connect(self) -> SuccessFlag:
         """Connect to Blender with exponential backoff retries.
@@ -96,6 +95,10 @@ class BlenderConnection(IBlenderConnectionProtocol):
             raise BlenderConnectionExhausted(
                 ErrorMessage("Failed to connect after all retry attempts")
             )
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return f"BlenderConnection(host={self.host!r}, port={self.port})"
 
     def _close_socket(self):
         if self.sock:
@@ -238,16 +241,15 @@ class BlenderConnection(IBlenderConnectionProtocol):
 
 
 class BlenderConnectionFactory:
-    """Factory that creates and manages a singleton BlenderConnection.
+    """Factory that creates and manages a singleton BlenderConnection."""
 
-    Provides factory pattern with ConfigPort for reading host/port from config.
-    Not a protocol implementor — just a static factory utility.
-    """
-
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, config: ConfigPort | None = None) -> None:
         self._config = config
         self._connection: BlenderConnection | None = None
         self._lock = threading.Lock()
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     def get_connection(self) -> IBlenderConnectionProtocol:
         host = "localhost"
@@ -275,6 +277,10 @@ class BlenderConnectionFactory:
                     ErrorMessage("Could not connect to Blender. Make sure the Blender addon is running.")
                 )
             return self._connection
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return "BlenderConnectionFactory()"
 
     def shutdown(self):
         with self._lock:
