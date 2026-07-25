@@ -6,7 +6,7 @@ The object module handles all Blender object operations — creation, transforma
 
 ## Functional Requirements
 
-### OBJ-001: Place Asset in Scene
+### FR-OBJ-001: Place Asset in Scene
 
 - **Description**: Position an imported 3D asset at specified coordinates in the scene
 - **Input**: PlaceAssetRequestVO (file_path, location, rotation, scale)
@@ -15,7 +15,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Object not found, invalid coordinates, name collision, zero scale
 - **Error Handling**: SceneValidationError for missing objects; ValidationError for invalid params
 
-### OBJ-002: Create Primitive Object
+### FR-OBJ-002: Create Primitive Object
 
 - **Description**: Create a basic geometric primitive (cube, sphere, cylinder, etc.)
 - **Input**: CreatePrimitiveRequestVO (primitive_type, location, name, size)
@@ -24,7 +24,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Invalid primitive type, duplicate name, zero size
 - **Error Handling**: ValidationError for invalid parameters
 
-### OBJ-003: Set Object Transform
+### FR-OBJ-003: Set Object Transform
 
 - **Description**: Modify location, rotation, or scale of an existing object
 - **Input**: SetObjectTransformRequestVO (object_name, location, rotation, scale)
@@ -33,7 +33,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Object not found, invalid transform values, locked transforms
 - **Error Handling**: SceneValidationError for missing objects
 
-### OBJ-004: Set Material
+### FR-OBJ-004: Set Material
 
 - **Description**: Assign or create a material for an object
 - **Input**: SetMaterialRequestVO (object_name, material_name, color, metallic, roughness)
@@ -42,7 +42,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Object not found, invalid color values, material slot conflicts
 - **Error Handling**: SceneValidationError for missing objects
 
-### OBJ-005: Apply Modifier
+### FR-OBJ-005: Apply Modifier
 
 - **Description**: Add or modify a modifier on an object
 - **Input**: ApplyModifierRequestVO (object_name, modifier_type, parameters)
@@ -51,7 +51,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Object type doesn't support modifiers, invalid modifier parameters
 - **Error Handling**: SceneValidationError for incompatible objects
 
-### OBJ-006: Delete Object
+### FR-OBJ-006: Delete Object
 
 - **Description**: Remove an object from the scene
 - **Input**: DeleteObjectRequestVO (object_name)
@@ -60,7 +60,7 @@ The object module handles all Blender object operations — creation, transforma
 - **Edge Cases**: Object not found, last object in scene, linked objects
 - **Error Handling**: SceneValidationError for missing objects
 
-### OBJ-007: Get Object Info
+### FR-OBJ-007: Get Object Info
 
 - **Description**: Retrieve detailed information about a specific object
 - **Input**: GetObjectInfoRequestVO (object_name)

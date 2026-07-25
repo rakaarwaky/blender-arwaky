@@ -8,7 +8,7 @@ Domain folders organize types by business concern: common, config, scene, object
 
 ## Functional Requirements
 
-### FR-001: Core Value Objects
+### FR-SHR-001: Core Value Objects
 
 - **Description**: Define branded NewType primitives for type-safe domain modeling
 - **Input**: None (definition only)
@@ -17,7 +17,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Empty strings, max length violations, invalid characters
 - **Error Handling**: Type errors caught at compile time via static analysis
 
-### FR-002: Rich Value Objects
+### FR-SHR-002: Rich Value Objects
 
 - **Description**: Immutable data structures with computed properties
 - **Input**: Constructor parameters
@@ -26,7 +26,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Zero-vector division, empty bounding boxes, null optional fields
 - **Error Handling**: ValueError for invalid constructor parameters
 
-### FR-003: Domain Error Hierarchy
+### FR-SHR-003: Domain Error Hierarchy
 
 - **Description**: Typed exception hierarchy for domain-specific error handling
 - **Input**: Error conditions
@@ -35,7 +35,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Nested exceptions, error chaining
 - **Error Handling**: All errors implement `to_mcp_format()` for client consumption
 
-### FR-004: Command Catalog
+### FR-SHR-004: Command Catalog
 
 - **Description**: Single source-of-truth mapping of action names to capability contracts
 - **Input**: Action name string
@@ -44,7 +44,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Unknown action names, malformed capability references
 - **Error Handling**: InvalidCommandError for unknown actions
 
-### FR-005: Contract Protocols
+### FR-SHR-005: Contract Protocols
 
 - **Description**: ABC interfaces defining inbound behavior for capabilities
 - **Input**: Method calls with typed parameters
@@ -53,7 +53,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Optional parameters, union return types
 - **Error Handling**: AbstractMethodError if not implemented
 
-### FR-006: Contract Aggregates
+### FR-SHR-006: Contract Aggregates
 
 - **Description**: Facade interfaces for agent orchestrators, consumed by surfaces
 - **Input**: Method calls via aggregate interface
@@ -62,7 +62,7 @@ Domain folders organize types by business concern: common, config, scene, object
 - **Edge Cases**: Missing aggregate implementations, circular dependencies
 - **Error Handling**: Delegated to underlying capabilities
 
-### FR-007: Contract Ports
+### FR-SHR-007: Contract Ports
 
 - **Description**: Infrastructure-facing interfaces for external adapters
 - **Input**: External system calls

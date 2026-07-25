@@ -6,7 +6,7 @@ The config module provides centralized application configuration management. It 
 
 ## Functional Requirements
 
-### FR-001: Load Configuration from YAML
+### FR-CFG-001: Load Configuration from YAML
 
 - **Description**: Load and parse `config.yaml` from the project root
 - **Input**: None (reads from filesystem)
@@ -15,7 +15,7 @@ The config module provides centralized application configuration management. It 
 - **Edge Cases**: File not found, invalid YAML, permission denied
 - **Error Handling**: Returns empty dict on any parse error
 
-### FR-002: Dot-notation Config Access
+### FR-CFG-002: Dot-notation Config Access
 
 - **Description**: Retrieve nested config values using dot-separated paths
 - **Input**: ConfigPath (e.g., "server.port"), ConfigValue (default)
@@ -24,7 +24,7 @@ The config module provides centralized application configuration management. It 
 - **Edge Cases**: Empty path returns full config, missing intermediate key
 - **Error Handling**: Returns default value for any missing key
 
-### FR-003: Project Root Detection
+### FR-CFG-003: Project Root Detection
 
 - **Description**: Resolve the project root directory using multiple strategies
 - **Input**: None (reads environment variables and filesystem)
@@ -33,7 +33,7 @@ The config module provides centralized application configuration management. It 
 - **Edge Cases**: Multiple root candidates, symlinks, non-existent paths
 - **Error Handling**: Falls through to next strategy on failure
 
-### FR-004: Thread-safe Singleton Access
+### FR-CFG-004: Thread-safe Singleton Access
 
 - **Description**: Ensure config is loaded once and thread-safe for concurrent reads
 - **Input**: None
@@ -42,7 +42,7 @@ The config module provides centralized application configuration management. It 
 - **Edge Cases**: Concurrent first access, lock contention
 - **Error Handling**: Standard locking behavior
 
-### FR-005: ConfigPort Contract
+### FR-CFG-005: ConfigPort Contract
 
 - **Description**: Abstract port for config access, enabling DI and testing
 - **Input**: ConfigPath, ConfigValue (default)

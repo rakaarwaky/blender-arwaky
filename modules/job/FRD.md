@@ -6,7 +6,7 @@ The job module tracks long-running operations — status updates, progress repor
 
 ## Functional Requirements
 
-### FR-001: Create Job
+### FR-JOB-001: Create Job
 
 - **Description**: Create a new job tracker for a long-running operation
 - **Input**: Job ID (auto-generated UUID)
@@ -15,7 +15,7 @@ The job module tracks long-running operations — status updates, progress repor
 - **Edge Cases**: Duplicate job ID, invalid ID format
 - **Error Handling**: ValidationError for invalid job IDs
 
-### FR-002: Update Job State
+### FR-JOB-002: Update Job State
 
 - **Description**: Transition job through state machine (PENDING → RUNNING → COMPLETED/FAILED)
 - **Input**: Job ID, target state
@@ -24,7 +24,7 @@ The job module tracks long-running operations — status updates, progress repor
 - **Edge Cases**: Invalid transition (e.g., PENDING → COMPLETED), job not found
 - **Error Handling**: ValidationError for invalid transitions
 
-### FR-003: Report Progress
+### FR-JOB-003: Report Progress
 
 - **Description**: Update job progress as percentage (0-100)
 - **Input**: Job ID, progress value
@@ -33,7 +33,7 @@ The job module tracks long-running operations — status updates, progress repor
 - **Edge Cases**: Progress < 0 or > 100, progress on non-running job
 - **Error Handling**: ValidationError for out-of-range progress
 
-### FR-004: Complete Job with Result
+### FR-JOB-004: Complete Job with Result
 
 - **Description**: Mark job as completed with result URL
 - **Input**: Job ID, result URL
@@ -42,7 +42,7 @@ The job module tracks long-running operations — status updates, progress repor
 - **Edge Cases**: Completing already-completed job, invalid result URL
 - **Error Handling**: ValidationError for invalid state transitions
 
-### FR-005: Fail Job with Error
+### FR-JOB-005: Fail Job with Error
 
 - **Description**: Mark job as failed with error message
 - **Input**: Job ID, error message

@@ -6,7 +6,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 
 ## Functional Requirements
 
-### FR-001: Start MCP Server
+### FR-MCP-001: Start MCP Server
 
 - **Description**: Initialize and run the MCP server with stdio transport
 - **Input**: None (reads config for host/port)
@@ -15,7 +15,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 - **Edge Cases**: Config missing, port already in use, Blender not running
 - **Error Handling**: Logs startup failure and exits gracefully
 
-### FR-002: Register Execute Command Tool
+### FR-MCP-002: Register Execute Command Tool
 
 - **Description**: Register the universal `execute_command` tool that dispatches any Blender action
 - **Input**: ActionName (action identifier), Details (optional args JSON)
@@ -24,7 +24,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 - **Edge Cases**: Unknown action, Blender disconnected, execution timeout
 - **Error Handling**: Returns error JSON with descriptive message
 
-### FR-003: Register List Commands Tool
+### FR-MCP-003: Register List Commands Tool
 
 - **Description**: Register the `list_commands` tool that returns available actions
 - **Input**: None
@@ -33,7 +33,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 - **Edge Cases**: Catalog empty, catalog not loaded
 - **Error Handling**: Returns empty catalog with error message
 
-### FR-004: Register Read Skill Context Tool
+### FR-MCP-004: Register Read Skill Context Tool
 
 - **Description**: Register the `read_skill_context` tool that serves SKILL.md documentation
 - **Input**: SkillName (optional, defaults to root skill)
@@ -42,7 +42,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 - **Edge Cases**: Skill not found, file not readable
 - **Error Handling**: Returns error message for missing skill
 
-### FR-005: Register Health Check Tool
+### FR-MCP-005: Register Health Check Tool
 
 - **Description**: Register the `health_check` tool that reports system status
 - **Input**: None
@@ -51,7 +51,7 @@ The MCP module is the main entry point for the BlenderArwaky MCP server. It hand
 - **Edge Cases**: Subsystem degraded, partial failures
 - **Error Handling**: Returns degraded status with specific failure details
 
-### FR-006: Server Lifecycle Management
+### FR-MCP-006: Server Lifecycle Management
 
 - **Description**: Handle server startup, shutdown, and signal handling
 - **Input**: None

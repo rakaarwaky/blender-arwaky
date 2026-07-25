@@ -6,7 +6,7 @@ The render module handles viewport capture, image rendering, camera setup, and H
 
 ## Functional Requirements
 
-### RND-001: Get Viewport Screenshot
+### FR-RND-001: Get Viewport Screenshot
 
 - **Description**: Capture current viewport as image with configurable presets
 - **Input**: GetScreenshotRequestVO (max_size, view_angle, shading, show_overlays, focus_object, format)
@@ -15,7 +15,7 @@ The render module handles viewport capture, image rendering, camera setup, and H
 - **Edge Cases**: Empty viewport, focused object not found, unsupported format
 - **Error Handling**: ExecutionError for Blender rendering failures
 
-### RND-002: Render Image
+### FR-RND-002: Render Image
 
 - **Description**: Render scene to image file with specified settings
 - **Input**: RenderRequestVO (output_path, resolution_x, resolution_y, samples, use_denoising)
@@ -24,7 +24,7 @@ The render module handles viewport capture, image rendering, camera setup, and H
 - **Edge Cases**: Invalid output path, render timeout, denoising not supported
 - **Error Handling**: ExecutionError for render failures
 
-### RND-003: Setup Camera
+### FR-RND-003: Setup Camera
 
 - **Description**: Position and configure camera for rendering
 - **Input**: Camera setup parameters (position, rotation, lens, focal_length)
@@ -33,7 +33,7 @@ The render module handles viewport capture, image rendering, camera setup, and H
 - **Edge Cases**: Multiple cameras, locked camera, invalid lens values
 - **Error Handling**: SceneValidationError for invalid camera parameters
 
-### RND-004: Setup HDRI Lighting
+### FR-RND-004: Setup HDRI Lighting
 
 - **Description**: Configure environment lighting from HDRI asset
 - **Input**: HDRI ID, strength, rotation

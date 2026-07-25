@@ -6,7 +6,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 
 ## Functional Requirements
 
-### FR-001: Search Assets Across Providers
+### FR-AST-001: Search Assets Across Providers
 
 - **Description**: Query multiple asset providers and aggregate results
 - **Input**: SearchQuery (text query), StringList (optional provider filter)
@@ -15,7 +15,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 - **Edge Cases**: All providers fail, empty query, provider not registered
 - **Error Handling**: ProviderError logged per provider; partial results returned
 
-### FR-002: Fetch and Import Asset
+### FR-AST-002: Fetch and Import Asset
 
 - **Description**: Download an asset from a specific provider and import into Blender
 - **Input**: ProviderName, AssetId
@@ -24,7 +24,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 - **Edge Cases**: Provider not found, download returns no file path, import fails
 - **Error Handling**: ProviderError for missing provider or download failure
 
-### FR-003: Search Poly Haven Assets
+### FR-AST-003: Search Poly Haven Assets
 
 - **Description**: Search Poly Haven for HDRIs, textures, or models
 - **Input**: AssetSearchRequestVO (query, asset_type, categories)
@@ -33,7 +33,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 - **Edge Cases**: Blender not connected, invalid response format
 - **Error Handling**: ProviderError wrapping Blender connection errors
 
-### FR-004: Download Poly Haven Asset
+### FR-AST-004: Download Poly Haven Asset
 
 - **Description**: Download a Poly Haven asset by ID and type
 - **Input**: AssetDownloadRequestVO (asset_id, destination_path)
@@ -42,7 +42,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 - **Edge Cases**: Asset not found, download timeout, invalid file path
 - **Error Handling**: ProviderError with descriptive message
 
-### FR-005: Search Sketchfab Models
+### FR-AST-005: Search Sketchfab Models
 
 - **Description**: Search Sketchfab for downloadable 3D models
 - **Input**: AssetSearchRequestVO (query)
@@ -51,7 +51,7 @@ The asset module handles multi-provider asset discovery, download, and import. I
 - **Edge Cases**: Sketchfab disabled, rate limit exceeded
 - **Error Handling**: ProviderError with Sketchfab-specific messages
 
-### FR-006: Download Sketchfab Model
+### FR-AST-006: Download Sketchfab Model
 
 - **Description**: Download and import a Sketchfab model by UID
 - **Input**: AssetDownloadRequestVO (asset_id)

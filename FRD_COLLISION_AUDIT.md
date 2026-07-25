@@ -2,48 +2,51 @@
 
 ## Date: 2026-07-25
 
-### 1. ID Collisions (All modules use FR-001..N)
+### Status: FIXED
 
-Every module uses sequential FR-XXX IDs starting from 001. This causes ambiguity when referencing features across modules.
+### 1. ID Collisions — FIXED
 
-**Fix**: Prefix IDs with module abbreviation (e.g., `OBJ-001`, `SRV-001`, `AST-001`).
+All FRD IDs now prefixed with module abbreviation:
+- AST-001..006 (asset)
+- CLI-001..005 (cli)
+- CFG-001..005 (config)
+- JOB-001..005 (job)
+- MCP-001..006 (mcp)
+- OBJ-001..007 (object)
+- RND-001..004 (render)
+- SCN-001..004 (scene)
+- SHR-001..007 (shared)
+- TLM-001..004 (telemetry)
 
-### 2. Feature Name Collisions
+### 2. Feature Name Collisions — FIXED
 
-| Module A | Feature | Module B | Feature | Overlap |
-|----------|---------|----------|---------|---------|
-| object | FR-009: Blender Socket Connection | server | FR-001: Manage Blender Socket Connection | HIGH — same TCP connection |
-| object | FR-008: Import/Export 3D Models | asset | FR-002: Fetch and Import Asset | HIGH — both import into Blender |
-| render | FR-005: Multi-Provider Asset Search | asset | FR-001: Search Assets Across Providers | HIGH — same search |
-| render | FR-006: Asset Provider Integration | asset | FR-003/004/005/006 | HIGH — provider adapters |
-| cli | FR-003: Capture Screenshot | render | FR-001: Get Viewport Screenshot | MEDIUM — same operation |
-| cli | FR-004: Render Image | render | FR-002: Render Image | HIGH — same operation |
-| cli | FR-002: Launch Blender | server | FR-001: Manage Blender Socket Connection | MEDIUM — server lifecycle |
-| scene | FR-005: Setup Expert Orchestrator | render | FR-007/008: Expert Orchestrators | MEDIUM — orchestration overlap |
-| mcp | Duplicate entries (appears twice) | — | — | FILE ISSUE |
+| Collision | Resolution |
+|-----------|------------|
+| object/FR-009: Blender Socket Connection ↔ server/FR-001 | Removed from object, kept in server |
+| object/FR-008: Import/Export ↔ asset/FR-002 | Removed from object, import belongs to asset |
+| render/FR-005: Multi-Provider Asset Search ↔ asset/FR-001 | Removed from render, search belongs to asset |
+| render/FR-006: Asset Provider Integration ↔ asset | Removed from render, providers belong to asset |
+| cli/FR-003: Capture Screenshot ↔ render/FR-001 | Removed from cli, screenshot belongs to render |
+| cli/FR-004: Render Image ↔ render/FR-002 | Removed from cli, render belongs to render |
+| scene/FR-005: Setup Expert Orchestrator ↔ render/FR-007/008 | Removed from scene, orchestrators belong to agent layer |
+| render/FR-007/008: Expert Orchestrators | Removed from render, belongs to agent layer |
 
-### 3. Recommended Ownership
+### 3. Module Ownership Summary
 
-| Feature | Owner Module | Rationale |
-|---------|--------------|-----------|
-| Blender TCP connection | **server** | Server owns socket lifecycle |
-| Blender code execution | **server** | Server executes via socket |
-| Asset search/download | **asset** | Asset owns provider integration |
-| Import into Blender | **object** | Object owns scene placement |
-| Viewport screenshot | **render** | Render owns camera/viewport |
-| Render image | **render** | Render owns rendering |
-| Launch/close Blender | **cli** | CLI manages Blender process |
-| Scene setup/cleanup | **scene** | Scene owns environment |
-| MCP tools | **mcp** | MCP owns tool registration |
-| Config loading | **config** | Config owns settings |
-| Telemetry | **telemetry** | Telemetry owns events |
-| Job tracking | **job** | Job owns state management |
-
-### 4. Files to Fix
-
-- [ ] `modules/object/FRD.md` — Remove FR-009 (socket → server), FR-008 (import → clarify scope)
-- [ ] `modules/render/FRD.md` — Remove FR-005/006 (asset search → asset), FR-007/008 (orchestrators → shared)
-- [ ] `modules/scene/FRD.md` — Remove FR-005 (orchestrator → shared)
-- [ ] `modules/cli/FRD.md` — Remove FR-003/004 (screenshot/render → render), clarify FR-002
-- [ ] `modules/mcp/FRD.md` — Remove duplicate file content
-- [ ] All FRDs — Prefix IDs with module abbreviation
+| Feature | Owner | Module |
+|---------|-------|--------|
+| Blender TCP connection | server | modules/server/ |
+| Blender code execution | server | modules/server/ |
+| Asset search/download | asset | modules/asset/ |
+| Import into Blender | asset | modules/asset/ |
+| Object manipulation | object | modules/object/ |
+| Viewport screenshot | render | modules/render/ |
+| Render image | render | modules/render/ |
+| Camera/HDRI setup | render | modules/render/ |
+| Scene info/cleanup | scene | modules/scene/ |
+| MCP tools | mcp | modules/mcp/ |
+| CLI process management | cli | modules/cli/ |
+| Config loading | config | modules/config/ |
+| Telemetry events | telemetry | modules/telemetry/ |
+| Job tracking | job | modules/job/ |
+| Taxonomy/contracts | shared | modules/shared/ |

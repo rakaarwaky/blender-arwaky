@@ -6,7 +6,7 @@ The scene module manages Blender scene-level operations — information retrieva
 
 ## Functional Requirements
 
-### SCN-001: Get Scene Info
+### FR-SCN-001: Get Scene Info
 
 - **Description**: Retrieve current scene state including all objects, render engine, and resolution
 - **Input**: GetSceneInfoRequestVO (empty)
@@ -15,7 +15,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: Empty scene, no active object, missing render engine
 - **Error Handling**: ConnectionError if Blender not connected
 
-### SCN-002: Cleanup Scene
+### FR-SCN-002: Cleanup Scene
 
 - **Description**: Remove objects from scene based on cleanup mode
 - **Input**: CleanupSceneRequestVO (mode: KEEP_CAMERA | KEEP_LIGHTS | REMOVE_ALL)
@@ -24,7 +24,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: Scene already empty, only camera/light remaining, linked objects
 - **Error Handling**: SceneValidationError for invalid cleanup mode
 
-### SCN-003: Setup Environment
+### FR-SCN-003: Setup Environment
 
 - **Description**: Configure HDRI lighting and environment settings
 - **Input**: SetupEnvironmentRequestVO (hdri_id, strength)
@@ -33,7 +33,7 @@ The scene module manages Blender scene-level operations — information retrieva
 - **Edge Cases**: HDRI not found, invalid strength value, existing environment
 - **Error Handling**: AssetNotFoundError for missing HDRI
 
-### SCN-004: Scene Inspection
+### FR-SCN-004: Scene Inspection
 
 - **Description**: Query scene/object information through Blender connection
 - **Input**: Inspection queries (get_scene_info, get_object_info)

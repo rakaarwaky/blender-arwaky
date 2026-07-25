@@ -6,7 +6,7 @@ The telemetry module handles anonymous usage analytics — event recording, sess
 
 ## Functional Requirements
 
-### FR-001: Record Telemetry Event
+### FR-TLM-001: Record Telemetry Event
 
 - **Description**: Record anonymous usage event with structured metadata
 - **Input**: TelemetryEvent (event_type, customer_uuid, session_id, timestamp, tool_name, ...)
@@ -15,7 +15,7 @@ The telemetry module handles anonymous usage analytics — event recording, sess
 - **Edge Cases**: Network unavailable, invalid event data, duplicate events
 - **Error Handling**: Silent failure (telemetry must never block operations)
 
-### FR-002: Event Type Classification
+### FR-TLM-002: Event Type Classification
 
 - **Description**: Categorize events by type for analytics
 - **Input**: Event type string
@@ -24,7 +24,7 @@ The telemetry module handles anonymous usage analytics — event recording, sess
 - **Edge Cases**: Unknown event type, missing type
 - **Error Handling**: Default to UNKNOWN type for unrecognized events
 
-### FR-003: Session Tracking
+### FR-TLM-003: Session Tracking
 
 - **Description**: Track user sessions across tool executions
 - **Input**: Session ID (auto-generated UUID)
@@ -33,7 +33,7 @@ The telemetry module handles anonymous usage analytics — event recording, sess
 - **Edge Cases**: Session ID collision, session timeout
 - **Error Handling**: Generate new session ID on collision
 
-### FR-004: Version and Platform Metadata
+### FR-TLM-004: Version and Platform Metadata
 
 - **Description**: Attach version and platform info to events
 - **Input**: Version string, platform name, Blender version

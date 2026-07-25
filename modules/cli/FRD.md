@@ -6,7 +6,7 @@ The CLI module provides a standalone command-line interface for managing Blender
 
 ## Functional Requirements
 
-### CLI-001: Initialize Blender Instance
+### FR-CLI-001: Initialize Blender Instance
 
 - **Description**: Find and register a Blender executable path
 - **Input**: Optional custom path
@@ -15,7 +15,7 @@ The CLI module provides a standalone command-line interface for managing Blender
 - **Edge Cases**: Multiple Blender installations, no Blender found, invalid path
 - **Error Handling**: FileNotFoundError for missing Blender
 
-### CLI-002: Launch Blender
+### FR-CLI-002: Launch Blender
 
 - **Description**: Start Blender process with TCP server addon
 - **Input**: Optional additional Blender arguments
@@ -24,7 +24,7 @@ The CLI module provides a standalone command-line interface for managing Blender
 - **Edge Cases**: Blender already running, port in use, addon not installed
 - **Error Handling**: ProcessError for launch failures
 
-### CLI-003: Close Blender
+### FR-CLI-003: Close Blender
 
 - **Description**: Terminate Blender process gracefully
 - **Input**: None
@@ -33,7 +33,7 @@ The CLI module provides a standalone command-line interface for managing Blender
 - **Edge Cases**: Process already terminated, unresponsive process
 - **Error Handling**: ProcessError for termination failures
 
-### CLI-004: Check Status
+### FR-CLI-004: Check Status
 
 - **Description**: Report status of registered Blender instance
 - **Input**: None
@@ -42,7 +42,7 @@ The CLI module provides a standalone command-line interface for managing Blender
 - **Edge Cases**: Process died without cleanup, stale registry entry
 - **Error Handling**: StatusError for check failures
 
-### CLI-005: Registry Management
+### FR-CLI-005: Registry Management
 
 - **Description**: Thread-safe singleton managing active Blender instances
 - **Input**: Instance registration/deregistration

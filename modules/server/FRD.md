@@ -6,7 +6,7 @@ The server module manages TCP socket communication between the MCP server and th
 
 ## Functional Requirements
 
-### FR-001: Manage Blender Socket Connection
+### FR-SRV-001: Manage Blender Socket Connection
 
 - **Description**: Establish and maintain TCP socket connection to Blender addon
 - **Input**: Host, port configuration
@@ -15,7 +15,7 @@ The server module manages TCP socket communication between the MCP server and th
 - **Edge Cases**: Blender not running, connection refused, timeout, network error
 - **Error Handling**: BlenderConnectionFailure with retry logic
 
-### FR-002: Execute Blender Code
+### FR-SRV-002: Execute Blender Code
 
 - **Description**: Send Python code to Blender for execution via TCP socket
 - **Input**: Prompt (Python code string)
@@ -24,7 +24,7 @@ The server module manages TCP socket communication between the MCP server and th
 - **Edge Cases**: Code execution timeout, syntax error, Blender exception
 - **Error Handling**: ExecutionError with error details from Blender
 
-### FR-003: Send Blender Commands
+### FR-SRV-003: Send Blender Commands
 
 - **Description**: Dispatch named commands to Blender addon
 - **Input**: ActionName, command arguments
@@ -33,7 +33,7 @@ The server module manages TCP socket communication between the MCP server and th
 - **Edge Cases**: Unknown command, invalid arguments, Blender not responding
 - **Error Handling**: ProviderError with command-specific error message
 
-### FR-004: Connection Factory
+### FR-SRV-004: Connection Factory
 
 - **Description**: Create new Blender connection instances
 - **Input**: Connection configuration
@@ -42,7 +42,7 @@ The server module manages TCP socket communication between the MCP server and th
 - **Edge Cases**: Invalid configuration, unsupported transport
 - **Error Handling**: ConnectionError for factory failures
 
-### FR-005: Socket Adapter Surface
+### FR-SRV-005: Socket Adapter Surface
 
 - **Description**: Surface layer for Blender socket operations
 - **Input**: MCP tool calls

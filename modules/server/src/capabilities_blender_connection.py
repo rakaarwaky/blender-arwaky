@@ -10,7 +10,8 @@ import threading
 import time
 from typing import Any
 
-from modules.shared.src import BlenderConnectionFactoryPort, BlenderConnectionPort, ConfigPort
+from modules.shared.src.server import BlenderConnectionFactoryPort, BlenderConnectionPort
+from modules.config.src.contract_config import ConfigPort
 from modules.shared.src import (
     ActionName,
     BlenderConnectionFailure,
