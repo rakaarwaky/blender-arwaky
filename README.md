@@ -17,22 +17,7 @@ BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compat
 - **2 Asset Providers** — Poly Haven (HDRI/textures/models), Sketchfab
 - **AI-Optimized Screenshots** — View presets, shading modes, overlay control, object focus
 - **Blender Addon** — TCP server with auto-start and UI panel
-- **Clean Architecture** — AES 6-domain layering with full dependency inversion
-
----
-
-## Architecture
-
-```
-surfaces/        → MCP tools & CLI entry points
-agent/           → DI container, orchestrators, experts
-capabilities/    → Use cases: scene ops, rendering, import/export
-infrastructure/  → Adapters: Blender socket, telemetry
-contract/        → Ports & protocols (interfaces between layers)
-taxonomy/        → Foundation: data structures, config, command catalog
-```
-
-> **Layer rule:** `surfaces → agent → capabilities → infrastructure → contract → taxonomy`
+- **Clean Architecture** — AES 7-layer architecture with full dependency inversion
 
 ---
 
@@ -103,13 +88,15 @@ server:
 
 ```
 blender-arwaky/
+├── modules/
+│   └── shared/
+│       └── src/            # Shared taxonomy modules (taxonomy_<concern>_<role>.py)
 ├── src/
 │   ├── surfaces/          # MCP tools & entry points
 │   ├── agent/             # DI container & orchestrators
-│   ├── capabilities/      # Business logic
-│   ├── infrastructure/    # External adapters
-│   ├── contract/          # Ports & protocol interfaces
-│   └── taxonomy/          # Data structures & command catalog
+│   ├── capabilities/      # Business logic & adapters
+│   ├── contract/          # Protocols & aggregate interfaces
+│   └── taxonomy/          # Barrel re-exports of domain models
 ├── blender_mcp_addon/     # Blender addon (TCP server)
 ├── tests/                 # Unit, integration, functional tests
 └── docs/                  # Documentation (AGENT, SKILL, TEST)
@@ -117,20 +104,22 @@ blender-arwaky/
 
 ---
 
-## Testing
+## Testing & Architecture Quality Gates
 
 ```bash
 uv run pytest              # Full suite (455+ tests)
 uv run pytest -m unit      # Unit tests only
-uv run ruff check src/     # Linting
+lint-arwaky-cli scan .     # AES architecture compliance scan (or `lac scan .`)
+uv run ruff check src/     # Code style & linting
 ```
 
 ---
 
 ## Documentation
 
+- [ARCHITECTURE.md](ARCHITECTURE.md) — System architecture & AES 7-layer specification
 - [SKILL.md](SKILL.md) — Agent usage reference (tools, commands, workflows)
-- [AGENT.md](AGENT.md) — Developer guide (architecture, patterns)
+- [AGENT.md](AGENT.md) — Quick developer reference
 - [TEST.md](TEST.md) — Testing guide
 
 ---

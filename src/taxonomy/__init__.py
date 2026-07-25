@@ -1,24 +1,176 @@
 """Taxonomy barrel: re-export all domain model entities, errors, and value objects.
 
-All types are defined in modules/shared/src/blender_arwaky/ with proper AES prefixes.
+All types are defined in modules/shared/src/ with proper AES taxonomy naming:
+  taxonomy_<domain>_<vo|entity|error|event|constant>.py
 This file provides backward-compatible imports for existing layer files.
 """
 
-# Core types (NewType branded primitives)
-from modules.shared.src.blender_arwaky.constant_core_types import *  # noqa: F401 F403
+# Re-export everything from modules.shared.src (organized by domain)
+from modules.shared.src import (
+    ActionName,
+    AssetCount,
+    AssetId,
+    AssetIdList,
+    AssetMetadata,
+    AssetName,
+    AssetNotFoundError,
+    AssetType,
+    AssetTypeFilter,
+    BBoxIntegers,
+    BlenderConnectionFailure,
+    BlenderMCPError,
+    BlenderObject,
+    BlenderObjectList,
+    BlenderVersion,
+    BoundingBox,
+    CapabilityRef,
+    CleanupMode,
+    CommandCatalog,
+    COMMAND_CATALOG,
+    ConfigPath,
+    ConfigValue,
+    ConnectionError,
+    ConnectionFailure,
+    CoordinateList,
+    CustomerUuid,
+    Details,
+    DirectoryPath,
+    DomainError,
+    DomainRef,
+    DurationMs,
+    EnabledFlag,
+    ErrorString,
+    ErrorMessage,
+    ExitCode,
+    ExportFormat,
+    FilePath,
+    FormatRef,
+    HdriId,
+    ImageBytes,
+    ImageFormat,
+    IterationCount,
+    JobId,
+    JobState,
+    JobStatus,
+    LightStrength,
+    MaterialName,
+    MaxImageSize,
+    MaxSize,
+    ModifierName,
+    NextPageToken,
+    ObjectCount,
+    ObjectId,
+    ObjectIdList,
+    ObjectName,
+    ObjectType,
+    ParentId,
+    PlatformName,
+    PortNumber,
+    PrimitiveType,
+    Progress,
+    Prompt,
+    ProviderError,
+    ProviderName,
+    PythonCode,
+    RenderEngine,
+    RenderSamples,
+    RenderTime,
+    ResolutionX,
+    ResolutionY,
+    ResultLimit,
+    ResultUrl,
+    RotationVector,
+    RuleName,
+    SampleCount,
+    ScaleFactor,
+    ScaleVector,
+    SceneId,
+    SceneInfo,
+    SceneRuleSetName,
+    SceneValidationError,
+    SearchQuery,
+    SectionRef,
+    ServerName,
+    SessionId,
+    SkillName,
+    StatusString,
+    StringList,
+    SuccessFlag,
+    TagList,
+    TaskUuid,
+    TelemetryEvent,
+    ThumbnailUrl,
+    Timestamp,
+    ToolName,
+    ValidationError,
+    Vector3D,
+    VersionString,
+    WorkflowName,
+)
 
-# Asset type & provider constants
-from modules.shared.src.blender_arwaky.constant_asset_types import (  # noqa: F401
+# Scene request/response VOs
+from modules.shared.src import (
+    CleanupSceneRequestVO,
+    CleanupSceneResponseVO,
+    GetSceneInfoRequestVO,
+    GetSceneInfoResponseVO,
+    SetupEnvironmentRequestVO,
+    SetupEnvironmentResponseVO,
+)
+
+# Object request/response VOs
+from modules.shared.src.taxonomy_object_request_vo import (
+    ApplyModifierRequestVO,
+    ApplyModifierResponseVO,
+    CreatePrimitiveRequestVO,
+    CreatePrimitiveResponseVO,
+    DeleteObjectRequestVO,
+    DeleteObjectResponseVO,
+    GetObjectInfoRequestVO,
+    GetObjectInfoResponseVO,
+    PlaceAssetRequestVO,
+    PlaceAssetResponseVO,
+    SetMaterialRequestVO,
+    SetMaterialResponseVO,
+    SetObjectTransformRequestVO,
+    SetObjectTransformResponseVO,
+)
+
+# Render request/response VOs
+from modules.shared.src.taxonomy_render_request_vo import (
+    GetScreenshotRequestVO,
+    RenderRequestVO,
+    RenderResponseVO,
+    ScreenshotResponseVO,
+)
+
+# Asset request/response VOs
+from modules.shared.src.taxonomy_asset_request_vo import (
+    AssetDownloadRequestVO,
+    AssetDownloadResponseVO,
+    AssetSearchRequestVO,
+    AssetSearchResponseVO,
+)
+
+# Import/Export VOs
+from modules.shared.src.taxonomy_import_export_vo import (
+    ExportModelRequestVO,
+    ExportModelResponseVO,
+    ImportGlbRequestVO,
+    ImportGlbResponseVO,
+)
+
+# Asset constants
+from modules.shared.src.taxonomy_asset_constant import (
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
     ASSET_TYPE_TEXTURES,
     PROVIDER_POLYHAVEN,
     PROVIDER_SKETCHFAB,
-    create_provider_name,
 )
 
-# Object type constants
-from modules.shared.src.blender_arwaky.constant_object_types import (  # noqa: F401
+# Object constants
+from modules.shared.src.taxonomy_object_constant import (
     ALLOWED_OBJECT_TYPES,
     OBJECT_TYPE_ARMATURE,
     OBJECT_TYPE_CAMERA,
@@ -35,27 +187,23 @@ from modules.shared.src.blender_arwaky.constant_object_types import (  # noqa: F
     OBJECT_TYPE_VOLUME,
 )
 
-# Job state constants & factories
-from modules.shared.src.blender_arwaky.constant_job_states import (  # noqa: F401
+# Job state constants
+from modules.shared.src.taxonomy_job_state_constant import (
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    create_job_id,
-    create_progress,
 )
-
-# Event type constant
-from modules.shared.src.blender_arwaky.constant_event_type import EventType  # noqa: F401
 
 # Command catalog
-from modules.shared.src.blender_arwaky.constant_command_catalog import (  # noqa: F401
+from modules.shared.src.taxonomy_command_catalog_constant import (
+    ACTION_NAMES,
     COMMAND_CATALOG,
-    CommandCatalog,
+    CommandSpec,
 )
 
-# Errors (ConnectionFailure renamed to ConnectionError per N818)
-from modules.shared.src.blender_arwaky.error_domain_error import (  # noqa: F401
+# Errors (ConnectionFailure alias for N818)
+from modules.shared.src.taxonomy_domain_error import (
     AssetNotFoundError,
     BlenderConnectionFailure,
     BlenderMCPError,
@@ -69,30 +217,48 @@ from modules.shared.src.blender_arwaky.error_domain_error import (  # noqa: F401
 )
 
 # Value objects
-from modules.shared.src.blender_arwaky.vo_vector3d import Vector3D  # noqa: F401
-from modules.shared.src.blender_arwaky.vo_bounding_box import BoundingBox  # noqa: F401
-from modules.shared.src.blender_arwaky.vo_asset_data import (  # noqa: F401
+from modules.shared.src.taxonomy_vector3d_vo import Vector3D
+from modules.shared.src.taxonomy_bounding_box_vo import BoundingBox
+from modules.shared.src.taxonomy_asset_data_vo import (
     AssetMetadata,
     ImportedAsset,
     create_asset_id,
+    create_provider_name,
 )
-from modules.shared.src.blender_arwaky.vo_scene_info import SceneInfo  # noqa: F401
-from modules.shared.src.blender_arwaky.vo_app_config import ApplicationConfig  # noqa: F401
+from modules.shared.src.taxonomy_scene_info_vo import SceneInfo
+from modules.shared.src.taxonomy_app_config_vo import ApplicationConfig
 
 # Entities
-from modules.shared.src.blender_arwaky.entity_blender_object import (  # noqa: F401
+from modules.shared.src.taxonomy_blender_object_entity import (
     BlenderObject,
     create_object_id,
 )
-from modules.shared.src.blender_arwaky.entity_job_status import JobStatus  # noqa: F401
+from modules.shared.src.taxonomy_job_status_entity import (
+    JobStatus,
+    create_job_id,
+    create_progress,
+)
 
 # Events
-from modules.shared.src.blender_arwaky.event_telemetry import TelemetryEvent  # noqa: F401
+from modules.shared.src.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 # Backward-compatible aliases
-ConnectionFailure = ConnectionError  # type: ignore[misc]  # noqa: A003
-ApplicationConfigVo = ApplicationConfig  # type: ignore[misc]  # noqa: A003
-CommandSpec = dict[str, any]  # type: ignore[misc]  # noqa: F405
+ConnectionFailure = ConnectionError
+ApplicationConfigVo = ApplicationConfig
+
+
+class CommandCatalog:
+    """Canonical command catalog wrapper for backward compatibility."""
+
+    COMMAND_CATALOG = COMMAND_CATALOG
+
+    @staticmethod
+    def list_actions() -> list[str]:
+        return ACTION_NAMES
+
+
+list_actions = CommandCatalog.list_actions
+
 
 __all__ = [
     # Errors
@@ -102,7 +268,7 @@ __all__ = [
     "AssetNotFoundError",
     "ValidationError",
     "ConnectionError",
-    "ConnectionFailure",  # deprecated alias
+    "ConnectionFailure",
     "ProviderError",
     "ExecutionError",
     "BlenderConnectionFailure",
@@ -116,6 +282,7 @@ __all__ = [
     "ProviderName",
     "HdriId",
     "ParentId",
+    "ObjectId",
     # Text VOs
     "Prompt",
     "ActionName",
@@ -178,7 +345,6 @@ __all__ = [
     "AssetIdList",
     "StringList",
     "TagList",
-    # New VOs added to fix AES006 primitive violations
     "CustomerUuid",
     "SessionId",
     "Timestamp",
@@ -214,11 +380,9 @@ __all__ = [
     "OBJECT_TYPE_LATTICE",
     "OBJECT_TYPE_GPENCIL",
     "OBJECT_TYPE_VOLUME",
+    "OBJECT_TYPE_POINTCLOUD",
     "ALLOWED_OBJECT_TYPES",
     # Render engine constants
-    "RENDER_ENGINE_CYCLES",
-    "RENDER_ENGINE_EEVEE",
-    # Asset/Provider constants
     "ASSET_TYPE_HDRIS",
     "ASSET_TYPE_TEXTURES",
     "ASSET_TYPE_MODELS",
@@ -234,11 +398,10 @@ __all__ = [
     "ThumbnailUrl",
     # Factories
     "create_asset_id",
+    "create_object_id",
     "create_job_id",
     "create_provider_name",
-    "create_object_id",
     "create_progress",
-    "create_float_triplet",
     # Rich value objects
     "Vector3D",
     "BoundingBox",
@@ -249,7 +412,45 @@ __all__ = [
     "CommandCatalog",
     "COMMAND_CATALOG",
     "CommandSpec",
+    "list_actions",
     # Application Configuration
     "ApplicationConfig",
-    "ApplicationConfigVo",  # deprecated alias
+    "ApplicationConfigVo",
+    # Scene Request/Response VOs
+    "CleanupSceneRequestVO",
+    "CleanupSceneResponseVO",
+    "GetSceneInfoRequestVO",
+    "GetSceneInfoResponseVO",
+    "SetupEnvironmentRequestVO",
+    "SetupEnvironmentResponseVO",
+    # Object Request/Response VOs
+    "PlaceAssetRequestVO",
+    "PlaceAssetResponseVO",
+    "GetObjectInfoRequestVO",
+    "GetObjectInfoResponseVO",
+    "SetObjectTransformRequestVO",
+    "SetObjectTransformResponseVO",
+    "DeleteObjectRequestVO",
+    "DeleteObjectResponseVO",
+    "CreatePrimitiveRequestVO",
+    "CreatePrimitiveResponseVO",
+    "SetMaterialRequestVO",
+    "SetMaterialResponseVO",
+    "ApplyModifierRequestVO",
+    "ApplyModifierResponseVO",
+    # Render Request/Response VOs
+    "GetScreenshotRequestVO",
+    "ScreenshotResponseVO",
+    "RenderRequestVO",
+    "RenderResponseVO",
+    # Asset Request/Response VOs
+    "AssetSearchRequestVO",
+    "AssetSearchResponseVO",
+    "AssetDownloadRequestVO",
+    "AssetDownloadResponseVO",
+    # Import/Export VOs
+    "ImportGlbRequestVO",
+    "ImportGlbResponseVO",
+    "ExportModelRequestVO",
+    "ExportModelResponseVO",
 ]
