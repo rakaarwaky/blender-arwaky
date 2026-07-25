@@ -10,13 +10,13 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..asset_provider.asset_search_protocol import AssetSearchProtocol
-    from ..scene.contract_scene_operate_protocol import SceneOperateProtocol
+    from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
+    from modules.shared.src.scene.contract_scene_operate_protocol import SceneOperateProtocol
 
-from ..common.contract_workflow_protocol import WorkflowProtocol
-from ..common.taxonomy_core_vo import HdriId, Prompt, PythonCode, SearchQuery, SuccessFlag
-from ..common.taxonomy_domain_error import BlenderMCPError
-from ..scene import CleanupSceneRequestVO, SetupEnvironmentRequestVO
+from modules.shared.src.common.contract_workflow_protocol import WorkflowProtocol
+from modules.shared.src.common.taxonomy_core_vo import HdriId, Prompt, PythonCode, SearchQuery, SuccessFlag
+from modules.shared.src.common.taxonomy_domain_error import BlenderMCPError
+from modules.shared.src.scene.taxonomy_scene_request_vo import CleanupSceneRequestVO, SetupEnvironmentRequestVO
 
 logger = logging.getLogger("BlenderMCPServer")
 

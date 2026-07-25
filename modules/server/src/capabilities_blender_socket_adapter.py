@@ -9,11 +9,9 @@ import os
 import tempfile
 from uuid import uuid4
 
-from modules.shared.src.common import BlenderConnectionPort, BlenderPort
-from modules.shared.src.common import (
+from modules.shared.src.server import BlenderConnectionPort, BlenderPort
+from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
-    BlenderObject,
-    ConnectionFailure as ConnectionError,
     ErrorMessage,
     ExecutionError,
     ImageBytes,

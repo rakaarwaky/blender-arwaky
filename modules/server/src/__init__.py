@@ -1,13 +1,12 @@
-"""Server module — MCP server bootstrap, lifecycle, and entry points."""
+"""Server feature module — Blender TCP socket communication."""
 
-from .capabilities_server_lifecycle import ServerInstanceHandler
-from .capabilities_server_start import ServerStartHandler
-from .contract_server_bootstrap import ServerBootstrapManagerAggregate
-from .surface_health_check import HealthCheckHandler
+from .agent_orchestrator import ServerOrchestrator
+from .capabilities_blender_connection import BlenderConnection, BlenderConnectionFactory
+from .capabilities_code_execution_adapter import CodeExecutionAdapter
 
 __all__ = [
-    "ServerBootstrapManagerAggregate",
-    "ServerInstanceHandler",
-    "ServerStartHandler",
-    "HealthCheckHandler",
+    "ServerOrchestrator",
+    "BlenderConnection",
+    "BlenderConnectionFactory",
+    "CodeExecutionAdapter",
 ]

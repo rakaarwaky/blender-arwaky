@@ -270,10 +270,10 @@ from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Ports (infrastructure-facing contracts)
-from .object.contract_blender import BlenderPort
-from .object.contract_connection import BlenderConnectionPort
-from .object.contract_connection_factory import BlenderConnectionFactoryPort
-from .object.contract_code_execution import CodeExecutionPort
+from .server.contract_blender import BlenderPort
+from .server.contract_connection import BlenderConnectionPort
+from .server.contract_connection_factory import BlenderConnectionFactoryPort
+from .server.contract_code_execution import CodeExecutionPort
 from .common.contract_command_catalog import CommandCatalogPort
 from .scene.contract_scene_inspection import SceneInspectionPort
 from .render.contract_viewport_capture import ViewportCapturePort
