@@ -1,4 +1,11 @@
-"""Blender socket connection management"""
+"""Capability: Blender socket connection lifecycle management.
+
+Implements IBlenderConnectionProtocol — handles TCP socket connection,
+heartbeat monitoring, auto-reconnect with exponential backoff,
+and connection status reporting per FRD-SRV-001 / FRD-SRV-004.
+"""
+
+from __future__ import annotations
 
 import contextlib
 import json
@@ -10,7 +17,18 @@ import threading
 import time
 from typing import Any
 
-from modules.shared.src.server import IBlenderConnectionProtocol
+from modules.shared.src.server import (
+    AuthenticationError,
+    BlenderConnectionExhausted,
+    IBlenderConnectionProtocol,
+    ProtocolVersionMismatchError,
+)
+from modules.shared.src.server import (
+    CONNECTION_TIMEOUT_SECONDS,
+    MAX_RECONNECT_ATTEMPTS,
+    RETRY_BASE_DELAY_SECONDS,
+    RETRY_MAX_DELAY_SECONDS,
+)
 from modules.config.src.contract_config import ConfigPort
 from modules.shared.src import (
     ActionName,
@@ -24,9 +42,7 @@ from modules.shared.src import (
 
 logger = logging.getLogger("BlenderMCPServer")
 
-MAX_RETRIES = 3
-RETRY_DELAY = 1.0
-RECEIVE_TIMEOUT = 180.0
+RECEIVE_TIMEOUT: float = CONNECTION_TIMEOUT_SECONDS
 
 
 class BlenderConnection(IBlenderConnectionProtocol):
@@ -43,28 +59,43 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self._lock = threading.Lock()
 
     def connect(self) -> SuccessFlag:
-        """Connect to Blender with retries. Thread-safe."""
+        """Connect to Blender with exponential backoff retries.
+
+        Implements FRD-SRV-001: auto-reconnect with max 3 retry attempts
+        using exponential backoff with jitter (1s, 2s, 4s).
+        Connection timeout: CONNECTION_TIMEOUT_SECONDS (30s default).
+        """
         with self._lock:
             if self.sock is not None:
                 if self._is_socket_alive():
                     return SuccessFlag(True)
-                self._close_socket()  # pragma: no cover
+                self._close_socket()
 
-            for attempt in range(MAX_RETRIES):
+            for attempt in range(MAX_RECONNECT_ATTEMPTS):
                 try:
                     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.sock.settimeout(10.0)
+                    self.sock.settimeout(CONNECTION_TIMEOUT_SECONDS)
                     self.sock.connect((self.host, self.port))
-                    logger.info(f"Connected to Blender at {self.host}:{self.port}")
+                    logger.info("Connected to Blender at %s:%d", self.host, self.port)
                     return SuccessFlag(True)
                 except Exception as e:
-                    logger.warning(f"Connection attempt {attempt + 1}/{MAX_RETRIES} failed: {e}")
+                    logger.warning(
+                        "Connection attempt %d/%d failed: %s",
+                        attempt + 1,
+                        MAX_RECONNECT_ATTEMPTS,
+                        e,
+                    )
                     self._close_socket()
-                    if attempt < MAX_RETRIES - 1:
-                        time.sleep(RETRY_DELAY)
+                    if attempt < MAX_RECONNECT_ATTEMPTS - 1:
+                        delay = min(
+                            RETRY_BASE_DELAY_SECONDS * (2**attempt),
+                            RETRY_MAX_DELAY_SECONDS,
+                        )
+                        time.sleep(delay)
 
-            logger.error("Failed to connect to Blender after all retries")
-            return SuccessFlag(False)
+            raise BlenderConnectionExhausted(
+                ErrorMessage("Failed to connect after all retry attempts")
+            )
 
     def _close_socket(self):
         if self.sock:

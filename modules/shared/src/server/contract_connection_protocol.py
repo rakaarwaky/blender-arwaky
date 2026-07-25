@@ -6,16 +6,16 @@ AES Protocol layer — depends only on Taxonomy.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+import socket as _socket
 
-from .taxonomy_server_vo import ConnectionConfig, ConnectionStatus
+from ..common.taxonomy_core_vo import ActionName, Details, SuccessFlag
 
 
 class IBlenderConnectionProtocol(ABC):
     """Protocol for Blender TCP/stdio connection lifecycle."""
 
     @abstractmethod
-    def connect(self, host: str = "localhost", port: int = 9876) -> Any:
+    def connect(self) -> SuccessFlag:
         """Establish connection to Blender with retries and handshake.
 
         Performs TCP connection with exponential backoff retry,
@@ -30,12 +30,12 @@ class IBlenderConnectionProtocol(ABC):
         pass
 
     @abstractmethod
-    def is_connected(self) -> Any:
+    def is_connected(self) -> SuccessFlag:
         """Check if socket is currently connected and alive."""
         pass
 
     @abstractmethod
-    def send_command(self, command_type: Any, params: dict | None = None) -> dict:
+    def send_command(self, command_type: ActionName, params: Details | None = None) -> Details:
         """Send a command to Blender and return the JSON response.
 
         Serializes command as JSON, sends over TCP, receives and
@@ -44,6 +44,6 @@ class IBlenderConnectionProtocol(ABC):
         pass
 
     @abstractmethod
-    def receive_full_response(self, sock: Any, buffer_size: int = 8192) -> bytes:
+    def receive_full_response(self, sock: _socket.socket, buffer_size: int = 8192) -> bytes:
         """Receive complete JSON response from socket in chunks."""
         pass

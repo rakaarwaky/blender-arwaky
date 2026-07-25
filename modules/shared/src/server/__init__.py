@@ -66,6 +66,13 @@ from .contract_code_execution_protocol import ICodeExecutionProtocol
 from .contract_connection_protocol import IBlenderConnectionProtocol
 from .contract_socket_adapter_protocol import IBlenderSocketAdapterProtocol
 
+# ─── Utility (stateless standalone functions) ─────────────────
+
+from .utility_server_validator import validate_code_ast, check_payload_size
+from .utility_server_queue import ExecutionQueue, QueueConfig
+from .utility_server_task_manager import TaskManager, TaskManagerConfig
+from .utility_server_message import encode_message, decode_message_header, decode_message_payload, build_request, parse_response
+
 __all__ = [
     # ─── Taxonomy ───────────────────────────────────────────────
     "ConnectionConfig",
@@ -113,4 +120,16 @@ __all__ = [
     "IBlenderConnectionProtocol",
     "ICodeExecutionProtocol",
     "IBlenderSocketAdapterProtocol",
+    # ─── Utility ────────────────────────────────────────────────
+    "validate_code_ast",
+    "check_payload_size",
+    "ExecutionQueue",
+    "QueueConfig",
+    "TaskManager",
+    "TaskManagerConfig",
+    "encode_message",
+    "decode_message_header",
+    "decode_message_payload",
+    "build_request",
+    "parse_response",
 ]

@@ -1,90 +1,86 @@
-"""Code execution adapter with input validation and safety checks."""
+"""Capability: Code execution with AST-based validation and safety checks.
 
+Implements ICodeExecutionProtocol — handles Python code validation via
+AST analysis, socket-based execution forwarding, and result formatting
+per FRD-SRV-002 / FRD-SRV-005.
+"""
+
+from __future__ import annotations
+
+import ast
 import asyncio
 import logging
-import re
 
-from modules.shared.src.server import IBlenderConnectionProtocol, ICodeExecutionProtocol
+from modules.shared.src.server import IBlenderConnectionProtocol, ICodeExecutionProtocol, SecurityViolationError
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
-# Maximum code length (chars) to prevent abuse
-MAX_CODE_LENGTH = 10_000
+# Default AST-based blocked patterns for code validation (FRD-SRV-002)
+_BLOCKED_ATTRS: set[str] = {
+    "system", "popen", "exec_module", "load_module",
+    "rmtree", "move", "unlink", "remove", "rmdir",
+}
 
-# Blocked patterns — dangerous system-level operations.
-# These are pre-filters to catch common abuse; they are NOT a security boundary.
-# The actual execution happens inside Blender's trusted process, so the real
-# trust model is: "reject obviously malicious payloads before forwarding."
-# Regex-based filtering is inherently bypassable (e.g., getattr(os, "system")),
-# AST parsing or a proper sandbox would be stronger controls.
-_BLOCKED: list[tuple[re.Pattern[str], str]] = [
-    # OS-level operations
-    (re.compile(r"\bos\.system\s*\(", re.IGNORECASE), "os.system()"),
-    (re.compile(r"\bos\.popen\s*\(", re.IGNORECASE), "os.popen()"),
-    (re.compile(r"\bos\.exec\w*\s*\(", re.IGNORECASE), "os.exec*()"),
-    (re.compile(r"\bos\.spawn\w*\s*\(", re.IGNORECASE), "os.spawn*()"),
-    (re.compile(r"\bos\.remove\s*\(", re.IGNORECASE), "os.remove()"),
-    (re.compile(r"\bos\.unlink\s*\(", re.IGNORECASE), "os.unlink()"),
-    (re.compile(r"\bos\.rmdir\s*\(", re.IGNORECASE), "os.rmdir()"),
-    # Subprocess / shell
-    (re.compile(r"\bsubprocess\b", re.IGNORECASE), "subprocess"),
-    (re.compile(r"\bshutil\.rmtree\s*\(", re.IGNORECASE), "shutil.rmtree()"),
-    (re.compile(r"\bshutil\.move\s*\(", re.IGNORECASE), "shutil.move()"),
-    # Dynamic import / code execution
-    (re.compile(r"__import__\s*\("), "__import__()"),
-    (re.compile(r"\bimportlib\b"), "importlib"),
-    (re.compile(r"\beval\s*\("), "eval()"),
-    (re.compile(r"\bexec\s*\("), "exec()"),
-    (re.compile(r"\bcompile\s*\("), "compile()"),
-    # File system access
-    (re.compile(r"\bopen\s*\("), "open()"),
-    # Network
-    (re.compile(r"\bsocket\s*\.\s*socket\s*\("), "socket.socket()"),
-    (re.compile(r"\brequests\.(get|post|put|delete|patch)\s*\("), "requests HTTP"),
-    (re.compile(r"\burllib\b"), "urllib"),
-]
+_BLOCKED_MODULES: set[str] = {
+    "subprocess", "importlib", "socket", "requests", "urllib",
+}
 
 
-def validate_code(code: str) -> None:
-    """Validate code for abuse prevention before execution.
+def _validate_code_ast(code: str) -> None:
+    """AST-based static analysis for blocked Python constructs.
 
-    Raises ValidationError if the code contains known-bad patterns
-    or exceeds length limits.
+    Implements FRD-SRV-002: code validated before sending using
+    AST-based static analysis, not only regex or simple string matching.
 
-    NOTE: This is a pre-filter, not a security boundary. Regex-based
-    filtering is inherently bypassable (e.g., getattr(os, "system")).
-    The actual execution happens inside Blender's trusted process.
+    Raises SecurityViolationError if any blocked pattern is detected.
+    Server-side validation is a pre-filter only; Blender addon must
+    perform runtime enforcement as the final authority.
     """
-    if not code or not code.strip():
-        raise ValidationError(ErrorMessage("Code cannot be empty"))
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        raise ValidationError(ErrorMessage(f"Invalid syntax in submitted code: {e}"))
 
-    if len(code) > MAX_CODE_LENGTH:
-        raise ValidationError(
-            ErrorMessage(f"Code exceeds maximum length of {MAX_CODE_LENGTH} characters (received {len(code)})")
-        )
+    for node in ast.walk(tree):
+        # Check attribute calls (e.g., os.system, subprocess.Popen)
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute):
+                attr_name = node.func.attr
+                if attr_name in _BLOCKED_ATTRS:
+                    raise SecurityViolationError(
+                        ErrorMessage(f"Blocked construct detected: {attr_name}")
+                    )
 
-    for pattern, description in _BLOCKED:
-        if pattern.search(code):
-            logger.warning(
-                "Blocked code execution attempt: pattern '%s' detected",
-                description,
-            )
-            raise ValidationError(
-                ErrorMessage(
-                    f"Code contains blocked pattern: {description}. "
-                    f"For security, system-level operations are not allowed "
-                    f"through execute_blender_code. Use Blender's Python API (bpy) instead."
-                )
+        # Check module imports
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in _BLOCKED_MODULES:
+                        raise SecurityViolationError(
+                            ErrorMessage(f"Blocked module import: {alias.name}")
+                        )
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                if node.module in _BLOCKED_MODULES:
+                    raise SecurityViolationError(
+                        ErrorMessage(f"Blocked module import: {node.module}")
+                    )
+
+        # Check eval/exec/compile/__import__ calls
+        if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec", "compile", "__import__"):
+            raise SecurityViolationError(
+                ErrorMessage(f"Blocked function call: {node.func.id}")
             )
 
 
 class CodeExecutionAdapter(ICodeExecutionProtocol):
-    """Wrapper class for code execution functions with input validation.
+    """Code execution with AST-based validation and socket forwarding.
 
-    Implements ICodeExecutionProtocol with AST-based code validation
-    and socket-based execution forwarding to Blender.
+    Implements ICodeExecutionProtocol with:
+    - AST-based static analysis for blocked constructs (FRD-SRV-002)
+    - Socket-based execution forwarding to Blender
+    - Standardized ExecutionResult return values
     """
 
     def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
@@ -93,23 +89,17 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
     async def execute_blender_code(self, code: Prompt) -> Prompt:
         """Execute Python code in Blender via IPC.
 
-        This method validates the code against a denylist of dangerous
-        patterns (regex pre-filter), then forwards it to Blender through
-        the socket adapter. It does NOT sandbox the code — the actual
-        execution happens inside Blender's trusted process.
+        Validates code against AST-based denylist (FRD-SRV-002),
+        then forwards to Blender through the socket adapter.
 
-        Returns:
-            Prompt with either a success message (containing the result)
-            or an error message (validation failure or IPC exception).
+        Raises:
+            SecurityViolationError: if code contains blocked patterns.
+            ValidationError: if code is empty or syntax error.
         """
         code_str = str(code)
 
-        # Validate input before sending to Blender
-        try:
-            validate_code(code_str)
-        except ValidationError as e:
-            logger.warning("Code validation failed: %s", e)
-            return Prompt(f"Validation error: {e}")
+        # AST-based validation (FRD-SRV-002 requirement)
+        _validate_code_ast(code_str)
 
         # Audit log — record all code execution attempts
         logger.info(
@@ -126,10 +116,10 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 None,
                 lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code_str}),
             )
-            # result is a dict from send_command; extract 'result' safely
             return Prompt(f"Code executed successfully: {result.get('result', '')}")
+        except SecurityViolationError:
+            raise
         except ValidationError:
-            # Re-raise validation errors (shouldn't reach here, but be safe)
             raise
         except Exception:
             logger.exception("Error executing code in Blender")

@@ -20,6 +20,8 @@ from modules.shared.src.common.taxonomy_core_vo import (
     StatusString,
 )
 from modules.shared.src.common.taxonomy_domain_error import ExecutionError
+from modules.shared.src.object.taxonomy_blender_object_entity import BlenderObject
+from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo
 
 logger = logging.getLogger("BlenderMCPServer")
 
