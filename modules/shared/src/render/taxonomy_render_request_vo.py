@@ -58,3 +58,50 @@ class RenderResponseVO:
     image_path: str
     render_time: float
     message: Prompt
+
+
+@dataclass(frozen=True)
+class CameraSetupRequestVO:
+    """Request to configure a scene camera."""
+
+    camera_name: str | None = None
+    location_x: float = 0.0
+    location_y: float = 0.0
+    location_z: float = 0.0
+    rotation_x: float = 0.0
+    rotation_y: float = 0.0
+    rotation_z: float = 0.0
+    focal_length: float = 50.0
+    is_active: bool = False
+    framing_target: str | None = None
+
+
+@dataclass(frozen=True)
+class HdriSetupRequestVO:
+    """Request to configure HDRI environment lighting."""
+
+    hdri_path: str
+    strength: float = 1.0
+    rotation: float = 0.0
+    is_visible: bool = True
+    overwrite_policy: str = "replace"
+
+
+@dataclass(frozen=True)
+class CameraConfigResultVO:
+    """Result from camera configuration."""
+
+    success: SuccessFlag
+    camera_name: str
+    final_settings: dict
+    message: Prompt
+
+
+@dataclass(frozen=True)
+class HdriConfigResultVO:
+    """Result from HDRI configuration."""
+
+    success: SuccessFlag
+    environment_ref: str
+    applied_strength: float
+    message: Prompt

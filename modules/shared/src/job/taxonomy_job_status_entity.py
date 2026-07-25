@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from ..common.taxonomy_core_vo import ErrorString, JobId, JobState, Progress, ResultUrl
 from .taxonomy_job_state_constant import (
+    JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
+    JOB_STATE_TIMED_OUT,
 )
 
 
@@ -43,6 +45,16 @@ class JobStatus:
         """Transition to failed state."""
         self.status = JOB_STATE_FAILED
         self.error = error
+
+    def mark_cancelled(self, reason: ErrorString | None = None) -> None:
+        """Transition to cancelled state."""
+        self.status = JOB_STATE_CANCELLED
+        if reason:
+            self.error = reason
+
+    def mark_timed_out(self) -> None:
+        """Transition to timed out state."""
+        self.status = JOB_STATE_TIMED_OUT
 
 
 def create_job_id(raw: str) -> JobId:

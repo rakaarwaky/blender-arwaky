@@ -1,9 +1,33 @@
 """Render domain — taxonomy types and contracts."""
 
-from . import (
-    taxonomy_render_request_vo,
+from .contract_camera_config_protocol import CameraConfigProtocol
+from .contract_hdri_config_protocol import HdriConfigProtocol
+from .contract_render_operate_protocol import RenderOperateProtocol
+from .contract_viewport_capture import ViewportCapturePort
+from .taxonomy_render_request_vo import (
+    CameraConfigResultVO,
+    CameraSetupRequestVO,
+    GetScreenshotRequestVO,
+    HdriConfigResultVO,
+    HdriSetupRequestVO,
+    RenderRequestVO,
+    RenderResponseVO,
+    ScreenshotResponseVO,
 )
 
 __all__ = [
-    "taxonomy_render_request_vo",
+    # Protocols
+    "CameraConfigProtocol",
+    "HdriConfigProtocol",
+    "RenderOperateProtocol",
+    "ViewportCapturePort",
+    # Request/Result VOs
+    "CameraSetupRequestVO",
+    "CameraConfigResultVO",
+    "GetScreenshotRequestVO",
+    "HdriSetupRequestVO",
+    "HdriConfigResultVO",
+    "RenderRequestVO",
+    "RenderResponseVO",
+    "ScreenshotResponseVO",
 ]

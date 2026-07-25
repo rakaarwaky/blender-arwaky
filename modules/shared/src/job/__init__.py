@@ -1,11 +1,32 @@
-"""Job domain taxonomy — job state constants and job status entity."""
+"""Job domain — contracts, taxonomy, and shared types."""
 
-from . import (
-    taxonomy_job_state_constant,
-    taxonomy_job_status_entity,
+from .contract_job_cancel_protocol import JobCancelProtocol
+from .contract_job_cleanup_protocol import JobCleanupProtocol
+from .contract_job_monitor_protocol import JobMonitorProtocol
+from .contract_job_tracker_protocol import JobTrackerProtocol
+from .taxonomy_job_state_constant import (
+    JOB_STATE_CANCELLED,
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+    JOB_STATE_TIMED_OUT,
 )
+from .taxonomy_job_status_entity import JobStatus
 
 __all__ = [
-    "taxonomy_job_state_constant",
-    "taxonomy_job_status_entity",
+    # Protocols
+    "JobTrackerProtocol",
+    "JobMonitorProtocol",
+    "JobCancelProtocol",
+    "JobCleanupProtocol",
+    # States
+    "JOB_STATE_CANCELLED",
+    "JOB_STATE_COMPLETED",
+    "JOB_STATE_FAILED",
+    "JOB_STATE_PENDING",
+    "JOB_STATE_RUNNING",
+    "JOB_STATE_TIMED_OUT",
+    # Entity
+    "JobStatus",
 ]

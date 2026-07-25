@@ -1,11 +1,29 @@
 """Scene domain — taxonomy types and contracts."""
 
-from . import (
-    taxonomy_scene_info_vo,
-    taxonomy_scene_request_vo,
+from .contract_scene_inspection import SceneInspectionPort
+from .contract_scene_cleanup_protocol import SceneCleanupProtocol
+from .contract_scene_operate_protocol import SceneOperateProtocol
+from .taxonomy_scene_info_vo import SceneInfo
+from .taxonomy_scene_request_vo import (
+    CleanupSceneRequestVO,
+    CleanupSceneResponseVO,
+    GetSceneInfoRequestVO,
+    GetSceneInfoResponseVO,
+    SetupEnvironmentRequestVO,
+    SetupEnvironmentResponseVO,
 )
 
 __all__ = [
-    "taxonomy_scene_info_vo",
-    "taxonomy_scene_request_vo",
+    # Protocols
+    "SceneInspectionPort",
+    "SceneCleanupProtocol",
+    "SceneOperateProtocol",
+    # Request/Response VOs
+    "SceneInfo",
+    "CleanupSceneRequestVO",
+    "CleanupSceneResponseVO",
+    "GetSceneInfoRequestVO",
+    "GetSceneInfoResponseVO",
+    "SetupEnvironmentRequestVO",
+    "SetupEnvironmentResponseVO",
 ]
