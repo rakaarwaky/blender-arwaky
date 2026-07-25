@@ -3,12 +3,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
-from capabilities.asset_search_collector import AssetSearchCollector
-from capabilities.import_export_executor import ImportExportExecutor
-from capabilities.object_operate_executor import ObjectOperateExecutor
-from capabilities.render_operate_executor import RenderOperateExecutor
-from capabilities.scene_operate_executor import SceneOperateExecutor
-from capabilities.workflow_orchestrate_executor import WorkflowExecutor
+from modules.render.src.capabilities_asset_search_collector import AssetSearchCollector
+from modules.object.capabilities_import_export_executor import ImportExportExecutor
+from modules.object.src.capabilities_object_operate_executor import ObjectOperateExecutor
+from modules.render.src.capabilities_render_operate_executor import RenderOperateExecutor
+from modules.scene.capabilities_scene_operate_executor import SceneOperateExecutor
+from modules.shared.src.common.capabilities_workflow_executor import WorkflowExecutor
 from taxonomy import (
     ActionName,
     ApplyModifierRequestVO,

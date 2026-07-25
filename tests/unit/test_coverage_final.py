@@ -253,7 +253,7 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_search_expert_params_none(self):
-        from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
         assets.search_all = AsyncMock(return_value=[])
         blender = MagicMock()
@@ -264,7 +264,7 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_search_expert_exception(self):
-        from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
         assets.search_all = AsyncMock(side_effect=Exception("search error"))
         r = await SearchExpertOrchestrator(assets, MagicMock()).execute("search", {"query": "box"})
@@ -338,14 +338,14 @@ class TestInfrastructureFinalGaps:
     """Cover remaining infrastructure gaps."""
 
     def test_blender_connection_already_connected(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = MagicMock()
         conn._is_socket_alive = MagicMock(return_value=True)
         assert conn.connect() is True
 
     def test_blender_connection_read_response_empty_midstream(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         mock_sock = MagicMock()
         mock_sock.recv.side_effect = [b'{"status":', b'']
@@ -354,7 +354,7 @@ class TestInfrastructureFinalGaps:
         assert len(chunks) > 0
 
     def test_blender_connection_recv_connection_error(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         mock_sock = MagicMock()
         import builtins
@@ -363,28 +363,28 @@ class TestInfrastructureFinalGaps:
             conn._read_response_chunks(mock_sock, 1024)
 
     def test_blender_connection_receive_full_pre_completed(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([b'{}'], True)):
             data = conn.receive_full_response(MagicMock())
             assert data == b'{}'
 
     def test_blender_connection_receive_full_chunks_not_completed(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([b'{"a": 1}'], False)):
             data = conn.receive_full_response(MagicMock())
             assert data == b'{"a": 1}'
 
     def test_blender_connection_receive_full_no_data(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([], False)):
             with pytest.raises(Exception, match="No data received"):
                 conn.receive_full_response(MagicMock())
 
     def test_blender_connection_send_command_connect_fails(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = None
         conn.connect = MagicMock(return_value=False)
@@ -392,7 +392,7 @@ class TestInfrastructureFinalGaps:
             conn.send_command("test")
 
     def test_blender_connection_send_command_sock_none_after_connect(self):
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = None
         def fake_connect():
@@ -404,7 +404,7 @@ class TestInfrastructureFinalGaps:
 
     def test_global_get_blender_connection_factory_unexpected_type(self):
         import infrastructure.blender_connection_connector as bcc
-        from modules.object.infrastructure_blender_connection import get_blender_connection
+        from modules.object.src.blender_connection import get_blender_connection
         bcc._blender_connection = None
         mock_factory = MagicMock()
         mock_factory.get_connection.return_value = "not_a_blender_connection"

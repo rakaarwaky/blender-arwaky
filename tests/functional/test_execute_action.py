@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from capabilities.action_execute_actions import ActionExecuteActions as ExecuteActionCapability
+from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions as ExecuteActionCapability
 
 
 @pytest.fixture

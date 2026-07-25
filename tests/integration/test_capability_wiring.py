@@ -26,7 +26,7 @@ from modules.shared.src.common.agent_di_container import get_container, reset_co
 @pytest.fixture(autouse=True)
 def isolated_container(monkeypatch):
     """Reset DI container and mock Blender socket for each test."""
-    from modules.object.infrastructure_blender_connection import BlenderConnection
+    from modules.object.src.blender_connection import BlenderConnection
     monkeypatch.setattr(BlenderConnection, "connect", lambda self: True)
     monkeypatch.setattr(BlenderConnection, "_is_socket_alive", lambda self: True)
     reset_container()
@@ -53,7 +53,7 @@ class TestCapabilityContracts:
 
     def test_object_capability_via_factory_has_required_methods(self):
         """Object capability via factory (bypasses missing DI slot)."""
-        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
+        from modules.object.src.capabilities_object_operate_executor import ObjectOperateExecutor
         mock_blender = MagicMock()
         cap = ObjectOperateExecutor(blender_port=mock_blender)
         assert hasattr(cap, "create_primitive"), "missing: create_primitive"
@@ -129,7 +129,7 @@ class TestAssetSearchCollectorIntegration:
 
     @pytest.mark.asyncio
     async def test_search_all_aggregates_results_from_all_providers(self):
-        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
+        from modules.render.src.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import SearchQuery
 
         mock_provider_a = AsyncMock()
@@ -155,7 +155,7 @@ class TestAssetSearchCollectorIntegration:
 
     @pytest.mark.asyncio
     async def test_search_all_filters_by_provider(self):
-        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
+        from modules.render.src.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import SearchQuery
 
         mock_provider_a = AsyncMock()
@@ -184,7 +184,7 @@ class TestAssetSearchCollectorIntegration:
     @pytest.mark.asyncio
     async def test_search_all_tolerates_provider_error(self):
         """One failing provider must not crash the entire search."""
-        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
+        from modules.render.src.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import ErrorMessage, ProviderError, SearchQuery
 
         mock_ok = AsyncMock()
@@ -329,7 +329,7 @@ class TestHealthCheckIntegration:
     """System health check must return a valid structured response."""
 
     def test_health_check_returns_dict_with_required_keys(self):
-        from agent.system_coordinator import health_check
+        from modules.shared.src.common.agent_system_coordinator import health_check
 
         with patch("infrastructure.blender_connection_connector.get_blender_connection",
                    side_effect=ConnectionError("Blender not running")):
@@ -340,7 +340,7 @@ class TestHealthCheckIntegration:
         assert "status" in result
 
     def test_health_check_degraded_when_blender_offline(self):
-        from agent.system_coordinator import health_check
+        from modules.shared.src.common.agent_system_coordinator import health_check
 
         with patch("infrastructure.blender_connection_connector.get_blender_connection",
                    side_effect=ConnectionError("not running")):
@@ -350,7 +350,7 @@ class TestHealthCheckIntegration:
         assert result["status"] == "degraded"
 
     def test_health_check_healthy_when_blender_connected(self):
-        from agent.system_coordinator import health_check
+        from modules.shared.src.common.agent_system_coordinator import health_check
 
         mock_conn = MagicMock()
         with patch("infrastructure.blender_connection_connector.get_blender_connection",
@@ -369,7 +369,7 @@ class TestBlenderConnectionIntegration:
 
     def test_send_command_serializes_to_correct_json_format(self):
         """Command sent over socket must follow {type, params} protocol."""
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
 
         conn = BlenderConnection(host="localhost", port=9876)
 
@@ -397,7 +397,7 @@ class TestBlenderConnectionIntegration:
 
     def test_handle_command_response_raises_on_error_status(self):
         """Blender error responses must raise exceptions, not silently fail."""
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         error_response = json.dumps({
@@ -410,7 +410,7 @@ class TestBlenderConnectionIntegration:
 
     def test_finalize_chunks_raises_on_incomplete_json(self):
         """Incomplete JSON from socket must raise, not return garbage."""
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         incomplete = [b'{"status": "ok", "result":']  # truncated
@@ -420,7 +420,7 @@ class TestBlenderConnectionIntegration:
 
     def test_receive_full_response_assembles_chunked_data(self):
         """Multi-chunk responses must be reassembled correctly."""
-        from modules.object.infrastructure_blender_connection import BlenderConnection
+        from modules.object.src.blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         full_json = json.dumps({"status": "ok", "result": {"x": 1}})

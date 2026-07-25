@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from ..asset_io.import_export_protocol import ImportExportProtocol
-from ..asset_provider.asset_provider_port import AssetProviderPort
-from ..asset_provider.asset_search_protocol import AssetSearchProtocol
+from modules.asset.import_export_protocol import ImportExportProtocol
+from modules.asset.asset_provider_port import AssetProviderPort
+from modules.asset.asset_search_protocol import AssetSearchProtocol
 from ..common.agent_factory_aggregate import AgentFactoryRegistryAggregate
 from ..common.core_agent_aggregate import CoreAgentOrchestratorAggregate
 from ..common.execute_action_protocol import ExecuteActionProtocol
@@ -15,7 +15,7 @@ from ..common.setup_expert_aggregate import SetupExpertOrchestratorAggregate
 from ..common.system_utils_aggregate import SystemUtilsCoordinatorAggregate
 from ..common.workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
 from ..common.workflow_protocol import WorkflowProtocol
-from ..config.config_port import ConfigPort
+from modules.config.config_port import ConfigPort
 from ..object.blender_port import BlenderPort
 from ..object.code_execution_port import CodeExecutionPort
 from ..object.connection_port import BlenderConnectionPort
@@ -72,13 +72,13 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
 
     @staticmethod
     def create_polyhaven_adapter(connection: object) -> AssetProviderPort:
-        from modules.render.polyhaven_adapter import PolyhavenAssetAdapter
+        from modules.asset.polyhaven_adapter import PolyhavenAssetAdapter
 
         return PolyhavenAssetAdapter(cast(Any, connection))
 
     @staticmethod
     def create_sketchfab_adapter(connection: object) -> AssetProviderPort:
-        from modules.render.sketchfab_adapter import SketchfabAssetAdapter
+        from modules.asset.sketchfab_adapter import SketchfabAssetAdapter
 
         return SketchfabAssetAdapter(cast(Any, connection))
 
@@ -108,7 +108,7 @@ class AgentFactoryRegistry(AgentFactoryRegistryAggregate):
 
     @staticmethod
     def create_asset_collector(polyhaven: object, sketchfab: object) -> AssetSearchProtocol:
-        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
+        from modules.asset.asset_search_collector import AssetSearchCollector
 
         return AssetSearchCollector({"polyhaven": cast(Any, polyhaven), "sketchfab": cast(Any, sketchfab)})
 

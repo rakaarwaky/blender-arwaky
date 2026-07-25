@@ -73,19 +73,20 @@ Domain folders organize types by business concern: common, config, scene, object
 
 ## API Contract
 
-| Operation | Input | Output | Description |
-|-----------|-------|--------|-------------|
-| `BlenderPort.execute_code` | PythonCode | StatusString | Execute code in Blender |
-| `BlenderPort.get_scene_info` | None | SceneInfo | Get current scene state |
-| `SceneOperateProtocol.cleanup_scene` | CleanupSceneRequestVO | CleanupSceneResponseVO | Clean scene objects |
-| `ObjectOperateProtocol.place_asset` | PlaceAssetRequestVO | PlaceAssetResponseVO | Place asset in scene |
-| `RenderOperateProtocol.get_viewport_screenshot` | GetScreenshotRequestVO | ScreenshotResponseVO | Capture viewport |
-| `ExecuteActionProtocol.execute` | ActionName, Details | Prompt | Universal action dispatch |
+
+| Operation                 | Input         | Output             | Description               |
+| --------------------------- | --------------- | -------------------- | --------------------------- |
+| `execute_code`            | PythonCode    | Status             | Execute code in Blender   |
+| `get_scene_info`          | None          | SceneInfo          | Get current scene state   |
+| `cleanup_scene`           | CleanupScene  | CleanupScene       | Clean scene objects       |
+| `place_asset`             | PlaceAsset    | PlaceAsset         | Place asset in scene      |
+| `get_viewport_screenshot` | GetScreenshot | ScreenshotResponse | Capture viewport          |
+| `execute`                 | DetailsAction | Prompt             | Universal action dispatch |
 
 ## Integration Points
 
 - **Internal**: All feature modules depend on shared taxonomy and contracts
-- **External**: None (foundation layer)
+- **External**: None ConstantCompile-time literal value
 
 ## Non-functional Requirements (Detailed)
 
@@ -95,12 +96,12 @@ Domain folders organize types by business concern: common, config, scene, object
 
 ## Test Scenarios / QA Checklist
 
-- [ ] All NewType VOs import correctly from barrel
-- [ ] All contract ABCs raise TypeError if instantiated directly
-- [ ] Command catalog contains all registered actions
-- [ ] Error hierarchy serializes to MCP-compatible format
-- [ ] Vector3D arithmetic operations produce correct results
-- [ ] BoundingBox containment checks work for edge cases
+- [ ]  All NewType VOs import correctly from barrel
+- [ ]  All contract ABCs raise TypeError if instantiated directly
+- [ ]  Command catalog contains all registered actions
+- [ ]  Error hierarchy serializes to MCP-compatible format
+- [ ]  Vector3D arithmetic operations produce correct results
+- [ ]  BoundingBox containment checks work for edge cases
 
 ## Assumptions & Constraints
 
@@ -110,11 +111,13 @@ Domain folders organize types by business concern: common, config, scene, object
 
 ## Glossary
 
-- **VO**: Value Object — immutable data concept with structural equality
-- **Entity**: Stateful domain concept with identity
-- **Protocol**: ABC interface defining inbound behavior
-- **Aggregate**: Facade interface implemented by agent, consumed by surface
-- **Port**: Infrastructure-facing interface for external adapters
+- **_vo**: Value Object — immutable data concept with structural equality
+- **_entity**: Stateful domain concept with identity
+- **_event:** Immutable domain fact
+- **_error**: Domain-level error
+- **utility_**: contains low-level technical mechanics
+- **_protocol**: ABC interface defining inbound behavior implemented by capabilties, consumed by agent
+- **_aggregate**: Facade interface implemented by agent, consumed by surface
 
 ## Reference
 

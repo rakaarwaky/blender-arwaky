@@ -3,7 +3,7 @@ import contextlib
 
 import pytest
 
-from agent.agent_di_container import get_container, reset_container
+from modules.shared.src.common.agent_di_container import get_container, reset_container
 
 
 @pytest.mark.unit

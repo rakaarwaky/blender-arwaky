@@ -5,14 +5,14 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from modules.object.infrastructure_blender_connection import (
+from modules.object.src.blender_connection import (
     BlenderConnection,
     BlenderConnectionFactory,
     get_blender_connection,
     shutdown_connection,
 )
-from modules.object.infrastructure_blender_socket_adapter import BlenderSocketAdapter
-from modules.object.infrastructure_code_execution_adapter import CodeExecutionAdapter
+from modules.object.src.blender_socket_adapter import BlenderSocketAdapter
+from modules.object.src.code_execution_adapter import CodeExecutionAdapter
 from modules.shared.src.config.config_loader import (
     ApplicationConfigLoader,
 )

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from contract.workflow_operate_protocol import WorkflowProtocol
+from modules.shared.src.common.workflow_protocol import WorkflowProtocol
 from taxonomy import Prompt, ProviderName, SuccessFlag
 
 
@@ -47,7 +47,7 @@ class TestWorkflowProtocol:
 
 # ─── catalog_command_handler.py (surfaces) ───────────────────────
 
-from surfaces.catalog_command_handler import (
+from modules.shared.src.common.surface_catalog_command import (
     CommandCatalogSurfaceHandler,
     filter_by_domain,
     get_actions_by_capability,

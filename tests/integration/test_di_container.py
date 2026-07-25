@@ -7,7 +7,7 @@ from modules.shared.src.common.agent_di_container import get_container, reset_co
 @pytest.fixture(autouse=True)
 def reset_di(monkeypatch):
     """Reset DI container before each test and mock Blender socket connection."""
-    from modules.object.infrastructure_blender_connection import BlenderConnection
+    from modules.object.src.blender_connection import BlenderConnection
     monkeypatch.setattr(BlenderConnection, "connect", lambda self: True)
     monkeypatch.setattr(BlenderConnection, "_is_socket_alive", lambda self: True)
     reset_container()

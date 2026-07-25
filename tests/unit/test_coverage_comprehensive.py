@@ -16,7 +16,7 @@ class TestAgentLogicCoordinator:
     """Cover log_error/log_warning through concrete subclass."""
 
     def test_log_methods(self):
-        from agent.agent_logic_coordinator import ExpertOrchestratorLogic
+        from modules.shared.src.common.agent_logic_coordinator import ExpertOrchestratorLogic
 
         class C(ExpertOrchestratorLogic):
             async def execute(self, action, args):
@@ -35,19 +35,19 @@ class TestSearchExpert:
 
     @pytest.mark.asyncio
     async def test_unknown_action(self):
-        from agent.search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
         r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_import_no_params(self):
-        from agent.search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
         r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("import", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_place_no_params(self):
-        from agent.search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
         r = await SearchExpertOrchestrator(MagicMock(), MagicMock()).execute("place", {})
         assert not r["success"]
 
@@ -58,19 +58,19 @@ class TestSetupExpert:
 
     @pytest.mark.asyncio
     async def test_unknown_action(self):
-        from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+        from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
         r = await SetupExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_no_render_for_camera(self):
-        from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+        from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
         r = await SetupExpertOrchestrator(MagicMock(), None).execute("setup_camera", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_no_render_for_render(self):
-        from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+        from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
         r = await SetupExpertOrchestrator(MagicMock(), None).execute("setup_render", {})
         assert not r["success"]
 
@@ -81,13 +81,13 @@ class TestRefinementExpert:
 
     @pytest.mark.asyncio
     async def test_unknown_action(self):
-        from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
+        from modules.render.src.agent_refinement_expert_orchestrator import RefinementExpertOrchestrator
         r = await RefinementExpertOrchestrator(MagicMock(), MagicMock()).execute("nonexistent", {})
         assert not r["success"]
 
     @pytest.mark.asyncio
     async def test_refine_loop(self):
-        from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
+        from modules.render.src.agent_refinement_expert_orchestrator import RefinementExpertOrchestrator
         scene = MagicMock()
         scene.execute = AsyncMock(return_value={"tool_scene_ops": {"objects": []}})
         asset = MagicMock()
@@ -104,7 +104,7 @@ class TestWorkflowAgent:
 
     @pytest.mark.asyncio
     async def test_create_scene(self):
-        from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
+        from modules.shared.src.common.agent_workflow_orchestrator import WorkflowAgentOrchestrator
         scene = MagicMock()
         scene.execute = AsyncMock(return_value={"success": True})
         asset = MagicMock()
@@ -123,17 +123,17 @@ class TestPromptRegisterFuncs:
     """Cover inner prompt functions."""
 
     def test_lighting(self):
-        from surfaces.prompt_register_handler import get_lighting_expert_prompt
+        from modules.shared.src.common.surface_prompt_register import get_lighting_expert_prompt
         r = get_lighting_expert_prompt()
         assert isinstance(r, str) and len(r) > 0
 
     def test_layout(self):
-        from surfaces.prompt_register_handler import get_layout_expert_prompt
+        from modules.shared.src.common.surface_prompt_register import get_layout_expert_prompt
         r = get_layout_expert_prompt()
         assert isinstance(r, str) and len(r) > 0
 
     def test_orchestrator(self):
-        from surfaces.prompt_register_handler import get_text_to_scene_orchestrator_prompt
+        from modules.shared.src.common.surface_prompt_register import get_text_to_scene_orchestrator_prompt
         r = get_text_to_scene_orchestrator_prompt()
         assert isinstance(r, str) and len(r) > 0
 
@@ -143,13 +143,13 @@ class TestCatalogHandler:
     """Cover list_commands with domain filter."""
 
     def test_with_domain(self):
-        from surfaces.catalog_command_handler import CommandCatalogSurfaceHandler
+        from modules.shared.src.common.surface_catalog_command import CommandCatalogSurfaceHandler
         from taxonomy import DomainRef
         r = CommandCatalogSurfaceHandler.list_commands(DomainRef("scene"))
         assert len(r) > 0 and isinstance(r, list)
 
     def test_without_domain(self):
-        from surfaces.catalog_command_handler import CommandCatalogSurfaceHandler
+        from modules.shared.src.common.surface_catalog_command import CommandCatalogSurfaceHandler
         r = CommandCatalogSurfaceHandler.list_commands()
         assert len(r) > 0
 
@@ -163,11 +163,11 @@ class TestBlenderConnection:
     """Cover remaining blender_connection paths."""
 
     def test_shutdown_empty(self):
-        from infrastructure.blender_connection_connector import shutdown_connection
+        from modules.object.infrastructure_blender_connection import shutdown_connection
         shutdown_connection()
 
     def test_connect_alive(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection("127.0.0.1", 9876)
         conn._conn = MagicMock()
         conn._conn.fileno.return_value = 5
@@ -175,7 +175,7 @@ class TestBlenderConnection:
         assert r is not None
 
     def test_create(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         c = BlenderConnection("127.0.0.1", 9876)
         assert c.host == "127.0.0.1" and c.port == 9876
 
@@ -185,7 +185,7 @@ class TestConfigFileLoader:
     """Cover config file directory detection."""
 
     def test_get_project_root(self):
-        from infrastructure.config_file_loader import ApplicationConfigLoader
+        from modules.shared.src.config.config_loader import ApplicationConfigLoader
         r = ApplicationConfigLoader.get_project_root()
         assert r is None or isinstance(r, Path)
 
@@ -199,7 +199,7 @@ class TestTelemetrySignalRecorder:
         assert hasattr(tsr, "_toml_parser")
 
     def test_package_version(self):
-        from infrastructure.telemetry_signal_recorder import _get_package_version
+        from modules.telemetry.infrastructure_telemetry_recorder import _get_package_version
         v = _get_package_version()
         assert isinstance(v, str) and len(v) > 0
 

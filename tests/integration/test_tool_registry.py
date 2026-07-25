@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from surfaces.tool_registry_handler import ToolRegistryHandler
+from modules.shared.src.common.surface_tool_registry import ToolRegistryHandler
 
 
 @pytest.mark.integration

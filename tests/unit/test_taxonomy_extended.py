@@ -471,8 +471,8 @@ class TestSceneAggregateExtended:
     """Extra test cases for SceneAggregate to close taxonomy gaps."""
 
     def test_update_object_with_same_name_and_invalid_attribute(self):
-        from taxonomy.blender_object_entity import OBJECT_TYPE_MESH, BlenderObject
-        from taxonomy.blender_scene_entity import SceneAggregate
+        from modules.shared.src.object.taxonomy_blender_object_entity import OBJECT_TYPE_MESH, BlenderObject
+        from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo
 
         scene = SceneAggregate()
         obj = BlenderObject(
@@ -506,7 +506,7 @@ class TestSceneAggregateExtended:
     def test_find_object_not_found_throws_validation_error(self):
         from uuid import uuid4
 
-        from taxonomy.blender_scene_entity import SceneAggregate, SceneValidationError
+        from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo, SceneValidationError
         scene = SceneAggregate()
         with pytest.raises(SceneValidationError) as exc_info:
             scene.get_object(uuid4())

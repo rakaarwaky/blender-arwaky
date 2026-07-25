@@ -5,29 +5,29 @@ Infrastructure: Adapter for Polyhaven Asset Provider.
 import logging
 from typing import cast
 
-from modules.shared.src.common import (
+from modules.shared.src.asset import (
     AssetProviderPort,
-    BlenderConnectionPort,
-)
-from modules.shared.src.common import (
-    ActionName,
-    AssetCount,
     AssetDownloadRequestVO,
     AssetDownloadResponseVO,
-    AssetId,
     AssetMetadata,
     AssetMetadataVO,
-    AssetName,
     AssetSearchRequestVO,
     AssetSearchResponseVO,
+)
+from modules.shared.src.object.connection_port import BlenderConnectionPort
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    AssetCount,
+    AssetId,
+    AssetName,
     AssetType,
     ErrorMessage,
     FilePath,
-    ProviderError,
     ProviderName,
     SuccessFlag,
     TagList,
 )
+from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
 logger = logging.getLogger("BlenderMCPServer")
 

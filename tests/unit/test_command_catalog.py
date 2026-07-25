@@ -1,7 +1,7 @@
 """Tests for the command catalog taxonomy module."""
 import pytest
 
-from taxonomy.blender_command_vo import COMMAND_CATALOG, list_actions
+from modules.shared.src.common.taxonomy_command_catalog_constant import COMMAND_CATALOG, list_actions
 
 
 @pytest.mark.unit
@@ -69,7 +69,7 @@ class TestCommandCatalogDomains:
 
     def test_every_domain_has_at_least_one_action(self):
         """Each domain found in the catalog must have at least one action."""
-        from taxonomy.blender_command_vo import COMMAND_CATALOG
+        from modules.shared.src.common.taxonomy_command_catalog_constant import COMMAND_CATALOG
         actual_domains = {}
         for name, spec in COMMAND_CATALOG.items():
             d = spec.get("domain", "unknown")
@@ -81,7 +81,7 @@ class TestCommandCatalogDomains:
 
     def test_knows_actual_domains(self):
         """Document the actual domains present in the catalog."""
-        from taxonomy.blender_command_vo import COMMAND_CATALOG
+        from modules.shared.src.common.taxonomy_command_catalog_constant import COMMAND_CATALOG
         actual_domains = {spec.get("domain", "") for spec in COMMAND_CATALOG.values()}
         expected_domains = {"scene", "viewport", "infrastructure", "object", "render", "io"}
         assert actual_domains == expected_domains, (

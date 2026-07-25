@@ -1,21 +1,16 @@
 """BlenderArwaky shared domain types — taxonomy + contract layers.
 
 Organized by domain:
-- common/: Core cross-cutting features
-- config/: Application config
-- scene/: Scene info,
-- object/: Blender object
-- render/: Render
-- asset/: Import/export provider asset
-- job/: Job state
-- telemetry/: Event telemetry
+- common/: Core cross-cutting
+- object/: Object domain
+- render/: Render domain
+- job/: Job domain VOs
+- telemetry/: Telemetry domain
 """
 
 from . import (
-    asset_io,
-    asset_provider,
+    asset,
     common,
-    config,
     job,
     object,
     render,
@@ -196,28 +191,6 @@ from .object.taxonomy_object_request_vo import (
     SetObjectTransformResponseVO,
 )
 
-# === Asset provider domain exports ===
-from .asset_provider.taxonomy_asset_constant import (
-    ASSET_TYPE_HDRIS,
-    ASSET_TYPE_MODELS,
-    ASSET_TYPE_TEXTURES,
-    PROVIDER_POLYHAVEN,
-    PROVIDER_SKETCHFAB,
-)
-
-from .asset_provider.taxonomy_asset_data_vo import (
-    AssetMetadata,
-    ImportedAsset,
-    create_asset_id,
-    create_provider_name,
-)
-
-from .asset_provider.taxonomy_asset_request_vo import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
-)
 
 # === Render domain exports ===
 from .render.taxonomy_render_request_vo import (
@@ -227,13 +200,6 @@ from .render.taxonomy_render_request_vo import (
     ScreenshotResponseVO,
 )
 
-# === Asset I/O domain exports ===
-from .asset_io.taxonomy_import_export_vo import (
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
-)
 
 # === Job domain exports ===
 from .job.taxonomy_job_state_constant import (
@@ -260,14 +226,46 @@ from .telemetry.taxonomy_event_constant import (
 
 from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
+# === Asset domain exports ===
+from .asset.taxonomy_asset_constant import (
+    ASSET_TYPE_HDRIS,
+    ASSET_TYPE_MODELS,
+    ASSET_TYPE_TEXTURES,
+    PROVIDER_POLYHAVEN,
+    PROVIDER_SKETCHFAB,
+)
+
+from .asset.taxonomy_asset_data_vo import (
+    AssetMetadata,
+    ImportedAsset,
+    create_asset_id,
+    create_provider_name,
+)
+
+from .asset.taxonomy_asset_request_vo import (
+    AssetDownloadRequestVO,
+    AssetDownloadResponseVO,
+    AssetMetadataItem,
+    AssetMetadataVO,
+    AssetSearchRequestVO,
+    AssetSearchResponseVO,
+)
+
+from .asset.taxonomy_import_export_vo import (
+    ExportModelRequestVO,
+    ExportModelResponseVO,
+    ImportGlbRequestVO,
+    ImportGlbResponseVO,
+)
+
 # === Contract layer exports (organized by domain) ===
 
 # Protocols (business behavior contracts)
 from .scene.scene_operate_protocol import SceneOperateProtocol
 from .object.object_operate_protocol import ObjectOperateProtocol
 from .render.render_operate_protocol import RenderOperateProtocol
-from .asset_io.import_export_protocol import ImportExportProtocol
-from .asset_provider.asset_search_protocol import AssetSearchProtocol
+from .asset.asset_search_protocol import AssetSearchProtocol
+from .asset.import_export_protocol import ImportExportProtocol
 from .common.workflow_protocol import WorkflowProtocol
 from .common.execute_action_protocol import ExecuteActionProtocol
 
@@ -276,13 +274,12 @@ from .object.blender_port import BlenderPort
 from .object.connection_port import BlenderConnectionPort
 from .object.connection_factory_port import BlenderConnectionFactoryPort
 from .object.code_execution_port import CodeExecutionPort
-from .config.config_port import ConfigPort
 from .common.command_catalog_port import CommandCatalogPort
 from .scene.scene_inspection_port import SceneInspectionPort
 from .render.viewport_capture_port import ViewportCapturePort
-from .asset_provider.asset_provider_port import AssetProviderPort
-from .asset_provider.sketchfab_api_port import SketchfabApiPort
-from .asset_provider.polyhaven_api_port import PolyhavenApiPort
+from .asset.asset_provider_port import AssetProviderPort
+from .asset.polyhaven_api_port import PolyhavenApiPort
+from .asset.sketchfab_api_port import SketchfabApiPort
 from .telemetry.telemetry_recording_port import TelemetryRecordingPort
 
 # Aggregates (structural contracts for agents)
@@ -305,8 +302,6 @@ __all__ = [
     "scene",
     "object",
     "render",
-    "asset_io",
-    "asset_provider",
     "job",
     "telemetry",
     # Core Value Objects
@@ -397,6 +392,8 @@ __all__ = [
     "Vector3D",
     "BoundingBox",
     "AssetMetadata",
+    "AssetMetadataItem",
+    "AssetMetadataVO",
     "ImportedAsset",
     "SceneInfo",
     "ApplicationConfig",
@@ -471,7 +468,6 @@ __all__ = [
     "BlenderConnectionPort",
     "BlenderConnectionFactoryPort",
     "CodeExecutionPort",
-    "ConfigPort",
     "CommandCatalogPort",
     "SceneInspectionPort",
     "ViewportCapturePort",

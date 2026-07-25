@@ -6,8 +6,8 @@ import pytest
 
 from modules.shared.src.common.agent_logic_coordinator import ExpertBaseOrchestrator
 from modules.shared.src.common.agent_core_orchestrator import CoreAgentOrchestrator
-from modules.render.agent_refinement_expert_orchestrator import RefinementExpertOrchestrator
-from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
+from modules.render.src.agent_refinement_expert_orchestrator import RefinementExpertOrchestrator
+from modules.render.src.agent_search_expert_orchestrator import SearchExpertOrchestrator
 from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
 from modules.shared.src.common.agent_system_coordinator import SystemUtilsCoordinator
 from modules.shared.src.common.agent_workflow_orchestrator import WorkflowAgentOrchestrator

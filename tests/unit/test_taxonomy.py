@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from taxonomy.blender_job_vo import (
+from modules.shared.src.job.taxonomy_job_status_entity import (
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
@@ -12,7 +12,7 @@ from taxonomy.blender_job_vo import (
     create_job_id,
     create_progress,
 )
-from taxonomy.blender_mcp_error import (
+from modules.shared.src.common.taxonomy_domain_error import (
     AssetNotFoundError,
     BlenderConnectionFailure,
     BlenderMCPError,
@@ -24,15 +24,15 @@ from taxonomy.blender_mcp_error import (
     SceneValidationError,
     ValidationError,
 )
-from taxonomy.blender_object_entity import (
+from modules.shared.src.object.taxonomy_blender_object_entity import (
     OBJECT_TYPE_CAMERA,
     OBJECT_TYPE_MESH,
     BlenderObject,
     create_object_id,
 )
-from taxonomy.blender_scene_entity import SceneAggregate, SceneInfo
-from taxonomy.blender_spatial_vo import BoundingBox, Vector3D, create_float_triplet
-from taxonomy.core_types_vo import (
+from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo
+from modules.shared.src.common.taxonomy_vector3d_vo import BoundingBox, Vector3D
+from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     ErrorMessage,
     ObjectName,

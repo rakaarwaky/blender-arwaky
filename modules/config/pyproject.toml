@@ -1,0 +1,13 @@
+[project]
+name = "blender-arwaky-config"
+version = "1.6.5"
+description = "BlenderArwaky configuration feature module"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["."]

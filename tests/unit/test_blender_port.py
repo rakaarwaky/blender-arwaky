@@ -6,7 +6,7 @@ from contract import (
     ObjectOperateProtocol,
     SceneOperateProtocol,
 )
-from contract.adapter_blender_port import BlenderPort as BlenderPortDirect
+from modules.shared.src.object.blender_port import BlenderPort as BlenderPortDirect
 
 
 @pytest.mark.unit
