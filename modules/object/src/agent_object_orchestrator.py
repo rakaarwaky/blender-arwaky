@@ -48,9 +48,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
         logger.info("Orchestrating create_primitive: %s", request.primitive_type)
         return await self._aggregate.create_primitive(request)
 
-    async def set_object_transform(
-        self, request: SetObjectTransformRequestVO
-    ) -> TransformResultVO:
+    async def set_object_transform(self, request: SetObjectTransformRequestVO) -> TransformResultVO:
         """Delegate transform update to the capabilities layer."""
         logger.info("Orchestrating set_object_transform for %s", request.object_name)
         return await self._aggregate.set_object_transform(request)
@@ -70,9 +68,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
         logger.info("Orchestrating delete_object for %s", request.object_name)
         return await self._aggregate.delete_object(request)
 
-    async def get_object_info(
-        self, request: GetObjectInfoRequestVO
-    ) -> ObjectInfoResultVO:
+    async def get_object_info(self, request: GetObjectInfoRequestVO) -> ObjectInfoResultVO:
         """Delegate object info retrieval to the capabilities layer."""
         logger.info("Orchestrating get_object_info for %s", request.object_name)
         return await self._aggregate.get_object_info(request)

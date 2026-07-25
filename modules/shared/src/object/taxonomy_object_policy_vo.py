@@ -2,18 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 
 from ..common.taxonomy_core_vo import (
-    AssetId,
-    CoordinateList,
-    MaterialName,
-    ObjectName,
-    ObjectType,
-    Progress,
-    RotationVector,
-    ScaleVector,
     SuccessFlag,
 )
 

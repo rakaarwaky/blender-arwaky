@@ -8,11 +8,8 @@ from ..common.taxonomy_core_vo import (
     AssetId,
     CoordinateList,
     ObjectName,
-    ObjectType,
     PrimitiveType,
-    Progress,
     RotationVector,
-    ScaleFactor,
     ScaleVector,
     SuccessFlag,
 )

@@ -16,8 +16,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from modules.shared.src.common.contract_execute_action_protocol import ExecuteActionProtocol
-from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
 from modules.shared.src.common.taxonomy_command_catalog_constant import CommandCatalog
+from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
 
 logger = logging.getLogger("BlenderMCPServer")
 

@@ -53,9 +53,7 @@ class WorkflowExecutor(WorkflowProtocol):
 
             # 3. Place first asset
             logger.info(f"Placing asset: {assets[0].name}")
-            place_code = (
-                "import bpy\nfor obj in bpy.context.selected_objects:\n    obj.location = (0.0, 0.0, 0.0)\n"
-            )
+            place_code = "import bpy\nfor obj in bpy.context.selected_objects:\n    obj.location = (0.0, 0.0, 0.0)\n"
             await self.blender.blender.execute_code(PythonCode(place_code))
 
             # 4. Setup environment (default HDRI for now)

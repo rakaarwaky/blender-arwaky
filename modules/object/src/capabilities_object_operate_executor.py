@@ -27,12 +27,6 @@ from modules.shared.src.object.contract_object_operate_protocol import ObjectOpe
 from modules.shared.src.object.taxonomy_object_error_vo import (
     InvalidModifierTypeError,
     InvalidPrimitiveTypeError,
-    MaterialAssignmentError,
-    ObjectNotFoundError,
-)
-from modules.shared.src.object.taxonomy_object_policy_vo import (
-    ModifierAction,
-    NamingPolicy,
 )
 from modules.shared.src.object.taxonomy_object_request_vo import (
     ApplyModifierRequestVO,
@@ -225,9 +219,7 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
             logger.error("create_primitive failed: %s", e)
             raise
 
-    async def set_object_transform(
-        self, request: SetObjectTransformRequestVO
-    ) -> TransformResultVO:
+    async def set_object_transform(self, request: SetObjectTransformRequestVO) -> TransformResultVO:
         """Modify location, rotation, or scale of an existing object.
 
         FR-OBJ-003: Only sets provided transform fields; omitted fields are preserved.
@@ -368,9 +360,7 @@ class ObjectOperateExecutor(ObjectOperateProtocol):
             logger.error("delete_object failed: %s", e)
             raise
 
-    async def get_object_info(
-        self, request: GetObjectInfoRequestVO
-    ) -> ObjectInfoResultVO:
+    async def get_object_info(self, request: GetObjectInfoRequestVO) -> ObjectInfoResultVO:
         """Retrieve detailed information about an object.
 
         FR-OBJ-007: Delegates to code executor for scene introspection.

@@ -3,12 +3,13 @@
 import json
 import logging
 
-from modules.shared.src import BlenderPort, ImportExportProtocol
 from modules.shared.src import (
     BlenderMCPError,
+    BlenderPort,
     ErrorMessage,
     ExportModelRequestVO,
     ExportModelResponseVO,
+    ImportExportProtocol,
     ImportGlbRequestVO,
     ImportGlbResponseVO,
     ObjectName,
@@ -36,11 +37,7 @@ class ImportExportExecutor(ImportExportProtocol):
         code = f"import bpy\nbpy.ops.import_scene.gltf(filepath={safe_path})\n"
         if request.object_name:
             safe_name = _safe_str(str(request.object_name))
-            code += (
-                "imported_obj = bpy.context.active_object\n"
-                f"if imported_obj:\n"
-                f"    imported_obj.name = {safe_name}\n"
-            )
+            code += f"imported_obj = bpy.context.active_object\nif imported_obj:\n    imported_obj.name = {safe_name}\n"
         try:
             await self.blender.execute_code(PythonCode(code))
             return ImportGlbResponseVO(

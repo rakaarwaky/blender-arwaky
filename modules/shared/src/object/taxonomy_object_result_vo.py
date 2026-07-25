@@ -13,7 +13,6 @@ from ..common.taxonomy_core_vo import (
     ObjectCount,
     ObjectName,
     ObjectType,
-    Progress,
     RotationVector,
     ScaleVector,
     SuccessFlag,
