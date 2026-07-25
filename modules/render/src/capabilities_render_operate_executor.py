@@ -5,7 +5,7 @@ import logging
 import time
 
 from modules.shared.src import BlenderPort, RenderOperateProtocol
-from modules.shared.src.common import (
+from modules.shared.src import (
     BlenderMCPError,
     CoordinateList,
     ErrorMessage,

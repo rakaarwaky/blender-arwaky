@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from modules.shared.src import BlenderConnectionPort, ConfigPort, ConfigValue, TelemetryRecordingPort
-from modules.shared.src.common import (
+from modules.shared.src import 
     ActionName,
     BlenderVersion,
     CustomerUuid,

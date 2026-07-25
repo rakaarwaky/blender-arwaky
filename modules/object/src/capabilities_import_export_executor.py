@@ -4,7 +4,7 @@ import json
 import logging
 
 from modules.shared.src import BlenderPort, ImportExportProtocol
-from modules.shared.src.common import (
+from modules.shared.src import (
     BlenderMCPError,
     ErrorMessage,
     ExportModelRequestVO,
