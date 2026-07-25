@@ -4,10 +4,7 @@ import json
 import logging
 import time
 
-from modules.shared.src.common import (
-    BlenderPort,
-    RenderOperateProtocol,
-)
+from modules.shared.src import BlenderPort, RenderOperateProtocol
 from modules.shared.src.common import (
     BlenderMCPError,
     CoordinateList,
