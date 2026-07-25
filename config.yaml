@@ -18,10 +18,6 @@ server:
   # Transport mode: stdio or sse
   transport: "stdio"
 
-hunyuan:
-  # URL of the Hunyuan 3D API service
-  api_url: "http://localhost:8081"
-
 storage:
   # Base directory for temporary files
   temp_dir: "/tmp/blender-mcp"
