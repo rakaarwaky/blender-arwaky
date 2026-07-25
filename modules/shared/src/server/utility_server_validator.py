@@ -9,7 +9,7 @@ import ast
 from typing import Final
 
 from ..common.taxonomy_core_vo import ErrorMessage
-from ..server.taxonomy_server_error import SecurityViolationError
+from .taxonomy_server_error import SecurityViolationError
 
 # Blocked module names — dangerous system-level imports
 _BLOCKED_MODULES: Final[frozenset[str]] = frozenset({

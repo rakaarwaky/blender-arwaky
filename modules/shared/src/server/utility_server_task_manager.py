@@ -23,6 +23,7 @@ logger = logging.getLogger("BlenderMCPServer")
 @dataclass(frozen=True)
 class TaskManagerConfig:
     """Configuration for task manager."""
+
     retention_seconds: float = 600.0  # 10 minutes default
     max_tasks: int = 100
 
@@ -30,6 +31,7 @@ class TaskManagerConfig:
 @dataclass
 class TaskEntry:
     """Internal mutable task state."""
+
     task_id: str
     state: TaskState
     result: ExecutionResult | None = None
@@ -38,7 +40,11 @@ class TaskEntry:
 
 
 class TaskManager:
-    """In-memory store for async task lifecycle management."""
+    """In-memory store for async task lifecycle management.
+
+    Tracks task states: pending → running → success/error/timeout/cancel.
+    Enforces TTL expiry and max task limits.
+    """
 
     def __init__(self, config: TaskManagerConfig | None = None) -> None:
         self._config = config or TaskManagerConfig()

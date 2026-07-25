@@ -1,7 +1,8 @@
 """Contract: Aggregate facade for the server feature.
 
 Implemented by Agent layer to provide a unified interface
-for connection lifecycle and code execution to the Surface layer.
+for connection lifecycle, code execution, command dispatch, and
+async task management to the Surface layer.
 AES Aggregate layer — depends only on Taxonomy and Protocol.
 """
 
@@ -14,8 +15,9 @@ from .taxonomy_server_vo import ConnectionConfig, ConnectionStatus, ExecutionRes
 class IBlenderServerAggregate(ABC):
     """Aggregate facade for the server feature.
 
-    Combines connection management and code execution into a single
-    unified interface consumed by the Surface layer.
+    Combines connection management, code execution, command dispatch,
+    and async task management into a single unified interface consumed
+    by the Surface layer.
     """
 
     # ─── Connection Lifecycle ───────────────────────────────────
@@ -50,4 +52,31 @@ class IBlenderServerAggregate(ABC):
     @abstractmethod
     async def poll_task_result(self, task_id: str, request_id: str) -> ExecutionResult:
         """Poll async task status and final result."""
+        pass
+
+    # ─── Command Dispatch ──────────────────────────────────────
+
+    @abstractmethod
+    async def send_command(
+        self,
+        action: str,
+        params: dict[str, Any] | None = None,
+        timeout_ms: float | None = None,
+    ) -> dict[str, Any]:
+        """Dispatch a named command to Blender addon.
+
+        Routes through TCP socket with configurable timeout.
+        Default timeout is 5000ms per FR-SRV-003.
+
+        Args:
+            action: Named action to dispatch to Blender.
+            params: Optional command arguments dictionary.
+            timeout_ms: Override timeout in milliseconds. Uses default if None.
+
+        Returns:
+            Command result dict with status, data, error, execution_time_ms.
+
+        Raises:
+            CommandTimeoutError: if response exceeds configured timeout.
+        """
         pass

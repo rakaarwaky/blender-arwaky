@@ -271,6 +271,7 @@ from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Protocols (inbound behavior interfaces — Capabilities implement these)
 from .server import (
+    IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
     IBlenderSocketAdapterProtocol,
     ICodeExecutionProtocol,
@@ -452,6 +453,7 @@ __all__ = [
     "WorkflowProtocol",
     "ExecuteActionProtocol",
     # Protocols — Server domain (inbound behavior)
+    "IBlenderCommandProtocol",
     "IBlenderConnectionProtocol",
     "IBlenderSocketAdapterProtocol",
     "ICodeExecutionProtocol",

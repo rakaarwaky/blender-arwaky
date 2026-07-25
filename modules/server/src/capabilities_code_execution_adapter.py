@@ -10,8 +10,18 @@ from __future__ import annotations
 import ast
 import asyncio
 import logging
+import time
+from typing import Any
+from uuid import uuid4
 
-from modules.shared.src.server import IBlenderConnectionProtocol, ICodeExecutionProtocol, SecurityViolationError
+from modules.shared.src.server import (
+    IBlenderConnectionProtocol,
+    ICodeExecutionProtocol,
+    ExecutionResult,
+    ExecutionStatus,
+    SecurityViolationError,
+    TaskNotFoundError,
+)
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
@@ -26,6 +36,9 @@ _BLOCKED_ATTRS: set[str] = {
 _BLOCKED_MODULES: set[str] = {
     "subprocess", "importlib", "socket", "requests", "urllib",
 }
+
+# Task retention TTL (seconds)
+_TASK_RETENTION_SECONDS: float = 600.0  # 10 minutes
 
 
 def _validate_code_ast(code: str) -> None:
@@ -80,11 +93,13 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
     Implements ICodeExecutionProtocol with:
     - AST-based static analysis for blocked constructs (FRD-SRV-002)
     - Socket-based execution forwarding to Blender
+    - Async task submission and polling (FRD-SRV-002)
     - Standardized ExecutionResult return values
     """
 
     def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection_port = connection_port
+        self._tasks: dict[str, dict[str, Any]] = {}
 
     async def execute_blender_code(self, code: Prompt) -> Prompt:
         """Execute Python code in Blender via IPC.
@@ -124,3 +139,78 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         except Exception:
             logger.exception("Error executing code in Blender")
             return Prompt("Internal server error during code execution.")
+
+    async def submit_async_task(self, code: str, request_id: str) -> dict[str, Any]:
+        """Submit long-running code for async execution. Returns task_id and status."""
+        _validate_code_ast(code)
+
+        task_id = f"task_{request_id}_{uuid4().hex[:8]}"
+        self._tasks[task_id] = {
+            "state": "pending",
+            "code": code,
+            "created_at": time.monotonic(),
+            "result": None,
+        }
+        logger.info("Submitted async task %s", task_id)
+
+        # Start async execution in background
+        asyncio.ensure_future(self._run_async_task(task_id, code))
+
+        return {"task_id": task_id, "status": "pending"}
+
+    async def _run_async_task(self, task_id: str, code: str) -> None:
+        """Execute async task in background."""
+        task = self._tasks.get(task_id)
+        if task:
+            task["state"] = "running"
+
+        try:
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self._connection_port.send_command(ActionName("execute_code"), {"code": code}),
+            )
+            task = self._tasks.get(task_id)
+            if task:
+                task["state"] = "success"
+                task["result"] = result
+                task["completed_at"] = time.monotonic()
+        except Exception as e:
+            task = self._tasks.get(task_id)
+            if task:
+                task["state"] = "error"
+                task["result"] = {"error": str(e)}
+                task["completed_at"] = time.monotonic()
+
+    async def poll_task_result(self, task_id: str, request_id: str) -> ExecutionResult:
+        """Poll async task status and final result."""
+        task = self._tasks.get(task_id)
+        if task is None:
+            raise TaskNotFoundError(ErrorMessage(f"Task not found: {task_id}"))
+
+        # Check TTL expiry
+        if task.get("completed_at"):
+            elapsed = time.monotonic() - task["completed_at"]
+            if elapsed > _TASK_RETENTION_SECONDS:
+                del self._tasks[task_id]
+                raise TaskNotFoundError(ErrorMessage(f"Task expired: {task_id}"))
+
+        state = task["state"]
+        result_data = task.get("result")
+
+        if state == "success":
+            return ExecutionResult(
+                status=ExecutionStatus("success"),
+                data=result_data,
+            )
+        elif state == "error":
+            return ExecutionResult(
+                status=ExecutionStatus("error"),
+                error={"type": "ExecutionError", "message": str(result_data)},
+            )
+        else:
+            # pending or running
+            return ExecutionResult(
+                status=ExecutionStatus("success"),
+                data={"task_id": task_id, "state": state},
+            )
