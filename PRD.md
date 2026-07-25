@@ -27,8 +27,7 @@
   - Command catalog with 15+ actions (scene, object, render, import/export, code execution)
   - Asset provider integration (Poly Haven, Sketchfab)
   - Blender addon with TCP socket communication
-  - AES 7-layer architecture (taxonomy, contract, utility, capabilities, agent, surface, root)
-  - Standalone CLI for Blender lifecycle management
+  - Standalone CLI for Blender  management
 - Out of scope:
 
   - Real-time collaboration (multi-user editing)
