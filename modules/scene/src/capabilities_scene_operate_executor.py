@@ -2,10 +2,7 @@
 
 import logging
 
-from modules.shared.src.common import (
-    BlenderPort,
-    SceneOperateProtocol,
-)
+from modules.shared.src import BlenderPort, SceneOperateProtocol
 from modules.shared.src.common import (
     BlenderMCPError,
     CleanupSceneRequestVO,

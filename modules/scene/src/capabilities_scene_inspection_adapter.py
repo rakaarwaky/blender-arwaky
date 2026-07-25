@@ -1,7 +1,7 @@
 import json
 import logging
 
-from modules.shared.src.common import BlenderConnectionPort, CodeExecutionPort, SceneInspectionPort
+from modules.shared.src import BlenderConnectionPort, CodeExecutionPort, SceneInspectionPort
 from modules.shared.src.common import ActionName, BlenderObject, BlenderObjectList, ObjectName, ObjectType, Prompt, SceneInfo, Vector3D
 
 logger = logging.getLogger("BlenderMCPServer")
