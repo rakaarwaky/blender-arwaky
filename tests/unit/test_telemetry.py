@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from infrastructure.telemetry_signal_recorder import (
+from modules.telemetry.infrastructure_telemetry_recorder import (
     TelemetrySignalRecorder,
     _get_package_version,
     record_startup,
@@ -24,7 +24,7 @@ from taxonomy import (
     ToolName,
     VersionString,
 )
-from taxonomy.telemetry_event_entity import EventType, TelemetryEvent
+from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 
 @pytest.mark.unit

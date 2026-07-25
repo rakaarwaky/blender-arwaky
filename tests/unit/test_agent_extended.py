@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent.agent_factory_registry import AgentFactoryRegistry
-from agent.system_coordinator import (
+from modules.shared.src.common.agent_factory_registry import AgentFactoryRegistry
+from modules.shared.src.common.agent_system_coordinator import (
     ServerBootstrapManager,
     SystemUtilsCoordinator,
     get_blender_connection,
@@ -119,13 +119,13 @@ class TestAgentBaseContainer:
     """Tests for AgentBaseContainer (0% coverage)."""
 
     def test_can_instantiate(self):
-        from agent.agent_logic_coordinator import AgentBaseContainer
+        from modules.shared.src.common.agent_logic_coordinator import AgentBaseContainer
         instance = AgentBaseContainer()
         assert instance._success_ref is True
         assert hasattr(instance, "_lazy_get")
 
     def test_inherits_from_aggregate(self):
-        from agent.agent_logic_coordinator import AgentBaseContainer
+        from modules.shared.src.common.agent_logic_coordinator import AgentBaseContainer
         from contract import AgentBaseContainerAggregate
         assert issubclass(AgentBaseContainer, AgentBaseContainerAggregate)
 
@@ -186,8 +186,8 @@ class TestCommandCatalogAdapter:
     """Tests for CommandCatalogAdapter (77% coverage)."""
 
     def test_get_command_spec_existing(self):
-        from agent.agent_di_container import CommandCatalogAdapter
-        from taxonomy.blender_command_vo import CommandCatalog
+        from modules.shared.src.common.agent_di_container import CommandCatalogAdapter
+        from modules.shared.src.common.taxonomy_command_catalog_constant import CommandCatalog
         adapter = CommandCatalogAdapter()
         # Use a real command from the catalog
         commands = CommandCatalog.COMMAND_CATALOG
@@ -197,21 +197,21 @@ class TestCommandCatalogAdapter:
             assert spec is not None
 
     def test_get_command_spec_nonexistent(self):
-        from agent.agent_di_container import CommandCatalogAdapter
+        from modules.shared.src.common.agent_di_container import CommandCatalogAdapter
         from taxonomy import ActionName
         adapter = CommandCatalogAdapter()
         spec = adapter.get_command_spec(ActionName("does_not_exist_42"))
         assert spec is None
 
     def test_list_actions(self):
-        from agent.agent_di_container import CommandCatalogAdapter
+        from modules.shared.src.common.agent_di_container import CommandCatalogAdapter
         adapter = CommandCatalogAdapter()
         actions = adapter.list_actions()
         assert len(actions) > 0
         assert all(hasattr(a, "value") or isinstance(a, str) for a in actions)
 
     def test_filter_by_domain(self):
-        from agent.agent_di_container import CommandCatalogAdapter
+        from modules.shared.src.common.agent_di_container import CommandCatalogAdapter
         from taxonomy import DomainRef
         adapter = CommandCatalogAdapter()
         filtered = adapter.filter_by_domain(DomainRef("scene"))
@@ -220,7 +220,7 @@ class TestCommandCatalogAdapter:
             assert spec["domain"] == "scene"
 
     def test_filter_by_domain_empty(self):
-        from agent.agent_di_container import CommandCatalogAdapter
+        from modules.shared.src.common.agent_di_container import CommandCatalogAdapter
         from taxonomy import DomainRef
         adapter = CommandCatalogAdapter()
         filtered = adapter.filter_by_domain(DomainRef("nonexistent_domain_xyz"))
@@ -263,16 +263,16 @@ class TestSystemUtilsCoordinatorExceptionsAndAliases:
     def test_module_aliases_delegate_to_class_methods(
         self, mock_hc, mock_sd, mock_gb, mock_rs
     ):
-        from agent.system_coordinator import (
+        from modules.shared.src.common.agent_system_coordinator import (
             get_blender_connection as gbc,
         )
-        from agent.system_coordinator import (
+        from modules.shared.src.common.agent_system_coordinator import (
             health_check as hc,
         )
-        from agent.system_coordinator import (
+        from modules.shared.src.common.agent_system_coordinator import (
             record_startup as rs,
         )
-        from agent.system_coordinator import (
+        from modules.shared.src.common.agent_system_coordinator import (
             shutdown_connection as sc,
         )
         rs()

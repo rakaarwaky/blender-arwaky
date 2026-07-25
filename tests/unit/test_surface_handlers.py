@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from surfaces.cli_command_handler import CliCommandHandler
-from surfaces.command_execute_handler import CommandExecuteHandler
-from surfaces.commands_list_handler import CommandsListHandler
-from surfaces.health_check_handler import HealthCheckHandler
-from surfaces.prompt_register_handler import PromptHandlerModule
-from surfaces.server_instance_handler import ServerInstanceHandler
-from surfaces.server_start_handler import ServerStartHandler
-from surfaces.skill_read_handler import SkillReadHandler
+from modules.shared.src.common.surface_cli_command import CliCommandHandler
+from modules.shared.src.common.surface_command_execute import CommandExecuteHandler
+from modules.shared.src.common.surface_commands_list import CommandsListHandler
+from modules.shared.src.common.surface_health_check import HealthCheckHandler
+from modules.shared.src.common.surface_prompt_register import PromptHandlerModule
+from modules.shared.src.common.surface_server_instance import ServerInstanceHandler
+from modules.shared.src.common.surface_server_start import ServerStartHandler
+from modules.shared.src.common.surface_skill_read import SkillReadHandler
 from taxonomy import (
     ActionName,
     DomainRef,
@@ -401,7 +401,7 @@ class TestCatalogCommandHandler:
 
     def test_list_commands_with_domain(self):
         """list_commands with domain filter should return filtered results (lines 63-64)."""
-        from surfaces.catalog_command_handler import CommandCatalogSurfaceHandler
+        from modules.shared.src.common.surface_catalog_command import CommandCatalogSurfaceHandler
         from taxonomy import DomainRef
 
         result = CommandCatalogSurfaceHandler.list_commands(DomainRef("scene"))
@@ -410,7 +410,7 @@ class TestCatalogCommandHandler:
 
     def test_list_commands_without_domain(self):
         """list_commands without domain should return all commands."""
-        from surfaces.catalog_command_handler import CommandCatalogSurfaceHandler
+        from modules.shared.src.common.surface_catalog_command import CommandCatalogSurfaceHandler
 
         result = CommandCatalogSurfaceHandler.list_commands()
         assert len(result) > 0
@@ -421,19 +421,19 @@ class TestSystemPromptManager:
     """Tests for SystemPromptManager prompt string functions."""
 
     def test_get_lighting_expert_prompt(self):
-        from agent.system_prompt_manager import SystemPromptManager
+        from modules.shared.src.common.agent_system_prompt_manager import SystemPromptManager
         result = SystemPromptManager.get_lighting_expert_prompt()
         assert isinstance(result, str)
         assert len(result) > 10
 
     def test_get_layout_expert_prompt(self):
-        from agent.system_prompt_manager import SystemPromptManager
+        from modules.shared.src.common.agent_system_prompt_manager import SystemPromptManager
         result = SystemPromptManager.get_layout_expert_prompt()
         assert isinstance(result, str)
         assert len(result) > 10
 
     def test_get_text_to_scene_orchestrator_prompt(self):
-        from agent.system_prompt_manager import SystemPromptManager
+        from modules.shared.src.common.agent_system_prompt_manager import SystemPromptManager
         result = SystemPromptManager.get_text_to_scene_orchestrator_prompt()
         assert isinstance(result, str)
         assert len(result) > 10

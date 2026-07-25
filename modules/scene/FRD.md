@@ -2,17 +2,7 @@
 
 ## System Overview
 
-The scene module manages Blender scene-level operations — information retrieval, environment setup, and cleanup. It provides the scene inspection infrastructure and the scene operate protocol.
-
-```
-modules/scene/
-├── scene_operate_protocol.py    ← SceneOperateProtocol ABC
-├── scene_inspection_port.py     ← SceneInspectionPort ABC
-├── scene_inspection_adapter.py  ← SceneInspectionPort implementation
-├── capabilities_scene_operate_executor.py  ← Scene management logic
-├── agent_setup_expert_orchestrator.py      ← Scene composition orchestrator
-└── __init__.py
-```
+The scene module manages Blender scene-level operations — information retrieval, environment setup, and cleanup. It provides the scene operate protocol, scene inspection port, and the setup expert orchestrator.
 
 ## Functional Requirements
 
@@ -43,13 +33,13 @@ modules/scene/
 - **Edge Cases**: HDRI not found, invalid strength value, existing environment
 - **Error Handling**: AssetNotFoundError for missing HDRI
 
-### FR-004: Scene Inspection via Socket
+### FR-004: Scene Inspection
 
-- **Description**: Query scene/object information through Blender socket connection
-- **Input**: Socket commands (get_scene_info, get_object_info)
-- **Output**: Parsed JSON responses
-- **Business Rules**: Commands must be valid Blender Python; responses must be JSON-serializable
-- **Edge Cases**: Socket timeout, invalid JSON response, Blender error
+- **Description**: Query scene/object information through Blender connection
+- **Input**: Inspection queries (get_scene_info, get_object_info)
+- **Output**: Parsed structured responses
+- **Business Rules**: Queries must be valid Blender operations; responses must be structured
+- **Edge Cases**: Connection timeout, invalid response, Blender error
 - **Error Handling**: BlenderConnectionFailure, ExecutionError
 
 ### FR-005: Setup Expert Orchestrator

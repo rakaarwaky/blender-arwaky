@@ -19,14 +19,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent.agent_di_container import get_container, reset_container
+from modules.shared.src.common.agent_di_container import get_container, reset_container
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)
 def isolated_container(monkeypatch):
     """Reset DI container and mock Blender socket for each test."""
-    from infrastructure.blender_connection_connector import BlenderConnection
+    from modules.object.infrastructure_blender_connection import BlenderConnection
     monkeypatch.setattr(BlenderConnection, "connect", lambda self: True)
     monkeypatch.setattr(BlenderConnection, "_is_socket_alive", lambda self: True)
     reset_container()
@@ -53,7 +53,7 @@ class TestCapabilityContracts:
 
     def test_object_capability_via_factory_has_required_methods(self):
         """Object capability via factory (bypasses missing DI slot)."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         mock_blender = MagicMock()
         cap = ObjectOperateExecutor(blender_port=mock_blender)
         assert hasattr(cap, "create_primitive"), "missing: create_primitive"
@@ -129,7 +129,7 @@ class TestAssetSearchCollectorIntegration:
 
     @pytest.mark.asyncio
     async def test_search_all_aggregates_results_from_all_providers(self):
-        from capabilities.asset_search_collector import AssetSearchCollector
+        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import SearchQuery
 
         mock_provider_a = AsyncMock()
@@ -155,7 +155,7 @@ class TestAssetSearchCollectorIntegration:
 
     @pytest.mark.asyncio
     async def test_search_all_filters_by_provider(self):
-        from capabilities.asset_search_collector import AssetSearchCollector
+        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import SearchQuery
 
         mock_provider_a = AsyncMock()
@@ -184,7 +184,7 @@ class TestAssetSearchCollectorIntegration:
     @pytest.mark.asyncio
     async def test_search_all_tolerates_provider_error(self):
         """One failing provider must not crash the entire search."""
-        from capabilities.asset_search_collector import AssetSearchCollector
+        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import ErrorMessage, ProviderError, SearchQuery
 
         mock_ok = AsyncMock()
@@ -214,7 +214,7 @@ class TestActionDispatchIntegration:
 
     @pytest.mark.asyncio
     async def test_dispatch_to_scene_capability_get_scene_info(self):
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
         from taxonomy import GetSceneInfoResponseVO, SuccessFlag
 
         mock_scene_cap = AsyncMock()
@@ -237,7 +237,7 @@ class TestActionDispatchIntegration:
 
     @pytest.mark.asyncio
     async def test_dispatch_unknown_action_returns_error_string(self):
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
 
         mock_orch = MagicMock()
         dispatcher = ActionExecuteActions(orchestrator=mock_orch)
@@ -248,7 +248,7 @@ class TestActionDispatchIntegration:
 
     @pytest.mark.asyncio
     async def test_dispatch_propagates_args_to_capability(self):
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
         from taxonomy import CreatePrimitiveResponseVO, ObjectName, PrimitiveType, SuccessFlag
 
         mock_obj_cap = AsyncMock()
@@ -275,7 +275,7 @@ class TestActionDispatchIntegration:
 
     @pytest.mark.asyncio
     async def test_dispatch_handles_capability_exception_gracefully(self):
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
 
         mock_scene_cap = AsyncMock()
         mock_scene_cap.get_scene_info = AsyncMock(
@@ -295,7 +295,7 @@ class TestActionDispatchIntegration:
     @pytest.mark.asyncio
     async def test_serialize_handles_dict(self):
         """Dict results must be JSON serialized correctly."""
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
 
         dispatcher = ActionExecuteActions(orchestrator=MagicMock())
         result = dispatcher._serialize({"key": "value", "count": 42})
@@ -307,7 +307,7 @@ class TestActionDispatchIntegration:
     @pytest.mark.asyncio
     async def test_serialize_handles_pydantic_model(self):
         """Pydantic models must be serialized via model_dump_json."""
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
         from taxonomy import GetSceneInfoResponseVO, SuccessFlag
 
         model = GetSceneInfoResponseVO.model_construct(
@@ -369,7 +369,7 @@ class TestBlenderConnectionIntegration:
 
     def test_send_command_serializes_to_correct_json_format(self):
         """Command sent over socket must follow {type, params} protocol."""
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
 
         conn = BlenderConnection(host="localhost", port=9876)
 
@@ -397,7 +397,7 @@ class TestBlenderConnectionIntegration:
 
     def test_handle_command_response_raises_on_error_status(self):
         """Blender error responses must raise exceptions, not silently fail."""
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         error_response = json.dumps({
@@ -410,7 +410,7 @@ class TestBlenderConnectionIntegration:
 
     def test_finalize_chunks_raises_on_incomplete_json(self):
         """Incomplete JSON from socket must raise, not return garbage."""
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         incomplete = [b'{"status": "ok", "result":']  # truncated
@@ -420,7 +420,7 @@ class TestBlenderConnectionIntegration:
 
     def test_receive_full_response_assembles_chunked_data(self):
         """Multi-chunk responses must be reassembled correctly."""
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
 
         conn = BlenderConnection()
         full_json = json.dumps({"status": "ok", "result": {"x": 1}})

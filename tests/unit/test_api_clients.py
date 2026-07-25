@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from infrastructure.polyhaven_asset_adapter import PolyhavenAssetAdapter
-from infrastructure.sketchfab_asset_adapter import SketchfabAssetAdapter
+from modules.render.infrastructure_polyhaven_adapter import PolyhavenAssetAdapter
+from modules.render.infrastructure_sketchfab_adapter import SketchfabAssetAdapter
 from taxonomy import (
     AssetDownloadRequestVO,
     AssetId,

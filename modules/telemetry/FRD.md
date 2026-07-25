@@ -4,15 +4,6 @@
 
 The telemetry module handles anonymous usage analytics — event recording, session tracking, and usage metrics. It provides the telemetry recording port and event types.
 
-```
-modules/telemetry/
-├── telemetry_recording_port.py  ← TelemetryRecordingPort ABC
-├── telemetry_recorder.py        ← TelemetryRecordingPort implementation
-├── taxonomy_event_constant.py   ← Event type constants
-├── taxonomy_telemetry_event.py  ← TelemetryEvent entity
-└── __init__.py
-```
-
 ## Functional Requirements
 
 ### FR-001: Record Telemetry Event

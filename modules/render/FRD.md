@@ -2,20 +2,7 @@
 
 ## System Overview
 
-The render module handles viewport capture, image rendering, camera setup, and asset provider integrations. It contains the render protocol, viewport capture port, and asset search capabilities.
-
-```
-modules/render/
-├── render_operate_protocol.py   ← RenderOperateProtocol ABC
-├── viewport_capture_port.py     ← ViewportCapturePort ABC
-├── polyhaven_adapter.py         ← AssetProviderPort for Poly Haven
-├── sketchfab_adapter.py         ← AssetProviderPort for Sketchfab
-├── capabilities_render_operate_executor.py  ← Rendering logic
-├── capabilities_asset_search_collector.py   ← Multi-provider search
-├── agent_search_expert_orchestrator.py      ← Asset search orchestrator
-├── agent_refinement_expert_orchestrator.py  ← Iterative refinement
-└── __init__.py
-```
+The render module handles viewport capture, image rendering, camera setup, and asset provider integrations. It provides the render operate protocol, viewport capture port, and the search/refinement expert orchestrators.
 
 ## Functional Requirements
 
@@ -57,32 +44,23 @@ modules/render/
 
 ### FR-005: Multi-Provider Asset Search
 
-- **Description**: Search assets across Poly Haven and Sketchfab simultaneously
+- **Description**: Search assets across multiple providers simultaneously
 - **Input**: Search query, asset type filter, result limit
 - **Output**: Aggregated search results from all providers
 - **Business Rules**: Parallel search; deduplicate by name; respect result limits
 - **Edge Cases**: One provider unavailable, empty results, rate limiting
 - **Error Handling**: ProviderError for individual provider failures; partial results on degradation
 
-### FR-006: Poly Haven Integration
+### FR-006: Asset Provider Integration
 
-- **Description**: Search and download assets from Poly Haven
-- **Input**: Search query, asset type (HDRI/texture/model)
+- **Description**: Search and download assets from external providers
+- **Input**: Provider-specific search parameters
 - **Output**: Asset metadata and download URLs
-- **Business Rules**: Use Poly Haven API; respect attribution requirements
+- **Business Rules**: Use provider APIs; respect attribution and license terms
 - **Edge Cases**: API rate limit, asset not available, download timeout
 - **Error Handling**: ProviderError with retry logic
 
-### FR-007: Sketchfab Integration
-
-- **Description**: Search and download models from Sketchfab
-- **Input**: Search query, format filter (GLB/FBX/OBJ)
-- **Output**: Asset metadata and download URLs
-- **Business Rules**: Use Sketchfab API; respect license terms
-- **Edge Cases**: API rate limit, format not available, download timeout
-- **Error Handling**: ProviderError with retry logic
-
-### FR-008: Search Expert Orchestrator
+### FR-007: Search Expert Orchestrator
 
 - **Description**: Multi-step asset search with AI fallback
 - **Input**: Search parameters
@@ -90,6 +68,15 @@ modules/render/
 - **Business Rules**: Try providers in order; fallback to AI-guided search
 - **Edge Cases**: All providers fail, ambiguous results, import failure
 - **Error Handling**: Escalates to caller
+
+### FR-008: Refinement Expert Orchestrator
+
+- **Description**: Iterative scene improvement via feedback loops
+- **Input**: Refinement parameters (target quality, iteration limit)
+- **Output**: Improved scene state
+- **Business Rules**: Iterates until quality threshold or max iterations
+- **Edge Cases**: No improvement possible, infinite loop, resource exhaustion
+- **Error Handling**: Escalates to caller after max iterations
 
 ## API Contract
 
@@ -117,11 +104,11 @@ modules/render/
 - [ ] Screenshot with invalid view angle returns ValidationError
 - [ ] Render with valid params produces image file
 - [ ] Render with invalid path returns ValidationError
-- [ ] Search across both providers returns aggregated results
+- [ ] Search across multiple providers returns aggregated results
 - [ ] Search with one provider down returns partial results
-- [ ] Download from Poly Haven succeeds
-- [ ] Download from Sketchfab succeeds
+- [ ] Download from provider succeeds
 - [ ] Search expert orchestrator handles all-provider failure
+- [ ] Refinement orchestrator stops at max iterations
 
 ## Assumptions & Constraints
 

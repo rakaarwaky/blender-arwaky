@@ -4,23 +4,13 @@
 
 The CLI module provides a standalone command-line interface for managing Blender instances outside the MCP server context. It is fully independent of the AES architecture — no dependency on taxonomy, contracts, or other layers.
 
-```
-modules/cli/
-├── cli_main.py            ← Argparse entry point
-├── cli_commands.py        ← High-level CLI operations
-├── cli_blender_manager.py ← Blender process management
-├── cli_socket_client.py   ← Raw TCP socket client
-├── cli_registry.py        ← Active Blender instance registry
-└── __init__.py
-```
-
 ## Functional Requirements
 
 ### FR-001: Initialize Blender Instance
 
 - **Description**: Find and register a Blender executable path
 - **Input**: Optional custom path
-- **Output**: Registered Blender path in registry.json
+- **Output**: Registered Blender path in registry
 - **Business Rules**: Auto-detect Blender on PATH; validate executable exists
 - **Edge Cases**: Multiple Blender installations, no Blender found, invalid path
 - **Error Handling**: FileNotFoundError for missing Blender
@@ -75,7 +65,7 @@ modules/cli/
 - **Description**: Thread-safe singleton managing active Blender instances
 - **Input**: Instance registration/deregistration
 - **Output**: Updated registry state
-- **Business Rules**: Registry persisted to registry.json; thread-safe access
+- **Business Rules**: Registry persisted to JSON file; thread-safe access
 - **Edge Cases**: Corrupted registry file, concurrent access, missing file
 - **Error Handling**: RegistryError for persistence failures
 

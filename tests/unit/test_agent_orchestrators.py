@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
-from agent.agent_logic_coordinator import ExpertBaseOrchestrator
-from agent.core_agent_orchestrator import CoreAgentOrchestrator
-from agent.refinement_expert_orchestrator import RefinementExpertOrchestrator
-from agent.search_expert_orchestrator import SearchExpertOrchestrator
-from agent.setup_expert_orchestrator import SetupExpertOrchestrator
-from agent.system_coordinator import SystemUtilsCoordinator
-from agent.workflow_agent_orchestrator import WorkflowAgentOrchestrator
+from modules.shared.src.common.agent_logic_coordinator import ExpertBaseOrchestrator
+from modules.shared.src.common.agent_core_orchestrator import CoreAgentOrchestrator
+from modules.render.agent_refinement_expert_orchestrator import RefinementExpertOrchestrator
+from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
+from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
+from modules.shared.src.common.agent_system_coordinator import SystemUtilsCoordinator
+from modules.shared.src.common.agent_workflow_orchestrator import WorkflowAgentOrchestrator
 from contract import (
     AgentDiContainerAggregate,
     AssetSearchProtocol,

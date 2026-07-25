@@ -2,20 +2,9 @@
 
 ## System Overview
 
-The shared module contains the domain foundation layer (taxonomy) and public interface definitions (contracts) used across all feature modules. It defines the stable language of the domain and the behavioral contracts that decouple layers.
+The shared module provides the domain foundation (taxonomy) and public interface definitions (contracts) used across all feature modules. It defines the stable language of the domain and the behavioral contracts that decouple layers.
 
-```
-modules/shared/src/
-├── common/        ← Cross-cutting VOs, errors, constants, aggregates, protocols
-├── config/        ← Application configuration port
-├── scene/         ← Scene domain VOs and contracts
-├── object/        ← Object domain VOs and contracts
-├── render/        ← Render domain VOs and contracts
-├── asset_io/      ← Import/export VOs and contracts
-├── asset_provider/← Asset provider VOs and contracts
-├── job/           ← Job tracking VOs
-└── telemetry/     ← Telemetry VOs and contracts
-```
+Domain folders organize types by business concern: common, config, scene, object, render, asset_io, asset_provider, job, telemetry.
 
 ## Functional Requirements
 
@@ -35,14 +24,14 @@ modules/shared/src/
 - **Output**: Vector3D (arithmetic ops), BoundingBox (containment checks), SceneInfo, AssetMetadata
 - **Business Rules**: VOs are frozen/immutable; computed properties are pure functions
 - **Edge Cases**: Zero-vector division, empty bounding boxes, null optional fields
-- **Error Handling**: ValueError for invalid构造 parameters
+- **Error Handling**: ValueError for invalid constructor parameters
 
 ### FR-003: Domain Error Hierarchy
 
 - **Description**: Typed exception hierarchy for domain-specific error handling
 - **Input**: Error conditions
 - **Output**: BlenderMCPError → DomainError → {SceneValidationError, AssetNotFoundError, ConnectionError, ...}
-- **Business Errors**: Each error carries structured details for MCP error responses
+- **Business Rules**: Each error carries structured details for MCP error responses
 - **Edge Cases**: Nested exceptions, error chaining
 - **Error Handling**: All errors implement `to_mcp_format()` for client consumption
 
@@ -86,12 +75,12 @@ modules/shared/src/
 
 | Operation | Input | Output | Description |
 |-----------|-------|--------|-------------|
-| `BlenderPort.execute_code(PythonCode)` | Python code string | StatusString | Execute code in Blender |
-| `BlenderPort.get_scene_info()` | None | SceneInfo | Get current scene state |
-| `SceneOperateProtocol.cleanup_mode(CleanupSceneRequestVO)` | Cleanup mode | CleanupSceneResponseVO | Clean scene objects |
-| `ObjectOperateProtocol.place_asset(PlaceAssetRequestVO)` | Asset placement params | PlaceAssetResponseVO | Place asset in scene |
-| `RenderOperateProtocol.get_viewport_screenshot(GetScreenshotRequestVO)` | Screenshot params | ScreenshotResponseVO | Capture viewport |
-| `ExecuteActionProtocol.execute(ActionName, Details)` | Action name + args | Prompt | Universal action dispatch |
+| `BlenderPort.execute_code` | PythonCode | StatusString | Execute code in Blender |
+| `BlenderPort.get_scene_info` | None | SceneInfo | Get current scene state |
+| `SceneOperateProtocol.cleanup_scene` | CleanupSceneRequestVO | CleanupSceneResponseVO | Clean scene objects |
+| `ObjectOperateProtocol.place_asset` | PlaceAssetRequestVO | PlaceAssetResponseVO | Place asset in scene |
+| `RenderOperateProtocol.get_viewport_screenshot` | GetScreenshotRequestVO | ScreenshotResponseVO | Capture viewport |
+| `ExecuteActionProtocol.execute` | ActionName, Details | Prompt | Universal action dispatch |
 
 ## Integration Points
 
@@ -106,9 +95,9 @@ modules/shared/src/
 
 ## Test Scenarios / QA Checklist
 
-- [ ] All 93+ NewType VOs import correctly from barrel
+- [ ] All NewType VOs import correctly from barrel
 - [ ] All contract ABCs raise TypeError if instantiated directly
-- [ ] Command catalog contains all 15+ registered actions
+- [ ] Command catalog contains all registered actions
 - [ ] Error hierarchy serializes to MCP-compatible format
 - [ ] Vector3D arithmetic operations produce correct results
 - [ ] BoundingBox containment checks work for edge cases

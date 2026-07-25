@@ -7,7 +7,7 @@ Mencakup:
 """
 import pytest
 
-from taxonomy.base_provider_vo import (
+from modules.shared.src.common.taxonomy_core_vo import (
     AssetDownloadRequestVO,
     AssetDownloadResponseVO,
     AssetMetadataVO,
@@ -15,7 +15,7 @@ from taxonomy.base_provider_vo import (
     AssetSearchResponseVO,
     ProviderVO,
 )
-from taxonomy.blender_asset_vo import (
+from modules.shared.src.asset_provider.taxonomy_asset_data_vo import (
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
     ASSET_TYPE_TEXTURES,
@@ -26,7 +26,7 @@ from taxonomy.blender_asset_vo import (
     create_asset_id,
     create_provider_name,
 )
-from taxonomy.blender_ops_vo import (
+from modules.shared.src.common.taxonomy_core_vo import (
     ApplyModifierRequestVO,
     BlenderOpsVO,
     CleanupSceneRequestVO,
@@ -51,8 +51,8 @@ from taxonomy.blender_ops_vo import (
     SetupEnvironmentRequestVO,
     SetupEnvironmentResponseVO,
 )
-from taxonomy.blender_spatial_vo import Vector3D
-from taxonomy.core_types_vo import (
+from modules.shared.src.common.taxonomy_vector3d_vo import Vector3D
+from modules.shared.src.common.taxonomy_core_vo import (
     AssetCount,
     AssetId,
     AssetName,
@@ -214,7 +214,7 @@ class TestBlenderAssetVO:
     def test_asset_metadata_with_tags(self):
         from typing import cast
 
-        from taxonomy.core_types_vo import TagList
+        from modules.shared.src.common.taxonomy_core_vo import TagList
         meta = AssetMetadata(
             id=AssetId("a002"),
             name=AssetName("Rock"),
@@ -273,7 +273,7 @@ class TestBlenderOpsVO:
             assert req.mode == mode
 
     def test_cleanup_scene_response(self):
-        from taxonomy.core_types_vo import ObjectCount
+        from modules.shared.src.common.taxonomy_core_vo import ObjectCount
         resp = CleanupSceneResponseVO(
             success=SuccessFlag(True),
             objects_removed=ObjectCount(5),
@@ -283,7 +283,7 @@ class TestBlenderOpsVO:
         assert resp.success is True
 
     def test_setup_environment_request(self):
-        from taxonomy.core_types_vo import HdriId, LightStrength
+        from modules.shared.src.common.taxonomy_core_vo import HdriId, LightStrength
         req = SetupEnvironmentRequestVO(
             hdri_id=HdriId("forest_01"),
             strength=LightStrength(2.0),
@@ -303,7 +303,7 @@ class TestBlenderOpsVO:
         assert resp.success is True
 
     def test_create_primitive_request(self):
-        from taxonomy.core_types_vo import CoordinateList, PrimitiveType
+        from modules.shared.src.common.taxonomy_core_vo import CoordinateList, PrimitiveType
         req = CreatePrimitiveRequestVO(
             primitive_type=PrimitiveType("SPHERE"),
             location=CoordinateList([0.0, 0.0, 0.0]),
@@ -313,7 +313,7 @@ class TestBlenderOpsVO:
         assert req.name == "MySphere"
 
     def test_create_primitive_response(self):
-        from taxonomy.core_types_vo import PrimitiveType
+        from modules.shared.src.common.taxonomy_core_vo import PrimitiveType
         resp = CreatePrimitiveResponseVO(
             success=SuccessFlag(True),
             object_name=ObjectName("Sphere"),
@@ -322,7 +322,7 @@ class TestBlenderOpsVO:
         assert resp.success is True
 
     def test_set_material_request(self):
-        from taxonomy.core_types_vo import MaterialName
+        from modules.shared.src.common.taxonomy_core_vo import MaterialName
         req = SetMaterialRequestVO(
             object_name=ObjectName("Cube"),
             material_name=MaterialName("Metal"),
@@ -330,7 +330,7 @@ class TestBlenderOpsVO:
         assert req.material_name == "Metal"
 
     def test_render_request(self):
-        from taxonomy.core_types_vo import ResolutionX, ResolutionY
+        from modules.shared.src.common.taxonomy_core_vo import ResolutionX, ResolutionY
         req = RenderRequestVO(
             output_path=FilePath("/tmp/render.png"),
             resolution_x=ResolutionX(1280),
@@ -348,7 +348,7 @@ class TestBlenderOpsVO:
         assert resp.render_time == 2.5
 
     def test_place_asset_request(self):
-        from taxonomy.core_types_vo import CoordinateList
+        from modules.shared.src.common.taxonomy_core_vo import CoordinateList
         req = PlaceAssetRequestVO(
             asset_id=AssetId("asset-001"),
             location=CoordinateList([1.0, 2.0, 3.0]),
@@ -356,7 +356,7 @@ class TestBlenderOpsVO:
         assert req.asset_id == "asset-001"
 
     def test_place_asset_invalid_location(self):
-        from taxonomy.core_types_vo import CoordinateList
+        from modules.shared.src.common.taxonomy_core_vo import CoordinateList
         with pytest.raises(Exception):
             PlaceAssetRequestVO(
                 asset_id=AssetId("asset-001"),
@@ -368,7 +368,7 @@ class TestBlenderOpsVO:
         assert req.object_name == "Cube"
 
     def test_set_object_transform_request(self):
-        from taxonomy.core_types_vo import CoordinateList
+        from modules.shared.src.common.taxonomy_core_vo import CoordinateList
         req = SetObjectTransformRequestVO(
             object_name=ObjectName("Cube"),
             location=CoordinateList([1.0, 2.0, 3.0]),
@@ -380,7 +380,7 @@ class TestBlenderOpsVO:
         assert req.object_name == "Cube"
 
     def test_apply_modifier_request(self):
-        from taxonomy.core_types_vo import ModifierName
+        from modules.shared.src.common.taxonomy_core_vo import ModifierName
         req = ApplyModifierRequestVO(
             object_name=ObjectName("Cube"),
             modifier_name=ModifierName("Subdivision"),
@@ -403,7 +403,7 @@ class TestBlenderOpsVO:
         assert resp.success is True
 
     def test_export_model_request(self):
-        from taxonomy.core_types_vo import ExportFormat
+        from modules.shared.src.common.taxonomy_core_vo import ExportFormat
         req = ExportModelRequestVO(
             object_name=ObjectName("Cube"),
             file_path=FilePath("/tmp/export.glb"),
@@ -431,7 +431,7 @@ class TestBlenderOpsVO:
         assert resp.hdri_path == "/tmp/env.hdr"
 
     def test_screenshot_request_and_response(self):
-        from taxonomy.core_types_vo import ImageFormat, MaxSize, ResolutionX, ResolutionY
+        from modules.shared.src.common.taxonomy_core_vo import ImageFormat, MaxSize, ResolutionX, ResolutionY
         req = GetScreenshotRequestVO(
             max_size=MaxSize(1024),
             format=ImageFormat("jpeg"),
@@ -450,7 +450,7 @@ class TestBlenderOpsVO:
         assert resp.image_data == b"raw_bytes_here"
 
     def test_place_asset_request_with_invalid_scale_and_rotation(self):
-        from taxonomy.core_types_vo import CoordinateList
+        from modules.shared.src.common.taxonomy_core_vo import CoordinateList
         with pytest.raises(Exception):
             PlaceAssetRequestVO(
                 asset_id=AssetId("asset-1"),
@@ -496,7 +496,7 @@ class TestSceneAggregateExtended:
     def test_place_asset_request_coordinate_validator_manual_trigger(self):
         from unittest.mock import MagicMock
 
-        from taxonomy.blender_ops_vo import PlaceAssetRequestVO
+        from modules.shared.src.common.taxonomy_core_vo import PlaceAssetRequestVO
         mock_info = MagicMock()
         mock_info.field_name = "scale"
         with pytest.raises(ValueError) as exc_info:

@@ -1,34 +1,19 @@
 # BlenderArwaky
 
-**Connect Blender to AI agents through the Model Context Protocol.**
-
-BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, render, and execute Blender Python through 4 universal MCP tools.
+> Connect Blender to AI agents through the Model Context Protocol.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Blender 3.0+](https://img.shields.io/badge/Blender-3.0%2B-orange.svg)](https://www.blender.org/)
 
----
+BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, render, and execute Blender Python through 4 universal MCP tools.
 
-## Features
-
-- **4 Universal MCP Tools** — Minimal surface, maximum power via command catalog dispatch
-- **15+ Actions** — Scene ops, object manipulation, rendering, import/export, code execution
-- **2 Asset Providers** — Poly Haven (HDRI/textures/models), Sketchfab
-- **AI-Optimized Screenshots** — View presets, shading modes, overlay control, object focus
-- **Blender Addon** — TCP server with auto-start and UI panel
-- **Clean Architecture** — AES 7-layer architecture with full dependency inversion
-
----
-
-## Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - **Blender 3.0+** (tested on 5.1)
 - **Python 3.10+**
 
-### Install
+## Quick Start
 
 ```bash
 git clone https://github.com/rakaarwaky/blender-arwaky.git
@@ -45,7 +30,7 @@ uv sync
 ### Start MCP Server
 
 ```bash
-uv run python -m surfaces.mcp_server_entry
+uv run blender-mcp
 ```
 
 ### Configure MCP Client
@@ -55,13 +40,49 @@ uv run python -m surfaces.mcp_server_entry
   "mcpServers": {
     "blender-arwaky": {
       "command": "uv",
-      "args": ["--directory", "/path/to/blender-arwaky", "run", "blender-arwaky"]
+      "args": ["--directory", "/path/to/blender-arwaky", "run", "blender-mcp"]
     }
   }
 }
 ```
 
----
+## Architecture
+
+AES 7-layer architecture with full dependency inversion:
+
+```
+taxonomy → contract → capabilities → agent → surface → entry
+                ↑
+            infrastructure
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full specification.
+
+## Project Structure
+
+```
+modules/
+├── shared/         ← Taxonomy + Contracts (FRD: modules/shared/FRD.md)
+├── object/         ← Object operations (FRD: modules/object/FRD.md)
+├── scene/          ← Scene management (FRD: modules/scene/FRD.md)
+├── render/         ← Rendering + assets (FRD: modules/render/FRD.md)
+├── telemetry/      ← Usage analytics (FRD: modules/telemetry/FRD.md)
+├── job/            ← Job tracking (FRD: modules/job/FRD.md)
+├── cli/            ← Standalone CLI (FRD: modules/cli/FRD.md)
+├── root_mcp_entry.py
+└── root_cli_entry.py
+```
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `uv run blender-mcp` | Start MCP server |
+| `uv run blender-arwaky` | Run standalone CLI |
+| `uv run pytest` | Run tests (455+) |
+| `uv run pytest -m unit` | Unit tests only |
+| `uv run ruff check .` | Lint code |
+| `lint-arwaky-cli scan .` | AES architecture compliance |
 
 ## Configuration
 
@@ -72,7 +93,7 @@ blender:
   port: 9876
 
 server:
-  transport: "stdio"    # or "sse"
+  transport: "stdio"
   log_dir: "log"
 ```
 
@@ -82,47 +103,22 @@ server:
 | `BLENDER_HOST` | Override Blender host |
 | `BLENDER_PORT` | Override Blender port |
 
----
-
-## Project Structure
-
-```
-blender-arwaky/
-├── modules/
-│   └── shared/
-│       └── src/            # Shared taxonomy modules (taxonomy_<concern>_<role>.py)
-├── src/
-│   ├── surfaces/          # MCP tools & entry points
-│   ├── agent/             # DI container & orchestrators
-│   ├── capabilities/      # Business logic & adapters
-│   ├── contract/          # Protocols & aggregate interfaces
-│   └── taxonomy/          # Barrel re-exports of domain models
-├── blender_mcp_addon/     # Blender addon (TCP server)
-├── tests/                 # Unit, integration, functional tests
-└── docs/                  # Documentation (AGENT, SKILL, TEST)
-```
-
----
-
-## Testing & Architecture Quality Gates
+## Testing
 
 ```bash
-uv run pytest              # Full suite (455+ tests)
-uv run pytest -m unit      # Unit tests only
-lint-arwaky-cli scan .     # AES architecture compliance scan (or `lac scan .`)
-uv run ruff check src/     # Code style & linting
+uv run pytest              # Full suite
+uv run pytest -m unit      # Unit tests
+uv run pytest -m integration  # Integration tests
 ```
-
----
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — System architecture & AES 7-layer specification
-- [SKILL.md](SKILL.md) — Agent usage reference (tools, commands, workflows)
-- [AGENT.md](AGENT.md) — Quick developer reference
+- [PRD.md](PRD.md) — Product requirements (stakeholders)
+- [ARCHITECTURE.md](ARCHITECTURE.md) — System architecture
+- [SKILL.md](SKILL.md) — Agent usage reference
+- [AGENT.md](AGENT.md) — Developer reference
 - [TEST.md](TEST.md) — Testing guide
-
----
+- [modules/\*/FRD.md](modules/shared/FRD.md) — Feature specs (engineers)
 
 ## License
 

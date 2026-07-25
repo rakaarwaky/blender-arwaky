@@ -4,13 +4,6 @@
 
 The job module tracks long-running operations — status updates, progress reporting, and result delivery. It provides the job status entity and state constants.
 
-```
-modules/job/
-├── taxonomy_job_state_constant.py  ← Job state constants
-├── taxonomy_job_status_entity.py   ← JobStatus entity
-└── __init__.py
-```
-
 ## Functional Requirements
 
 ### FR-001: Create Job

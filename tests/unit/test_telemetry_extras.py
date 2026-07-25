@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from infrastructure.telemetry_signal_recorder import TelemetryConfig
+from modules.telemetry.infrastructure_telemetry_recorder import TelemetryConfig
 
 
 @pytest.mark.unit

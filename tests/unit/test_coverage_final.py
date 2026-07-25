@@ -17,7 +17,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_adapter_blender_port(self):
-        from contract.adapter_blender_port import BlenderPort
+        from modules.shared.src.object.blender_port import BlenderPort
         class C(BlenderPort):
             async def execute_code(self, code): return await super().execute_code(code)
             async def get_scene_info(self): return await super().get_scene_info()
@@ -30,7 +30,7 @@ class TestContractAbstractMethods:
         assert await c.get_screenshot() is None
 
     def test_api_polyhaven_port(self):
-        from contract.api_polyhaven_port import PolyhavenApiPort
+        from modules.shared.src.asset_provider.polyhaven_api_port import PolyhavenApiPort
         class C(PolyhavenApiPort):
             def get_polyhaven_categories(self, asset_type=None): return super().get_polyhaven_categories(asset_type)
             def search_polyhaven_assets(self, asset_type=None, categories=None): return super().search_polyhaven_assets(asset_type, categories)
@@ -45,7 +45,7 @@ class TestContractAbstractMethods:
         assert c.get_polyhaven_status() is None
 
     def test_api_sketchfab_port(self):
-        from contract.api_sketchfab_port import SketchfabApiPort
+        from modules.shared.src.asset_provider.sketchfab_api_port import SketchfabApiPort
         class C(SketchfabApiPort):
             def get_sketchfab_status(self): return super().get_sketchfab_status()
             def search_sketchfab_models(self, query): return super().search_sketchfab_models(query)
@@ -58,7 +58,7 @@ class TestContractAbstractMethods:
         assert c.download_sketchfab_model(None) is None
 
     def test_app_config_port(self):
-        from contract.app_config_port import ConfigPort
+        from modules.shared.src.config.config_port import ConfigPort
         class C(ConfigPort):
             def get(self, path="", default=None): return super().get(path, default)
         c = C()
@@ -66,7 +66,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_asset_search_protocol(self):
-        from contract.asset_search_protocol import AssetSearchProtocol
+        from modules.shared.src.asset_provider.asset_search_protocol import AssetSearchProtocol
         class C(AssetSearchProtocol):
             async def search_all(self, query, providers=None): return await super().search_all(query, providers)
             async def fetch_and_import(self, provider, asset_id): return await super().fetch_and_import(provider, asset_id)
@@ -75,14 +75,14 @@ class TestContractAbstractMethods:
         assert await c.fetch_and_import(None, None) is None
 
     def test_capture_viewport_port(self):
-        from contract.capture_viewport_port import ViewportCapturePort
+        from modules.shared.src.render.viewport_capture_port import ViewportCapturePort
         class C(ViewportCapturePort):
             def get_viewport_screenshot(self, max_size=None): return super().get_viewport_screenshot(max_size)
         c = C()
         assert c.get_viewport_screenshot() is None
 
     def test_command_catalog_port(self):
-        from contract.command_catalog_port import CommandCatalogPort
+        from modules.shared.src.common.command_catalog_port import CommandCatalogPort
         class C(CommandCatalogPort):
             def get_command_spec(self, action): return super().get_command_spec(action)
             def list_actions(self): return super().list_actions()
@@ -93,7 +93,7 @@ class TestContractAbstractMethods:
         assert c.filter_by_domain(None) is None
 
     def test_connection_blender_port(self):
-        from contract.connection_blender_port import BlenderConnectionPort
+        from modules.shared.src.object.connection_port import BlenderConnectionPort
         class C(BlenderConnectionPort):
             def connect(self): return super().connect()
             def disconnect(self): return super().disconnect()
@@ -106,7 +106,7 @@ class TestContractAbstractMethods:
         assert c.send_command(None) is None
 
     def test_connection_factory_port(self):
-        from contract.connection_factory_port import BlenderConnectionFactoryPort
+        from modules.shared.src.object.connection_factory_port import BlenderConnectionFactoryPort
         class C(BlenderConnectionFactoryPort):
             def get_connection(self): return super().get_connection()
             def shutdown(self): return super().shutdown()
@@ -116,7 +116,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_execute_action_protocol(self):
-        from contract.execute_action_protocol import ExecuteActionProtocol
+        from modules.shared.src.common.execute_action_protocol import ExecuteActionProtocol
         class C(ExecuteActionProtocol):
             async def execute(self, action, args=None): return await super().execute(action, args)
         c = C()
@@ -124,7 +124,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_execution_code_port(self):
-        from contract.execution_code_port import CodeExecutionPort
+        from modules.shared.src.object.code_execution_port import CodeExecutionPort
         class C(CodeExecutionPort):
             async def execute_blender_code(self, code): return await super().execute_blender_code(code)
         c = C()
@@ -132,7 +132,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_expert_base_aggregate(self):
-        from contract.expert_base_aggregate import ExpertBaseOrchestratorAggregate
+        from modules.shared.src.common.expert_base_aggregate import ExpertBaseOrchestratorAggregate
         class C(ExpertBaseOrchestratorAggregate):
             async def execute(self, *args, **kwargs): return await super().execute(*args, **kwargs)
         c = C()
@@ -140,7 +140,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_import_export_protocol(self):
-        from contract.import_export_protocol import ImportExportProtocol
+        from modules.shared.src.asset_io.import_export_protocol import ImportExportProtocol
         class C(ImportExportProtocol):
             async def import_glb(self, request): return await super().import_glb(request)
             async def export_model(self, request): return await super().export_model(request)
@@ -150,7 +150,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_inspection_scene_port(self):
-        from contract.inspection_scene_port import SceneInspectionPort
+        from modules.shared.src.scene.scene_inspection_port import SceneInspectionPort
         class C(SceneInspectionPort):
             async def get_scene_info(self): return await super().get_scene_info()
             async def get_object_info(self, name): return await super().get_object_info(name)
@@ -162,7 +162,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_object_operate_protocol(self):
-        from contract.object_operate_protocol import ObjectOperateProtocol
+        from modules.shared.src.object.object_operate_protocol import ObjectOperateProtocol
         class C(ObjectOperateProtocol):
             async def place_asset(self, request): return await super().place_asset(request)
             async def get_object_info(self, request): return await super().get_object_info(request)
@@ -182,7 +182,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_provider_asset_port(self):
-        from contract.provider_asset_port import AssetProviderPort
+        from modules.shared.src.asset_provider.asset_provider_port import AssetProviderPort
         class C(AssetProviderPort):
             async def search_assets(self, request): return await super().search_assets(request)
             async def get_asset_details(self, asset_id): return await super().get_asset_details(asset_id)
@@ -193,7 +193,7 @@ class TestContractAbstractMethods:
         assert await c.download_asset(None) is None
 
     def test_recording_telemetry_port(self):
-        from contract.recording_telemetry_port import TelemetryRecordingPort
+        from modules.telemetry.telemetry_recording_port import TelemetryRecordingPort
         class C(TelemetryRecordingPort):
             def record_event(self, event_type, tool_name=None, prompt_text=None, success=None, duration_ms=None, error_message=None, blender_version=None, metadata=None): return super().record_event(event_type, tool_name, prompt_text, success, duration_ms, error_message, blender_version, metadata)
             def is_enabled(self): return super().is_enabled()
@@ -205,7 +205,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_render_operate_protocol(self):
-        from contract.render_operate_protocol import RenderOperateProtocol
+        from modules.shared.src.render.render_operate_protocol import RenderOperateProtocol
         class C(RenderOperateProtocol):
             async def get_viewport_screenshot(self, request): return await super().get_viewport_screenshot(request)
             async def setup_camera(self, location, rotation, target=None): return await super().setup_camera(location, rotation, target)
@@ -221,7 +221,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_scene_operate_protocol_blender_prop(self):
-        from contract.scene_operate_protocol import SceneOperateProtocol
+        from modules.shared.src.scene.scene_operate_protocol import SceneOperateProtocol
         class C(SceneOperateProtocol):
             async def cleanup_scene(self, request): return await super().cleanup_scene(request)
             async def setup_environment(self, request): return await super().setup_environment(request)
@@ -236,7 +236,7 @@ class TestContractAbstractMethods:
 
     @pytest.mark.asyncio
     async def test_workflow_operate_protocol(self):
-        from contract.workflow_operate_protocol import WorkflowProtocol
+        from modules.shared.src.common.workflow_protocol import WorkflowProtocol
         class C(WorkflowProtocol):
             async def create_basic_scene(self, prompt): return await super().create_basic_scene(prompt)
         c = C()
@@ -253,7 +253,7 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_search_expert_params_none(self):
-        from agent.search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
         assets.search_all = AsyncMock(return_value=[])
         blender = MagicMock()
@@ -264,7 +264,7 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_search_expert_exception(self):
-        from agent.search_expert_orchestrator import SearchExpertOrchestrator
+        from modules.render.agent_search_expert_orchestrator import SearchExpertOrchestrator
         assets = MagicMock()
         assets.search_all = AsyncMock(side_effect=Exception("search error"))
         r = await SearchExpertOrchestrator(assets, MagicMock()).execute("search", {"query": "box"})
@@ -273,7 +273,7 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_setup_expert_exception(self):
-        from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+        from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
         from contract import RenderOperateProtocol
         blender = MagicMock()
         blender.cleanup_scene = AsyncMock(side_effect=Exception("cleanup error"))
@@ -283,14 +283,14 @@ class TestAgentFinalGaps:
 
     @pytest.mark.asyncio
     async def test_setup_expert_compose_no_render(self):
-        from agent.setup_expert_orchestrator import SetupExpertOrchestrator
+        from modules.scene.agent_setup_expert_orchestrator import SetupExpertOrchestrator
         from contract import SceneOperateProtocol
         r = await SetupExpertOrchestrator(MagicMock(spec=SceneOperateProtocol), None).execute("compose", {"rule": "thirds"})
         assert not r["success"]
         assert "Render manager not injected" in r["error"]
 
     def test_system_utils_coordinator_get_functions(self):
-        from agent.system_coordinator import (
+        from modules.shared.src.common.agent_system_coordinator import (
             _get_blender_conn_fn,
             _get_record_startup,
             _get_shutdown_connection_fn,
@@ -316,7 +316,7 @@ class TestCapabilitiesFinalGaps:
 
     @pytest.mark.asyncio
     async def test_action_execute_serialize_str(self):
-        from capabilities.action_execute_actions import ActionExecuteActions
+        from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
         mock_cap = MagicMock()
         async def str_method(**kwargs):
             return "plain_string_result"
@@ -338,14 +338,14 @@ class TestInfrastructureFinalGaps:
     """Cover remaining infrastructure gaps."""
 
     def test_blender_connection_already_connected(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = MagicMock()
         conn._is_socket_alive = MagicMock(return_value=True)
         assert conn.connect() is True
 
     def test_blender_connection_read_response_empty_midstream(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         mock_sock = MagicMock()
         mock_sock.recv.side_effect = [b'{"status":', b'']
@@ -354,7 +354,7 @@ class TestInfrastructureFinalGaps:
         assert len(chunks) > 0
 
     def test_blender_connection_recv_connection_error(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         mock_sock = MagicMock()
         import builtins
@@ -363,28 +363,28 @@ class TestInfrastructureFinalGaps:
             conn._read_response_chunks(mock_sock, 1024)
 
     def test_blender_connection_receive_full_pre_completed(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([b'{}'], True)):
             data = conn.receive_full_response(MagicMock())
             assert data == b'{}'
 
     def test_blender_connection_receive_full_chunks_not_completed(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([b'{"a": 1}'], False)):
             data = conn.receive_full_response(MagicMock())
             assert data == b'{"a": 1}'
 
     def test_blender_connection_receive_full_no_data(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         with patch.object(conn, '_read_response_chunks', return_value=([], False)):
             with pytest.raises(Exception, match="No data received"):
                 conn.receive_full_response(MagicMock())
 
     def test_blender_connection_send_command_connect_fails(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = None
         conn.connect = MagicMock(return_value=False)
@@ -392,7 +392,7 @@ class TestInfrastructureFinalGaps:
             conn.send_command("test")
 
     def test_blender_connection_send_command_sock_none_after_connect(self):
-        from infrastructure.blender_connection_connector import BlenderConnection
+        from modules.object.infrastructure_blender_connection import BlenderConnection
         conn = BlenderConnection()
         conn.sock = None
         def fake_connect():
@@ -404,7 +404,7 @@ class TestInfrastructureFinalGaps:
 
     def test_global_get_blender_connection_factory_unexpected_type(self):
         import infrastructure.blender_connection_connector as bcc
-        from infrastructure.blender_connection_connector import get_blender_connection
+        from modules.object.infrastructure_blender_connection import get_blender_connection
         bcc._blender_connection = None
         mock_factory = MagicMock()
         mock_factory.get_connection.return_value = "not_a_blender_connection"
@@ -419,7 +419,7 @@ class TestInfrastructureFinalGaps:
     def test_config_file_loader_dir_based(self):
         from pathlib import PurePosixPath
 
-        from infrastructure.config_file_loader import ApplicationConfigLoader
+        from modules.shared.src.config.config_loader import ApplicationConfigLoader
         with patch.dict("os.environ", {"BLENDERMCP_CONFIG_PATH": "/mock/dir"}):
             with patch.object(Path, "is_file", return_value=False):
                 with patch.object(Path, "is_dir", return_value=True):
@@ -436,7 +436,7 @@ class TestInfrastructureFinalGaps:
     def test_telemetry_signal_recorder_worker_failure(self):
         import tempfile
 
-        from infrastructure.telemetry_signal_recorder import TelemetrySignalRecorder
+        from modules.telemetry.infrastructure_telemetry_recorder import TelemetrySignalRecorder
         conn = MagicMock()
         config = MagicMock()
         config.enabled = True
@@ -446,7 +446,7 @@ class TestInfrastructureFinalGaps:
             config.data_dir = tmpdir
             with patch.object(TelemetrySignalRecorder, '_send_event', side_effect=Exception("send failed")):
                 recorder = TelemetrySignalRecorder(conn, config)
-                from taxonomy.telemetry_event_entity import EventType
+                from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
                 recorder.record_event(EventType.TOOL_EXECUTION)
                 import time; time.sleep(0.3)
                 # Worker should have processed the event and caught the exception
@@ -461,7 +461,7 @@ class TestSurfacesFinalGaps:
     """Cover remaining surfaces gaps."""
 
     def test_catalog_command_handler_tool_func(self):
-        from surfaces.catalog_command_handler import CommandCatalogSurfaceHandler
+        from modules.shared.src.common.surface_catalog_command import CommandCatalogSurfaceHandler
         mcp = MagicMock()
         mock_tool_decorator = MagicMock()
         mcp.tool.return_value = mock_tool_decorator
@@ -476,7 +476,7 @@ class TestSurfacesFinalGaps:
     def test_cli_handler_json_output_pydantic(self, capsys):
         from pydantic import BaseModel
 
-        from surfaces.cli_command_handler import CliCommandHandler
+        from modules.shared.src.common.surface_cli_command import CliCommandHandler
         class FakeModel(BaseModel):
             result: str = "ok"
         mock_args = MagicMock()
@@ -494,7 +494,7 @@ class TestSurfacesFinalGaps:
         assert "done" in captured.out or "result" in captured.out
 
     def test_cli_handler_json_output_non_pydantic(self, capsys):
-        from surfaces.cli_command_handler import CliCommandHandler
+        from modules.shared.src.common.surface_cli_command import CliCommandHandler
         mock_args = MagicMock()
         mock_args.action = "cleanup"
         mock_args.args = "{}"
@@ -510,7 +510,7 @@ class TestSurfacesFinalGaps:
         assert "done" in captured.out
 
     def test_cli_handler_tty_output_string_result(self, capsys):
-        from surfaces.cli_command_handler import CliCommandHandler
+        from modules.shared.src.common.surface_cli_command import CliCommandHandler
         mock_args = MagicMock()
         mock_args.action = "cleanup"
         mock_args.args = "{}"
@@ -526,7 +526,7 @@ class TestSurfacesFinalGaps:
         assert "plain result" in captured.out
 
     def test_cli_handler_tty_output_dict_result(self, capsys):
-        from surfaces.cli_command_handler import CliCommandHandler
+        from modules.shared.src.common.surface_cli_command import CliCommandHandler
         mock_args = MagicMock()
         mock_args.action = "cleanup"
         mock_args.args = "{}"
@@ -542,7 +542,7 @@ class TestSurfacesFinalGaps:
         assert "key" in captured.out
 
     def test_prompt_handler_static_methods(self):
-        from surfaces.prompt_register_handler import PromptHandlerModule
+        from modules.shared.src.common.surface_prompt_register import PromptHandlerModule
         r1 = PromptHandlerModule.lighting_expert()
         assert len(r1) > 0
         r2 = PromptHandlerModule.layout_expert()

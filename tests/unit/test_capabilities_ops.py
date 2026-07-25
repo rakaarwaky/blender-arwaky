@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from capabilities.action_execute_actions import ActionExecuteActions
+from modules.shared.src.common.capabilities_action_execute import ActionExecuteActions
 from capabilities.asset_search_collector import AssetSearchCollector
 from capabilities.import_export_executor import ImportExportExecutor
 from capabilities.object_operate_executor import ObjectOperateExecutor

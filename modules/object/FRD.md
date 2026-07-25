@@ -2,22 +2,7 @@
 
 ## System Overview
 
-The object module handles all Blender object operations — creation, transformation, material assignment, modifier application, and deletion. It contains the object-specific capabilities, infrastructure adapters (Blender socket communication), and orchestrators.
-
-```
-modules/object/
-├── blender_port.py              ← BlenderPort ABC (contract)
-├── connection_port.py           ← BlenderConnectionPort ABC
-├── connection_factory_port.py   ← BlenderConnectionFactoryPort ABC
-├── code_execution_port.py       ← CodeExecutionPort ABC
-├── object_operate_protocol.py   ← ObjectOperateProtocol ABC
-├── blender_socket_adapter.py    ← BlenderPort implementation
-├── blender_connection.py        ← TCP socket connection manager
-├── code_execution_adapter.py    ← Code validation + execution
-├── capabilities_object_operate_executor.py  ← Object manipulation logic
-├── capabilities_import_export_executor.py   ← GLB/OBJ import/export
-└── __init__.py
-```
+The object module handles all Blender object operations — creation, transformation, material assignment, modifier application, deletion, and import/export. It provides the object manipulate protocol, Blender connection ports, and the corresponding capability implementations.
 
 ## Functional Requirements
 
@@ -84,9 +69,9 @@ modules/object/
 - **Edge Cases**: Object not found, deleted object reference
 - **Error Handling**: SceneValidationError for missing objects
 
-### FR-008: Import/Export GLB/OBJ
+### FR-008: Import/Export 3D Models
 
-- **Description**: Import 3D models from GLB/OBJ files or export scene objects
+- **Description**: Import 3D models from files or export scene objects
 - **Input**: ImportGlbRequestVO / ExportModelRequestVO
 - **Output**: ImportGlbResponseVO / ExportModelResponseVO
 - **Business Rules**: File paths must be valid; export format must be supported
@@ -125,7 +110,7 @@ modules/object/
 
 - Performance: Object operations complete within 2 seconds
 - Reliability: Socket reconnection within 5 seconds
-- Security: Code execution validates against blocked patterns (os, sys, subprocess)
+- Security: Code execution validates against blocked patterns
 
 ## Test Scenarios / QA Checklist
 
@@ -136,7 +121,7 @@ modules/object/
 - [ ] Set transform on existing object succeeds
 - [ ] Set transform on missing object returns SceneValidationError
 - [ ] Delete object succeeds and removes from scene
-- [ ] Import GLB from valid file succeeds
+- [ ] Import from valid file succeeds
 - [ ] Export to valid path succeeds
 - [ ] Socket connection handles Blender restart gracefully
 

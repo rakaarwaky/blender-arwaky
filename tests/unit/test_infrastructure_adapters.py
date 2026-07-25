@@ -5,15 +5,15 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from infrastructure.blender_connection_connector import (
+from modules.object.infrastructure_blender_connection import (
     BlenderConnection,
     BlenderConnectionFactory,
     get_blender_connection,
     shutdown_connection,
 )
-from infrastructure.blender_socket_adapter import BlenderSocketAdapter
-from infrastructure.code_execution_adapter import CodeExecutionAdapter
-from infrastructure.config_file_loader import (
+from modules.object.infrastructure_blender_socket_adapter import BlenderSocketAdapter
+from modules.object.infrastructure_code_execution_adapter import CodeExecutionAdapter
+from modules.shared.src.config.config_loader import (
     ApplicationConfigLoader,
 )
 from taxonomy import (
@@ -247,7 +247,7 @@ class TestBlenderSocketAdapter:
             await adapter.get_object_info(ObjectName("Nonexistent"))
 
         # Object found
-        from taxonomy.blender_spatial_vo import Vector3D
+        from modules.shared.src.common.taxonomy_vector3d_vo import Vector3D
         mock_conn.send_command.return_value = {
             "name": "Cube",
             "type": "MESH",
@@ -517,7 +517,7 @@ class TestSceneInspectionAdapter:
 
     @pytest.mark.asyncio
     async def test_get_scene_info(self):
-        from infrastructure.scene_inspection_adapter import SceneInspectionAdapter
+        from modules.scene.infrastructure_scene_inspection_adapter import SceneInspectionAdapter
         mock_conn = MagicMock()
         mock_exec = MagicMock()
         adapter = SceneInspectionAdapter(mock_conn, mock_exec)
@@ -535,7 +535,7 @@ class TestSceneInspectionAdapter:
 
     @pytest.mark.asyncio
     async def test_get_object_info(self):
-        from infrastructure.scene_inspection_adapter import SceneInspectionAdapter
+        from modules.scene.infrastructure_scene_inspection_adapter import SceneInspectionAdapter
         mock_conn = MagicMock()
         mock_exec = MagicMock()
         adapter = SceneInspectionAdapter(mock_conn, mock_exec)
@@ -553,7 +553,7 @@ class TestSceneInspectionAdapter:
 
     @pytest.mark.asyncio
     async def test_cleanup_scene(self):
-        from infrastructure.scene_inspection_adapter import SceneInspectionAdapter
+        from modules.scene.infrastructure_scene_inspection_adapter import SceneInspectionAdapter
         mock_conn = MagicMock()
         mock_exec = MagicMock()
         adapter = SceneInspectionAdapter(mock_conn, mock_exec)

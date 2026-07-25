@@ -25,9 +25,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent.agent_di_container import get_container, reset_container
-from taxonomy.blender_object_entity import BlenderObject
-from taxonomy.core_types_vo import ObjectType
+from modules.shared.src.common.agent_di_container import get_container, reset_container
+from modules.shared.src.object.taxonomy_blender_object_entity import BlenderObject
+from modules.shared.src.common.taxonomy_core_vo import ObjectType
 
 # ── Helpers & Fixtures ────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ def mock_blender_send(monkeypatch):
     Patch BlenderConnection.send_command to avoid real socket connections.
     Returns a MagicMock so tests can configure return_value per scenario.
     """
-    from infrastructure.blender_connection_connector import BlenderConnection
+    from modules.object.infrastructure_blender_connection import BlenderConnection
 
     mock_send = MagicMock(return_value={"name": "Scene", "objects": [], "frame": 1})
     monkeypatch.setattr(BlenderConnection, "send_command", mock_send)
@@ -148,7 +148,7 @@ class TestScenarioCreatePrimitive:
     @pytest.mark.asyncio
     async def test_create_primitive_code_contains_sphere_op(self):
         """Direct capability test: sphere primitive generates correct bpy code."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import CreatePrimitiveRequestVO, ObjectName, PrimitiveType
 
         mock_blender = MagicMock()
@@ -166,7 +166,7 @@ class TestScenarioCreatePrimitive:
     @pytest.mark.asyncio
     async def test_create_primitive_result_is_success(self):
         """Direct capability test: result must indicate success."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import CreatePrimitiveRequestVO, ObjectName, PrimitiveType, SuccessFlag
 
         mock_blender = MagicMock()
@@ -184,7 +184,7 @@ class TestScenarioCreatePrimitive:
     @pytest.mark.asyncio
     async def test_create_primitive_with_location(self):
         """Direct capability test: location is embedded in generated code."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import CoordinateList, CreatePrimitiveRequestVO, ObjectName, PrimitiveType
 
         mock_blender = MagicMock()
@@ -214,7 +214,7 @@ class TestScenarioDeleteObject:
     @pytest.mark.asyncio
     async def test_delete_object_sends_correct_code(self):
         """Direct capability test: delete generates correct bpy.data.objects.remove code."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import DeleteObjectRequestVO, ObjectName
 
         mock_blender = MagicMock()
@@ -241,7 +241,7 @@ class TestScenarioSetObjectTransform:
     @pytest.mark.asyncio
     async def test_set_transform_includes_location_in_code(self):
         """Direct capability test: location is embedded in generated bpy code."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import CoordinateList, ObjectName, SetObjectTransformRequestVO
 
         mock_blender = MagicMock()
@@ -260,7 +260,7 @@ class TestScenarioSetObjectTransform:
     @pytest.mark.asyncio
     async def test_set_transform_partial_update_no_crash(self):
         """Only location — rotation/scale must be skipped without crash."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import CoordinateList, ObjectName, SetObjectTransformRequestVO, SuccessFlag
 
         mock_blender = MagicMock()
@@ -287,7 +287,7 @@ class TestScenarioSetMaterial:
     @pytest.mark.asyncio
     async def test_set_material_emits_material_code(self):
         """Direct capability test: material assignment generates correct bpy code."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import MaterialName, ObjectName, SetMaterialRequestVO
 
         mock_blender = MagicMock()
@@ -314,7 +314,7 @@ class TestScenarioSearchAssets:
     @pytest.mark.asyncio
     async def test_search_assets_merges_results_from_providers(self, mock_blender_send):
         """Replace provider adapters with mocks, run real search_all logic."""
-        from capabilities.asset_search_collector import AssetSearchCollector
+        from modules.render.capabilities_asset_search_collector import AssetSearchCollector
         from taxonomy import (
             AssetId,
             AssetMetadataVO,
@@ -460,7 +460,7 @@ class TestScenarioCleanupScene:
     @pytest.mark.asyncio
     async def test_cleanup_scene_sends_select_all_and_delete(self):
         """Direct capability test: cleanup generates bpy select-all + delete code."""
-        from capabilities.scene_operate_executor import SceneOperateExecutor
+        from modules.scene.capabilities_scene_operate_executor import SceneOperateExecutor
         from taxonomy import CleanupSceneRequestVO
 
         mock_blender = MagicMock()
@@ -476,7 +476,7 @@ class TestScenarioCleanupScene:
     @pytest.mark.asyncio
     async def test_cleanup_scene_result_indicates_success(self):
         """Direct capability test: cleanup returns success response."""
-        from capabilities.scene_operate_executor import SceneOperateExecutor
+        from modules.scene.capabilities_scene_operate_executor import SceneOperateExecutor
         from taxonomy import CleanupSceneRequestVO, SuccessFlag
 
         mock_blender = MagicMock()
@@ -502,11 +502,11 @@ class TestScenarioGetObjectInfo:
     @pytest.mark.asyncio
     async def test_get_object_info_queries_blender_with_name(self):
         """Direct capability test: queries Blender with the object name."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import GetObjectInfoRequestVO, ObjectName
 
         mock_blender = MagicMock()
-        from taxonomy.blender_spatial_vo import Vector3D
+        from modules.shared.src.common.taxonomy_vector3d_vo import Vector3D
         mock_blender.get_object_info = AsyncMock(return_value=BlenderObject(
             name=ObjectName("Cube"), type=ObjectType("MESH"),
             location=Vector3D(0, 0, 0), rotation=Vector3D(0, 0, 0), scale=Vector3D(1, 1, 1),
@@ -523,11 +523,11 @@ class TestScenarioGetObjectInfo:
     @pytest.mark.asyncio
     async def test_get_object_info_result_contains_object_data(self):
         """Direct capability test: result contains object info from Blender."""
-        from capabilities.object_operate_executor import ObjectOperateExecutor
+        from modules.object.capabilities_object_operate_executor import ObjectOperateExecutor
         from taxonomy import GetObjectInfoRequestVO, ObjectName, SuccessFlag
 
         mock_blender = MagicMock()
-        from taxonomy.blender_spatial_vo import Vector3D
+        from modules.shared.src.common.taxonomy_vector3d_vo import Vector3D
         mock_blender.get_object_info = AsyncMock(return_value=BlenderObject(
             name=ObjectName("Cube"), type=ObjectType("MESH"),
             location=Vector3D(0, 0, 0), rotation=Vector3D(0, 0, 0), scale=Vector3D(1, 1, 1),
