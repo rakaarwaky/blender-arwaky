@@ -1,336 +1,196 @@
-
-# FRD — Asset Feature Module
+# FRD — Asset Integration Feature
 
 ## System Overview
 
-The asset module handles multi-provider asset discovery, download, caching, and import for **blender-arwaky**. It provides a multi-provider asset search contract, a provider adapter contract for provider-specific implementations, and capability adapters for external asset libraries and downloadable model marketplaces.
+The external asset integration feature enables users and AI clients to discover, download, cache, and import 3D assets (such as models, HDRIs, and textures) from various external providers (e.g., asset libraries and model marketplaces) directly into the 3D application.
 
-This module is responsible for querying multiple asset sources, aggregating search results, normalizing asset metadata, downloading assets safely, and importing downloaded assets into Blender through the appropriate server-side execution path. It isolates provider-specific behavior behind a common provider abstraction so that new providers can be added without modifying core application logic.
-
-The module covers:
-
-- searching assets across multiple providers
-- aggregating and normalizing provider search results
-- downloading provider assets
-- importing downloaded assets into Blender
-- caching downloaded assets locally
-- exposing license and availability metadata
-- handling provider failures, rate limits, and pagination
-- supporting asynchronous download and import for large assets
-
-The module does not handle:
-
-- direct Blender object manipulation beyond import handoff
-- viewport capture or rendering
-- network transport implementation, which is delegated to server or provider gateway mechanisms
-- final licensing compliance decisions for end users
-- paid asset purchase or marketplace checkout flows
+The feature ensures that searching across multiple sources is resilient, meaning a failure in one external provider does not block results from others. It also enforces strict security and safety measures during the download and extraction phases to protect the user's system from malicious files or unauthorized file system access. Finally, it handles the seamless transition of downloaded files into the 3D scene, managing duplicates, scale normalization, and local caching to optimize performance and network usage.
 
 ## Functional Requirements
 
-### FR-AST-001: Search Assets Across Providers
+### FR-AST-001: Search Assets Across Multiple Sources
 
-- **Description**: Query multiple asset providers and aggregate results
-- **Input**: Text query, optional provider filter, optional asset type filter, optional category filter, optional result limit, optional pagination cursor
-- **Output**: Aggregated asset metadata list, provider status summary, pagination metadata, warnings
-- **Business Rules**:
-  - Each enabled provider is queried independently
-  - Provider failures must not block other providers
-  - Provider results are normalized into a common asset metadata concept
-  - Asset metadata should include at least:
-    - asset identifier
-    - provider identifier
-    - asset name
-    - asset type
-    - categories
-    - preview or thumbnail reference when available
-    - license summary when available
-    - download availability flag
-    - source provider reference
-  - Search should support provider filter to limit query to selected providers
-  - Empty query may return curated, trending, or default results when provider supports it
-  - If query is invalid or empty and no fallback exists, return request validation error or empty result based on configuration
-  - Provider timeouts must be enforced independently
-  - Failed providers are logged and skipped, with provider error category included in provider status summary
-  - Partial results must be returned when at least one provider succeeds
-  - If all providers fail, return empty result with aggregated provider error summary
-  - Pagination may be provider-specific; aggregated search should preserve provider pagination metadata when available
-  - Duplicate assets from different providers may be deduplicated when identity equivalence can be safely determined
-  - Search results should preserve relevance ordering per provider unless global ranking policy is configured
-  - Rate limit responses from providers should be surfaced as provider warnings or provider errors depending on severity
-- **Edge Cases**: All providers fail, empty query, provider not registered, provider disabled, provider timeout, rate limit exceeded, malformed provider response, no results, partial pagination cursor, oversized result set, duplicate assets, missing license metadata
-- **Error Handling**: Provider error logged per provider; partial results returned; aggregated error summary included when all providers fail; request validation error for invalid query parameters
+- **Use Case:** A user or AI client needs to find 3D assets using keywords, categories, or specific asset types across all enabled external providers simultaneously.
+- **User Action:** Provide a text query, optional asset type filter, optional category filter, and optional result limits.
+- **System Response:** Return a unified, normalized list of assets from all active providers, along with a summary of provider statuses and pagination details.
+- **Business Rules:**
+  - The system must query all enabled providers independently and simultaneously.
+  - If one or more providers fail or time out, the system must still return the successful results from the remaining providers (partial success).
+  - All returned assets must be normalized into a consistent format containing: asset name, provider name, asset type, categories, preview/thumbnail reference, license summary, and download availability.
+  - The system must support filtering the search to specific providers if requested.
+  - If the query is empty, the system should return curated, trending, or default results if the provider supports it.
+  - Pagination metadata from individual providers must be preserved and exposed to the user.
+  - Rate limit responses from providers must be surfaced as warnings or errors without breaking the overall search.
+- **Edge Cases:** All providers fail, empty query, provider timeout, rate limit exceeded, malformed responses from a provider, no results found, duplicate assets across different providers.
+- **Error Handling:** Return partial results with an aggregated error summary for failed providers. Return a structured validation error for invalid search parameters.
 
-### FR-AST-002: Fetch and Import Asset
+### FR-AST-002: Download and Import Asset
 
-- **Description**: Download an asset from a specific provider and import into Blender
-- **Input**: Provider identifier, asset identifier, asset type, optional destination policy, optional import options, optional target collection, optional scale normalization policy, optional duplicate handling policy
-- **Output**: Imported asset result containing success indicator, asset metadata, local artifact reference, Blender object reference, imported object references, and message
-- **Business Rules**:
-  - Provider must be registered and enabled
-  - Asset identifier must be valid and resolvable by provider
-  - Asset must be downloadable according to provider metadata
-  - Downloaded asset must be stored in allowed cache or download location
-  - Downloaded artifact should be validated for existence, size limit, and basic integrity when supported
-  - Archive extraction must prevent path traversal and unsafe file writes
-  - Import operation must be delegated to Blender through server module or appropriate import capability
-  - Imported object should be added to active scene and target collection when specified
-  - Scale normalization policy may normalize imported model to unit scale
-  - Duplicate handling policy may be one of:
-    - rename imported object
-    - reuse existing imported asset
-    - replace existing asset
-    - reject duplicate import
-  - Asset license metadata should be preserved in result when available
-  - Temporary download artifacts should be cleaned up according to cache policy
-  - Large download or import operations may be submitted as asynchronous jobs when supported
-  - Operation should return final Blender object reference or imported object references after successful import
-  - Operation should distinguish download failure from import failure in error category
-- **Edge Cases**: Provider not found, provider disabled, asset not downloadable, asset not found, download timeout, invalid artifact, unsupported import format, archive extraction failure, import fails, target collection missing, cache full, duplicate asset, license missing, rate limit exceeded, oversized asset
-- **Error Handling**: Provider error for missing provider or download failure; asset not found error when asset identifier cannot be resolved; request validation error for invalid parameters; import error for Blender import failure; delegated server error for communication failure
+- **Use Case:** A user or AI client needs to fetch a specific asset from a provider and bring it directly into the current 3D scene.
+- **User Action:** Select an asset by its provider and asset identifier, and provide import options (e.g., target collection, scale normalization, duplicate handling).
+- **System Response:** Download the asset, store it securely in the local cache, import it into the 3D application, and return the final 3D object reference.
+- **Business Rules:**
+  - The asset must be downloaded strictly into an allowed, configured local cache directory.
+  - If the asset is a compressed archive, it must be extracted safely, strictly preventing path traversal or unsafe file writes.
+  - The system must handle duplicate imports based on the user's policy: rename the new object, reuse the existing one, replace the existing one, or reject the import.
+  - If scale normalization is requested, the imported model must be adjusted to match the scene's unit scale.
+  - The system must preserve and expose the asset's license metadata in the final result.
+  - The operation must clearly distinguish between a download failure and an import failure in its error reporting.
+  - For large assets, the download and import process may be submitted as a background task.
+- **Edge Cases:** Provider disabled, asset not downloadable, download timeout, corrupted archive, path traversal attempt in archive, unsupported import format, target collection missing, cache full, duplicate asset conflict.
+- **Error Handling:** Return `ProviderError` for download failures; return `AssetNotFoundError` for invalid identifiers; return `ImportError` for 3D application import failures; return `ValidationError` for invalid parameters.
 
-### FR-AST-003: Search External Asset Library Assets
+### FR-AST-003: Search External Asset Libraries
 
-- **Description**: Search an external asset library for HDRIs, textures, or models
-- **Input**: Asset search concept containing query, asset type, categories, result limit, and pagination cursor
-- **Output**: Asset search result concept containing assets, total estimate, pagination cursor, provider identifier, and warnings
-- **Business Rules**:
-  - Asset type must be specified when provider requires it
-  - Supported asset types include at least:
-    - HDRIs
-    - textures
-    - models
-  - Search request is dispatched through Blender bridge command channel or provider gateway depending on deployment configuration
-  - Provider response must be parsed and normalized into common asset metadata concept
-  - Search should support category filtering when provider supports categories
-  - Search should support pagination when provider supports cursor or offset pagination
-  - Default result limit should be configurable
-  - Provider availability can be toggled through configuration
-  - If provider is disabled, return provider disabled warning or empty result depending on configuration
-  - License and preview metadata should be included when available
-  - Search operation should be read-only and should not download asset files
-- **Edge Cases**: Blender bridge not connected, invalid response format, provider disabled, asset type unsupported, category mismatch, rate limit exceeded, timeout, empty query, missing preview metadata, pagination cursor invalid
-- **Error Handling**: Provider error wrapping bridge connection errors or provider response errors; request validation error for invalid asset type or parameters; timeout error when provider exceeds configured limit
+- **Use Case:** A user or AI client needs to search specifically for environment and surface assets (like HDRIs and textures) from dedicated asset libraries.
+- **User Action:** Provide a search query, specify the asset type (HDRI, texture, etc.), and optional category filters.
+- **System Response:** Return a normalized list of environment and surface assets from the configured library providers.
+- **Business Rules:**
+  - The asset type must be specified if the provider requires it to perform a search.
+  - The search operation is strictly read-only and must not trigger any file downloads.
+  - The system must support category filtering and pagination if the provider supports it.
+  - License and preview metadata must be included in the results when available.
+  - If the provider is disabled in system settings, the system must return a warning or an empty result based on configuration.
+- **Edge Cases:** Provider disabled, unsupported asset type, category mismatch, rate limit exceeded, timeout, missing preview metadata.
+- **Error Handling:** Return `ProviderError` for connection or response issues; return `ValidationError` for invalid asset types or parameters; return `TimeoutError` if the provider exceeds the time limit.
 
-### FR-AST-004: Download External Asset Library Asset
+### FR-AST-004: Download from External Asset Libraries
 
-- **Description**: Download an asset from an external asset library by asset identifier and asset type
-- **Input**: Asset download concept containing asset identifier, asset type, destination policy, resolution preference, and overwrite policy
-- **Output**: Asset download result concept containing success indicator, local artifact reference, downloaded size, cache status, and message
-- **Business Rules**:
-  - Asset type must be specified
-  - Supported asset types include at least:
-    - models
-    - textures
-    - HDRIs
-  - Download destination must be inside allowed cache or download directory
-  - Existing local artifact must be handled according to overwrite policy:
-    - reuse cached artifact
-    - overwrite existing artifact
-    - create unique variant
-  - Download operation should support resolution or quality preference when provider supports multiple asset resolutions
-  - Downloaded artifact should be validated for existence and non-empty size
-  - If checksum or integrity metadata is available, validation should be performed
-  - Download operation may return cached artifact without network access when cache policy allows
-  - Download progress should be reported when asynchronous mode is enabled
-  - Download operation should not import asset unless explicitly requested by higher-level fetch and import operation
-- **Edge Cases**: Asset not found, download timeout, invalid local destination, permission denied, unsupported asset type, unsupported resolution, cache full, corrupted cached artifact, provider rate limit, network failure, oversized asset
-- **Error Handling**: Provider error with descriptive message; asset not found error when identifier invalid; request validation error for invalid asset type or destination policy; timeout error for download timeout; cache error when local artifact cannot be read or written
+- **Use Case:** A user or AI client needs to download a specific HDRI or texture from an external library to the local cache.
+- **User Action:** Specify the asset identifier, asset type, preferred resolution/quality, and overwrite rules.
+- **System Response:** Download the file to the local cache and return the local file reference and cache status.
+- **Business Rules:**
+  - The download destination must be strictly inside the allowed cache directory.
+  - The system must handle existing files based on the overwrite policy: reuse cached, overwrite, or create a unique variant.
+  - If the provider supports multiple resolutions, the system must download the user's preferred quality.
+  - The system must validate the downloaded file for existence, non-zero size, and integrity (if checksums are provided).
+  - If the file is already in the local cache and the policy allows, the system must skip the network download and return the cached file immediately.
+  - This operation only downloads the file; it does not import it into the 3D scene unless explicitly combined with an import request.
+- **Edge Cases:** Asset not found, download timeout, permission denied in cache directory, unsupported resolution, cache full, corrupted cached file, network failure.
+- **Error Handling:** Return `ProviderError` for network/download failures; return `AssetNotFoundError` for invalid identifiers; return `CacheError` if the local file cannot be read or written.
 
-### FR-AST-005: Search Downloadable Model Marketplace Models
+### FR-AST-005: Search Downloadable Model Marketplaces
 
-- **Description**: Search a downloadable model marketplace for 3D models
-- **Input**: Asset search concept containing query, result limit, category filter, downloadable-only flag, and pagination cursor
-- **Output**: Asset search result concept containing assets, total estimate, pagination cursor, provider identifier, and warnings
-- **Business Rules**:
-  - Default result limit is configurable, with default conceptual value of 20
-  - Downloadable-only filter should be enabled by default
-  - Search should exclude non-downloadable models unless explicitly overridden
-  - Search request may require provider authentication token when configured
-  - Provider response must be normalized into common asset metadata concept
-  - Asset metadata should include model identifier, name, provider, preview reference, license or usage summary when available, and downloadable status
-  - Search should support pagination when provider supports it
-  - Rate limit status should be surfaced as warning or error depending on provider response
-  - Search operation should be read-only and should not download model files
-- **Edge Cases**: Provider disabled, rate limit exceeded, authentication missing, invalid authentication token, malformed response, empty query, no downloadable results, unsupported category, pagination cursor invalid, network timeout
-- **Error Handling**: Provider error with marketplace-specific message category; authentication error when credentials invalid or missing; request validation error for invalid search parameters; timeout error when search exceeds configured limit
+- **Use Case:** A user or AI client needs to search for 3D models from online marketplaces, ensuring the results are actually available for download.
+- **User Action:** Provide a search query, optional category filters, and result limits.
+- **System Response:** Return a normalized list of 3D models that are confirmed to be downloadable.
+- **Business Rules:**
+  - By default, the search must filter out models that are not downloadable (e.g., view-only or purchase-required models without direct download links).
+  - The system must normalize the marketplace response into the standard asset metadata format, including model name, provider, preview reference, and license/usage summary.
+  - If the marketplace requires authentication, the system must use the configured credentials.
+  - The search operation is strictly read-only.
+- **Edge Cases:** Provider disabled, rate limit exceeded, missing authentication token, invalid token, malformed response, no downloadable results, network timeout.
+- **Error Handling:** Return `AuthenticationError` for missing/invalid credentials; return `ProviderError` for marketplace-specific errors; return `TimeoutError` for search timeouts.
 
-### FR-AST-006: Download Marketplace Model
+### FR-AST-006: Download from Model Marketplaces
 
-- **Description**: Download and prepare a marketplace model by unique model identifier
-- **Input**: Asset download concept containing model identifier, destination policy, import policy, scale normalization policy, and overwrite policy
-- **Output**: Asset download result concept containing success indicator, local artifact reference, prepared import reference, cache status, and message
-- **Business Rules**:
-  - Model identifier must be valid and resolvable
-  - Model must be downloadable according to marketplace metadata
-  - Download destination must be inside allowed cache or download directory
-  - Downloaded model may be compressed archive and must be extracted safely
-  - Archive extraction must prevent path traversal and unsafe file writes
-  - Imported model may be normalized to unit scale when scale normalization policy enabled
-  - Existing local artifact must be handled according to overwrite policy
-  - Download operation may return cached artifact when cache policy allows
-  - If import policy is enabled, downloaded model should be imported into Blender through server module
-  - If import policy is disabled, operation should only return local artifact reference
-  - Operation should distinguish marketplace download failure from Blender import failure
-  - Operation should preserve marketplace attribution and license metadata when available
-- **Edge Cases**: Model not downloadable, model identifier invalid, download timeout, archive extraction failure, unsupported model format, import failure, permission denied, cache full, rate limit exceeded, authentication failure, oversized model, missing texture dependencies
-- **Error Handling**: Provider error with marketplace error details; asset not found error for invalid model identifier; authentication error for missing or invalid credentials; import error for Blender import failure; request validation error for invalid download parameters
+- **Use Case:** A user or AI client needs to download a specific 3D model from a marketplace and optionally prepare it for import.
+- **User Action:** Specify the model identifier, download destination rules, and import/scale policies.
+- **System Response:** Download the model, safely extract it if compressed, and return the local file reference (or the imported 3D object reference if import was requested).
+- **Business Rules:**
+  - The model must be downloaded strictly into the allowed cache directory.
+  - If the model is a compressed archive, it must be extracted safely, preventing path traversal.
+  - If the import policy is enabled, the system must automatically import the downloaded model into the 3D application and apply scale normalization if requested.
+  - If the import policy is disabled, the system must only return the local file reference.
+  - The system must preserve marketplace attribution and license metadata.
+  - The system must clearly distinguish between a marketplace download failure and a 3D application import failure.
+- **Edge Cases:** Model not downloadable, invalid model identifier, archive extraction failure, unsupported model format, import failure, missing texture dependencies, authentication failure.
+- **Error Handling:** Return `ProviderError` for download failures; return `AuthenticationError` for credential issues; return `ImportError` for 3D application failures; return `AssetNotFoundError` for invalid model identifiers.
 
-## API Contract
+## System Capabilities (User-Facing Operations)
 
 
-| Operation                  | Input                                                                                   | Output                         | Description                      |
-| ---------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------- |
-| Search across providers    | Text query, optional provider filter, optional asset type filter, optional result limit | Aggregated asset metadata list | Multi-provider search            |
-| Fetch and import asset     | Provider identifier, asset identifier, import options                                   | Imported asset result          | Download and import asset        |
-| Provider-specific search   | Provider identifier, asset search concept                                               | Asset search result concept    | Search assets from one provider  |
-| Provider-specific download | Provider identifier, asset identifier, download options                                 | Asset download result concept  | Download asset from one provider |
+| Operation                    | User Action (Input)                                     | System Response (Output)            | Description                                 |
+| ------------------------------ | --------------------------------------------------------- | ------------------------------------- | --------------------------------------------- |
+| `search_assets`              | Query, filters, provider limits, pagination             | Unified Asset List, Provider Status | Search across multiple external providers   |
+| `fetch_and_import_asset`     | Provider ID, Asset ID, import options, duplicate policy | Import Result (3D Object Ref)       | Download and import an asset into the scene |
+| `search_library_assets`      | Query, asset type, categories, pagination               | Library Asset List                  | Search dedicated asset libraries            |
+| `download_library_asset`     | Asset ID, asset type, resolution, overwrite policy      | Download Result (Local File Ref)    | Download an asset to the local cache        |
+| `search_marketplace_models`  | Query, categories, downloadable-only flag, pagination   | Marketplace Model List              | Search online model marketplaces            |
+| `download_marketplace_model` | Model ID, destination policy, import/scale policies     | Download/Import Result              | Download and optionally import a model      |
 
-Common contract behavior:
+**Additional Capability Behaviors:**
 
-- All operations return structured result containing success indicator, human-readable message, and error category when failed
-- All operations may accept request correlation identifier for tracing
-- Search operations are read-only and should not trigger downloads unless explicitly requested
-- Download operations should report cache status when artifact is served from local cache
-- Fetch and import operation should combine download and import status into a single result envelope
-- Provider-specific operations should expose provider identifier and provider status metadata
-- Long-running download or import operations may return asynchronous job reference when supported
-- Errors should distinguish between:
-  - request validation error
-  - provider error
-  - asset not found error
-  - authentication error
-  - timeout error
-  - cache error
-  - import error
-  - delegated server error
+- All operations return a structured result containing a success indicator, a human-readable message, and an error category if failed.
+- All operations accept a unique tracking identifier for tracing and troubleshooting.
+- Search operations are strictly read-only and never trigger file downloads.
+- Download operations automatically report whether the file was served from the local cache or downloaded from the network.
+- Long-running download or import operations automatically transition to background task execution when supported.
 
-## Integration Points
+## System Boundaries
 
-- **Internal**:
-  - shared module: taxonomy concepts for asset metadata, provider identifier, asset identifier, asset type, result envelope, error categories, and pagination metadata
-  - configuration module: provider enablement, authentication tokens, cache location, download limits, timeout settings, default result limits, and allowed output directories
-  - server module: Blender command dispatch, import execution, queueing, timeout handling, and asynchronous job coordination
-  - object module: post-import placement or object reference resolution when required
-  - dependency injection mechanism: provider adapter registration and lifecycle management
-- **External**:
-  - External asset library services
-  - Downloadable model marketplace services
-  - Blender scripting interface through server module
-  - Filesystem or local artifact cache
-  - Network provider endpoints through configured gateway or bridge mechanism
+- **External Consumers:**
+  - AI Clients and User Interfaces that request asset searches, downloads, or imports.
+- **Target Environment:**
+  - External Asset Providers (Asset Libraries and Model Marketplaces) accessed via secure network connections.
+  - Local Filesystem (for secure caching and extraction of downloaded assets).
+  - The 3D Application (for importing the downloaded assets into the scene).
 
 ## Non-functional Requirements
 
-- **Performance**:
-
-  - Search per provider within 3 seconds under normal network conditions
-  - Aggregated search should return partial results as providers complete rather than waiting for all providers when supported
-  - Download performance depends on provider network speed, but download initiation and validation should complete within configured timeout
-  - Cached asset retrieval should avoid redundant network calls
-- **Reliability**:
-
-  - Failed provider does not block other providers
-  - Partial search results are returned whenever at least one provider succeeds
-  - Download failure and import failure are reported as distinct error categories
-  - Cached artifacts should be validated before reuse
-  - Temporary artifacts should be cleaned up after failure when safe
-- **Extensibility**:
-
-  - New providers implement provider adapter contract without modifying core search orchestration
-  - Provider adapters can be enabled or disabled through configuration
-  - Additional asset types can be added through provider capability metadata
-  - Pagination, filtering, and sorting capabilities may vary by provider and should be exposed through capability metadata
-- **Security**:
-
-  - Provider credentials and authentication tokens must be redacted from logs
-  - Downloaded files must be written only to allowed directories
-  - Archive extraction must prevent path traversal
-  - Downloaded artifact size limits must be enforced
-  - Unsupported or unsafe file types should be rejected before import
-  - License metadata should be exposed but final usage compliance remains user responsibility
-- **Observability**:
-
-  - Log provider name, operation type, duration, result status, and error category
-  - Log search result count and provider status summary without logging full response payload by default
-  - Log download cache hits, cache misses, and download size metadata
-  - Log import success or failure with object reference metadata when available
-  - Avoid logging authentication tokens, full download URLs with secrets, or sensitive user data
-- **Portability**:
-
-  - Provider behavior should remain consistent across supported platforms
-  - Filesystem path handling should support common desktop operating systems
-  - Cache location should respect platform-standard configuration or application-configured storage location
+- **Performance:**
+  - Searches across individual providers must complete within 3 seconds under normal network conditions.
+  - The system must return partial search results as soon as individual providers respond, rather than waiting for the slowest provider.
+  - Cached asset retrieval must bypass network calls entirely, ensuring instant access to previously downloaded files.
+- **Reliability:**
+  - A failure in one external provider must never block or fail the results from other providers.
+  - Download failures and import failures must be reported as distinct, actionable error categories.
+  - Cached files must be validated for integrity before being reused.
+- **Security & Safety:**
+  - Provider credentials and authentication tokens must be strictly redacted from all logs and outputs.
+  - Downloaded files must only be written to explicitly allowed directories.
+  - Archive extraction must strictly prevent path traversal attacks (e.g., `../` directory escapes).
+  - Downloaded file sizes must be enforced against configured maximum limits.
+  - Unsupported or potentially unsafe file types must be rejected before import.
+- **Observability:**
+  - The system must log the provider name, operation type, duration, result status, and error category.
+  - The system must log cache hits, cache misses, and download sizes.
+  - The system must never log authentication tokens, full download URLs containing secrets, or sensitive user data.
 
 ## Test Scenarios / QA Checklist
 
-- [ ]  Search across multiple providers returns aggregated results
-- [ ]  Search across providers normalizes asset metadata into common concept
-- [ ]  Single provider failure returns partial results from other providers
-- [ ]  All providers failure returns empty result with aggregated error summary
-- [ ]  Provider filter limits search to selected providers
-- [ ]  Empty query returns fallback results or empty result based on configuration
-- [ ]  Search timeout for one provider does not block other providers
-- [ ]  Rate limit response is surfaced as provider warning or provider error
-- [ ]  Pagination metadata is preserved when provider supports pagination
-- [ ]  Fetch and import creates valid Blender object reference
-- [ ]  Fetch and import distinguishes download failure from import failure
-- [ ]  Fetch and import respects duplicate handling policy
-- [ ]  Fetch and import normalizes scale when policy enabled
-- [ ]  Fetch and import preserves license metadata when available
-- [ ]  Downloaded artifact is stored inside allowed cache directory
-- [ ]  Cached artifact is reused when cache policy allows
-- [ ]  Corrupted cached artifact triggers re-download or clear cache error
-- [ ]  Archive extraction prevents unsafe path traversal
-- [ ]  External asset library search returns correct normalized metadata
-- [ ]  External asset library search supports asset type filter
-- [ ]  External asset library search supports category filter when available
-- [ ]  External asset library download requires valid asset type
-- [ ]  External asset library download handles missing asset gracefully
-- [ ]  Marketplace search filters downloadable models by default
-- [ ]  Marketplace search excludes non-downloadable models unless overridden
-- [ ]  Marketplace search handles missing authentication token gracefully
-- [ ]  Marketplace download rejects invalid model identifier
-- [ ]  Marketplace download handles non-downloadable model gracefully
-- [ ]  Marketplace model import succeeds for supported format
-- [ ]  Marketplace model import failure returns import error category
-- [ ]  Download failure raises provider error with descriptive message
-- [ ]  Provider timeout returns timeout error category
-- [ ]  Provider disabled state returns clear warning or error based on configuration
-- [ ]  Asset operations delegate Blender execution through server module
-- [ ]  Asset operations respect server-side serialization constraints for import
+**Multi-Provider Search:**
+
+- [ ]  Search across multiple providers returns a unified, normalized list of assets.
+- [ ]  If one provider fails or times out, partial results from the remaining providers are still returned.
+- [ ]  If all providers fail, an empty result is returned with an aggregated error summary.
+- [ ]  Provider filters correctly limit the search to the selected providers.
+- [ ]  Pagination metadata is correctly preserved and exposed.
+
+**Download & Import:**
+
+- [ ]  Fetch and import successfully creates a valid 3D object reference in the scene.
+- [ ]  Fetch and import correctly distinguishes between a network download failure and a 3D import failure.
+- [ ]  Fetch and import respects the configured duplicate handling policy (rename, reuse, replace, reject).
+- [ ]  Fetch and import correctly normalizes the scale of the imported model when requested.
+- [ ]  Downloaded artifacts are strictly stored inside the allowed cache directory.
+- [ ]  Cached artifacts are reused without network access when the cache policy allows.
+- [ ]  Corrupted cached artifacts trigger a re-download or return a clear cache error.
+- [ ]  Archive extraction safely rejects files attempting path traversal.
+
+**Library & Marketplace Specifics:**
+
+- [ ]  Library search correctly filters by asset type (HDRI, texture) and category.
+- [ ]  Library download respects resolution preferences and overwrite policies.
+- [ ]  Marketplace search filters out non-downloadable models by default.
+- [ ]  Marketplace search handles missing or invalid authentication tokens gracefully.
+- [ ]  Marketplace download successfully imports supported formats and returns an import error for unsupported ones.
 
 ## Assumptions & Constraints
 
-- Blender bridge or addon handles actual provider command execution when provider integration is configured through Blender-side execution
-- Provider communication may be performed through server command channel or provider gateway depending on deployment configuration
-- Providers are registered at startup through dependency injection mechanism
-- Provider enablement and credentials are managed through configuration module
-- Internet connection is required for remote asset search and download
-- Some providers may enforce rate limits, authentication, or download restrictions
-- Asset licensing information is informational and does not constitute legal clearance
-- Imported asset support depends on Blender runtime import capabilities
-- Large assets may require asynchronous download and import handling
-- Cache storage location must be writable and allowed by application configuration
+- An active internet connection is required for remote asset search and download.
+- External providers may enforce rate limits, authentication requirements, or download restrictions, which the system must respect.
+- Asset licensing information provided by the system is strictly informational; final legal compliance for commercial usage remains the user's responsibility.
+- The ability to import specific asset formats depends on the 3D application's native import capabilities.
+- The local cache storage location must be writable and permitted by the system's security configuration.
+- Operations that modify the 3D scene (like importing assets) must be processed sequentially to maintain application stability.
 
 ## Glossary
 
-- **Asset provider adapter contract**: Contract for provider-specific search and download behavior
-- **Multi-provider asset search contract**: Contract for orchestrating search across multiple providers
-- **Asset metadata**: Normalized description of an asset including identifier, provider, name, type, categories, preview reference, license summary, and availability
-- **Imported asset result**: Result concept containing Blender object reference and imported artifact information after import
-- **Provider identifier**: Conceptual name or key identifying an asset provider
-- **Asset identifier**: Provider-specific identifier for a single asset
-- **Asset type**: Category of asset such as HDRI, texture, or model
-- **Pagination cursor**: Provider-specific token used to retrieve additional search results
-- **Cache status**: Indicator whether downloaded artifact was retrieved from local cache or remote provider
-- **Downloadable asset**: Asset that can be retrieved and imported according to provider rules
-- **Scale normalization policy**: Rule for adjusting imported model scale to expected scene units
-- **Duplicate handling policy**: Rule for handling repeated import of same asset
-
-## Reference
-
-- Product Requirements Document for blender-arwaky
-- Shared feature requirements documentation
-- Server feature requirements documentation
-- Configuration feature requirements documentation
+- **Asset Provider:** An external service or library (e.g., Poly Haven, Sketchfab) that hosts and distributes 3D assets.
+- **Asset Metadata:** The normalized description of an asset, including its name, type, provider, preview image, and license information.
+- **Local Cache:** A secure, designated directory on the user's filesystem where downloaded assets are stored to avoid redundant network downloads.
+- **Path Traversal:** A security vulnerability where a malicious archive attempts to write files outside the intended directory (e.g., using `../../`); the system must strictly prevent this.
+- **Scale Normalization:** The process of automatically adjusting an imported 3D model's size to match the standard unit scale of the current 3D scene.
+- **Duplicate Handling Policy:** The rule defining how the system reacts when an asset with the same name or identity already exists in the scene (e.g., rename, reuse, replace, or reject).
+- **Background Task:** A long-running operation (like downloading a massive model) that executes without freezing the user interface, providing a tracking ID for status checks.

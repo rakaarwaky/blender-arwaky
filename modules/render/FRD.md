@@ -1,274 +1,201 @@
-
-# FRD — render (Render Feature Module)
+# FRD — Rendering and Viewport Feature
 
 ## System Overview
 
-The render module handles viewport capture, image rendering, camera setup, and HDRI environment lighting for **blender-arwaky**. It provides a render operation contract and viewport capture capabilities. 
+The rendering and viewport feature enables users and AI clients to capture visual representations of the 3D scene. It provides capabilities for taking viewport screenshots, rendering high-quality scene images, configuring cameras, and setting up HDRI (High Dynamic Range Image) environment lighting.
 
-This module translates high-level rendering intents into validated Blender-side operations. It validates capture and render parameters, resolves camera and environment targets, enforces output safety policies, and delegates execution to the Blender scripting interface through the server module.
-
-The module covers:
-
-- capturing viewport images with configurable presets
-- rendering scene images to output artifacts
-- configuring active or target camera
-- applying HDRI-based environment lighting
-- supporting long-running render operations through asynchronous job awareness
-- returning structured render results and diagnostic metadata
-
-The module does not handle:
-
-- asset discovery or asset download
-- network communication with Blender
-- object creation or scene composition beyond camera and environment setup
-- multi-user collaboration
-- cloud rendering services
+Because the 3D application can only safely process one scene-modifying operation at a time, this feature ensures that all concurrent requests are handled sequentially to maintain application stability. It also enforces strict safety checks for file outputs, ensuring that rendered images are only written to explicitly allowed directories, and handles long-running render tasks gracefully without freezing the application.
 
 ## Functional Requirements
 
-### FR-RND-001: Get Viewport Screenshot
+### FR-RND-001: Capture Viewport Screenshot
 
-- **Description**: Capture current viewport as image with configurable presets
-- **Input**: Screenshot request concept containing maximum size, view angle, shading mode, overlay visibility, focus object reference, image format, and optional source view context
-- **Output**: Screenshot result concept containing success indicator, image payload or artifact reference, image format, width, height, and message
-- **Business Rules**:
-  - View angle must be one of the supported conceptual modes:
-    - perspective
-    - orthographic
-    - active camera view
-  - Shading mode must be one of the supported conceptual modes:
-    - wireframe
-    - solid
-    - material preview
-    - rendered
-  - Overlay visibility must be configurable
-  - Maximum image size must be enforced while preserving aspect ratio
-  - Image format must be supported by the Blender runtime and allowed by configuration
-  - Focus object reference, if provided, must be resolved deterministically
-  - If focus object is not found, behavior must follow configured policy:
-    - return scene validation error
-    - ignore focus and continue capture
-  - If active viewport context is unavailable, implementation may fall back to offscreen capture or active camera capture when supported
-  - Screenshot operation should be read-only and should not mutate scene state except temporary view adjustments required for capture
-  - Returned image payload should be size-limited and safe for transport to MCP clients
-  - If image payload exceeds transport-friendly size, return artifact reference instead of raw payload when supported
-  - Operation should include capture metadata such as resolved width, height, format, shading mode, and capture duration
-- **Edge Cases**: Empty viewport, focused object not found, unsupported image format, oversized viewport, no active 3D view context, headless runtime limitation, hidden focus object, locked view, unsupported shading mode, memory limit, capture timeout
-- **Error Handling**: Execution error for Blender rendering failures; request validation error for invalid parameters; scene validation error for missing focus object when strict policy is enabled; timeout error when capture exceeds configured limit
+- **Use Case:** A user or AI client needs to quickly capture the current state of the 3D viewport as an image for preview or inspection purposes.
+- **User Action:** Request a viewport screenshot, specifying the maximum image size, view angle, shading mode, overlay visibility, focus object, and image format.
+- **System Response:** Capture the viewport and return the image data (either as a direct payload or a file reference if the image is too large), along with capture metadata.
+- **Business Rules:**
+  - Supported view angles: perspective, orthographic, active camera view.
+  - Supported shading modes: wireframe, solid, material preview, rendered.
+  - Overlay visibility (grid, gizmos, stats) must be configurable.
+  - The maximum image size must be strictly enforced while preserving the aspect ratio.
+  - The image format must be supported by the 3D application and allowed by system settings.
+  - If a focus object is specified, the system must resolve it deterministically. If not found, the system must either return an error or ignore the focus and continue, based on configuration.
+  - If the active viewport is unavailable (e.g., in headless mode), the system must fall back to an offscreen or active camera capture if supported.
+  - The operation is strictly read-only and must not permanently mutate the scene state (temporary view adjustments for capture are allowed).
+  - If the resulting image payload exceeds safe transport limits, the system must return a file reference instead of raw data.
+- **Edge Cases:** Empty viewport, focused object not found, unsupported image format, oversized viewport, no active 3D view context, headless runtime limitations, hidden focus object, locked view, memory limits.
+- **Error Handling:** Return `ValidationError` for invalid parameters; return `SceneStateError` for missing focus objects (when strict policy is enabled); return `TimeoutError` if capture takes too long; return `ExecutionError` for general rendering failures.
 
-### FR-RND-002: Render Image
+### FR-RND-002: Render Scene Image
 
-- **Description**: Render scene to image artifact with specified settings
-- **Input**: Render request concept containing output destination, resolution width, resolution height, sample count, denoising flag, render engine preference, color mode, transparency flag, camera reference, overwrite policy, timeout, and asynchronous execution policy
-- **Output**: Render result concept containing success indicator, artifact reference, render time, render statistics, final resolution, and message
-- **Business Rules**:
-  - Output destination must be writable and located inside allowed output directories
-  - Resolution width and height must be within configured minimum and maximum bounds, default conceptual range 1 to 8192
-  - Sample count must be within configured minimum and maximum bounds, default conceptual range 1 to 4096
-  - Denoising is optional and must gracefully degrade when unsupported by active render engine
-  - Render engine preference may be specified but must fall back to available engine when requested engine is unavailable
-  - Active camera must exist or be resolvable through camera setup policy
-  - If no active camera exists, operation may trigger camera setup when policy allows
-  - Existing output artifact must be handled according to overwrite policy:
-    - overwrite
-    - reject
-    - create unique variant
-  - Render operation should write to temporary artifact first and finalize only after successful render when supported
-  - Long-running render operations should support asynchronous job submission when duration is expected to exceed standard timeout
-  - Asynchronous render result should expose job status, progress when available, and final artifact reference
-  - Render cancellation is best-effort due to Blender main-thread execution constraints
-  - Render operation should return final render statistics when available:
-    - render time
-    - resolution
-    - sample count
-    - engine used
-    - denoising applied
-  - Output artifact must not expose sensitive filesystem information beyond allowed diagnostic metadata
-- **Edge Cases**: Invalid output destination, permission denied, output directory missing, render timeout, denoising not supported, no active camera, empty scene, unsupported render engine, out of memory, existing artifact conflict, very high resolution, transparent background unsupported, canceled render, stale camera reference
-- **Error Handling**: Request validation error for invalid render parameters; scene validation error for missing camera or invalid scene state; execution error for render failures; timeout error for exceeded render duration; delegated server error for communication failure
+- **Use Case:** A user or AI client needs to generate a high-quality, final rendered image of the 3D scene and save it to disk.
+- **User Action:** Request a scene render, specifying the output file path, resolution, sample count, denoising preferences, render engine, color mode, transparency, target camera, and overwrite rules.
+- **System Response:** Execute the render and return the final file path, render statistics (time, samples, engine used), and success status.
+- **Business Rules:**
+  - The output destination must be writable and located strictly inside allowed output directories.
+  - Resolution and sample count must be within configured minimum and maximum bounds (e.g., 1 to 8192 for resolution).
+  - Denoising is optional and must gracefully degrade if the selected render engine does not support it.
+  - The target camera must exist. If no active camera exists, the system may automatically set up a camera if policy allows.
+  - Overwrite policy for existing files: overwrite, reject, or create a unique variant (e.g., appending a number).
+  - The system must write to a temporary file first and only finalize/move it to the target destination after a successful render to prevent corrupted partial files.
+  - For long-running renders, the system must support background task submission, returning a task ID for progress polling.
+  - Cancelling a running render is a best-effort operation.
+  - The output file path returned must not expose sensitive filesystem information beyond the allowed directory.
+- **Edge Cases:** Invalid output destination, permission denied, output directory missing, render timeout, denoising unsupported, no active camera, empty scene, unsupported render engine, out of memory, existing file conflict, very high resolution, transparent background unsupported.
+- **Error Handling:** Return `ValidationError` for invalid render parameters; return `SceneStateError` for missing cameras or invalid scene states; return `TimeoutError` for exceeded render duration; return `ExecutionError` for general render failures.
 
-### FR-RND-003: Setup Camera
+### FR-RND-003: Configure Camera
 
-- **Description**: Position and configure camera for rendering
-- **Input**: Camera setup concept containing camera reference or creation policy, position, rotation, lens or focal length, sensor fit, depth of field options, active camera policy, and optional framing target
-- **Output**: Camera configuration result concept containing success indicator, resolved camera reference, final camera settings, active camera status, and message
-- **Business Rules**:
-  - Camera must be created if it does not exist and creation policy allows
-  - If multiple cameras exist, camera resolution must be deterministic:
-    - prefer explicit camera reference
-    - fall back to active scene camera
-    - fall back to first available camera when policy allows
-  - If no camera exists and creation policy disallows, return scene validation error
-  - Lens or focal length values must be within configured valid range
-  - Position and rotation values must be finite and valid three-component vectors
-  - Camera may be set as active scene camera when policy requests
-  - Locked camera or protected camera state must be respected unless explicit override is allowed
-  - Camera setup should not modify shared or linked camera data unless explicitly allowed
-  - Optional framing target may adjust camera orientation while preserving requested lens settings
-  - Operation should return resolved camera reference and final configuration state
-- **Edge Cases**: Multiple cameras, locked camera, invalid lens values, non-finite transform values, missing camera reference, linked camera data, protected camera, camera constraints overriding transform, no scene camera, creation not permitted, incompatible camera type
-- **Error Handling**: Scene validation error for invalid camera state or missing camera when creation disallowed; request validation error for invalid camera parameters; protection or lock error when camera cannot be modified; delegated server error for Blender execution failure
+- **Use Case:** A user or AI client needs to position, orient, and configure the properties of a camera used for rendering or viewport navigation.
+- **User Action:** Request camera setup, providing the target camera reference (or creation rules), position, rotation, lens/focal length, depth of field options, and framing target.
+- **System Response:** Configure the camera and return the resolved camera reference, final settings, and active camera status.
+- **Business Rules:**
+  - If the camera does not exist, it must be created if the creation policy allows it.
+  - If multiple cameras exist, resolution must be deterministic: prefer explicit reference > fall back to active scene camera > fall back to first available camera.
+  - If no camera exists and creation is disallowed, return an error.
+  - Lens/focal length values must be within valid configured ranges.
+  - Position and rotation values must be finite and valid 3D vectors.
+  - The camera may be set as the active scene camera if requested.
+  - Locked or protected camera states must be respected unless an explicit override is allowed.
+  - The operation must not modify shared or linked camera data unless explicitly allowed.
+  - If a framing target is provided, the system should adjust the camera orientation to frame the target while preserving the requested lens settings.
+- **Edge Cases:** Multiple cameras, locked camera, invalid lens values, non-finite transform values, missing camera reference, linked camera data, protected camera, camera constraints overriding transform, no scene camera.
+- **Error Handling:** Return `SceneStateError` for invalid camera states or missing cameras when creation is disallowed; return `ValidationError` for invalid parameters; return `ProtectionError` when a locked camera cannot be modified; return `ExecutionError` for general failures.
 
-### FR-RND-004: Setup HDRI Lighting
+### FR-RND-004: Configure HDRI Lighting
 
-- **Description**: Configure environment lighting from HDRI asset
-- **Input**: HDRI setup concept containing asset reference, strength, rotation, background visibility policy, and environment overwrite policy
-- **Output**: Environment result concept containing success indicator, resolved environment reference, applied strength, applied rotation, and message
-- **Business Rules**:
-  - HDRI asset must be available locally before environment setup
-  - If HDRI asset is not available, request must delegate download or resolution to asset module
-  - HDRI strength must be within configured valid range, default conceptual range 0.0 to 10.0
-  - HDRI rotation must be normalized according to configured angle convention
-  - Existing scene environment must be handled according to overwrite policy:
-    - replace environment
-    - update existing environment
-    - reject if environment exists
-  - Environment setup should apply to scene world or equivalent environment lighting concept
-  - If scene world does not exist, implementation should create one when policy allows
-  - Background visibility policy may control whether HDRI appears as background or only contributes lighting
-  - Operation should preserve non-environment lighting objects unless explicitly replaced
-  - Operation should return resolved environment reference and final applied settings
-- **Edge Cases**: HDRI asset not found, download failed, unsupported HDRI format, existing environment conflict, strength out of range, rotation overflow, missing scene world, linked world data, provider failure, asset cache unavailable, environment node incompatibility
-- **Error Handling**: Asset not found error delegated to asset module; provider error delegated to asset module; request validation error for invalid strength or rotation; scene validation error for incompatible scene environment state; delegated server error for Blender execution failure
+- **Use Case:** A user or AI client needs to set up realistic environment lighting using an HDRI (High Dynamic Range Image) asset.
+- **User Action:** Request HDRI setup, providing the asset reference, lighting strength, rotation, background visibility rules, and environment overwrite policy.
+- **System Response:** Apply the environment lighting and return the resolved environment reference, applied strength, rotation, and success status.
+- **Business Rules:**
+  - The HDRI asset must be available locally before environment setup. If not, the system must trigger the asset download/resolution process.
+  - HDRI strength must be within valid ranges (e.g., 0.0 to 10.0).
+  - HDRI rotation must be normalized according to the configured angle convention.
+  - Overwrite policy for existing environments: replace entirely, update existing, or reject if one exists.
+  - The setup must apply to the scene's world/environment lighting system.
+  - If the scene world does not exist, the system must create one if policy allows.
+  - Background visibility policy must control whether the HDRI appears as the visible background or only contributes to lighting.
+  - The operation must preserve non-environment lighting objects (like standard point lights) unless explicitly replaced.
+- **Edge Cases:** HDRI asset not found, download failed, unsupported HDRI format, existing environment conflict, strength out of range, rotation overflow, missing scene world, linked world data.
+- **Error Handling:** Return `AssetNotFoundError` if the asset cannot be resolved/downloaded; return `ValidationError` for invalid strength/rotation; return `SceneStateError` for incompatible scene environment states; return `ExecutionError` for general failures.
 
-## API Contract
+## System Capabilities (User-Facing Operations)
 
 
-| Operation                   | Input                      | Output                              | Description                    |
-| ----------------------------- | ---------------------------- | ------------------------------------- | -------------------------------- |
-| Capture viewport screenshot | Screenshot request concept | Screenshot result concept           | Capture viewport as image      |
-| Render image                | Render request concept     | Render result concept               | Render scene to artifact       |
-| Setup camera                | Camera setup concept       | Camera configuration result concept | Position and configure camera  |
-| Setup HDRI lighting         | HDRI setup concept         | Environment result concept          | Configure environment lighting |
+| Operation            | User Action (Input)                                      | System Response (Output)         | Description                               |
+| ---------------------- | ---------------------------------------------------------- | ---------------------------------- | ------------------------------------------- |
+| `capture_screenshot` | View angle, shading mode, overlays, focus object, format | Screenshot Result (payload/ref)  | Capture current viewport as an image      |
+| `render_scene`       | Output path, resolution, samples, engine, camera, policy | Render Result (file path, stats) | Render full scene to a high-quality image |
+| `configure_camera`   | Camera ref/create, position, rotation, lens, framing     | Camera Config Result             | Position and configure a scene camera     |
+| `configure_hdri`     | Asset ref, strength, rotation, visibility, overwrite     | Environment Result               | Set up HDRI-based environment lighting    |
 
-Common contract behavior:
+**Additional Capability Behaviors:**
 
-- All operations return structured result containing success indicator, human-readable message, and error category when failed
-- All operations may accept request correlation identifier for tracing
-- All mutating operations delegate execution to Blender through server module
-- Render operation may return asynchronous job reference when long-running execution mode is selected
-- Screenshot operation may return raw image payload or artifact reference depending on size policy and transport constraints
-- Camera and HDRI operations should report resolved references after execution
-- Destructive or overwrite operations must expose explicit policy flags
-- Operations should avoid returning oversized binary payloads directly when artifact reference is supported
+- All operations return a structured result containing a success indicator, a human-readable message, and an error category if failed.
+- All operations accept a unique tracking identifier for tracing and troubleshooting.
+- Operations that modify the 3D scene (like configuring cameras or HDRI) are processed sequentially to maintain application stability.
+- Long-running operations (like `render_scene`) automatically transition to background task execution when expected to exceed standard timeout limits.
+- Screenshot operations may return raw image data or a file reference depending on size limits and transport constraints.
 
-## Integration Points
+## System Boundaries
 
-- **Internal**:
-  - shared module: taxonomy concepts for render settings, camera settings, environment settings, result envelope, error categories, and correlation identifiers
-  - server module: Blender connection, operation dispatch, response parsing, queueing, timeout handling, and asynchronous job coordination
-  - asset module: HDRI asset resolution, download, caching, and provider interaction
-  - configuration module: allowed output directories, default resolution limits, timeout policy, supported image formats, and render defaults
-- **External**:
-  - Blender scripting interface — accessed via server module
-  - Blender scene data: cameras, world environment, render settings, viewport context, and output artifact storage
-  - Filesystem or artifact storage for rendered images
-  - Asset provider ecosystem through asset module for HDRI acquisition
+- **External Consumers:**
+  - AI Clients and User Interfaces that request viewport captures, renders, or camera/environment setups.
+- **Target Environment:**
+  - The 3D Application (must be running, with its rendering and viewport systems accessible).
+  - Local Filesystem: For writing rendered images and reading local HDRI assets.
+- **External Dependencies:**
+  - Asset Acquisition Capability: For downloading or resolving HDRI assets if they are not already present locally.
 
 ## Non-functional Requirements
 
-- **Performance**:
-
-  - Screenshot capture within 3 seconds for standard viewport settings
-  - Render within 60 seconds for standard scenes under default resolution and sample settings
-  - Long-running render operations should be submitted as asynchronous jobs when expected duration exceeds standard timeout
-  - Render progress reporting should be provided when supported by Blender runtime
-- **Reliability**:
-
-  - Graceful fallback on render failures
-  - No partial output artifact should be exposed as successful when supported by temporary artifact strategy
-  - Missing camera or environment states should be resolved deterministically or fail with clear error category
-  - Asynchronous render failures should preserve final error state for polling
-- **Safety**:
-
-  - Output destination must be restricted to allowed directories
-  - Overwrite behavior must be explicit
-  - HDRI setup must not unintentionally destroy existing environment unless policy allows
-  - Camera setup must respect locked or protected camera state unless override is explicitly allowed
-- **Observability**:
-
-  - Log operation type, target reference, result status, duration, and error category
-  - Log render metadata such as resolution, sample count, engine used, and denoising status without exposing sensitive paths
-  - Log screenshot metadata such as format, dimensions, shading mode, and capture duration
-  - Avoid logging full image payload or sensitive asset credentials
-- **Portability**:
-
-  - Behavior should remain consistent across supported Blender versions where rendering and viewport capabilities are available
-  - Headless runtime limitations should be detected and handled gracefully
-  - Image format support should depend on Blender runtime capabilities
-- **Extensibility**:
-
-  - New shading presets, render presets, camera framing modes, and environment policies can be added without modifying core render contract
-  - Additional render engines or denoising strategies can be supported through adapter-style extension when available
+- **Performance:**
+  - Viewport screenshot capture must complete within 3 seconds for standard settings.
+  - Scene rendering must complete within 60 seconds for standard scenes under default resolution/sample settings.
+  - Long-running renders must automatically utilize background task execution to prevent blocking the user interface.
+- **Reliability:**
+  - The system must gracefully handle render failures without leaving corrupted partial files (using temporary file strategies).
+  - Missing camera or environment states must be resolved deterministically or fail with clear error categories.
+  - Background task failures must preserve the final error state for accurate polling.
+- **Safety:**
+  - Output destinations for renders must be strictly restricted to allowed directories.
+  - Overwrite behavior for files and environments must be explicit and controlled by policy.
+  - Camera and environment setups must respect locked or protected states unless an override is explicitly allowed.
+- **Stability:**
+  - Operations that modify the 3D scene are processed one at a time to prevent application instability.
+- **Observability:**
+  - The system must log operation types, target references, result statuses, and durations.
+  - Render metadata (resolution, samples, engine) and screenshot metadata (format, dimensions) must be logged without exposing sensitive file paths.
+  - The system must never log raw image payloads or sensitive asset credentials.
+- **Portability:**
+  - Behavior must remain consistent across supported versions of the 3D application.
+  - Headless runtime limitations (e.g., no active viewport) must be detected and handled gracefully via fallbacks.
 
 ## Test Scenarios / QA Checklist
 
-- [ ]  Screenshot with valid parameters returns image payload or artifact reference
-- [ ]  Screenshot with invalid view angle returns request validation error
-- [ ]  Screenshot with invalid shading mode returns request validation error
-- [ ]  Screenshot with unsupported image format returns request validation error
-- [ ]  Screenshot with missing focus object follows configured policy
-- [ ]  Screenshot with maximum size limit preserves aspect ratio
-- [ ]  Screenshot falls back gracefully when viewport context is unavailable
-- [ ]  Screenshot in headless environment returns clear limitation error or supported fallback
-- [ ]  Render with valid parameters produces output artifact
-- [ ]  Render with invalid output destination returns request validation error
-- [ ]  Render with permission-denied output destination returns execution or load error category
-- [ ]  Render with resolution outside allowed range returns request validation error
-- [ ]  Render with sample count outside allowed range returns request validation error
-- [ ]  Render with missing active camera returns scene validation error or triggers camera setup when allowed
-- [ ]  Render with denoising unsupported degrades gracefully
-- [ ]  Render with existing artifact follows overwrite policy
-- [ ]  Render timeout returns timeout error
-- [ ]  Render asynchronous submission returns job reference
-- [ ]  Render asynchronous polling returns progress and final result
-- [ ]  Render cancellation is best-effort and returns clear status
-- [ ]  Camera setup creates camera if none exists and creation policy allows
-- [ ]  Camera setup uses active camera when no explicit reference is provided
-- [ ]  Camera setup resolves multiple cameras deterministically
-- [ ]  Camera setup with invalid lens values returns request validation error
-- [ ]  Camera setup with locked camera returns protection or lock error unless override allowed
-- [ ]  Camera setup sets active camera when policy requests
-- [ ]  HDRI setup applies environment lighting when asset is available
-- [ ]  HDRI setup delegates download when asset is unavailable
-- [ ]  HDRI setup with missing asset returns asset not found error
-- [ ]  HDRI setup with provider failure returns delegated provider error
-- [ ]  HDRI setup with strength outside valid range returns request validation error
-- [ ]  HDRI setup with rotation overflow normalizes value correctly
-- [ ]  HDRI setup follows environment overwrite policy
-- [ ]  HDRI setup creates scene world when missing and policy allows
-- [ ]  Render operations delegate to server module and propagate server errors
-- [ ]  Render and screenshot operations respect server-side serialization constraints
+**Viewport Screenshots:**
+
+- [ ]  Screenshot with valid parameters returns image payload or file reference.
+- [ ]  Screenshot with invalid view angle/shading mode/format returns `ValidationError`.
+- [ ]  Screenshot with missing focus object follows the configured policy (error or ignore).
+- [ ]  Screenshot with maximum size limit preserves aspect ratio correctly.
+- [ ]  Screenshot falls back gracefully when active viewport context is unavailable (headless mode).
+
+**Scene Rendering:**
+
+- [ ]  Render with valid parameters produces the final output artifact.
+- [ ]  Render with invalid output destination or permission denied returns `ValidationError` or `ExecutionError`.
+- [ ]  Render with resolution/samples outside allowed range returns `ValidationError`.
+- [ ]  Render with missing active camera returns `SceneStateError` or triggers camera setup if allowed.
+- [ ]  Render with unsupported denoising degrades gracefully without failing.
+- [ ]  Render with existing file follows the overwrite policy (overwrite, reject, or unique variant).
+- [ ]  Render timeout returns `TimeoutError`.
+- [ ]  Long-running render submits as a background task and returns a task ID.
+- [ ]  Background render polling returns progress and final result.
+
+**Camera Configuration:**
+
+- [ ]  Camera setup creates a camera if none exists and creation policy allows.
+- [ ]  Camera setup uses the active camera when no explicit reference is provided.
+- [ ]  Camera setup resolves multiple cameras deterministically.
+- [ ]  Camera setup with invalid lens values returns `ValidationError`.
+- [ ]  Camera setup with locked camera returns `ProtectionError` unless override is allowed.
+- [ ]  Camera setup sets the camera as active when requested.
+
+**HDRI Lighting:**
+
+- [ ]  HDRI setup applies environment lighting when the asset is available locally.
+- [ ]  HDRI setup triggers asset download when the asset is unavailable locally.
+- [ ]  HDRI setup with missing/unresolvable asset returns `AssetNotFoundError`.
+- [ ]  HDRI setup with strength outside valid range returns `ValidationError`.
+- [ ]  HDRI setup with rotation overflow normalizes the value correctly.
+- [ ]  HDRI setup follows the environment overwrite policy.
+- [ ]  HDRI setup creates the scene world when missing and policy allows.
+
+**General Stability:**
+
+- [ ]  Concurrent rendering and viewport operations are processed sequentially without causing instability.
+- [ ]  System execution failures are caught and returned as `ExecutionError` without crashing the application.
 
 ## Assumptions & Constraints
 
-- Blender must be running for viewport and render operations
-- Blender scripting interface must be enabled and reachable through server module
-- HDRI download and asset caching are handled by asset module
-- Internet connection is required only for HDRI download or remote asset resolution
-- Viewport capture may depend on active viewport context and may require fallback in headless environments
-- Render operations may be long-running and should use asynchronous execution when appropriate
-- Blender main-thread constraint requires serialized execution for state-modifying operations
-- Output artifacts must be written only to allowed output locations
-- Some render features depend on active render engine capabilities
-- Camera and environment setup may affect existing scene state and must follow explicit policies
+- The 3D application must be running for viewport and render operations.
+- HDRI assets must be available locally before environment setup (internet connection is only required for the initial download).
+- Viewport capture may depend on active viewport context and requires fallback mechanisms in headless environments.
+- Render operations can be long-running and must utilize background task execution when appropriate.
+- Operations that modify the scene must be processed one at a time to maintain application stability.
+- Output artifacts (rendered images) must be written only to explicitly allowed output locations.
+- Some render features (like specific denoising algorithms) depend on the active render engine's capabilities.
+- Camera and environment setup may affect existing scene state and must strictly follow explicit overwrite/preservation policies.
 
 ## Glossary
 
-- **HDRI**: High Dynamic Range Image used for environment lighting
-- **Viewport**: The 3D view representation inside Blender user interface
-- **Shading mode**: Conceptual viewport display mode such as wireframe, solid, material preview, or rendered
-- **Overlay**: Viewport helper elements such as grid, gizmos, statistics, or annotations
-- **Render artifact**: Output image result produced by render operation
-- **Active camera**: Camera currently used by the scene for rendering
-- **Environment lighting**: Scene-wide lighting contribution from background or world environment
-- **Render job**: Asynchronous execution unit for long-running render operations
-- **Allowed output location**: Configured directory or storage area where render artifacts may be written
-- **Overwrite policy**: Rule describing how existing output artifact or existing environment should be handled
-
-## Reference
-
-- Product Requirements Document for blender-arwaky
-- Shared feature requirements documentation
-- Asset feature requirements documentation
-- Server feature requirements documentation
+- **HDRI (High Dynamic Range Image):** An image format used to provide realistic, 360-degree environment lighting to a 3D scene.
+- **Viewport:** The interactive 3D viewing area within the application interface.
+- **Shading Mode:** The visual display mode of the viewport (e.g., wireframe, solid, material preview, rendered).
+- **Render Artifact:** The final output image file produced by the rendering process.
+- **Active Camera:** The specific camera currently designated by the scene to be used for final rendering.
+- **Environment Lighting:** Scene-wide illumination provided by the background/world environment rather than discrete light objects.
+- **Background Task:** A long-running operation submitted to the system that returns a tracking ID immediately, allowing the user to check its status later.
+- **Allowed Output Location:** A specifically configured directory where the system is permitted to write rendered image files.
+- **Overwrite Policy:** The rule defining how the system handles existing files or existing environment setups when a new request conflicts with them.

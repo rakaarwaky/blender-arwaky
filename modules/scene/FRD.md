@@ -1,237 +1,147 @@
 
-# FRD — scene (Scene Feature Module)
+# FRD — Scene Management Feature
 
 ## System Overview
 
-The scene module manages Blender scene-level operations for **blender-arwaky**, primarily scene information retrieval and scene cleanup. It provides a scene operation contract and scene inspection capabilities. Higher-level orchestration, such as multi-step scene composition or AI-guided workflows, is handled by the agent layer or workflow module.
+The scene management feature allows users and AI clients to inspect the overall state of the 3D scene and perform large-scale cleanup operations. It provides capabilities to retrieve comprehensive scene metadata (objects, cameras, lights, render settings) and to safely clear out unwanted objects while preserving critical scene elements.
 
-This module is responsible for translating scene-level intents into validated Blender-side operations. It inspects scene state, summarizes objects and render settings, and performs controlled cleanup operations with preservation policies. Actual execution against Blender is delegated to the server module through the Blender scripting interface.
-
-The module covers:
-
-- retrieving current scene state
-- summarizing objects, cameras, lights, render settings, and scene metadata
-- cleaning up scene objects based on preservation mode
-- protecting important scene objects during cleanup
-- reporting cleanup results deterministically
-- supporting safe destructive operations through confirmation and undo-aware behavior
-
-The module does not handle:
-
-- object creation or transformation, which belongs to object module
-- rendering or viewport capture, which belongs to render module
-- asset discovery or import, which belongs to asset module
-- network communication with Blender, which belongs to server module
+Because the 3D application can only safely process one scene-modifying operation at a time, this feature ensures that all concurrent requests are handled sequentially to maintain application stability. It also enforces strict safety checks and confirmation prompts for destructive operations to prevent accidental loss of critical scene data like cameras, lights, or shared assets.
 
 ## Functional Requirements
 
-### FR-SCN-001: Get Scene Info
+### FR-SCN-001: Inspect Scene State
 
-- **Description**: Retrieve current scene state including objects, active camera, render engine, resolution, and scene metadata
-- **Input**: Scene information request concept containing optional detail level, optional object filter, and optional inclusion flag for hidden objects
-- **Output**: Scene information result concept containing success indicator, scene state representation, and message
-- **Business Rules**:
-  - Returns full scene state or summarized scene state depending on requested detail level
-  - Scene state representation should include at least:
-    - scene name or scene identifier
-    - object list
-    - active object reference
-    - active camera reference
-    - light summary
-    - camera summary
-    - render engine information
-    - resolution settings
-    - sample count when available
-    - frame range
-    - frame rate
-    - unit system
-    - world or environment summary
-    - collection summary
-  - Object list includes all visible objects by default
-  - Hidden objects may be included when explicitly requested
-  - Object entries should include lightweight object metadata such as:
-    - object name
-    - unique object reference when available
-    - object type
-    - visibility state
-    - transform summary
-    - parent reference when available
-    - collection membership summary
-  - Read-only operation must not mutate scene state
-  - Operation must be idempotent
-  - Missing active object or active camera should be represented as empty reference, not as failure
-  - Missing or unavailable render engine information should be represented as unknown or unavailable, not as fatal error
-  - Large scenes should support summarized detail level to avoid oversized response
-  - Response must serialize safely and avoid cyclic references
-  - Response may include capability flags indicating supported scene operations
-  - Object ordering should be deterministic, for example by name or by scene order
-- **Edge Cases**: Empty scene, no active object, no active camera, missing render engine, large scene with many objects, hidden objects, linked collections, instanced objects, protected objects, stale object references, serialization limit, Blender not connected, timeout during scene inspection
-- **Error Handling**: Connection error if Blender not connected; timeout error when scene inspection exceeds configured limit; serialization error when scene graph cannot be safely summarized; delegated server error for Blender execution failure
+- **Use Case:** A user or AI client needs to understand the current state of the 3D scene, including what objects are present, what camera is active, and what the render settings are.
+- **User Action:** Request scene information, optionally specifying the level of detail, filtering criteria for objects, and whether to include hidden objects.
+- **System Response:** Return a structured, read-only summary of the scene's current state.
+- **Business Rules:**
+  - The response must include at least: scene name/ID, object list, active object/camera references, light/camera summaries, render engine, resolution, sample count, frame range/rate, unit system, world/environment summary, and collection summary.
+  - The object list includes visible objects by default; hidden objects are only included if explicitly requested.
+  - Object entries must include lightweight metadata: name, unique reference, type, visibility state, transform summary, parent reference, and collection membership.
+  - The operation is strictly read-only and must not mutate the scene state.
+  - The operation must be idempotent.
+  - Missing active objects, cameras, or render engine information must be represented as empty or "unknown", not as a fatal error.
+  - For large scenes, the system must support a "summarized" detail level to prevent oversized responses.
+  - The returned data must be safely structured, avoiding cyclic references that could cause system errors.
+  - Object ordering in the response must be deterministic (e.g., sorted by name or scene hierarchy order).
+- **Edge Cases:** Empty scene, no active object/camera, missing render engine, massive scene with thousands of objects, hidden objects, linked/instanced collections, stale object references.
+- **Error Handling:** Return `TimeoutError` if inspection takes too long; return `SerializationError` if the scene graph cannot be safely summarized; return `ExecutionError` for general system failures.
 
-### FR-SCN-002: Cleanup Scene
+### FR-SCN-002: Cleanup Scene Objects
 
-- **Description**: Remove objects from scene based on cleanup mode and preservation policy
-- **Input**: Cleanup request concept containing cleanup mode, optional object filter, confirmation flag, child handling policy, dependent handling policy, and protected object policy
-- **Output**: Cleanup result concept containing success indicator, removed object count, removed object references, preserved object references, skipped object references, and message
-- **Business Rules**:
-  - Cleanup mode must be one of the supported preservation strategies:
-    - keep cameras
-    - keep lights
-    - keep cameras and lights
-    - remove all objects
-  - Cleanup operation must respect preservation mode:
-    - camera objects are preserved when mode keeps cameras
-    - light objects are preserved when mode keeps lights
-    - active camera should be preserved unless explicit override is confirmed
-  - Cleanup operation should be undoable when Blender undo capability is available
-  - If undo capability is unavailable, operation must require explicit confirmation before destructive execution
-  - Cleanup operation may support dry-run preview mode that returns objects that would be removed without modifying scene
-  - Cleanup operation should not remove world environment, render settings, or scene metadata unless explicitly requested
-  - Child handling policy may be one of:
-    - delete hierarchy
-    - detach children
-    - reject cleanup when children exist
-  - Dependent handling policy may be one of:
-    - ignore dependents
-    - reject cleanup when dependents exist
-    - remove direct dependents when safe
-  - Protected object policy may preserve objects marked as protected, active camera, sole camera, or objects inside protected collections
-  - Linked objects and instanced objects must be handled carefully to avoid unintended removal of shared data
-  - Cleanup operation should remove object instances from scene while preserving shared data blocks when policy requires
-  - Cleanup operation should return deterministic summary of removed, preserved, and skipped objects
-  - Cleanup operation should be atomic or undo-backed when supported; partial failure must be reported clearly
-  - Cleanup operation should support object filter to remove only selected, hidden, empty, or orphaned objects when configured
-  - Cleanup operation must not delete entire scene data unless explicit full-scene reset policy is requested and confirmed
-- **Edge Cases**: Scene already empty, only camera remaining, only light remaining, only camera and light remaining, linked objects, instanced objects, multi-user object data, active camera, locked objects, protected collections, hidden objects, objects with children, objects used as constraint targets, large scene, cleanup timeout, partial failure, undo unavailable
-- **Error Handling**: Scene validation error for invalid cleanup mode; confirmation error when destructive operation requires confirmation but not provided; connection error if Blender not connected; delegated server error for Blender execution failure; partial failure error when cleanup cannot be completed atomically
+- **Use Case:** A user or AI client needs to clear out unwanted objects from the 3D scene to start fresh or remove clutter, while keeping essential elements like cameras and lights.
+- **User Action:** Request a scene cleanup, specifying the preservation mode (e.g., keep cameras, keep lights, keep both, remove all), object filters, child/dependent handling policies, and confirmation flags.
+- **System Response:** Execute the cleanup and return a detailed report of removed, preserved, and skipped objects.
+- **Business Rules:**
+  - Supported preservation modes: keep cameras, keep lights, keep both, or remove all.
+  - The active camera must be preserved by default unless an explicit override is confirmed by the user.
+  - The system must support a "dry-run" preview mode that returns what *would* be removed without actually modifying the scene.
+  - The cleanup must not remove the world environment, render settings, or core scene metadata unless explicitly requested.
+  - Child handling policy options: delete the entire hierarchy, detach children, or reject cleanup if children exist.
+  - Dependent handling policy options: ignore dependents, reject cleanup if dependents exist, or remove direct dependents safely.
+  - Protected object policy must preserve objects explicitly marked as protected, the active/sole camera, or objects inside protected collections.
+  - Linked and instanced objects must be handled carefully to avoid deleting shared underlying data blocks.
+  - The system must return a deterministic summary of removed, preserved, and skipped objects.
+  - The operation must support object filters (e.g., only remove selected, hidden, empty, or orphaned objects).
+  - The system must never delete the entire scene data unless a full-scene reset is explicitly requested and confirmed.
+  - If the 3D application supports undo, the operation should be undoable. If undo is unavailable, the operation requires explicit confirmation before executing.
+- **Edge Cases:** Scene is already empty, only camera/light remaining, linked/instanced objects, multi-user data, locked objects, protected collections, objects with children or constraints, partial failure during cleanup.
+- **Error Handling:** Return `ValidationError` for invalid cleanup modes; return `ConfirmationRequiredError` when a destructive action lacks explicit confirmation; return `PartialFailureError` when cleanup cannot be completed atomically; return `ExecutionError` for general system failures.
 
-## API Contract
+## System Capabilities (User-Facing Operations)
 
 
-| Operation      | Input                             | Output                           | Description                               |
-| ---------------- | ----------------------------------- | ---------------------------------- | ------------------------------------------- |
-| Get scene info | Scene information request concept | Scene information result concept | Get current scene state                   |
-| Cleanup scene  | Cleanup request concept           | Cleanup result concept           | Remove objects based on preservation mode |
+| Operation       | User Action (Input)                                      | System Response (Output)           | Description                                |
+| ----------------- | ---------------------------------------------------------- | ------------------------------------ | -------------------------------------------- |
+| `inspect_scene` | Detail level, object filters, include hidden flag        | Scene State Summary                | Retrieve current scene metadata and state  |
+| `cleanup_scene` | Preservation mode, filters, policies, confirmation flags | Cleanup Report (removed/preserved) | Remove objects based on preservation rules |
 
-Common contract behavior:
+**Additional Capability Behaviors:**
 
-- All operations return structured result containing success indicator, human-readable message, and error category when failed
-- All operations may accept request correlation identifier for tracing
-- Scene information operation is read-only and idempotent
-- Cleanup operation is destructive and must expose explicit confirmation or dry-run preview capability
-- Cleanup result should include removed, preserved, and skipped object references
-- Operations delegate execution to Blender through server module
-- Operations must respect server-side serialization constraints due to Blender main-thread behavior
-- Error categories should distinguish between connection error, validation error, scene state error, confirmation error, timeout error, and delegated server error
+- All operations return a structured result containing a success indicator, a human-readable message, and an error category if failed.
+- All operations accept a unique tracking identifier for tracing and troubleshooting.
+- Operations that modify the 3D scene are processed sequentially to maintain application stability.
+- Read-only operations (like `inspect_scene`) do not require destructive confirmation.
+- Destructive operations (like `cleanup_scene`) expose explicit confirmation flags and dry-run preview capabilities.
 
-## Integration Points
+## System Boundaries
 
-- **Internal**:
-  - shared module: taxonomy concepts for scene state representation, object reference, cleanup mode, cleanup policy, result envelope, and error categories
-  - server module: Blender connection, command dispatch, response parsing, queueing, timeout handling, and undo-aware execution support
-  - object module: object reference resolution and object deletion behavior when cleanup delegates detailed object removal
-  - configuration module: default cleanup policies, protected object rules, detail level limits, and timeout settings
-- **External**:
-  - Blender scripting interface — accessed via server module
-  - Blender scene data: objects, cameras, lights, collections, constraints, dependencies, and undo history
+- **External Consumers:**
+  - AI Clients and User Interfaces that request scene inspections or large-scale cleanups.
+- **Target Environment:**
+  - The 3D Application (must be running, with its scene data accessible).
 
 ## Non-functional Requirements
 
-- **Performance**:
-
-  - Scene information retrieval within 1 second for standard scenes
-  - Scene cleanup within 2 seconds for standard scenes excluding very large scenes or complex dependency cleanup
-  - Summarized detail level should be used for large scenes to avoid oversized responses
-  - Dry-run preview should complete faster than full destructive cleanup when supported
-- **Reliability**:
-
-  - Cleanup operations are atomic or undo-backed when supported by Blender runtime
-  - Partial cleanup failure must be reported with clear status and affected object references
-  - Scene information retrieval must gracefully handle missing active object or active camera
-  - Large scene inspection must not crash or produce cyclic serialized output
-- **Safety**:
-
-  - Destructive cleanup requires explicit confirmation unless undo-backed safety is available
-  - Protected object categories must be respected
-  - Active camera and sole camera should be preserved by default
-  - Shared or linked data should not be removed unintentionally
-  - Cleanup should not affect render settings or world environment unless explicitly requested
-- **Observability**:
-
-  - Log operation type, scene identifier, result status, duration, and error category
-  - Log cleanup mode, removed object count, preserved object count, and skipped object count
-  - Log dry-run preview status when applicable
-  - Avoid logging full object payload for very large scenes unless debug detail level is explicitly enabled
-- **Consistency**:
-
-  - Object filtering and ordering must be deterministic
-  - Cleanup results must distinguish removed, preserved, and skipped objects
-  - Scene state representation must use stable object references when available
-- **Thread Safety**:
-
-  - Module does not perform concurrent Blender calls directly
-  - Scene operations rely on server-side serialization due to Blender main-thread constraints
+- **Performance:**
+  - Scene inspection must complete within 1 second for standard scenes.
+  - Scene cleanup must complete within 2 seconds for standard scenes (excluding very large scenes or complex dependency resolution).
+  - Summarized detail levels must be used for large scenes to avoid oversized responses.
+  - Dry-run previews must complete faster than full destructive cleanups.
+- **Reliability:**
+  - Cleanup operations must be atomic or undo-backed when supported by the 3D application.
+  - Partial cleanup failures must be reported with clear status and affected object references.
+  - Scene inspection must gracefully handle missing active objects or cameras without failing.
+- **Safety:**
+  - Destructive cleanup requires explicit confirmation unless undo-backed safety is available.
+  - Protected object categories (like the active camera) must be strictly respected.
+  - Shared or linked data must not be removed unintentionally.
+  - Cleanup must not affect render settings or world environment unless explicitly requested.
+- **Stability:**
+  - Operations that modify the 3D scene are processed one at a time to prevent application instability.
+- **Observability:**
+  - The system must log the operation type, scene identifier, result status, and duration.
+  - For cleanups, the system must log the preservation mode and the counts of removed, preserved, and skipped objects.
+  - The system must avoid logging full object payloads for very large scenes unless debug detail is explicitly enabled.
 
 ## Test Scenarios / QA Checklist
 
-- [ ]  Get scene info returns complete scene state for standard scene
-- [ ]  Get scene info returns summarized state when detail level is reduced
-- [ ]  Get scene info includes visible objects by default
-- [ ]  Get scene info includes hidden objects when explicitly requested
-- [ ]  Get scene info returns empty object list for empty scene
-- [ ]  Get scene info handles missing active object gracefully
-- [ ]  Get scene info handles missing active camera gracefully
-- [ ]  Get scene info handles unavailable render engine information gracefully
-- [ ]  Get scene info serializes large scene safely
-- [ ]  Get scene info avoids cyclic reference issues
-- [ ]  Get scene info returns deterministic object ordering
-- [ ]  Cleanup with keep cameras mode preserves camera objects
-- [ ]  Cleanup with keep lights mode preserves light objects
-- [ ]  Cleanup with keep cameras and lights mode preserves both camera and light objects
-- [ ]  Cleanup with remove all mode removes all non-protected objects
-- [ ]  Cleanup preserves active camera by default
-- [ ]  Cleanup with explicit override removes active camera only when confirmed
-- [ ]  Cleanup with dry-run preview returns expected removal list without modifying scene
-- [ ]  Cleanup with invalid mode returns scene validation error
-- [ ]  Cleanup without required confirmation returns confirmation error
-- [ ]  Cleanup on already empty scene returns success with zero removed objects
-- [ ]  Cleanup handles linked objects without deleting shared data unintentionally
-- [ ]  Cleanup handles instanced objects safely
-- [ ]  Cleanup handles objects with children according to child handling policy
-- [ ]  Cleanup handles objects used as constraint targets according to dependent handling policy
-- [ ]  Cleanup returns removed, preserved, and skipped object references
-- [ ]  Cleanup operation is undoable when Blender undo capability is available
-- [ ]  Cleanup partial failure reports clear error and affected objects
-- [ ]  Scene operations delegate to server module and propagate server errors
-- [ ]  Scene operations respect server-side serialization constraints
+**Scene Inspection:**
+
+- [ ]  Inspect scene returns complete state for a standard scene.
+- [ ]  Inspect scene returns summarized state when detail level is reduced.
+- [ ]  Inspect scene includes visible objects by default, and hidden objects when requested.
+- [ ]  Inspect scene returns an empty object list for an empty scene.
+- [ ]  Inspect scene handles missing active object/camera/render engine gracefully (returns empty/unknown).
+- [ ]  Inspect scene safely serializes a massive scene without crashing or creating cyclic references.
+- [ ]  Inspect scene returns objects in a deterministic order.
+
+**Scene Cleanup:**
+
+- [ ]  Cleanup with "keep cameras" mode preserves camera objects.
+- [ ]  Cleanup with "keep lights" mode preserves light objects.
+- [ ]  Cleanup with "keep both" mode preserves both.
+- [ ]  Cleanup with "remove all" mode removes all non-protected objects.
+- [ ]  Cleanup preserves the active camera by default.
+- [ ]  Cleanup removes the active camera only when an explicit override is confirmed.
+- [ ]  Cleanup dry-run preview returns the expected removal list without modifying the scene.
+- [ ]  Cleanup with an invalid mode returns `ValidationError`.
+- [ ]  Cleanup without required confirmation returns `ConfirmationRequiredError`.
+- [ ]  Cleanup on an already empty scene returns success with zero removed objects.
+- [ ]  Cleanup handles linked/instanced objects without deleting shared data unintentionally.
+- [ ]  Cleanup handles objects with children according to the child handling policy.
+- [ ]  Cleanup handles objects used as constraint targets according to the dependent handling policy.
+- [ ]  Cleanup returns a detailed report of removed, preserved, and skipped object references.
+- [ ]  Cleanup operation is undoable when the 3D application's undo capability is available.
+- [ ]  Cleanup partial failure reports a clear error and the affected objects.
 
 ## Assumptions & Constraints
 
-- Blender must be running with bridge or addon enabled
-- Scene operations are delegated to Blender via server module
-- Blender scripting interface must be available and reachable
-- Undo capability depends on Blender runtime state and configuration
-- Large scenes may exceed standard performance targets and may require summarized responses
-- Cleanup operations primarily affect objects, not render settings or world environment, unless explicitly extended
-- Protected object handling depends on configured policy and scene state
-- Linked and instanced objects require careful handling to avoid unintended data removal
-- Scene inspection may be limited by serialization size and response transport constraints
+- The 3D application must be running and ready to accept commands.
+- Undo capability depends on the 3D application's runtime state and configuration.
+- Large scenes may exceed standard performance targets and may require summarized responses.
+- Cleanup operations primarily affect objects, not render settings or world environment, unless explicitly extended.
+- Protected object handling depends on the configured policy and current scene state.
+- Linked and instanced objects require careful handling to avoid unintended data removal.
+- Scene inspection may be limited by response size constraints, necessitating the use of summarized detail levels.
+- Operations that modify the scene must be processed one at a time to maintain application stability.
 
 ## Glossary
 
-- **Scene state representation**: Conceptual value containing full or summarized scene state
-- **Cleanup mode**: Conceptual preservation strategy for cleanup operation
-- **Protected object**: Object preserved during cleanup due to role, configuration, or explicit protection flag
-- **Cleanup policy**: Rule set defining how children, dependents, linked data, and protected objects are handled
-- **Active camera**: Camera currently used by the scene for rendering
-- **Visible object**: Object currently included in viewport or scene visibility rules
-- **Linked object**: Object referencing shared or external data that may not be safe to delete directly
-- **Undoable operation**: Operation that can be reverted through Blender undo mechanism when available
-- **Dry-run preview**: Non-destructive mode that reports intended cleanup result without modifying scene
-- **Scene operation contract**: Abstraction for scene-level capabilities exposed to higher layers
-
-## Reference
-
-- Product Requirements Document for blender-arwaky
-- Shared feature requirements documentation
-- Server feature requirements documentation
+- **Scene State Summary:** A structured, read-only representation of the 3D scene's current metadata and objects.
+- **Preservation Mode:** The strategy used during cleanup to determine which critical objects (cameras, lights) to keep.
+- **Protected Object:** An object preserved during cleanup due to its role (e.g., active camera), configuration, or explicit protection flag.
+- **Cleanup Policy:** The set of rules defining how children, dependents, linked data, and protected objects are handled during a cleanup.
+- **Active Camera:** The camera currently used by the scene for rendering.
+- **Linked Object:** An object referencing shared or external data that may not be safe to delete directly without affecting other instances.
+- **Dry-run Preview:** A non-destructive mode that reports the intended cleanup result without actually modifying the scene.

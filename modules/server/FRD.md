@@ -1,252 +1,245 @@
-# FRD — Server Feature Module
+# FRD — Server Feature
 
 ## System Overview
 
-The server module manages TCP socket communication between the blender-arwaky server and the Blender addon. It handles connection lifecycle, code execution, and Blender-side operations. This module is the bridge between external consumers (MCP, CLI) and the Blender runtime. It follows a AES Architechture pattern
+The server feature manages the secure communication channel between external AI clients and the Blender application. It handles connection stability, safe custom code execution, and standard Blender operations.
 
-The module treats user-provided code as untrusted or semi-trusted input and applies layered protection: server-side static validation using AST-based analysis, and runtime sandbox enforcement on the Blender addon side. All operations that access Blender’s Python API (`bpy`) are serialized through a single execution queue because `bpy` is not thread-safe and must run on Blender’s main thread.
+The feature treats all user-provided code as potentially unsafe. It applies strict safety checks before execution and enforces runtime boundaries to protect the user's system from unauthorized access or destructive actions. Because the Blender application can only safely process one operation at a time, the feature ensures that all concurrent requests are handled sequentially to maintain application stability.
 
-The module also defines connection state handling, heartbeat behavior, protocol version compatibility, authentication expectations, payload limits, async task handling, observability requirements, and error classification
+The feature defines connection stability handling, liveness monitoring, compatibility checks, authentication, data size limits, background task management, system observability, and error classification from a user-facing perspective.
 
 ## Functional Requirements
 
-### FR-SRV-001: Blender Socket Connection
+### FR-001: Establish and Maintain Connection
 
-- **Description:** Establish and maintain TCP socket connection to Blender addon
-- **Input:** ConnectionConfig (host, port, timeout, retry_policy, auth_token, protocol_version, heartbeat_interval_seconds, heartbeat_failure_threshold)
-- **Output:** Active socket connection and current `ConnectionStatus`
+- **Use Case:** An AI client or user needs to connect to a running Blender instance and ensure the connection remains active during use.
+- **User Action:** Provide connection settings (target address, port, timeout limits, authentication token, and compatibility version).
+- **System Response:** Establish a secure connection and provide the current connection status.
 - **Business Rules:**
-  - Auto-reconnect on failure with max 3 retry attempts using exponential backoff with jitter (1s, 2s, 4s)
-  - Connection establishment timeout: 30 seconds
-  - Heartbeat/ping every 10 seconds to detect stale connections
-  - Connection is considered stale only after configurable consecutive heartbeat failures, default 3
-  - Heartbeat handling must be independent from Blender main-thread code execution where possible
-  - A missed heartbeat during active long-running execution must not immediately trigger reconnect unless TCP connection is closed or execution timeout is also exceeded
-  - Connection handshake must include protocol version and authentication token when authentication is enabled
-  - Default listener target should be localhost unless remote binding is explicitly configured
-  - Connection state must be represented as event: `disconnected`, `connecting`, `connected`, `reconnecting`, `failed`, `closed`
-  - While reconnecting, new operations may be queued or rejected based on configuration
-  - On permanent connection failure, pending operations must be failed deterministically with a clear error
-  - `disconnect` must be idempotent
-  - On graceful disconnect, pending queued operations are failed with `ConnectionClosedError`
-  - In-flight operations are not forcibly cancelled unless explicitly requested by caller or system policy
-- **Edge Cases:** Blender not running, connection refused, timeout, network error, Blender crashes mid-session, authentication failure, protocol version mismatch, heartbeat false positive during long execution, disconnect called during reconnect, stale TCP connection
-- **Error Handling:** `BlenderConnectionFailure` with retry logic; after 3 failed attempts, raise `BlenderConnectionExhausted`; `AuthenticationError` for invalid credentials; `ProtocolVersionMismatchError` for incompatible protocol; `ConnectionClosedError` for operations rejected after disconnect
+  - The system must automatically attempt to reconnect if the connection is lost, up to a maximum of 3 attempts with increasing wait times.
+  - Connection establishment must fail if it takes longer than 30 seconds.
+  - The system must send periodic "liveness" checks (heartbeats) every 10 seconds to detect if the connection has gone stale.
+  - The connection is only considered stale after a configurable number of consecutive failed liveness checks (default: 3).
+  - A missed liveness check during a long-running operation must not immediately drop the connection unless the operation itself has also timed out.
+  - The initial connection handshake must verify compatibility versions and authenticate the user if a token is required.
+  - The system must default to local-only connections unless remote access is explicitly configured by the user.
+  - Connection status must be clearly reported as: `disconnected`, `connecting`, `connected`, `reconnecting`, `failed`, or `closed`.
+  - While reconnecting, new operation requests must be either held or rejected based on user configuration.
+  - If the connection fails permanently, all pending operations must be cancelled and return a clear "Connection Lost" error.
+  - The disconnect action must be safe to call multiple times without causing errors.
+  - When gracefully disconnecting, all pending operations must be cancelled with a "Connection Closed" error.
+  - Operations currently in progress are not forcibly stopped unless explicitly requested by the user.
+- **Edge Cases:** Blender is not running, connection is refused, connection times out, network drops, Blender crashes during a session, authentication fails, versions are incompatible, liveness check gives a false alarm during a long task, disconnect is called while reconnecting.
+- **Error Handling:** Return `BlenderConnectionFailure` (with retry details); return `BlenderConnectionExhausted` after 3 failed retries; return `AuthenticationError` for invalid tokens; return `VersionMismatchError` for incompatible versions; return `ConnectionClosedError` for operations rejected after a disconnect.
 
-### FR-SRV-002: Execute Blender Code
+### FR-002: Execute Custom Code
 
-- **Description:** Send Python code to Blender for execution via TCP socket
-- **Input:** Prompt (Python code string), optional execution_timeout_ms, optional async flag, optional idempotency_key for async submission
-- **Output:** `ExecutionResult {status: "success"|"error", data: JSONSerializable | null, error: {type: str, message: str, traceback: str | null, line: int | null} | null, execution_time_ms: int, truncated: bool}`
+- **Use Case:** An AI agent or user needs to run custom Python code inside Blender to perform actions not covered by standard commands.
+- **User Action:** Provide the Python code string, optional timeout limit, optional background execution flag, and optional tracking key.
+- **System Response:** Return the execution result containing status (success/error), returned data, error details (if any), execution time, and a flag indicating if the output was too large and truncated.
 - **Business Rules:**
-  - User-provided code is treated as untrusted or semi-trusted input
-  - Code validated before sending using AST-based static analysis, not only regex or simple string matching
-  - Blocked constructs include but are not limited to:
-    - `os.system`
-    - `subprocess`
-    - `shutil.rmtree`
-    - `eval()`
-    - `exec()`
-    - `compile()`
-    - `__import__`
-    - dynamic import mechanisms such as `importlib`
-    - access to unsafe dunder attributes commonly used for sandbox escape
-    - `open()` with write mode outside allowed Blender project directories
-  - Server-side validation is a pre-filter only; Blender addon must perform runtime enforcement as the final authority
-  - Allowed directories for file write operations must be configurable
-  - Default allowed directory is the active `.blend` file directory unless configured otherwise
-  - Execution timeout: 30 seconds by default; raise `ExecutionTimeoutError` if exceeded
-  - Execution timeout must be configurable via ConnectionConfig or request metadata
-  - For long-running operations (>30s), support async task submission with `task_id` polling
-  - Async task status must include: `pending`, `running`, `success`, `error`, `timeout`, `cancelled`
-  - Async task result retention must be configurable, default 10 minutes
-  - Async task cancellation is supported only while task is `pending`; cancellation of running task is best-effort due to Blender main-thread constraints
-  - Polling unknown or expired task returns `TaskNotFoundError`
-  - Code payload size must be limited, default configurable max 1 MB
-  - Execution output must be JSON-serializable
-  - Non-serializable output must be converted to safe string representation or rejected
-  - If output exceeds max response size, output must be truncated and `truncated: true` must be set
-  - All code execution requests must go through serialized execution queue
-  - Each request should include unique `request_id` for correlation and observability
-- **Edge Cases:** Code execution timeout, syntax error, Blender exception, Blender crash during execution, blocked pattern detected, obfuscated blocked pattern, oversized payload, oversized output, non-serializable return value, connection lost during execution, async task expired, async task cancelled, queue full, queue wait timeout
-- **Error Handling:** `ExecutionError` with error details from Blender; `SecurityViolationError` for blocked patterns; `ExecutionTimeoutError` for timeout; `QueueFullError` when queue depth limit exceeded; `QueueTimeoutError` when request waits too long in queue; `TaskNotFoundError` for unknown/expired async task; `BlenderConnectionFailure` for connection loss
+  - All user-provided code is treated as untrusted.
+  - The code must be validated for safety before execution. Blocked patterns include, but are not limited to: system commands (`os.system`), process execution (`subprocess`), destructive file operations (`shutil.rmtree`), dynamic evaluation (`eval`, `exec`, `compile`), dynamic imports (`__import__`, `importlib`), unsafe internal attributes, and file writing outside of explicitly allowed directories.
+  - Pre-execution validation is a safety filter; the Blender environment must also enforce its own runtime boundaries as the final authority.
+  - Allowed directories for file operations must be configurable by the user.
+  - The default allowed directory is the folder containing the active Blender project file.
+  - Code execution must time out after 30 seconds by default, returning an `ExecutionTimeoutError`.
+  - The timeout limit must be configurable.
+  - For operations expected to take longer than the timeout, the system must support background task submission, returning a tracking ID for the user to check later.
+  - Background task statuses must include: `pending`, `running`, `success`, `error`, `timeout`, `cancelled`.
+  - Background task results must be retained for a configurable time (default: 10 minutes).
+  - Background tasks can only be cancelled while they are `pending`. Cancelling a `running` task is a best-effort attempt.
+  - Checking the status of an unknown or expired background task must return a `TaskNotFoundError`.
+  - The size of the code provided must be limited (default max: 1 MB).
+  - The execution output must be convertible to a standard structured format.
+  - If the output cannot be converted, it must be safely converted to a text representation or rejected.
+  - If the output exceeds the maximum allowed response size, it must be truncated, and the response must indicate that truncation occurred.
+  - All code execution requests must be processed sequentially to maintain Blender stability.
+  - Each request must include a unique tracking ID for logging and troubleshooting.
+- **Edge Cases:** Code times out, code has syntax errors, Blender throws an exception, Blender crashes during execution, blocked pattern is detected, blocked pattern is obfuscated to hide it, code is too large, output is too large, output cannot be formatted, connection is lost during execution, background task expires, background task is cancelled, too many pending operations.
+- **Error Handling:** Return `ExecutionError` with details from Blender; return `SecurityViolationError` for blocked patterns; return `ExecutionTimeoutError` for timeouts; return `TooManyPendingOperationsError` when the limit of waiting operations is exceeded; return `OperationWaitTimeoutError` when a request waits too long to be processed; return `TaskNotFoundError` for unknown/expired background tasks; return `BlenderConnectionFailure` if the connection drops.
 
-### FR-SRV-003: Blender Commands
+### FR-003: Execute Standard Commands
 
-- **Description:** Dispatch named commands to Blender addon
-- **Input:** ActionName (enum), command arguments (dict), optional timeout_ms
-- **Output:** Command result dictionary `{status: "success"|"error", data: dict, error: {type: str, message: str, details: dict | null} | null, execution_time_ms: int}`
+- **Use Case:** An AI agent or user needs to run a predefined, named Blender action (e.g., create object, render scene).
+- **User Action:** Provide the command name, command parameters, and optional timeout limit.
+- **System Response:** Return the command result containing status (success/error), returned data, error details (if any), and execution time.
 - **Business Rules:**
-  - Commands routed through TCP socket; response parsed as JSON
-  - Default command response timeout: 5 seconds; raise `CommandTimeoutError` if exceeded
-  - Individual commands may define custom timeout metadata when operation is expected to take longer
-  - Long-running commands should be submitted through async task mechanism or explicitly marked as long-running
-  - Commands are idempotent where possible (e.g., `get_scene_info`)
-  - Each ActionName should define:
-    - argument schema
-    - default timeout
-    - idempotency flag
-    - whether it mutates Blender state
-    - whether it requires `bpy` main-thread access
-  - Command arguments must be validated against schema before sending
-  - Commands that do not require Blender state access may bypass the main execution queue
-  - Commands that access or mutate Blender state must be serialized through the execution queue
-  - Command response size must be limited and truncated if too large
-- **Edge Cases:** Unknown command, invalid arguments, Blender not responding, malformed JSON response, command schema mismatch, response too large, command timeout, queue full, queue wait timeout
-- **Error Handling:** `ProviderError` with command-specific error message; `CommandTimeoutError` for unresponsive commands; `ValidationError` for invalid command arguments; `QueueFullError` when queue depth limit exceeded; `QueueTimeoutError` when queued command exceeds wait timeout
+  - The default response timeout for commands is 5 seconds, returning a `CommandTimeoutError` if exceeded.
+  - Individual commands may define their own custom timeout limits if they are expected to take longer.
+  - Long-running commands should be submitted as background tasks or explicitly marked as long-running.
+  - Commands that only read data (e.g., `get_scene_info`) should be idempotent (safe to run multiple times without changing the result).
+  - Each command must define:
+    - Required and optional parameters.
+    - Default timeout.
+    - Whether it is idempotent.
+    - Whether it changes the Blender scene state.
+  - Command parameters must be validated against the command's defined rules before execution.
+  - Commands that do not interact with the Blender scene state may be processed immediately.
+  - Commands that interact with or change the Blender scene state must be processed sequentially.
+  - Command response sizes must be limited and truncated if they are too large.
+- **Edge Cases:** Unknown command name, invalid parameters, Blender is not responding, response format is invalid, response is too large, command times out, too many pending operations.
+- **Error Handling:** Return `ProviderError` with command-specific details; return `CommandTimeoutError` for unresponsive commands; return `ValidationError` for invalid parameters; return `TooManyPendingOperationsError` when the limit is exceeded; return `OperationWaitTimeoutError` when waiting too long.
 
-### FR-SRV-004: Connection Factory
-
-- **Description:** Create new Blender connection instances based on configuration
-- **Input:** ConnectionConfig (host, port, timeout, retry_policy, auth_token, protocol_version, max_payload_bytes, heartbeat_interval_seconds, heartbeat_failure_threshold, allowed_directories)
-- **Output:** contract_blender_connection_protocol instance
-- **Business Rules:**
-  - Factory validates configuration before instantiation
-  - Returns BlenderConnection adapter implementation
-  - Host and port are required
-  - Port must be valid, range 1–65535
-  - Timeout must be greater than zero and within configured maximum
-  - Retry policy must be within configured min/max bounds
-  - Protocol version must be supported by server
-  - Authentication token must be present when connecting to non-local target if authentication is enabled
-  - Configuration object should be immutable after creation
-- **Edge Cases:** Invalid configuration, missing required fields, invalid port, invalid timeout, unsupported protocol version, missing auth token for remote connection, invalid allowed directory configuration
-- **Error Handling:** `ConnectionConfigError` for factory failures with descriptive validation message
-
-## API Contract
+## System Capabilities (User-Facing Operations)
 
 
-| Operation               | Input            | Output                               | Description                                  |
-| ------------------------- | ------------------ | -------------------------------------- | ---------------------------------------------- |
-| `connect`               | ConnectionConfig | contract_blender_connection_protocol | Establish TCP socket connection              |
-| `disconnect`            | —               | —                                   | Close connection gracefully                  |
-| `send_command`          | ActionName, dict | dict                                 | Send command to Blender (5s timeout)         |
-| `execute_blender_code`  | Prompt (str)     | ExecutionResult                      | Execute Python code in Blender (30s timeout) |
-| `submit_async_task`     | Prompt (str)     | task_id (str)                        | Submit long-running code for async execution |
-| `poll_task_result`      | task_id (str)    | ExecutionResult                      | Poll async task status and result            |
-| `get_connection_status` | —               | ConnectionStatus                     | Return current connection state              |
+| Operation               | User Action (Input)      | System Response (Output)         | Description                                    |
+| ------------------------- | -------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `connect`               | Connection Settings      | Connection Status                | Establish secure connection to Blender         |
+| `disconnect`            | —                       | —                               | Close connection gracefully                    |
+| `send_command`          | Command Name, Parameters | Command Result                   | Run a predefined Blender action (5s timeout)   |
+| `execute_blender_code`  | Python Code              | Execution Result                 | Run custom code in Blender (30s timeout)       |
+| `submit_async_task`     | Python Code              | Task Tracking ID                 | Submit long-running code for background work   |
+| `poll_task_result`      | Task Tracking ID         | Task Status and Execution Result | Check status and get result of background work |
+| `get_connection_status` | —                       | Connection Status Details        | Get current connection health and details      |
 
-Additional contract behavior:
+**Additional Capability Behaviors:**
 
-- `connect` must perform handshake, protocol version validation, and authentication when enabled
-- `disconnect` must be idempotent and must not throw an error if connection is already closed
-- `send_command` uses default 5 second timeout unless command metadata defines another timeout
-- `execute_blender_code` returns synchronous `ExecutionResult` for normal execution
-- `submit_async_task` returns `{task_id, status}` where initial status is usually `pending`
-- `poll_task_result` returns task status and, when finished, final `ExecutionResult`
-- `poll_task_result` should not require Blender main-thread execution queue if task state is stored locally
-- `get_connection_status` returns `ConnectionStatus {state, host, port, last_error, last_heartbeat_at, reconnect_attempts, protocol_version}`
-- All requests should include `request_id`
-- All responses should include corresponding `request_id`
-- All messages must be UTF-8 encoded JSON
-- Message framing must be deterministic, for example length-prefixed JSON or newline-delimited JSON
-- Maximum request and response payload size must be configurable
+- `connect` must verify compatibility and authenticate the user if enabled.
+- `disconnect` must be safe to call multiple times and must not cause errors if already closed.
+- `send_command` uses a 5-second timeout unless the specific command defines a different limit.
+- `execute_blender_code` returns the final result immediately for standard execution.
+- `submit_async_task` returns a tracking ID, with the initial status usually being `pending`.
+- `poll_task_result` returns the current status and, when finished, the final execution result.
+- `get_connection_status` returns details including current state, target address, last liveness check time, reconnect attempts, and compatibility version.
+- All requests and responses must include a unique tracking ID for troubleshooting.
+- All data exchanged must be text-based and structured.
+- Maximum data size for requests and responses must be configurable and enforced.
 
-## Integration Points
+## External Boundaries
 
-- **Internal:**
-  - **blender-arwaky/modules/shared** for sharing vo,entity,error,event,utility,contract,constant
-  - **blender-arwaky/modules/config** for server settings (host, port, timeout, retry policy, blocked patterns list, allowed directories, payload limits, heartbeat settings, authentication settings)
-  - **blender-arwaky/modules/mcp**  MCP tool definitions and response formatting
-- **External:**
-  - Blender addon (TCP socket listener on configurable port)
-  - Blender Python API (`bpy`) — accessed exclusively through the addon
-  - optional secret store or environment configuration for authentication token
+- **External Consumers:**
+  - AI Clients (e.g., MCP-compatible tools, CLI utilities) that send commands and code.
+- **Target Environment:**
+  - Blender Application (must be running and listening for connections).
+  - Blender Internal Environment (where code and commands are actually executed).
+- **External Dependencies:**
+  - Optional secret storage or environment variables for managing authentication tokens.
 
 ## Non-functional Requirements
 
-- **Performance:** Command response within 5 seconds by default; code execution within 30 seconds by default; server-side processing overhead should be minimal, ideally <100ms excluding Blender execution time; queue wait time should be configurable, default target <10 seconds under normal load
-- **Reliability:** Auto-reconnect on connection loss (3 attempts, exponential backoff with jitter); graceful degradation on Blender crash; pending operations must fail deterministically; no operation may be silently dropped; in-flight operations must have defined failure or recovery behavior
-- **Security:** Code execution validates against blocked patterns list using AST-based analysis; runtime sandbox enforcement must exist on Blender addon side; no arbitrary file system access outside allowed directories; default connection target is localhost; authentication token required for remote connections when enabled; payload size limits enforced; security violations logged as audit events; raw code payload not logged by default
-- **Observability:** Log all connection state changes, command metadata, execution duration, queue wait duration, retry attempts, and error stack traces; code payload logging masked/hashed/truncated for sensitive content; structured logging recommended; each operation should be correlated using `request_id`; metrics should include queue depth, reconnect count, execution latency, command latency, failed request count, and security violation count
-- **Concurrency:** All requests that access Blender state serialized (queued) due to Blender's single-threaded `bpy` constraint; queue depth limit of 50 pending operations; queue is FIFO by default; control operations such as connection status or task polling may bypass Blender execution queue; when queue is full, reject with `QueueFullError`; when queue wait timeout exceeded, reject with `QueueTimeoutError`
+- **Performance:**
+  - Standard commands must respond within 5 seconds by default.
+  - Custom code execution must respond within 30 seconds by default.
+  - The system's own processing overhead should be minimal (ideally <100ms excluding Blender's execution time).
+  - The wait time for operations being processed sequentially should be configurable, with a default target of <10 seconds under normal load.
+- **Reliability:**
+  - The system must automatically reconnect on connection loss (3 attempts, with increasing wait times).
+  - The system must degrade gracefully if Blender crashes.
+  - Pending operations must fail predictably and clearly if the connection is lost.
+  - No operation may be silently dropped; every operation must have a defined success, failure, or recovery outcome.
+- **Security:**
+  - Custom code must be validated against a list of blocked patterns before execution.
+  - The Blender environment must enforce its own runtime boundaries.
+  - File system access must be restricted to explicitly allowed directories.
+  - The default connection target must be local-only for security.
+  - Remote connections must require authentication when enabled.
+  - Data size limits must be strictly enforced.
+  - Security violations must be logged as audit events.
+  - Raw code provided by the user must not be logged by default to protect privacy.
+- **Observability:**
+  - The system must log all connection state changes, command details, execution durations, wait times, retry attempts, and error details.
+  - Code provided by the user must be masked, hashed, or truncated in logs.
+  - Logs should be structured for easy parsing.
+  - Every operation must be traceable using its unique tracking ID.
+  - System metrics should include: number of pending operations, reconnect count, execution latency, command latency, failed request count, and security violation count.
+- **Stability (Operation Processing):**
+  - All operations that interact with the Blender scene must be processed one at a time to prevent application instability.
+  - The system must limit the number of pending operations (default: 50).
+  - Operations are processed in the order they are received.
+  - Operations that do not interact with the Blender scene (like checking connection status) may be processed immediately without waiting.
+  - If the limit of pending operations is reached, new requests must be rejected with a `TooManyPendingOperationsError`.
+  - If an operation waits too long to be processed, it must be rejected with an `OperationWaitTimeoutError`.
 
 ## Test Scenarios / QA Checklist
 
-- Connect to running Blender instance succeeds
-- Connect to non-running Blender returns `BlenderConnectionFailure`
-- Connect with invalid config returns `ConnectionConfigError`
-- Connect with invalid authentication token returns `AuthenticationError`
-- Connect with unsupported protocol version returns `ProtocolVersionMismatchError`
-- Connection loss triggers auto-reconnect (3 attempts, exponential backoff with jitter)
-- After 3 failed reconnects, raises `BlenderConnectionExhausted`
-- Heartbeat detects stale connection and triggers reconnect
-- Heartbeat does not falsely trigger reconnect during active long-running execution
-- Disconnect is idempotent
-- Disconnect fails pending queued operations with `ConnectionClosedError`
-- Execute valid Python code returns `ExecutionResult` with status "success"
-- Execute code with syntax error returns `ExecutionResult` with status "error"
-- Execute code exceeding 30s timeout returns `ExecutionTimeoutError`
-- Execute code with blocked pattern (e.g., `os.system`) returns `SecurityViolationError`
-- Execute code with obfuscated blocked import returns `SecurityViolationError`
-- Execute code writing outside allowed directory returns `SecurityViolationError`
-- Execute code writing inside allowed directory succeeds
-- Execute code with oversized payload is rejected
-- Execute code with oversized output returns truncated result with `truncated: true`
-- Execute code with non-serializable output returns safe serialized fallback or explicit error
-- Submit async task returns task_id
-- Poll pending async task returns pending status
-- Poll completed async task returns final `ExecutionResult`
-- Poll unknown async task returns `TaskNotFoundError`
-- Cancel pending async task succeeds
-- Cancel running async task returns best-effort or unsupported status
-- Async task result expires after configured TTL
-- Blender crash during async task marks task as error
-- Send valid command to Blender returns response within 5 seconds
-- Send command exceeding 5s timeout returns `CommandTimeoutError`
-- Send command with custom timeout respects configured timeout
-- Send unknown command returns `ProviderError`
-- Send command with invalid arguments returns `ValidationError`
-- Send command with malformed JSON response returns parse/provider error
-- Factory creates socket connection with valid config
-- Factory rejects invalid port
-- Factory rejects missing required fields
-- Factory rejects unsupported protocol version
-- Concurrent requests are serialized (queued) correctly
-- Queue depth limit (50) enforced; excess requests rejected with `QueueFullError`
-- Queued request exceeding wait timeout returns `QueueTimeoutError`
-- Control operations do not block behind Blender execution queue when designed to bypass it
-- Protocol message with malformed JSON is handled safely
-- Protocol message with missing `request_id` is handled according to protocol rules
-- Large response payload is truncated or rejected based on configured limit
+**Connection & Stability:**
+
+- [ ]  Connect to a running Blender instance succeeds.
+- [ ]  Connect to a non-running Blender instance returns `BlenderConnectionFailure`.
+- [ ]  Connect with an invalid authentication token returns `AuthenticationError`.
+- [ ]  Connect with an unsupported version returns `VersionMismatchError`.
+- [ ]  Connection loss triggers automatic reconnection (3 attempts).
+- [ ]  After 3 failed reconnections, the system returns `BlenderConnectionExhausted`.
+- [ ]  Liveness checks detect a stale connection and trigger reconnection.
+- [ ]  Liveness checks do not falsely drop the connection during a long-running operation.
+- [ ]  Disconnecting is safe to call multiple times.
+- [ ]  Disconnecting cancels pending operations with `ConnectionClosedError`.
+
+**Custom Code Execution:**
+
+- [ ]  Execute valid Python code returns a successful `ExecutionResult`.
+- [ ]  Execute code with syntax errors returns an `ExecutionResult` with an error status.
+- [ ]  Execute code exceeding the 30s timeout returns `ExecutionTimeoutError`.
+- [ ]  Execute code containing blocked patterns (e.g., `os.system`) returns `SecurityViolationError`.
+- [ ]  Execute code containing obfuscated blocked patterns returns `SecurityViolationError`.
+- [ ]  Execute code attempting to write outside allowed directories returns `SecurityViolationError`.
+- [ ]  Execute code writing inside allowed directories succeeds.
+- [ ]  Execute code with an oversized data size is rejected.
+- [ ]  Execute code with an oversized output returns a truncated result with a truncation flag.
+- [ ]  Execute code with an output that cannot be formatted returns a safe text fallback or explicit error.
+
+**Background Tasks:**
+
+- [ ]  Submit a background task returns a tracking ID.
+- [ ]  Check a pending background task returns a pending status.
+- [ ]  Check a completed background task returns the final `ExecutionResult`.
+- [ ]  Check an unknown background task returns `TaskNotFoundError`.
+- [ ]  Cancel a pending background task succeeds.
+- [ ]  Cancel a running background task returns a best-effort or unsupported status.
+- [ ]  Background task results expire after the configured time limit.
+- [ ]  Blender crashing during a background task marks the task as an error.
+
+**Standard Commands:**
+
+- [ ]  Send a valid command to Blender returns a response within 5 seconds.
+- [ ]  Send a command exceeding the 5s timeout returns `CommandTimeoutError`.
+- [ ]  Send a command with a custom timeout respects the configured limit.
+- [ ]  Send an unknown command returns `ProviderError`.
+- [ ]  Send a command with invalid parameters returns `ValidationError`.
+- [ ]  Send a command that results in an invalid response format returns a parsing/provider error.
+
+**Operation Processing:**
+
+- [ ]  Concurrent requests are processed sequentially without crashing.
+- [ ]  Pending operation limit (50) is enforced; excess requests return `TooManyPendingOperationsError`.
+- [ ]  An operation waiting too long returns `OperationWaitTimeoutError`.
+- [ ]  Non-scene operations (like status checks) do not get stuck behind scene operations.
+- [ ]  Malformed data received from the network is handled safely without crashing.
+- [ ]  Data missing a tracking ID is handled according to system rules.
+- [ ]  Large response data is truncated or rejected based on configured limits.
 
 ## Assumptions & Constraints
 
-- Blender addon must be running and listening on TCP socket
-- Single connection per server instance
-- Code execution has 30-second timeout (configurable via ConnectionConfig)
-- Command execution has 5-second timeout by default
-- Some commands may define custom timeout metadata
-- Because Blender's Python API (`bpy`) is not thread-safe and runs on the main thread, all concurrent requests from external consumers (MCP, CLI) are serialized (queued) to prevent race conditions and Blender crashes
-- Blocked patterns list is maintained in config and updated as needed
-- Blender addon protocol version must match or be compatible with server protocol version
-- User-provided code is treated as untrusted or semi-trusted input
-- Server-side static validation is not a complete sandbox; Blender addon must enforce runtime restrictions
-- Allowed directories for file access must be explicitly configured
-- Default allowed directory is the active `.blend` file directory unless otherwise configured
-- Authentication token is required for non-local connections when authentication is enabled
-- Default connection target should be localhost for security
-- Async task state is stored in-memory unless persistence is explicitly enabled
-- Async task result retention has configurable TTL
-- Cancellation of running Blender execution is best-effort because Blender main-thread execution may not be immediately interruptible
-- Heartbeat mechanism must account for long-running Blender operations to avoid false stale-connection detection
-- Maximum payload size for requests and responses must be configured and enforced
+- The Blender application must be running and listening for connections.
+- The system supports one active connection to Blender at a time.
+- Custom code execution has a 30-second timeout by default (configurable).
+- Standard command execution has a 5-second timeout by default.
+- Some commands may define custom timeout limits.
+- Because the Blender application can only safely process one scene operation at a time, all concurrent requests that interact with the scene are processed sequentially to prevent instability.
+- The list of blocked code patterns is maintained in the system settings and updated as needed.
+- The system and Blender must use compatible versions.
+- All user-provided code is treated as untrusted.
+- Pre-execution safety checks are not a complete replacement for runtime boundaries; the Blender environment must also enforce restrictions.
+- Allowed directories for file access must be explicitly configured.
+- The default allowed directory is the active Blender project folder.
+- Authentication tokens are required for remote connections when authentication is enabled.
+- The default connection target is local-only for security.
+- Background task tracking is stored in memory unless persistent storage is explicitly enabled.
+- Background task results have a configurable time-to-live.
+- Cancelling a running Blender operation is a best-effort attempt, as the application may not be able to stop it immediately.
+- The liveness check mechanism must account for long-running operations to avoid false alarms.
+- Maximum data sizes for requests and responses must be configured and enforced.
 
 ## Glossary
 
-- **MCP (Model Context Protocol):** Standard protocol for AI agent tool integration; defines how the AI agent invokes tools and receives results
-- **contract_blender_connection_protocol:** Contract (interface) for Blender TCP communication
-- **contract_code_execution_protocol:** Contract (interface) for Python code execution in Blender
-- **ConnectionConfig:** Configuration object containing host, port, timeout, retry_policy, authentication settings, protocol version, payload limits, heartbeat settings, and allowed directories
-- **ExecutionResult:** Standardized response object for code execution containing status, data, error details, execution_time_ms, and truncation flag
-- **Blocked Patterns:** Configurable list of forbidden Python patterns/modules to prevent security violations
-- **AST Validation:** Static code analysis based on Python Abstract Syntax Tree, used to detect forbidden constructs more reliably than regex/string matching
-- **Runtime Sandbox:** Enforcement mechanism on the Blender addon side that restricts file access, module usage, and unsafe operations during actual code execution
-- **Allowed Directory:** Directory explicitly permitted for file write or file access operations
-- **ConnectionStatus:** Object describing current connection state, endpoint info, last heartbeat, reconnect attempts, protocol version, and last error
-- **TaskStatus:** Object describing async task lifecycle state, including pending, running, success, error, timeout, and cancelled
-- **QueueFullError:** Error raised when serialized execution queue has reached maximum depth
-- **QueueTimeoutError:** Error raised when a queued operation waits longer than configured queue wait timeout
-- **AuthenticationError:** Error raised when connection authentication fails
-- **ProtocolVersionMismatchError:** Error raised when server and Blender addon protocol versions are incompatible
-- **Request ID:** Unique identifier used to correlate requests, responses, logs, and errors
+- **Background Task:** A long-running operation submitted to the system that returns a tracking ID immediately, allowing the user to check its status later.
+- **Blocked Patterns:** A configurable list of forbidden code structures or modules used to prevent security violations.
+- **Allowed Directory:** A specific folder explicitly permitted for file read/write operations.
+- **Connection Status:** The current state of the connection (e.g., connected, disconnected, reconnecting), including target details and last liveness check time.
+- **Task Status:** The current lifecycle state of a background task (e.g., pending, running, success, error, timeout, cancelled).
+- **Liveness Check (Heartbeat):** A periodic signal sent to verify that the connection to Blender is still active and responsive.
+- **Execution Result:** The standardized outcome of a code execution, containing the status, returned data, error details, time taken, and truncation flags.
+- **Tracking ID:** A unique identifier assigned to every request and response to correlate logs, track operations, and troubleshoot errors.
+- **Security Violation:** An event where user-provided code attempts to perform an action blocked by the system's safety rules.

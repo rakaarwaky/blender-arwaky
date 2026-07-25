@@ -1,361 +1,197 @@
-
 # FRD — Config Feature Module
 
 ## System Overview
 
-The config module provides centralized application configuration management for **blender-arwaky**. It loads settings from a primary YAML-based configuration source, supports dot-notation access, environment-based overrides, project root detection, cached singleton access, and provides a configuration access contract for dependency inversion.
+The settings feature manages how the application reads, validates, and provides access to its operational parameters. It ensures that configuration data is loaded safely from files or external sources, applies the correct precedence rules, and provides a secure, read-only view of these settings to the rest of the application.
 
-This module is responsible for resolving configuration from deterministic sources, applying safe parsing rules, validating basic schema expectations, and exposing immutable configuration snapshots to other modules. It is used by server, MCP layer, asset providers, diagnostics tooling, and adapter components to resolve runtime settings such as network endpoints, timeouts, retry policies, provider credentials, logging behavior, and feature flags.
-
-The module follows these principles:
-
-- Safe YAML parsing that does not instantiate arbitrary objects
-- Deterministic configuration precedence
-- Graceful handling for missing configuration
-- Explicit error handling for malformed or invalid configuration
-- Thread-safe singleton initialization
-- Immutable cached configuration snapshots
-- Secret redaction in logs and diagnostic output
-- Compatibility with legacy environment conventions where reasonable
+The feature treats all external configuration files as potentially unsafe. It applies strict parsing rules to prevent malicious code execution from configuration files. It also ensures that sensitive data (like passwords or API keys) is never exposed in logs or diagnostic outputs. Because the application may request settings simultaneously from multiple components, the feature guarantees that all access is safe, consistent, and immutable during runtime.
 
 ## Functional Requirements
 
-### FR-CFG-001: Load Configuration from YAML
+### FR-CFG-001: Load and Apply Settings
 
-- **Description**: Load and parse the primary YAML-based configuration source from the resolved configuration location
-- **Input**: Optional explicit configuration location override; otherwise reads from filesystem and environment
-- **Output**: Mapping of configuration keys to configuration values
-- **Business Rules**:
+- **Use Case:** The application starts up and needs to load its operational settings to know how to behave (e.g., network ports, timeouts, feature flags).
+- **User Action:** Provide a specific settings file path, or rely on the system to automatically find the file using default locations and external system environment settings.
+- **System Response:** Safely read, parse, validate, and store the settings in memory for the application to use.
+- **Business Rules:**
+  - Settings are loaded based on a strict precedence order:
+    1. Explicit file path provided at runtime.
+    2. External system environment overrides.
+    3. Settings file found in the resolved project workspace.
+    4. Standard user-level settings directory.
+    5. Built-in application defaults.
+  - If no settings file is found, the system uses built-in defaults without failing (unless strict validation requires it).
+  - The system must parse the settings file safely, ensuring no arbitrary code or malicious objects are executed from the file.
+  - External system environment settings always override values found in the file.
+  - Environment values must be automatically converted to the correct data types (e.g., text "true" becomes a boolean, "8080" becomes a number).
+  - If a validation schema is defined, the loaded settings must be checked against it.
+  - Sensitive values (tokens, passwords, API keys) must be automatically detected and hidden (redacted) in all logs and diagnostic outputs.
+  - The system must enforce a maximum file size for settings files to prevent memory exhaustion.
+  - **Strict Mode (Default for production):** Malformed files or validation failures cause the application to fail startup with a clear error.
+  - **Permissive Mode (Default for development):** Malformed files or validation failures log a warning, and the system falls back to safe defaults where possible.
+- **Edge Cases:** Settings file is missing, file is malformed/corrupted, permission denied when reading the file, file is empty, file contains duplicate keys, file contains unsafe/malicious tags, file is too large, external environment settings conflict with file settings.
+- **Error Handling:**
+  - Return `SettingsParseError` for malformed files (in strict mode).
+  - Return `SettingsValidationError` for schema violations (in strict mode).
+  - Return `SettingsLoadError` for permission denied or oversized files.
+  - Log warnings and use defaults for the above errors (in permissive mode).
 
-  - Configuration loading follows this precedence order:
+### FR-CFG-002: Retrieve Settings Values
 
-    1. Explicit runtime location override, if provided
-    2. Product-specific configuration location environment override
-    3. Primary configuration source inside resolved project root
-    4. Platform-standard user configuration location
-  - If no configuration source is found, built-in default configuration
-  - Missing configuration source is not treated as fatal by default
-  - YAML parsing must use a safe parsing mode only
-  - Configuration snapshot must be immutable after loading
-  - Configuration is cached after first successful load
-  - Environment-based overrides are applied after file-based configuration is loaded
-  - Environment variable values are parsed as typed scalars when possible:
+- **Use Case:** A component of the application needs to know a specific setting (e.g., "what is the network port?" or "what is the timeout limit?") to perform its task.
+- **User Action:** Request a specific setting by providing its structured hierarchical path (e.g., "server.network.port"), optionally providing a fallback default value and the expected data type.
+- **System Response:** Return the configured value, the fallback default value, or an error if the data type is incorrect.
+- **Business Rules:**
+  - The system traverses the hierarchical path to find the exact setting value.
+  - If the setting is missing, the system returns the provided fallback default value.
+  - If an expected data type is specified (e.g., integer) and the stored value does not match, the system returns the default value (in permissive mode) or raises an error (in strict mode).
+  - Requesting an empty path returns a complete, read-only snapshot of all current settings.
+  - The returned settings snapshot must be strictly read-only (immutable) to prevent accidental modification of the application's core configuration.
+  - The retrieval process must be safe for concurrent access (multiple components can read settings at the exact same time without causing errors or delays).
+  - Reading a setting must never trigger a reload from the disk; it must only read from the in-memory store.
+- **Edge Cases:** Requesting a missing key, requesting a key with the wrong data type, providing an invalid path format, requesting an empty path, path points to a list index that is out of bounds, path contains special characters.
+- **Error Handling:**
+  - Return the default value for missing keys or out-of-bounds indexes.
+  - Return `SettingsTypeError` for data type mismatches (in strict mode).
+  - Return `SettingsPathError` for invalid path formats (in strict mode).
 
-    - boolean-like values become boolean
-    - integer-like values become integer
-    - float-like values become float
-    - null-like values become empty value
-    - list-like or mapping-like values may be parsed when safely detectable
-    - otherwise value remains string
-  - If a schema is registered, loaded configuration must be validated against schema
-  - Secrets such as tokens, API keys, passwords, and credentials must be redacted in logs
-  - Configuration load metadata should be available internally:
+### FR-CFG-003: Resolve Project Workspace Directory
 
-    - loaded source location
-    - whether source existed
-    - whether environment overrides were applied
-    - parse warnings
-    - validation warnings
-  - Strict mode:
+- **Use Case:** The application needs to determine the root directory of the current project to correctly locate relative files, assets, or local settings.
+- **User Action:** (Implicit) The system automatically attempts to find the project root directory based on explicit overrides, known project markers, or standard directories.
+- **System Response:** Return the absolute, normalized file path representing the resolved project root directory.
+- **Business Rules:**
+  - The system resolves the directory using a strict precedence order:
+    1. Explicit directory path provided via external environment settings.
+    2. Upward directory search looking for recognized "project markers" (e.g., the primary settings file, a project manifest file, or version control metadata).
+    3. Standard user-level configuration directory.
+    4. The current working directory where the application was launched.
+  - When searching upward for project markers, the system checks parent directories one by one until it finds a marker.
+  - Marker priority during upward search: Primary settings file > Project manifest > Version control metadata.
+  - All resolved paths must be normalized (cleaned of redundant slashes or relative dots like `../`).
+  - Symbolic links in the path must be resolved safely to their actual physical locations without causing the system to crash.
+  - The system must never automatically create directories during this resolution process.
+  - If an environment-provided path is invalid or inaccessible, the system logs a warning and moves to the next resolution strategy.
+- **Edge Cases:** Multiple project markers found in different parent directories, symbolic links creating circular loops, permission denied when checking parent directories, network-mounted drives, case-insensitive file systems, current working directory has been deleted.
+- **Error Handling:**
+  - Return `SettingsResolutionError` if all strategies fail and the current working directory is completely inaccessible.
+  - Fall back to the current working directory if no project markers are found but the directory is accessible.
 
-    - Malformed YAML raises a configuration parse error
-    - Schema violation raises a configuration validation error
-  - Permissive mode:
-
-    - Malformed YAML logs a warning and returns default configuration
-    - Schema violation logs a warning and continues where safe
-  - Default mode is strict unless explicitly configured otherwise
-  - Maximum configuration source size should be enforced
-- **Edge Cases**: Source not found, invalid YAML, permission denied, empty source, duplicate mapping keys, unsupported YAML tags, oversized source, symlinked source, location pointing to directory instead of source, non-UTF-8 source, partially readable source, environment override conflict, schema unavailable, secret values present in configuration
-- **Error Handling**:
-
-  - Missing source: return empty or default configuration and log informational message
-  - Permission denied: raise configuration load error in strict mode; log warning and return empty/default in permissive mode
-  - Invalid YAML: raise configuration parse error in strict mode; return empty/default in permissive mode
-  - Schema violation: raise configuration validation error in strict mode; log warning in permissive mode
-  - Unsupported YAML tag: reject safely without executing constructor
-  - Oversized source: raise configuration load error
-
-### FR-CFG-002: Dot-notation Config Access
-
-- **Description**: Retrieve nested configuration values using dot-separated paths
-- **Input**: Dot-separated configuration path, optional default configuration value, optional expected type
-- **Output**: Resolved configuration value or default
-- **Business Rules**:
-  - Split path by dot separator and traverse nested configuration mapping
-  - Return default if key is missing
-  - Return default if intermediate value is not a container where traversal expects container access
-  - Empty path returns full configuration snapshot
-  - Full configuration snapshot returned must be immutable or copied to prevent mutation
-  - Numeric path segments may access list indexes when current node is a list
-  - Out-of-range list index returns default
-  - Escaped dot notation may be supported for keys containing literal dots
-  - Path traversal must not mutate configuration state
-  - Path traversal must be thread-safe
-  - If expected type is provided and resolved value does not match, return default or raise configuration type error in strict mode
-  - Explicit empty value stored in configuration is distinguishable from missing key only when implementation provides existence checking
-  - Default value should not be mutated by configuration accessor
-- **Edge Cases**: Empty path, missing intermediate key, path ending with separator, path starting with separator, repeated separators, whitespace in path, non-text path, list index out of range, list index on non-list, key containing dot, expected type mismatch, mutable default value, deeply nested path
-- **Error Handling**:
-  - Missing key: return default value
-  - Invalid path format: return default in permissive mode; raise configuration path error in strict mode
-  - Type mismatch: return default in permissive mode; raise configuration type error in strict mode
-  - Mutating access: disallowed by returning immutable snapshot or copy
-
-### FR-CFG-003: Project Root Detection
-
-- **Description**: Resolve the project root directory using multiple deterministic strategies
-- **Input**: None; reads environment and filesystem
-- **Output**: Filesystem path representing resolved project root
-- **Business Rules**:
-  - Resolution order:
-    1. Product-specific configuration location override
-       - If value points to a configuration source, use its parent directory
-       - If value points to a directory, use that directory
-    2. Legacy configuration location override with same behavior as above
-    3. Product-specific root override
-    4. Legacy root override
-    5. Upward proximity search from current working directory or module location
-    6. Platform-standard user configuration location
-    7. Current working directory
-  - Upward proximity search looks for the first directory containing any recognized project marker concept:
-    - primary configuration source
-    - product-specific configuration source
-    - project manifest
-    - version control metadata
-  - Marker priority should be:
-    1. Primary configuration source
-    2. Product-specific configuration source
-    3. Project manifest
-    4. Version control metadata
-  - Resolved paths must be normalized
-  - Symbolic links should be resolved safely without failing unnecessarily
-  - Candidate directory must exist and be readable to be accepted
-  - If an environment-provided path is invalid, log warning and fall through to next strategy
-  - If multiple root candidates exist, first valid candidate according to resolution order wins
-  - Project root detection should not create directories by default
-  - If no valid candidate found, fallback to current working directory
-  - If current working directory is inaccessible, raise configuration root resolution error
-- **Edge Cases**: Multiple root candidates, symbolic links, non-existent paths, permission denied, network-mounted filesystem, case-insensitive filesystem, configuration location pointing to source versus directory, circular symbolic link, empty environment value, relative path, platform-specific remote path, deleted working directory
-- **Error Handling**:
-  - Invalid environment path: warn and fall through
-  - Non-existent candidate: fall through
-  - Permission denied: fall through if not final fallback
-  - All strategies fail: return current working directory if accessible
-  - Current working directory inaccessible: raise configuration root resolution error
-
-### FR-CFG-004: Thread-safe Singleton Access
-
-- **Description**: Ensure configuration is loaded once and thread-safe for concurrent reads
-- **Input**: None
-- **Output**: Cached immutable configuration snapshot
-- **Business Rules**:
-  - Uses internal synchronization mechanism for initialization
-  - Initialization uses double-checked initialization pattern to avoid unnecessary contention after configuration is loaded
-  - Subsequent reads should be lock-free or use immutable snapshot access
-  - Cached configuration must be immutable or protected from mutation
-  - Configuration snapshot replacement during reload must be atomic
-  - Failed configuration load must not cache partial or invalid state
-  - In strict mode, failed load may propagate error to caller
-  - In permissive mode, failed load may cache empty or default snapshot if safe
-  - Reload operation must acquire initialization synchronization
-  - Reload operation must replace old snapshot atomically
-  - Concurrent reads during reload must continue using previous valid snapshot until replacement completes
-  - Singleton instance must be safe across threads
-- **Edge Cases**: Concurrent first access, synchronization contention, reload during read, initialization failure, repeated reload, configuration source changed externally, memory pressure, long-running load, exception during parsing
-- **Error Handling**:
-  - Standard synchronization behavior for thread coordination
-  - Configuration parse error, configuration load error, or configuration validation error propagated according to strict or permissive mode
-  - Failed reload retains previous valid snapshot unless strict mode requires failure propagation
-
-### FR-CFG-005: Configuration Access Contract
-
-- **Description**: Abstract contract for configuration access, enabling dependency inversion and testing
-- **Input**: Dot-separated configuration path, optional default configuration value
-- **Output**: Configuration value
-- **Business Rules**:
-  - Contract must expose at minimum a configuration retrieval operation
-  - Contract may optionally expose:
-    - existence check operation
-    - typed retrieval helpers for string, integer, boolean, and float values
-    - snapshot retrieval operation
-  - Implementations must be stateless or thread-safe
-  - Implementations must not expose mutable internal configuration state
-  - Default implementation delegates to singleton configuration service
-  - Test implementations may return in-memory mappings
-  - If no implementation is explicitly registered, system should fall back to default configuration implementation
-  - If explicit dependency injection mode is enabled and no implementation is registered, raise configuration provider registration error
-  - Contract responses should follow same missing-key behavior as standard configuration access
-  - Contract must not perform input/output operations on every retrieval unless explicitly implemented as remote configuration provider
-  - Contract should support deterministic behavior for unit testing
-- **Edge Cases**: Implementation not registered, invalid implementation, recursive delegation, missing key, type mismatch, immutable snapshot access, concurrent access, test double replacement, remote configuration latency if future provider is added
-- **Error Handling**:
-  - Delegated to implementation
-  - Default implementation follows configuration module error policy
-  - Missing implementation falls back to default unless explicit dependency injection mode requires error
-  - Invalid implementation raises configuration provider error
-
-## API Contract
+## System Capabilities (User-Facing Operations)
 
 
-| Operation                       | Input                                          | Output                                  | Description                                             |
-| --------------------------------- | ------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------- |
-| Load configuration              | Optional explicit location                     | Mapping of configuration keys to values | Load configuration from YAML source and apply overrides |
-| Reload configuration            | Optional explicit location                     | Mapping of configuration keys to values | Invalidate cache and reload configuration               |
-| Retrieve configuration value    | Path, optional default, optional expected type | Configuration value                     | Dot-notation access                                     |
-| Resolve project root            | —                                             | Filesystem path                         | Resolve project root                                    |
-| Retrieve configuration metadata | —                                             | Configuration metadata                  | Return load source, override info, warnings             |
-| Contract retrieval              | Path, optional default                         | Configuration value                     | Configuration access contract retrieval                 |
-| Contract existence check        | Path                                           | Boolean                                 | Optional contract method to check key existence         |
+| Operation               | User Action (Input)              | System Response (Output)               | Description                                   |
+| ------------------------- | ---------------------------------- | ---------------------------------------- | ----------------------------------------------- |
+| `load_settings`         | Optional explicit file path      | Settings Metadata (status, warnings)   | Load and validate settings from sources       |
+| `reload_settings`       | Optional explicit file path      | Settings Metadata (status, warnings)   | Clear cache and reload settings               |
+| `get_setting`           | Hierarchical path, default, type | Setting Value                          | Retrieve a specific setting value             |
+| `get_all_settings`      | —                               | Read-only Settings Snapshot            | Retrieve a complete snapshot of all settings  |
+| `resolve_project_root`  | —                               | Absolute Directory Path                | Determine the root directory of the project   |
+| `get_settings_metadata` | —                               | Metadata (source, overrides, warnings) | Get diagnostic info about how settings loaded |
 
-## Integration Points
+**Additional Capability Behaviors:**
 
-- **Internal**:
+- `load_settings` and `reload_settings` must ensure that sensitive values are never included in the returned metadata or logs.
+- `get_setting` must guarantee that the returned value cannot be used to mutate the underlying in-memory settings.
+- `get_all_settings` must return a deep copy or strictly immutable view of the settings.
+- `resolve_project_root` must handle operating system differences (Windows, macOS, Linux) gracefully.
 
-  - **blender-arwaky/modules/shared** for sharing vo,entity,error,event,utility,contract,constant
-  - Logging subsystem: structured warnings, redaction, configuration load events
-  - Server module: network endpoint, timeout, retry policy, authentication settings
-  - Asset provider module: provider enablement, credentials, rate limit settings
-  - Diagnostics tooling: configuration validation and status reporting
-- **External**:
+## External Boundaries
 
-  - Filesystem: primary configuration source, optional local overrides, project marker concepts
-  - Platform-standard user configuration location
-  - Operating system path semantics across supported platforms
+- **External Consumers:**
+  - All other application modules (Server, Asset Providers, Diagnostics) that need to read operational parameters.
+- **Target Environment:**
+  - Local Filesystem: For reading settings files and detecting project markers.
+  - Operating System Environment: For reading external environment variable overrides.
+- **External Dependencies:**
+  - None. This feature is foundational and does not depend on other complex application modules.
 
 ## Non-functional Requirements
 
-- **Performance**:
-
-  - Cached configuration access within one millisecond for typical in-memory lookups
-  - First load within one hundred milliseconds for typical configuration source under normal storage conditions
-  - Reload within one hundred milliseconds for typical configuration source under normal storage conditions
-  - Dot-notation access should avoid repeated filesystem input/output
-- **Reliability**:
-
-  - Graceful fallback on missing configuration source
-  - Deterministic behavior for missing keys
-  - No partial configuration snapshot should be exposed after failed load
-  - Reload failure should retain previous valid snapshot unless strict mode requires propagation
-  - Configuration access should remain stable under concurrent reads
-- **Thread Safety**:
-
-  - Synchronization-protected singleton initialization
-  - Atomic snapshot replacement during reload
-  - Immutable or copy-protected configuration snapshots
-  - Safe concurrent reads after initialization
-- **Security**:
-
-  - Use safe YAML parsing only
-  - Do not execute arbitrary objects from YAML
-  - Do not log secrets, tokens, passwords, API keys, or credentials
-  - Warn if configuration source has overly permissive access permissions where detectable
-  - Environment-based secrets must be handled carefully and redacted in diagnostics
-  - Limit configuration source size to prevent memory exhaustion
-  - Reject unsafe YAML tags
-- **Observability**:
-
-  - Log resolved configuration source concept
-  - Log whether configuration source was found or missing
-  - Log number of environment overrides applied, without printing secret values
-  - Log validation warnings
-  - Log parse warnings in permissive mode
-  - Provide configuration metadata for diagnostics without exposing secrets
-- **Portability**:
-
-  - Support common desktop operating system path behavior
-  - Support platform-standard user configuration location where applicable
-  - Handle case-insensitive filesystems gracefully
-  - Handle symbolic links and relative paths safely
+- **Performance:**
+  - Retrieving a setting from memory must be extremely fast (ideally < 1 millisecond).
+  - Loading or reloading the settings file must complete within 100 milliseconds under normal disk conditions.
+  - Path resolution must not perform unnecessary disk reads (it should cache the resolved root directory).
+- **Reliability:**
+  - The system must gracefully fall back to defaults if the settings file is missing.
+  - A failed reload must not corrupt the current settings; the previous valid settings must remain active.
+  - The system must remain stable and responsive even if multiple components request settings simultaneously.
+- **Security:**
+  - Settings file parsing must be strictly sandboxed to prevent code execution.
+  - Secrets (passwords, tokens, keys) must be automatically detected and redacted from all logs, diagnostics, and metadata outputs.
+  - The system should warn the user if the settings file has overly permissive access rights (e.g., writable by everyone).
+  - Maximum file size limits must be enforced to prevent denial-of-service via memory exhaustion.
+- **Observability:**
+  - The system must log which settings source was successfully loaded.
+  - The system must log how many external environment overrides were applied (without revealing the values).
+  - The system must log validation and parsing warnings clearly.
+  - Diagnostic metadata must be available for troubleshooting without exposing sensitive data.
+- **Portability:**
+  - The system must correctly handle file paths across different operating systems (Windows, macOS, Linux).
+  - The system must respect standard user configuration directories for each operating system.
 
 ## Test Scenarios / QA Checklist
 
-- [ ]  Load configuration from valid YAML source returns parsed mapping
-- [ ]  Load configuration from missing source returns empty or default configuration
-- [ ]  Load configuration from malformed YAML raises parse error in strict mode
-- [ ]  Load configuration from malformed YAML returns empty/default in permissive mode
-- [ ]  Load configuration with unsafe YAML tag is rejected safely
-- [ ]  Load configuration with duplicate keys behaves deterministically
-- [ ]  Load configuration with empty source returns empty or default configuration
-- [ ]  Load configuration with non-UTF-8 encoding raises or logs clear error
-- [ ]  Load configuration larger than maximum size raises load error
-- [ ]  Load configuration from explicit location override takes precedence
-- [ ]  Load configuration from product-specific location override works
-- [ ]  Load configuration from legacy location override works
-- [ ]  Environment override overrides file-based value
-- [ ]  Nested environment key convention maps correctly
-- [ ]  Legacy environment prefix fallback works
-- [ ]  Boolean, integer, float, null, list, and mapping environment values parse correctly
-- [ ]  Secrets in configuration are redacted from logs
-- [ ]  Secrets in environment overrides are not printed in diagnostics
-- [ ]  Get nested value with valid path returns correct value
-- [ ]  Get missing key returns default value
-- [ ]  Get empty path returns full configuration snapshot
-- [ ]  Full configuration snapshot returned is immutable or copied
-- [ ]  Get with missing intermediate key returns default
-- [ ]  Get with intermediate non-container returns default
-- [ ]  Get with list index returns correct list item
-- [ ]  Get with out-of-range list index returns default
-- [ ]  Get with escaped dot key resolves literal dotted key if supported
-- [ ]  Get with expected type returns value when type matches
-- [ ]  Get with expected type returns default or raises in strict mode when type mismatches
-- [ ]  Project root detection resolves via product-specific configuration location override
-- [ ]  Project root detection resolves via legacy configuration location override
-- [ ]  Project root detection resolves via product-specific root override
-- [ ]  Project root detection resolves via legacy root override
-- [ ]  Project root detection resolves via proximity markers
-- [ ]  Project root detection prefers primary configuration source over version control metadata
-- [ ]  Project root detection resolves via platform-standard user configuration location
-- [ ]  Project root detection falls back to current working directory
-- [ ]  Project root detection handles symlinked directories
-- [ ]  Project root detection handles invalid environment path gracefully
-- [ ]  Project root detection handles permission-denied candidate gracefully
-- [ ]  Concurrent first access loads configuration only once
-- [ ]  Concurrent access is thread-safe
-- [ ]  Reload replaces configuration snapshot atomically
-- [ ]  Reload failure retains previous valid snapshot in permissive or non-fatal mode
-- [ ]  Reload failure propagates error in strict mode
-- [ ]  Schema validation passes for valid configuration
-- [ ]  Schema validation raises validation error for invalid configuration in strict mode
-- [ ]  Schema validation logs warning for invalid configuration in permissive mode
-- [ ]  Configuration access contract retrieval returns expected values
-- [ ]  Configuration access contract existence check returns true/false correctly if implemented
-- [ ]  Missing registered configuration provider falls back to default implementation
-- [ ]  Explicit dependency injection mode raises provider registration error when provider missing
-- [ ]  Configuration metadata reports loaded source and override status
-- [ ]  Configuration metadata does not expose secret values
+**Settings Loading & Validation:**
+
+- [ ]  Load settings from a valid file returns the correct parsed values.
+- [ ]  Load settings from a missing file returns built-in defaults without crashing.
+- [ ]  Load settings from a malformed file raises a parse error (in strict mode).
+- [ ]  Load settings from a malformed file logs a warning and uses defaults (in permissive mode).
+- [ ]  Load settings containing malicious/unsafe tags is rejected safely.
+- [ ]  Load settings from an explicit file path overrides all other sources.
+- [ ]  External environment settings correctly override file-based settings.
+- [ ]  Environment values are correctly converted to booleans, numbers, and lists.
+- [ ]  Secrets in the settings file are redacted from all logs and metadata.
+- [ ]  Loading a file larger than the maximum size limit raises a load error.
+
+**Settings Retrieval:**
+
+- [ ]  Retrieve an existing setting returns the correct value.
+- [ ]  Retrieve a missing setting returns the provided default value.
+- [ ]  Retrieve an empty path returns a complete, read-only snapshot of all settings.
+- [ ]  The returned settings snapshot cannot be modified (immutability check).
+- [ ]  Retrieve a setting with an expected type returns the value if the type matches.
+- [ ]  Retrieve a setting with an expected type returns the default or raises an error if the type mismatches.
+- [ ]  Retrieve a setting using an out-of-bounds list index returns the default value.
+- [ ]  Concurrent retrieval of settings by multiple components does not cause errors or delays.
+
+**Project Workspace Resolution:**
+
+- [ ]  Resolve root directory via explicit environment override succeeds.
+- [ ]  Resolve root directory by finding the primary settings file in a parent directory.
+- [ ]  Resolve root directory prefers the settings file over version control metadata.
+- [ ]  Resolve root directory falls back to the standard user configuration directory.
+- [ ]  Resolve root directory falls back to the current working directory if no markers are found.
+- [ ]  Resolve root directory handles symbolic links safely without infinite loops.
+- [ ]  Resolve root directory handles permission-denied parent directories gracefully.
+- [ ]  Resolve root directory raises an error if the current working directory is completely inaccessible.
+
+**Reloading & Metadata:**
+
+- [ ]  Reload settings clears the cache and loads fresh data.
+- [ ]  Reload failure retains the previous valid settings in memory.
+- [ ]  Settings metadata correctly reports the loaded source and number of overrides.
+- [ ]  Settings metadata does not expose any secret values.
 
 ## Assumptions & Constraints
 
-- Configuration source is YAML format
-- YAML parsing uses safe loading concept only
-- Single primary configuration source per application instance
-- Environment-based overrides override file-based configuration
-- Runtime overrides, if provided, override environment and file configuration
-- Product-specific environment prefix is used for configuration overrides
-- Legacy environment prefix may be supported for backward compatibility
-- Configuration values must be JSON/YAML-compatible primitive types, lists, or mappings
-- Configuration module does not fetch remote configuration by default
-- Configuration module is not a secret manager, but may hold secrets provided by environment or source
-- Secrets must be redacted from logs and diagnostic output
-- Project root detection is best-effort and deterministic based on defined precedence
-- Strict mode is recommended for production; permissive mode is intended for development or fallback scenarios
+- The settings file format is a structured, text-based format (e.g., YAML, JSON, TOML). *Note: The specific format is an implementation choice, but it must support safe parsing.*
+- Safe parsing is strictly enforced; no code execution from the settings file is allowed under any circumstances.
+- Only one primary settings file is loaded per application instance.
+- External environment settings always take precedence over file-based settings.
+- The settings module does not fetch remote configuration over the network by default.
+- The settings module is not a dedicated secret manager, but it must handle secrets safely if they are provided.
+- Strict mode is the default for production environments; permissive mode is for development/fallback.
+- Project root detection is a best-effort process based on deterministic precedence rules.
 
 ## Glossary
 
-- **Configuration access contract**: Abstract contract for configuration access, enabling dependency inversion and test doubles
-- **Configuration path**: Dot-notation string for nested configuration keys, for example "server.port"
-- **Configuration value**: Union concept for configuration values: string, integer, float, boolean, mapping, list, empty value
-- **Configuration snapshot**: Immutable configuration state after loading and override application
-- **Configuration metadata**: Diagnostic information about configuration loading, source location, override application, and warnings
-- **Strict mode**: Configuration mode where parse and validation errors are fatal
-- **Permissive mode**: Configuration mode where parse and validation errors produce warnings and fallback behavior
-- **Legacy environment prefix**: Backward-compatible environment prefix accepted as fallback
-- **Platform-standard user configuration location**: Conventional user configuration directory provided by the operating environment
-- **Redaction**: Masking or omitting sensitive values from logs and diagnostics
-- **Project marker**: Recognized filesystem concept used to infer project root, such as configuration source, product-specific configuration source, project manifest, or version control metadata
-
-## Reference
-
-- Product Requirements Document for blender-arwaky
-- Shared feature requirements documentation
+- **Hierarchical Path:** A structured string used to locate a nested setting (e.g., "server.network.port").
+- **Settings Snapshot:** A complete, read-only view of all currently loaded settings.
+- **Settings Metadata:** Diagnostic information about how the settings were loaded, including the source file and applied overrides.
+- **Strict Mode:** An operational mode where parsing or validation errors cause the application to fail safely.
+- **Permissive Mode:** An operational mode where parsing or validation errors produce warnings and the system falls back to safe defaults.
+- **Project Marker:** A recognized file or directory (like a settings file or version control folder) used to identify the root of a project workspace.
+- **Redaction:** The process of masking or completely omitting sensitive values from logs and diagnostic outputs.
+- **External Environment Settings:** Configuration values provided by the operating system's environment variables, which override file-based settings.
