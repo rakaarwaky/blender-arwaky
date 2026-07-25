@@ -1,47 +1,54 @@
-"""
-Contract layer exports — AES Ports, Protocols, and Aggregate/VO types.
+"""Contract layer exports — AES Ports, Protocols, and Aggregate/VO types.
+
+This module re-exports from modules.shared.src/ (organized by domain)
+for backward compatibility with existing layer files.
 
 Naming convention:
 - *_aggregate.py    : Structural contracts for agents/orchestrators
 - *_vo.py           : Data Transfer Objects (Value Objects)
-- *_protocol.py     : Protocol (typing.Protocol) definitions
+- *_protocol.py     : Protocol (ABC-based) definitions
 - *_port.py         : Port interfaces and connection/configuration abstractions
 """
 
-# ============== Aggregate types (Structural) ==============
+# Re-export protocols from new domain locations (backward-compatible names)
+from modules.shared.src import (
+    ContractSceneOperateProtocol as SceneOperateProtocol,
+    ContractObjectOperateProtocol as ObjectOperateProtocol,
+    ContractRenderOperateProtocol as RenderOperateProtocol,
+    ContractImportExportProtocol as ImportExportProtocol,
+    ContractAssetSearchProtocol as AssetSearchProtocol,
+    ContractWorkflowProtocol as WorkflowProtocol,
+    ContractExecuteActionProtocol as ExecuteActionProtocol,
+)
 
-from .adapter_blender_port import BlenderPort
+# Re-export ports from new domain locations (backward-compatible names)
+from modules.shared.src import (
+    ContractBlenderPort as BlenderPort,
+    ContractBlenderConnectionPort as BlenderConnectionPort,
+    ContractConfigPort as ConfigPort,
+    ContractCommandCatalogPort as CommandCatalogPort,
+    ContractCodeExecutionPort as CodeExecutionPort,
+    ContractSceneInspectionPort as SceneInspectionPort,
+    ContractAssetProviderPort as AssetProviderPort,
+    ContractTelemetryRecordingPort as TelemetryRecordingPort,
+)
+
+# Backward-compatible ConfigValue alias
+from modules.shared.src.common.taxonomy_core_vo import ConfigValue
+
+# Keep aggregate imports from existing location (agent layer concerns)
 from .agent_base_aggregate import AgentBaseContainerAggregate
 from .agent_di_aggregate import AgentDiContainerAggregate
 from .agent_factory_aggregate import AgentFactoryRegistryAggregate
-from .app_config_port import ConfigPort, ConfigValue
-from .asset_search_protocol import AssetSearchProtocol
-
-# ============== Ports ==============
-from .command_catalog_port import CommandCatalogPort
-from .connection_blender_port import BlenderConnectionPort
-from .connection_factory_port import BlenderConnectionFactoryPort
 from .core_agent_aggregate import CoreAgentOrchestratorAggregate
-from .execute_action_protocol import ExecuteActionProtocol
-from .execution_code_port import CodeExecutionPort
 from .expert_base_aggregate import ExpertBaseOrchestratorAggregate
-from .import_export_protocol import ImportExportProtocol
-from .inspection_scene_port import SceneInspectionPort
-from .object_operate_protocol import ObjectOperateProtocol
-from .provider_asset_port import AssetProviderPort
-from .recording_telemetry_port import TelemetryRecordingPort
 from .refinement_expert_aggregate import RefinementExpertOrchestratorAggregate
-from .render_operate_protocol import RenderOperateProtocol
-
-# ============== Protocols ==============
-from .scene_operate_protocol import SceneOperateProtocol
 from .search_expert_aggregate import SearchExpertOrchestratorAggregate
 from .server_bootstrap_aggregate import ServerBootstrapManagerAggregate
 from .setup_expert_aggregate import SetupExpertOrchestratorAggregate
 from .system_prompt_aggregate import SystemPromptManagerAggregate
 from .system_utils_aggregate import SystemUtilsCoordinatorAggregate
 from .workflow_agent_aggregate import WorkflowAgentOrchestratorAggregate
-from .workflow_operate_protocol import WorkflowProtocol
 
 __all__ = [
     # Aggregate — Structural
@@ -57,7 +64,7 @@ __all__ = [
     "SystemPromptManagerAggregate",
     "SystemUtilsCoordinatorAggregate",
     "WorkflowAgentOrchestratorAggregate",
-    # Protocols
+    # Protocols (backward-compatible aliases)
     "SceneOperateProtocol",
     "ObjectOperateProtocol",
     "RenderOperateProtocol",
@@ -65,7 +72,7 @@ __all__ = [
     "AssetSearchProtocol",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
-    # Ports
+    # Ports (backward-compatible aliases)
     "CommandCatalogPort",
     "AssetProviderPort",
     "BlenderPort",
@@ -75,5 +82,4 @@ __all__ = [
     "TelemetryRecordingPort",
     "ConfigPort",
     "ConfigValue",
-    "BlenderConnectionFactoryPort",
 ]

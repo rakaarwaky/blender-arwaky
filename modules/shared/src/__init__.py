@@ -255,6 +255,41 @@ from .telemetry.taxonomy_event_constant import (
 
 from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
+# === Contract layer exports (organized by domain) ===
+
+# Protocols
+from .scene.contract_scene_operate_protocol import ContractSceneOperateProtocol
+
+from .object.contract_object_operate_protocol import ContractObjectOperateProtocol
+
+from .render.contract_render_operate_protocol import ContractRenderOperateProtocol
+
+from .asset_io.contract_import_export_protocol import ContractImportExportProtocol
+
+from .asset_provider.contract_asset_search_protocol import ContractAssetSearchProtocol
+
+# Cross-cutting protocols
+from .common.contract_workflow_protocol import ContractWorkflowProtocol
+
+from .common.contract_execute_action_protocol import ContractExecuteActionProtocol
+
+# Ports
+from .common.contract_blender_port import ContractBlenderPort
+
+from .common.contract_blender_connection_port import ContractBlenderConnectionPort
+
+from .common.contract_config_port import ContractConfigPort
+
+from .common.contract_command_catalog_port import ContractCommandCatalogPort
+
+from .common.contract_code_execution_port import ContractCodeExecutionPort
+
+from .scene.contract_scene_inspection_port import ContractSceneInspectionPort
+
+from .asset_provider.contract_asset_provider_port import ContractAssetProviderPort
+
+from .telemetry.contract_telemetry_port import ContractTelemetryRecordingPort
+
 __all__ = [
     # Domain folders
     "common",
@@ -411,4 +446,21 @@ __all__ = [
     "create_job_id",
     "create_provider_name",
     "create_progress",
+    # Contracts — Protocols
+    "ContractSceneOperateProtocol",
+    "ContractObjectOperateProtocol",
+    "ContractRenderOperateProtocol",
+    "ContractImportExportProtocol",
+    "ContractAssetSearchProtocol",
+    "ContractWorkflowProtocol",
+    "ContractExecuteActionProtocol",
+    # Contracts — Ports
+    "ContractBlenderPort",
+    "ContractBlenderConnectionPort",
+    "ContractConfigPort",
+    "ContractCommandCatalogPort",
+    "ContractCodeExecutionPort",
+    "ContractSceneInspectionPort",
+    "ContractAssetProviderPort",
+    "ContractTelemetryRecordingPort",
 ]
