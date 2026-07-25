@@ -67,9 +67,12 @@ def _unwrap_annotation(annotation: Any) -> Any | None:
 class ActionExecuteActions(ExecuteActionProtocol):
     """Dispatches actions to the orchestrator based on COMMAND_CATALOG."""
 
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, orchestrator: Any):
         self._orch = orchestrator
         self._sig_cache: dict[Any, inspect.Signature] = {}
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def execute(self, action: ActionName, args: Details | None = None) -> Prompt:
         """Execute an action via the orchestrator.

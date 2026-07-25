@@ -10,6 +10,7 @@ import tempfile
 from uuid import uuid4
 
 from modules.shared.src.server import IBlenderConnectionProtocol, IBlenderSocketAdapterProtocol
+from modules.shared.src.server import DEFAULT_EXECUTION_TIMEOUT_MS
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     ErrorMessage,
@@ -26,24 +27,17 @@ from modules.shared.src.scene.taxonomy_scene_info_vo import SceneInfo
 logger = logging.getLogger("BlenderMCPServer")
 
 # Default timeout for Blender IPC calls (seconds)
-IPC_TIMEOUT_S: float = 30.0
+IPC_TIMEOUT_S: float = DEFAULT_EXECUTION_TIMEOUT_MS / 1000.0
 
 
 class BlenderSocketAdapter(IBlenderSocketAdapterProtocol):
     """Implementation of IBlenderSocketAdapterProtocol using a persistent socket connection."""
 
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection = connection_port
 
-    def _get_conn(self) -> IBlenderConnectionProtocol:
-        """Internal helper for connection access."""
-        if not self._connection:
-            raise ConnectionError(ErrorMessage("Blender connection not initialized"))
-        return self._connection
-
-    def _send(self, action: ActionName, params: dict | None = None) -> dict:
-        """Synchronous IPC call to Blender (to be wrapped in asyncio.to_thread)."""
-        return self._get_conn().send_command(action, params or {})
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def execute_code(self, code: PythonCode) -> StatusString:
         try:
@@ -148,3 +142,17 @@ class BlenderSocketAdapter(IBlenderSocketAdapterProtocol):
             if os.path.exists(temp_path):
                 with contextlib.suppress(OSError):
                     os.remove(temp_path)
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return "BlenderSocketAdapter()"
+
+    def _get_conn(self) -> IBlenderConnectionProtocol:
+        """Internal helper for connection access."""
+        if not self._connection:
+            raise ConnectionError(ErrorMessage("Blender connection not initialized"))
+        return self._connection
+
+    def _send(self, action: ActionName, params: dict | None = None) -> dict:
+        """Synchronous IPC call to Blender (to be wrapped in asyncio.to_thread)."""
+        return self._get_conn().send_command(action, params or {})

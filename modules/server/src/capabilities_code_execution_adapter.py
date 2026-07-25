@@ -22,6 +22,7 @@ from modules.shared.src.server import (
     SecurityViolationError,
     TaskNotFoundError,
 )
+from modules.shared.src.server import DEFAULT_TASK_RETENTION_SECONDS
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
@@ -36,9 +37,6 @@ _BLOCKED_ATTRS: set[str] = {
 _BLOCKED_MODULES: set[str] = {
     "subprocess", "importlib", "socket", "requests", "urllib",
 }
-
-# Task retention TTL (seconds)
-_TASK_RETENTION_SECONDS: float = 600.0  # 10 minutes
 
 
 def _validate_code_ast(code: str) -> None:
@@ -88,18 +86,14 @@ def _validate_code_ast(code: str) -> None:
 
 
 class CodeExecutionAdapter(ICodeExecutionProtocol):
-    """Code execution with AST-based validation and socket forwarding.
+    """Code execution with AST-based validation and socket forwarding."""
 
-    Implements ICodeExecutionProtocol with:
-    - AST-based static analysis for blocked constructs (FRD-SRV-002)
-    - Socket-based execution forwarding to Blender
-    - Async task submission and polling (FRD-SRV-002)
-    - Standardized ExecutionResult return values
-    """
-
+    # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
         self._connection_port = connection_port
         self._tasks: dict[str, dict[str, Any]] = {}
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def execute_blender_code(self, code: Prompt) -> Prompt:
         """Execute Python code in Blender via IPC.
@@ -191,7 +185,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         # Check TTL expiry
         if task.get("completed_at"):
             elapsed = time.monotonic() - task["completed_at"]
-            if elapsed > _TASK_RETENTION_SECONDS:
+            if elapsed > DEFAULT_TASK_RETENTION_SECONDS:
                 del self._tasks[task_id]
                 raise TaskNotFoundError(ErrorMessage(f"Task expired: {task_id}"))
 
@@ -214,3 +208,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 status=ExecutionStatus("success"),
                 data={"task_id": task_id, "state": state},
             )
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return "CodeExecutionAdapter()"

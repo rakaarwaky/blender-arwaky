@@ -1,7 +1,7 @@
-"""Object domain contract: object operations protocol (ABC based).
+"""Object domain contract: aggregate facade (ABC).
 
-Capabilities implement this protocol. The Agent layer depends on it;
-the Surface layer depends on the Aggregate, not this Protocol.
+Aggregates ObjectOperateProtocol methods into a single facade that the Agent
+layer consumes. Surface layer depends on this aggregate, not on concrete Capabilities.
 """
 
 from __future__ import annotations
@@ -28,11 +28,12 @@ from .taxonomy_object_result_vo import (
 )
 
 
-class ObjectOperateProtocol(ABC):
-    """Protocol interface for object-level manipulation in Blender.
+class ObjectOperateAggregate(ABC):
+    """Aggregate facade for object-level manipulation in Blender.
 
-    Implemented by Capabilities (ObjectOperateExecutor). Consumed by the
-    Agent orchestrator via constructor injection.
+    This interface is implemented by the Agent orchestrator and consumed
+    by the Surface layer. Capabilities implement ObjectOperateProtocol;
+    the aggregate delegates to them.
     """
 
     @abstractmethod
@@ -46,9 +47,7 @@ class ObjectOperateProtocol(ABC):
         pass
 
     @abstractmethod
-    async def set_object_transform(
-        self, request: SetObjectTransformRequestVO
-    ) -> TransformResultVO:
+    async def set_object_transform(self, request: SetObjectTransformRequestVO) -> TransformResultVO:
         """Modify location, rotation, or scale of an existing object."""
         pass
 
@@ -68,8 +67,6 @@ class ObjectOperateProtocol(ABC):
         pass
 
     @abstractmethod
-    async def get_object_info(
-        self, request: GetObjectInfoRequestVO
-    ) -> ObjectInfoResultVO:
+    async def get_object_info(self, request: GetObjectInfoRequestVO) -> ObjectInfoResultVO:
         """Retrieve detailed information about a specific object."""
         pass
