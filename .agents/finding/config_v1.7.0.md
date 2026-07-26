@@ -510,7 +510,7 @@ Config is the only feature that loads settings. No other feature reads config fi
   - Reload must replace snapshot atomically under synchronization
   - Failed load must not expose partial settings state
   - Failed reload must retain previous valid snapshot unless strict mode requires failure propagation
-  - Settings source size must be limited to prevent excessive memory usage: limit is 1 MiB (MAX_CONFIG_SIZE_BYTES); in strict mode an oversized source raises ConfigLoadError, in permissive mode it warns and skips the file source (flag-gated behind BLENDERMCP_CONFIG_V2)
+  - Settings source size must be limited to prevent excessive memory usage: limit is 1 MiB (MAX_CONFIG_SIZE_BYTES); in strict mode an oversized source raises ConfigLoadError, in permissive mode it warns and skips the file source (flag-gated behind BLENDERMCP_STRICT)
   - Secret values present in settings must never be echoed into metadata, logs, or diagnostics
 - **Edge Cases**: Missing settings file, malformed settings content, permission denied, empty settings file, duplicate mapping keys, unsupported tags, oversized settings file, non-UTF-8 encoding, environment override conflict, legacy environment fallback, schema unavailable, secret values in settings, symlinked settings location, settings location pointing to directory instead of file
 - **Error Handling**: Configuration error for missing, unreadable, or malformed settings source in strict mode; validation error for schema violation; load error for oversized or unsafe settings content; warning-level fallback behavior in permissive mode
@@ -531,7 +531,7 @@ Features request settings through config. Config returns immutable values or dee
   - Numeric path segments may access list positions when current node is a list
   - Out-of-range list position returns default
   - Escaped separator may resolve literal dotted key when supported
-  - `\.` resolves a literal dotted key when BLENDERMCP_CONFIG_V2 is enabled
+  - `\.` resolves a literal dotted key when BLENDERMCP_STRICT is enabled
   - Retrieval must be thread-safe and lock-free after initialization where possible
   - Retrieval must not trigger file or environment reads per request
   - Expected type mismatch returns default in permissive mode
@@ -673,7 +673,7 @@ Event payloads must avoid:
 ## QA Checklist
 
 - [ ]  Settings load from file, environment, and defaults with correct precedence
-- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_CONFIG_V2=on`; ignored with warning when off)
+- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_STRICT=on`; ignored with warning when off)
 - [ ]  Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
 - [ ]  Environment override takes precedence over file and defaults
 - [ ]  File values take precedence over built-in defaults
@@ -707,7 +707,7 @@ Event payloads must avoid:
 - [ ]  Runtime overrides are caller-scoped and not cached (A5)
 - [ ]  32-thread first access performs exactly one load (Q19)
 - [ ]  Built-in defaults tier is complete; settings file is optional override-only (Q6)
-- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_CONFIG_V2
+- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_STRICT
 - [ ]  Asset and render derive root locations from workspace resolution instead of own rules
 - [ ]  Settings metadata reports source, override count, and warnings
 - [ ]  Settings metadata does not leak secret values
@@ -1106,7 +1106,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     overrides=self._last_metadata.overrides,
                     parse_warnings=(
                         *self._last_metadata.parse_warnings,
-                        ParseWarning("runtime overrides ignored; BLENDERMCP_CONFIG_V2 off"),
+                        ParseWarning("runtime overrides ignored; BLENDERMCP_STRICT off"),
                     ),
                     validation_warnings=self._last_metadata.validation_warnings,
                 )
@@ -3390,7 +3390,7 @@ server:
 | `BLENDERMCP_CONFIG_PATH` | Override config.yaml path |
 | `BLENDERMCP_BLENDER.HOST` | Override Blender host |
 | `BLENDERMCP_BLENDER.PORT` | Override Blender port |
-| `BLENDERMCP_CONFIG_V2` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
+| `BLENDERMCP_STRICT` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
 
 ## Testing
 

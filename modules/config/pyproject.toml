@@ -1,6 +1,6 @@
 [project]
 name = "blender-arwaky-config"
-version = "1.6.5"
+version = "1.7.0"
 description = "BlenderArwaky configuration feature module"
 requires-python = ">=3.10"
 license = {text = "MIT"}

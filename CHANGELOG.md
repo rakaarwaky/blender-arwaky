@@ -15,10 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Built-in defaults tier; the settings file is now optional/override-only. A missing
   settings file is never fatal in any policy mode (falls back to defaults).
-- Runtime overrides via `load(path, overrides=...)` (flag-gated behind `BLENDERMCP_CONFIG_V2`).
+- Runtime overrides via `load(path, overrides=...)` (flag-gated behind `BLENDERMCP_STRICT`).
 - Schema validation (`SETTINGS_SCHEMA`), 1 MiB size limit (`MAX_CONFIG_SIZE_BYTES`),
   `\.` path escaping, and strict `ConfigTypeError` — all flag-gated via
-  `BLENDERMCP_CONFIG_V2` (default OFF; flips ON in v1.8.0, flag removed in v1.9.0).
+  `BLENDERMCP_STRICT` (default OFF; flips ON in v1.8.0, flag removed in v1.9.0).
 - Settings metadata is now populated (`ConfigMetadata`: source, exists, override count,
   parse/validation warnings). Domain events are emitted (`SettingsLoadedEvent`,
   `SettingsReloadEvent`, `SettingsValidationWarningEvent`, `WorkspaceResolvedEvent`)

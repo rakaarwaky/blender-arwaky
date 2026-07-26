@@ -40,7 +40,9 @@ No other feature reads settings files directly, determines precedence rules, res
 
 ## Depends On
 
-- shared taxonomy primitives (`ConfigMetadata`, `ConfigPath`) and the shared `mcp` bootstrap aggregator for module initialization
+- Shared `config` taxonomy/contract module (`modules.shared.src.config`): constants (`taxonomy_config_constant`), value objects (`taxonomy_config_vo`), errors (`taxonomy_config_error`), events (`taxonomy_config_event`), contracts (`contract_config_aggregate` + 5 protocols), and stateless helpers (`utility_config_helpers`).
+- Shared core VO (`modules.shared.src.common.taxonomy_core_vo`): consumed symbols — `ConfigMetadata`, `ConfigPath`, `OverrideCount`, `ParseWarning`, `ValidationWarning`, `SourceLocation`, `Timestamp`, `ErrorString`, `WorkspacePath`, `SettingsSnapshot`, `RedactionRule`.
+- The shared `mcp` bootstrap aggregator for module initialization.
 
 ## Provides To
 
@@ -169,6 +171,7 @@ Config provides config source, override count, and warnings. Metadata must not l
     - count of applied environment overrides (`overrides`)
     - parse warning list (`parse_warnings`)
     - validation warning list (`validation_warnings`)
+    - NOTE: `overrides` counts applied **environment** overrides only; caller-scoped runtime overrides (FR-CFG-001, A5) are intentionally excluded from this count.
   - Metadata must not include secret values
   - Metadata must not include raw settings content by default
   - Override names may be listed, but override values must be redacted when sensitive
@@ -200,6 +203,7 @@ Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP us
   - Rules themselves contain key names and patterns only, never secret values
   - Consuming features must retrieve rules from config or security policy and must not hard-code their own lists
   - Rule updates must be reflected consistently across diagnostics, command-line output, and MCP-facing responses
+  - Wiring point: consumers obtain the active rule via `IConfigAggregate.get_redaction_rule()` and mask payloads with `redact_dict()` — both exposed through the config aggregate facade (FR-CFG-005 end-to-end).
   - Matching is substring-based (case-insensitive): e.g. the pattern `auth` also matches `author` — an accepted false positive (Q14)
   - Redaction is full-only: `full_redact` is always True; partial masking of values is not supported (Q15)
   - Rule retrieval must be lightweight and safe for repeated use
@@ -252,49 +256,67 @@ Event payloads must avoid:
 
 ## QA Checklist
 
-- [ ]  Settings load from file, environment, and defaults with correct precedence
-- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_STRICT=on`; ignored with warning when off)
-- [ ]  Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
-- [ ]  Environment override takes precedence over file and defaults
-- [ ]  File values take precedence over built-in defaults
-- [ ]  Missing settings file falls back to environment and defaults without fatal error
-- [ ]  Malformed settings content raises configuration error in strict mode
-- [ ]  Malformed settings content falls back safely in permissive mode
-- [ ]  Schema violation raises validation error in strict mode
-- [ ]  Schema violation logs warning in permissive mode
-- [ ]  Unsafe settings content is rejected without object instantiation
-- [ ]  Oversized settings source raises load error
-- [ ]  Environment values convert to boolean, integer, float, null, list, and mapping types correctly
-- [ ]  Legacy BLENDER_MCP_ prefix variables are ignored (v1.7.0 BREAKING)
-- [ ]  Immutable snapshot returned on retrieve
-- [ ]  Retrieved structured values are deep-copied or immutable
-- [ ]  Missing key returns provided default
-- [ ]  Empty path returns full settings snapshot safely
-- [ ]  List position access works and out-of-range returns default
-- [ ]  Expected type mismatch returns default in permissive mode
-- [ ]  Expected type mismatch raises type conversion error in strict mode
-- [ ]  Concurrent first access loads settings only once
-- [ ]  Reload replaces snapshot atomically
-- [ ]  Failed reload retains previous valid snapshot in non-fatal mode
-- [ ]  Project workspace resolves correctly through explicit override
-- [ ]  Project workspace resolves correctly through environment signal
-- [ ]  Project workspace resolves correctly through settings file location
-- [ ]  Project workspace resolves correctly through proximity markers
-- [ ]  Project workspace falls back to current working directory
-- [ ]  Project workspace handles symlinked directories safely
-- [ ]  Project workspace resolution does not create directories by default
-- [ ]  Legacy BLENDERMCP_* environment variables are ignored (Q8)
-- [ ]  Runtime overrides are caller-scoped and not cached (A5)
-- [ ]  32-thread first access performs exactly one load (Q19)
-- [ ]  Built-in defaults tier is complete; settings file is optional override-only (Q6)
-- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_STRICT
+### FR-CFG-001 — Load and Apply Settings
+
+- [ ]  (FR-CFG-001) Settings load from file, environment, and defaults with correct precedence
+- [ ]  (FR-CFG-001) Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_STRICT=on`; ignored with warning when off)
+- [ ]  (FR-CFG-001) Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
+- [ ]  (FR-CFG-001) Environment override takes precedence over file and defaults
+- [ ]  (FR-CFG-001) File values take precedence over built-in defaults
+- [ ]  (FR-CFG-001) Missing settings file falls back to environment and defaults without fatal error
+- [ ]  (FR-CFG-001) Malformed settings content raises configuration error in strict mode
+- [ ]  (FR-CFG-001) Malformed settings content falls back safely in permissive mode
+- [ ]  (FR-CFG-001) Schema violation raises validation error in strict mode
+- [ ]  (FR-CFG-001) Schema violation logs warning in permissive mode
+- [ ]  (FR-CFG-001) Unsafe settings content is rejected without object instantiation
+- [ ]  (FR-CFG-001) Oversized settings source raises load error
+- [ ]  (FR-CFG-001) Environment values convert scalar values to boolean, integer, float, or null; list-like and mapping-like values remain strings (scalar-only per Q7)
+- [ ]  (FR-CFG-001) Legacy BLENDER_MCP_ prefix variables are ignored (v1.7.0 BREAKING)
+- [ ]  (FR-CFG-001) Concurrent first access loads settings only once
+- [ ]  (FR-CFG-001) Reload replaces snapshot atomically
+- [ ]  (FR-CFG-001) Failed reload retains previous valid snapshot in non-fatal mode
+- [ ]  (FR-CFG-001) Built-in defaults tier is complete; settings file is optional override-only (Q6)
+- [ ]  (FR-CFG-001) Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_STRICT
+- [ ]  (FR-CFG-001) 32-thread first access performs exactly one load (Q19)
+
+### FR-CFG-002 — Retrieve Settings Values
+
+- [ ]  (FR-CFG-002) Immutable snapshot returned on retrieve
+- [ ]  (FR-CFG-002) Retrieved structured values are deep-copied or immutable
+- [ ]  (FR-CFG-002) Missing key returns provided default
+- [ ]  (FR-CFG-002) Empty path returns full settings snapshot safely
+- [ ]  (FR-CFG-002) List position access works and out-of-range returns default
+- [ ]  (FR-CFG-002) Expected type mismatch returns default in permissive mode
+- [ ]  (FR-CFG-002) Expected type mismatch raises type conversion error in strict mode
+
+### FR-CFG-003 — Resolve Project Workspace Directory
+
+- [ ]  (FR-CFG-003) Project workspace resolves correctly through explicit override
+- [ ]  (FR-CFG-003) Project workspace resolves correctly through environment signal
+- [ ]  (FR-CFG-003) Project workspace resolves correctly through settings file location
+- [ ]  (FR-CFG-003) Project workspace resolves correctly through proximity markers
+- [ ]  (FR-CFG-003) Project workspace falls back to current working directory
+- [ ]  (FR-CFG-003) Project workspace handles symlinked directories safely
+- [ ]  (FR-CFG-003) Project workspace resolution does not create directories by default
+- [ ]  (FR-CFG-003) Legacy BLENDERMCP_* environment variables are ignored (Q8)
+
+### FR-CFG-004 — Provide Settings Metadata
+
+- [ ]  (FR-CFG-004) Settings metadata reports source, override count (environment overrides only; excludes caller-scoped runtime overrides, A5), and warnings
+- [ ]  (FR-CFG-004) Settings metadata does not leak secret values
+
+### FR-CFG-005 — Provide Redaction Rules
+
+- [ ]  (FR-CFG-005) Redaction keys mask sensitive values in diagnostics
+- [ ]  (FR-CFG-005) Redaction keys mask sensitive values in command-line output
+- [ ]  (FR-CFG-005) Redaction keys mask sensitive values in MCP-facing responses
+- [ ]  (FR-CFG-005) Redaction rules contain key patterns only, never secret values
+- [ ]  (FR-CFG-005) Asset, render, and other consumers derive masking from `IConfigAggregate.get_redaction_rule()` / `redact_dict()` (composition-root extensible via `extra_redaction_patterns`)
+
+### Cross-cutting
+
+- [ ]  (A5) Runtime overrides are caller-scoped and not cached
 - [ ]  Asset and render derive root locations from workspace resolution instead of own rules
-- [ ]  Settings metadata reports source, override count, and warnings
-- [ ]  Settings metadata does not leak secret values
-- [ ]  Redaction keys mask sensitive values in diagnostics
-- [ ]  Redaction keys mask sensitive values in command-line output
-- [ ]  Redaction keys mask sensitive values in MCP-facing responses
-- [ ]  Redaction rules contain key patterns only, never secret values
 - [ ]  Custom redaction rules extend built-in defaults safely
 - [ ]  Settings loaded event emitted after successful load
 - [ ]  Settings reload event emitted after successful reload
