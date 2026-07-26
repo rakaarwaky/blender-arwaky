@@ -326,6 +326,13 @@ from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmen
 from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
 from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
 
+# Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
+from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
+from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
+from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
+from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
+from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
+
 __all__ = [
     # Domain folders
     "common",
