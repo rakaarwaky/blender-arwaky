@@ -9,6 +9,3 @@ class ApplicationConfig:
     @staticmethod
     def placeholder() -> None:
         """AES009 compliance: class must have at least a method."""
-
-
-ApplicationConfigVo = ApplicationConfig
