@@ -11,12 +11,12 @@ Structure:
 """
 
 import logging
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectCount, ObjectName, Prompt
+from modules.shared.src.common.taxonomy_core_vo import ObjectCount, ObjectName, Prompt, SuccessFlag
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import DeletionProtectionError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import DeleteObjectVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -38,7 +38,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -66,7 +66,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
             if getattr(request, "idempotent", False):
                 return DeleteObjectVO(
                     object_name=request.object_name,
-                    success=True,  # type: ignore[arg-type]
+                    success=SuccessFlag(True),
                     deleted_count=0,
                     deleted_names=[],
                     message="Object not found — idempotent deletion policy enabled",
@@ -83,7 +83,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
             await self._executor.execute_blender_code(Prompt(code))
             return DeleteObjectVO(
                 object_name=request.object_name,
-                success=True,  # type: ignore[arg-type]
+                success=SuccessFlag(True),
                 deleted_count=1,
                 deleted_names=[request.object_name],
                 children_handled=getattr(request, "children_handled", False),

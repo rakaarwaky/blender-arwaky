@@ -73,7 +73,7 @@ class ObjectContainer:
 
         # Cross-module capabilities — from asset module
         try:
-            from .capabilities_import_export_executor import ImportExportExecutor  # noqa: F401
+            from .capabilities_import_export_executor import ImportExportExecutor
 
             import_export_cap = ImportExportExecutor(self._code_executor)
         except ImportError:

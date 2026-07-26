@@ -12,6 +12,7 @@ Structure:
 
 import logging
 import re
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     CoordinateList,
@@ -20,11 +21,11 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     RotationVector,
     ScaleVector,
+    SuccessFlag,
 )
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidPrimitiveTypeError
 from modules.shared.src.object.taxonomy_object_vo import CreatePrimitiveVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -65,7 +66,7 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -96,7 +97,7 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
                 name=request.name,
                 location=request.location,
                 scale=request.scale,
-                success=True,  # type: ignore[arg-type]
+                success=SuccessFlag(True),
                 object_name=ObjectName(resolved_name),
                 message="Primitive created successfully",
             )

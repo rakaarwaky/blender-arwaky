@@ -20,11 +20,11 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     RotationVector,
     ScaleVector,
+    SuccessFlag,
 )
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import PlaceAssetVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -38,7 +38,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -69,7 +69,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
                 location=request.location,
                 rotation=request.rotation,
                 scale=request.scale,
-                success=True,  # type: ignore[arg-type]
+                success=SuccessFlag(True),
                 message="Asset placed successfully",
             )
         except Exception as e:

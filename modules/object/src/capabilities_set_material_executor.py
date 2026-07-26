@@ -10,12 +10,12 @@ Structure:
 """
 
 import logging
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
+from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import MaterialAssignmentError
 from modules.shared.src.object.taxonomy_object_vo import SetMaterialVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -28,7 +28,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -49,7 +49,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
             return SetMaterialVO(
                 object_name=request.object_name,
                 material_name=request.material_name,
-                success=True,  # type: ignore[arg-type]
+                success=SuccessFlag(True),
                 message="Material set successfully",
             )
         except Exception as e:

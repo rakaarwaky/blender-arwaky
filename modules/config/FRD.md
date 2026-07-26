@@ -40,7 +40,9 @@ No other feature reads settings files directly, determines precedence rules, res
 
 ## Depends On
 
-None (foundational feature).
+Shared taxonomy primitives (`modules.shared.src.common.taxonomy_core_vo`: `ConfigMetadata`, `ConfigPath`) and the shared `mcp` bootstrap aggregator (`modules.shared.src.__init__` re-exports `ServerBootstrapManagerAggregate`).
+
+> Cross-module dependency risk: the shared `mcp` subpackage must provide `contract_server_bootstrap` for `import modules.shared` to succeed. If that subpackage is missing its `__init__.py` / `contract_server_bootstrap.py`, the entire import graph (including this feature) breaks.
 
 ## Provides To
 
@@ -138,10 +140,11 @@ Config determines project root. Asset and render do not determine project root r
     5. Platform-standard user configuration location
     6. Current working directory
   - Project marker priority should be:
-    1. Primary settings source (config.yaml, config.yml)
+    1. Primary settings source (config.yaml, config.yml) — discovered by the settings-file-location strategy (rule 3), which then uses its parent directory
     2. Product-specific settings source
     3. Project manifest (pyproject.toml)
     4. Version control metadata (.git)
+  - Note: "Primary settings source" under marker priority refers to *discovery of config.yaml*, not a separate resolution strategy; the six strategy-order items (explicit → env → settings-file-parent → markers → platform → cwd) are the authoritative resolution sequence.
   - Resolved path must be normalized
   - Symbolic links must be resolved safely without unnecessary failure
   - Candidate directory must exist and be readable to be accepted
@@ -182,7 +185,7 @@ Config provides config source, override count, and warnings. Metadata must not l
 
 Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP use these rules for masking.
 
-- **Description**: Provide the authoritative list of sensitive key patterns and redaction rules used by consuming features to mask secret values
+- **Description**: Provide the authoritative list of sensitive key patterns and redaction rules used by consuming features to mask secret values. Config is the **current authoritative provider**; a security policy module may override the rule set via composition-root injection (`extra_redaction_patterns`), but config remains the default source of truth.
 - **Input**: None
 - **Output**: Redaction rules concept containing sensitive key patterns, pattern-based detection rules, and placeholder convention
 - **Business Rules**:
@@ -216,19 +219,21 @@ Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP us
 
 ## Events
 
+Events are emitted by the **Config orchestrator (Agent layer)**, which owns the bounded event ring buffer, and surfaced to consumers via `recent_events()`. Capabilities build event payloads from `get_last_metadata()` but do not record them.
+
 - settings loaded event — emitted after settings snapshot is successfully loaded
 - settings reload event — emitted after settings snapshot is successfully replaced
 - workspace resolved event — emitted after project workspace directory is resolved
 - settings validation warning event — emitted when schema or parse warnings occur in permissive mode
 
-Event payloads should include:
+Event payloads are fixed-shape dataclasses (`SettingsLoadedEvent`, `SettingsReloadEvent`, `WorkspaceResolvedEvent`, `SettingsValidationWarningEvent`) with these fields:
 
-- event category
-- source summary
-- override count
-- warning count
-- policy mode
-- timestamp
+- `category` (event type string)
+- `source_summary` (resolved settings/workspace source, never raw content)
+- `override_count` (int)
+- `warning_count` (int)
+- `policy_mode` (strict | permissive)
+- `timestamp` (epoch seconds)
 
 Event payloads must avoid:
 
@@ -252,7 +257,8 @@ Event payloads must avoid:
 ## QA Checklist
 
 - [ ] Settings load from file, environment, and defaults with correct precedence
-- [ ] Runtime override takes precedence over environment, file, and defaults
+- [ ] Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_CONFIG_V2=on`; ignored with warning when off)
+- [ ] Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
 - [ ] Environment override takes precedence over file and defaults
 - [ ] File values take precedence over built-in defaults
 - [ ] Missing settings file falls back to environment and defaults without fatal error
@@ -306,15 +312,16 @@ of `BLENDERMCP_CONFIG_V2`; explicit bool wins.
 
 | Behavior | Gated | Flag OFF (v1.7.0 default) | Flag ON |
 |----------|-------|---------------------------|---------|
-| Schema validation (T-06) | ✅ | Skipped entirely | Enforced per policy mode |
-| Runtime overrides param (T-06) | ✅ | Param ignored + parse warning logged | Applied, counted |
-| Size limit > 1 MiB (T-06) | ✅ | Not checked | strict → ConfigLoadError / permissive warn+skip |
-| Strict ConfigTypeError (T-07) | ✅ | Default returned (current behavior) | Raise in strict mode |
-| `\.` escaped separator (T-07) | ✅ | Literal split on every `.` | `\.` resolves literal dotted key |
-| Defaults tier (T-06) | ❌ | Always ON (required by Q6) | — |
-| Legacy prefix removal (T-01) | ❌ breaking | Removed | Removed |
-| Metadata wiring, events, ring buffer (T-06/T-08/T-09) | ❌ | Always ON | — |
-| Workspace fixes + caching (T-10) | ❌ | Always ON | — |
-| Thread-safe init (T-06) | ❌ | Always ON | — |
+| Schema validation | ✅ | Skipped entirely | Enforced per policy mode |
+| Runtime overrides param | ✅ | Param ignored + parse warning logged | Applied, counted |
+| Size limit > 1 MiB | ✅ | Not checked | strict → ConfigLoadError / permissive warn+skip |
+| Strict ConfigTypeError | ✅ | Default returned (current behavior) | Raise in strict mode |
+| `\.` escaped separator | ✅ | Literal split on every `.` | `\.` resolves literal dotted key |
+| Defaults tier | ❌ | Always ON (required by Q6) | — |
+| Legacy prefix removal | ❌ breaking | Removed | Removed |
+| Metadata wiring, events, ring buffer | ❌ | Always ON | — |
+| Workspace fixes + caching | ❌ | Always ON | — |
+| Thread-safe init | ❌ | Always ON | — |
 
 v1.8.0 plan: flip flag default to ON; v1.9.0 remove flag.
+

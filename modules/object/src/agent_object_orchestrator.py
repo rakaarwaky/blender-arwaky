@@ -96,7 +96,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
 
     @property
     def import_export_capability(self) -> Any:
-        return self._import_export_cap  # type: ignore[return-value]
+        return self._import_export_cap
 
     def __repr__(self) -> str:
         return "ObjectOrchestrator()"

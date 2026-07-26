@@ -11,12 +11,12 @@ Structure:
 """
 
 import logging
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, ObjectType, Prompt, SuccessFlag
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidModifierTypeError, ModifierActionConfirmationError
 from modules.shared.src.object.taxonomy_object_vo import ApplyModifierVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -57,7 +57,7 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -93,10 +93,10 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
             return ApplyModifierVO(
                 object_name=request.object_name,
                 modifier_name=request.modifier_name,
-                success=True,  # type: ignore[arg-type]
+                success=SuccessFlag(True),
                 modifier_type=ObjectType(mod_type_enum),
                 action=request.action,
-                applied_destructively=SuccessFlag(request.action == "apply"),  # type: ignore[arg-type]
+                applied_destructively=SuccessFlag(request.action == "apply"),
                 message="Modifier operation completed successfully",
             )
         except Exception as e:

@@ -11,12 +11,12 @@ Structure:
 """
 
 import logging
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
+from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -33,7 +33,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(self, code_executor: Any = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -57,7 +57,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             if isinstance(result_data, dict):
                 return GetObjectInfoVO(
                     object_name=ObjectName(result_data.get("name", str(request.object_name))),
-                    success=True,  # type: ignore[arg-type]
+                    success=SuccessFlag(True),
                     object_type=result_data.get("type"),
                     location=result_data.get("location"),
                     rotation=result_data.get("rotation"),
@@ -73,7 +73,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             else:
                 return GetObjectInfoVO(
                     object_name=request.object_name,
-                    success=True,  # type: ignore[arg-type]
+                    success=SuccessFlag(True),
                     message="Object info retrieved successfully",
                 )
         except Exception as e:

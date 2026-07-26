@@ -52,11 +52,16 @@ The Configuration & Workspace FRD (`modules/config/FRD.md`) is in **strong healt
 - [ ] 🟡 Remove obsolete legacy-fallback QA item (C1) and add a "legacy prefix ignored" AC.
 - [ ] 🟡 Fix QA env-conversion AC to scalar-only (C2).
 - [ ] 🟡 Correct "Configuration Keys" legacy-fallback row to "Removed in v1.7.0" (S1).
-- [ ] 🟡 Annotate runtime-override AC with `BLENDERMCP_CONFIG_V2` dependency (T2); add default-path AC (T1).
-- [ ] 🟢 Tighten FR-CFG-004 metadata fields to MUST (C3); add event payload schema note (C4).
-- [ ] 🟢 Add FR-CFG↔T-ID implementation map to FRD (R2) and state event-emitting layer (R3).
-- [ ] 🟢 Track missing `modules/shared/src/mcp` package as a cross-module dependency blocker (S2).
-- [ ] 🟢 Clarify redaction ownership (config vs security) (S3).
+- [x] 🟡 Annotate runtime-override AC with `BLENDERMCP_CONFIG_V2` dependency (T2) — DONE
+- [x] 🟡 Add default-path AC `<cwd>/config.yaml` (T1) — DONE
+- [x] 🟡 Add Depends-On note for shared `mcp` subpackage blocker (S2) — DONE
+- [x] 🟢 Tighten FR-CFG-004 metadata fields to MUST (C3) — DONE
+- [x] 🟢 Add event payload schema + emitting-layer note (C4/R3) — DONE
+- [x] 🟢 Clarify marker-vs-strategy (C5) — DONE
+- [x] 🟢 State default policy = strict near rules (T3) — DONE
+- [x] 🟢 Add thread-safe single-load business rule (T4) — DONE
+- [x] 🟢 Add FR-CFG↔T-ID implementation map (R2) — DONE
+- [x] 🟢 Pin redaction ownership = config (S3) — DONE
 
 ## Gap Analysis Table
 
