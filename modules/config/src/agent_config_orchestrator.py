@@ -24,6 +24,7 @@ from modules.shared.src.config.taxonomy_config_vo import RedactionRule, Settings
 logger = logging.getLogger("BlenderMCPServer")
 
 
+# ─── Block 1: Class Definition & Constructor ───────────────
 class ConfigOrchestrator(IConfigAggregate):
     """Orchestrator for the config feature.
 
@@ -46,7 +47,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._redaction_rules = redaction_rules
         self._snapshot: SettingsSnapshot | None = None
 
-    # ─── Block 2: Aggregate Implementation ────────────────────
+# ─── Block 2: Aggregate Method Implementation ─────────────
 
     def load(self, path: ConfigPath | None = None) -> SettingsSnapshot:
         """Load settings and cache snapshot."""
@@ -104,7 +105,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-    # ─── Block 3: Dunder Methods ──────────────────────────────
+# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"

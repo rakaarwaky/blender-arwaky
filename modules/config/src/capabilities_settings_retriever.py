@@ -12,12 +12,18 @@ from modules.shared.src.config.contract_settings_retriever_protocol import ISett
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
 
 
+# ─── Block 1: Class Definition & Constructor ───────────────
 class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
     """FR-CFG-002: Retrieve settings values.
 
     Thread-safe traversal, deep-copy returns, list indexing support.
     No I/O. No file or environment reads per request.
     """
+
+    def __init__(self) -> None:
+        pass
+
+# ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_value(
         self,
@@ -51,3 +57,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         """Retrieve float value. Returns default on type mismatch."""
         value = snapshot.get(path, default)
         return value if isinstance(value, float) else default
+
+# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+
+    def __repr__(self) -> str:
+        return "SettingsRetrieverCapability()"

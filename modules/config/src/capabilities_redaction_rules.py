@@ -16,20 +16,23 @@ from modules.shared.src.config.taxonomy_config_constant import (
 from modules.shared.src.config.taxonomy_config_vo import RedactionRule
 
 
+# ─── Block 1: Class Definition & Constructor ───────────────
 class RedactionRulesCapability(IRedactionRulesProtocol):
     """FR-CFG-005: Provide redaction rules.
 
     Rules contain key patterns only, never secret values.
     Consuming features retrieve rules here — must not hard-code their own lists.
     """
-# ─── Block 1: Class Definition & Constructor ──────────────
+
     def __init__(self, extra_patterns: tuple[str, ...] = ()) -> None:
         self._rule = RedactionRule(
             key_patterns=SENSITIVE_KEY_PATTERNS + extra_patterns,
             placeholder=REDACTION_PLACEHOLDER,
             full_redact=True,
         )
-# ─── Block 2: Public Contract  ────────────────────────
+
+# ─── Block 2: Protocol Method Implementation ──────────────
+
     def get_redaction_rule(self) -> RedactionRule:
         """Return the authoritative redaction rule."""
         return self._rule
@@ -56,4 +59,8 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
             else:
                 result[key] = value
         return result
- # ─── Block 3: helper method ──────────────────────────────
+
+# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+
+    def __repr__(self) -> str:
+        return "RedactionRulesCapability()"

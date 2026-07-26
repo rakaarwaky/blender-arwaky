@@ -20,6 +20,7 @@ from .src.capabilities_settings_metadata import SettingsMetadataCapability
 from .src.capabilities_settings_retriever import SettingsRetrieverCapability
 from .src.capabilities_workspace_resolver import WorkspaceResolverCapability
 from .src.root_config_container import ConfigContainer
+from .src.utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
     "ConfigOrchestrator",
@@ -29,4 +30,6 @@ __all__ = [
     "SettingsMetadataCapability",
     "RedactionRulesCapability",
     "ConfigContainer",
+    "parse_env_value",
+    "search_project_root",
 ]

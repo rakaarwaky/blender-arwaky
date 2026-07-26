@@ -12,6 +12,7 @@ from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
 
 
+# ─── Block 1: Class Definition & Constructor ───────────────
 class SettingsMetadataCapability(ISettingsMetadataProtocol):
     """FR-CFG-004: Provide settings metadata.
 
@@ -22,6 +23,8 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
     def __init__(self, metadata: ConfigMetadata | None = None) -> None:
         self._metadata = metadata
 
+# ─── Block 2: Protocol Method Implementation ──────────────
+
     def get_metadata(self) -> ConfigMetadata:
         """Return current settings metadata."""
         if self._metadata is None:
@@ -29,11 +32,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
         return self._metadata
 
     def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
-        """Serialize metadata for diagnostics output.
-
-        Safe for CLI, MCP-facing responses, and logging.
-        Secrets excluded by design — metadata must never contain them.
-        """
+        """Serialize metadata for diagnostics output."""
         return {
             "source": metadata.source,
             "exists": metadata.exists,
@@ -41,3 +40,8 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
             "parse_warnings": metadata.parse_warnings,
             "validation_warnings": metadata.validation_warnings,
         }
+
+# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+
+    def __repr__(self) -> str:
+        return "SettingsMetadataCapability()"

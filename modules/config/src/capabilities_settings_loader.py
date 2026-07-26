@@ -18,7 +18,6 @@ from modules.shared.src.config.contract_settings_loader_protocol import ISetting
 from modules.shared.src.config.taxonomy_config_constant import (
     ENV_PREFIX_LEGACY,
     ENV_PREFIX_PRODUCT,
-    MAX_CONFIG_SIZE_BYTES,
     POLICY_MODE_PERMISSIVE,
     POLICY_MODE_STRICT,
 )
@@ -30,7 +29,10 @@ from modules.shared.src.config.taxonomy_config_error import (
 from modules.shared.src.config.taxonomy_config_event import SettingsLoadedEvent, SettingsReloadEvent
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
 
+from .utility_config_helpers import parse_env_value
 
+
+# ─── Block 1: Class Definition & Constructor ───────────────
 class SettingsLoaderCapability(ISettingsLoaderProtocol):
     """FR-CFG-001: Load and apply settings.
 
@@ -48,12 +50,10 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self._policy_mode = policy_mode
         self._cached: SettingsSnapshot | None = None
 
-    def load_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
-        """Load settings from sources, apply precedence, return immutable snapshot.
+# ─── Block 2: Protocol Method Implementation ──────────────
 
-        Precedence: runtime overrides > env > file > defaults.
-        Uses safe parsing only. Rejects oversized sources.
-        """
+    def load_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+        """Load settings from sources, apply precedence, return immutable snapshot."""
         file_data = self._load_file(path)
         merged = self._apply_env_overrides(file_data)
         self._cached = SettingsSnapshot(_data=merged)
@@ -91,10 +91,10 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             timestamp=Timestamp(0.0),
         )
 
-    # ─── Block 3: Internal Helpers ─────────────────────────────
+# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def _load_file(self, path: ConfigPath | None) -> dict[str, Any]:
-        """Load and parse YAML from file path. Enforces size and encoding limits."""
+        """Load and parse YAML from file path."""
         if self._file_loader is None:
             return {}
 
@@ -122,8 +122,8 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 prefix = (
                     ENV_PREFIX_PRODUCT if key.startswith(ENV_PREFIX_PRODUCT) else ENV_PREFIX_LEGACY
                 )
-                env_key = key[len(prefix) :].lower()
-                parsed = self._parse_env_value(value)
+                env_key = key[len(prefix):].lower()
+                parsed = parse_env_value(value)
 
                 if "." in env_key:
                     keys = env_key.split(".")
@@ -138,22 +138,3 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     result[env_key] = parsed
 
         return result
-
-    @staticmethod
-    def _parse_env_value(value: str) -> Any:
-        """Parse environment value as typed scalar."""
-        if value.lower() in ("true", "yes", "on"):
-            return True
-        if value.lower() in ("false", "no", "off"):
-            return False
-        try:
-            return int(value)
-        except ValueError:
-            pass
-        try:
-            return float(value)
-        except ValueError:
-            pass
-        if value.lower() in ("null", "none", ""):
-            return None
-        return value
