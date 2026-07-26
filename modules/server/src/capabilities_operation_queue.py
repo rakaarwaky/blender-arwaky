@@ -123,9 +123,9 @@ class OperationQueue(IOperationQueueProtocol):
     async def mark_started(self, request_id: str) -> None:
         """Mark an operation as started by request_id."""
         async with self._lock:
-            state = self._operation_states.get(request_id)
-            if state:
-                state.started = True
+            if request_id not in self._operation_states:
+                self._operation_states[request_id] = OperationState()
+            self._operation_states[request_id].started = True
 
         # Signal the future waiter
         future = self._started_events.pop(request_id, None)
@@ -243,8 +243,9 @@ class OperationQueue(IOperationQueueProtocol):
                 if state and state.started:
                     remaining.append(op)
                 else:
+                    if state:
+                        state.error = error
                     cancelled += 1
-                    state.error = error if state else None
 
             self._queue = remaining
 

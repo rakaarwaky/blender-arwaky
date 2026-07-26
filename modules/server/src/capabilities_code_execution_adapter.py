@@ -250,7 +250,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
 
         return result
 
-    def create_task(self, request_id: str | None = None) -> str:
+    async def create_task(self, request_id: str | None = None) -> str:
         """Create a new pending task and return its unique task_id.
 
         Args:
@@ -261,30 +261,16 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         """
         task_id = f"task_{request_id or 'unnamed'}_{int(time.monotonic() * 1000) % 1000000:06d}"
 
-        async def _emit() -> None:
+        # Emit creation event
+        try:
             await self._event_publisher.publish(
                 TaskCreated(task_id=task_id, request_id=request_id or "")
             )
+        except Exception as e:
+            logger.error("Failed to emit TaskCreated: %s", e)
 
-        try:
-            asyncio.ensure_future(_emit())
-        except RuntimeError:
-            pass  # No event loop running — emit will be handled later
-
-        async def _store() -> None:
-            async with self._lock:
-                self._tasks[task_id] = TaskEntry(
-                    task_id=task_id,
-                    state=TaskState("pending"),
-                    request_id=request_id,
-                    created_at=time.monotonic(),
-                )
-
-        try:
-            loop = asyncio.get_running_loop()
-            asyncio.ensure_future(_store())
-        except RuntimeError:
-            # No event loop — direct assignment (caller must ensure thread safety)
+        # Store task entry synchronously under lock
+        async with self._lock:
             self._tasks[task_id] = TaskEntry(
                 task_id=task_id,
                 state=TaskState("pending"),
@@ -293,10 +279,10 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             )
 
         logger.info("Created task %s", task_id)
-        self._cleanup_expired()
+        self.cleanup_expired()
         return task_id
 
-    def get_task(self, task_id: str) -> TaskStatus:
+    async def get_task(self, task_id: str) -> TaskStatus:
         """Get task status.
 
         Args:
@@ -308,31 +294,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         Raises:
             TaskNotFoundError: If not found or expired.
         """
-        async def _check() -> TaskStatus:
-            async with self._lock:
-                entry = self._tasks.get(task_id)
-                if entry is None:
-                    raise TaskNotFoundError(task_id=task_id)
-                if entry.completed_at is not None:
-                    elapsed = time.monotonic() - entry.completed_at
-                    if elapsed > self._task_config.retention_seconds:
-                        del self._tasks[task_id]
-                        raise TaskNotFoundError(task_id=task_id)
-                return TaskStatus(
-                    task_id=entry.task_id,
-                    state=entry.state,
-                    result=entry.result,
-                    request_id=entry.request_id,
-                    created_at=entry.created_at,
-                    completed_at=entry.completed_at,
-                    cancel_requested=entry.cancel_requested,
-                )
-
-        try:
-            loop = asyncio.get_running_loop()
-            return loop.run_until_complete(_check())
-        except RuntimeError:
-            # No event loop — synchronous access (no lock)
+        async with self._lock:
             entry = self._tasks.get(task_id)
             if entry is None:
                 raise TaskNotFoundError(task_id=task_id)

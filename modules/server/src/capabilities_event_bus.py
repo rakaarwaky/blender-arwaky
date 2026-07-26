@@ -56,3 +56,7 @@ class InMemoryEventBus(IEventBus):
                     e,
                     exc_info=True,
                 )
+
+    def get_subscribers(self) -> List[IEventSubscriber]:
+        """Return list of registered subscribers (for testing)."""
+        return list(self._subscribers)
