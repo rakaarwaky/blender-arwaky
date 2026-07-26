@@ -15,7 +15,7 @@ from modules.shared.src.config.taxonomy_config_error import ConfigRootResolution
 from modules.shared.src.config.taxonomy_config_event import WorkspaceResolvedEvent
 from modules.shared.src.config.taxonomy_config_vo import WorkspacePath
 
-from .utility_config_helpers import search_project_root
+from modules.shared.src.config.utility_config_helpers import search_project_root
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────

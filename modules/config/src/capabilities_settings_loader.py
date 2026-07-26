@@ -29,7 +29,7 @@ from modules.shared.src.config.taxonomy_config_error import (
 from modules.shared.src.config.taxonomy_config_event import SettingsLoadedEvent, SettingsReloadEvent
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
 
-from .utility_config_helpers import parse_env_value
+from modules.shared.src.config.utility_config_helpers import parse_env_value
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────

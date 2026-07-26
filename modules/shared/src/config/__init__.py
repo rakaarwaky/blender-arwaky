@@ -1,4 +1,4 @@
-"""Config domain: contracts, errors, events, VOs, constants for configuration management."""
+"""Config domain: contracts, errors, events, VOs, constants, utilities for configuration management."""
 
 from __future__ import annotations
 
@@ -38,6 +38,9 @@ from .taxonomy_config_constant import (
     REDACTION_PLACEHOLDER,
     SENSITIVE_KEY_PATTERNS,
 )
+
+# ─── Utility ───────────────────────────────────────────────────
+from .utility_config_helpers import parse_env_value, search_project_root
 
 # ─── Taxonomy: Errors ──────────────────────────────────────────
 from .taxonomy_config_error import (
@@ -79,6 +82,9 @@ __all__ = [
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",
     "DEFAULT_POLICY_MODE",
+    # Utility
+    "parse_env_value",
+    "search_project_root",
     # Taxonomy — Errors
     "ConfigError",
     "ConfigLoadError",
