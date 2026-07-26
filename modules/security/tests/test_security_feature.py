@@ -14,14 +14,19 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
 from modules.security.src import create_security_feature
+from modules.shared.src.security.taxonomy_security_event import (
+    PolicyOverrideEvent,
+    RedactionFailureEvent,
+    SecurityAuditEvent,
+    SecurityViolationEvent,
+)
 from modules.shared.src.security.taxonomy_security_vo import (
     AccessMode,
     ArchiveEntryVO,
     ArchiveExtractionOptionsVO,
     ArchiveExtractionVO,
+    AuditSeverity,
     CodeValidationVO,
     PathValidationVO,
     RedactionVO,
@@ -29,15 +34,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
     SecurityPolicyVO,
     SensitivityLevel,
     ViolationCategory,
-    AuditSeverity,
 )
-from modules.shared.src.security.taxonomy_security_event import (
-    SecurityViolationEvent,
-    SecurityAuditEvent,
-    RedactionFailureEvent,
-    PolicyOverrideEvent,
-)
-
 
 # ─── FR-SEC-001: Validate File Path Access ─────────────────────────────────
 

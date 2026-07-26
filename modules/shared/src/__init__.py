@@ -291,6 +291,13 @@ from .config.taxonomy_config_constant import (
 # Protocols (business behavior contracts)
 from .scene.contract_scene_operate_protocol import SceneOperateProtocol
 from .object.contract_object_operate_protocol import ObjectOperateProtocol
+from .object.contract_place_asset_protocol import PlaceAssetProtocol
+from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
+from .object.contract_set_transform_protocol import SetObjectTransformProtocol
+from .object.contract_set_material_protocol import SetMaterialProtocol
+from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
+from .object.contract_delete_object_protocol import DeleteObjectProtocol
+from .object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from .render.contract_render_operate_protocol import RenderOperateProtocol
 from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
 from .render.contract_camera_config_protocol import CameraConfigProtocol
@@ -523,6 +530,13 @@ __all__ = [
     # Contracts — Protocols
     "SceneOperateProtocol",
     "ObjectOperateProtocol",
+    "PlaceAssetProtocol",
+    "CreatePrimitiveProtocol",
+    "SetObjectTransformProtocol",
+    "SetMaterialProtocol",
+    "ApplyModifierProtocol",
+    "DeleteObjectProtocol",
+    "GetObjectInfoProtocol",
     "RenderOperateProtocol",
     "ViewportCaptureProtocol",
     "CameraConfigProtocol",

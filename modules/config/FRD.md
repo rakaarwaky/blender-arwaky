@@ -68,6 +68,9 @@ Config is the only feature that loads settings. No other feature reads config fi
   - Settings file must be UTF-8 encoded
   - Missing settings file is not fatal by default and falls back to environment and defaults
   - Missing settings file is never fatal in any policy mode (Q6): a missing settings file falls back to environment and defaults without raising
+  - When no explicit path and no `BLENDERMCP_CONFIG_PATH` is set, the loader resolves `<cwd>/config.yaml` as the default settings source
+  - Default policy mode is strict; permissive mode is opt-in per feature (see Configuration Keys)
+  - First load is thread-safe and performed exactly once under contention (double-checked locking)
   - Malformed settings content raises configuration error in strict mode
   - Malformed settings content logs warning and falls back safely in permissive mode
   - Schema violation raises validation error in strict mode
@@ -160,12 +163,12 @@ Config provides config source, override count, and warnings. Metadata must not l
 - **Input**: None
 - **Output**: Settings metadata concept containing source information, override information, warning list, and load timing information
 - **Business Rules**:
-  - Metadata should include:
-    - resolved settings source location
-    - whether settings file existed
-    - count of applied environment overrides (OverrideCount)
-    - parse warning list
-    - validation warning list
+  - Metadata MUST include exactly these five fields:
+    - resolved settings source location (`source`)
+    - whether settings file existed (`exists`)
+    - count of applied environment overrides (`overrides`)
+    - parse warning list (`parse_warnings`)
+    - validation warning list (`validation_warnings`)
   - Metadata must not include secret values
   - Metadata must not include raw settings content by default
   - Override names may be listed, but override values must be redacted when sensitive
