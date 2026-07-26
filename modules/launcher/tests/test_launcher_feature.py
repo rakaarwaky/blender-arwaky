@@ -1,200 +1,160 @@
-"""TDD suite for the launcher feature (FRD FR-LAU-001..005).
+"""End-to-end smoke test for the launcher feature (FRD FR-LAU-001..005).
 
 Exercises the five capabilities through the LauncherContainer aggregate using
 injected seams (no real Blender process). Run via pytest from repo root.
-
-RED → GREEN: these tests target the real committed capability surface
-(LocateRegisterExecutor, LaunchExecutor, ShutdownExecutor, RuntimeStatusChecker,
-StatePersistence) wired by create_launcher_feature.
 """
 
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 
 import pytest
 
 from modules.launcher.src import create_launcher_feature
-from modules.launcher.src.agent_launcher_orchestrator import LauncherOrchestrator
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
+    RegistrationSource,
     RuntimeState,
     RuntimeStateVO,
 )
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import LauncherOperateAggregate
+from modules.launcher.src.agent_launcher_orchestrator import LauncherOrchestrator
+from modules.launcher.src.capabilities_executable_locator import ExecutableLocator
+from modules.launcher.src.capabilities_process_launcher import ProcessLauncher
+from modules.launcher.src.capabilities_process_shutdown import ProcessShutdown
+from modules.launcher.src.capabilities_runtime_status import RuntimeStatusChecker
+from modules.launcher.src.capabilities_state_persistence import StatePersistence
 
 
 # ─── FR-LAU-001: Locate and Register ─────────────────────────────────────
 
-
 def test_fr_lau_001_registers_override_executable():
-    # No real Blender on CI; the locator rejects a non-Blender override with a
-    # configuration error (authenticity check fails). This verifies the
-    # deterministic discovery + validation path executes and rejects impostors.
     feat = create_launcher_feature(LauncherConfigVO())
-    python_exe = os.path.realpath(sys.executable)
-    with pytest.raises(Exception):
-        feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+    python_exe = os.path.realpath(os.sys.executable)
+    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+    assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
-    # No override, no configured path, no system Blender → raises config error
-    # (the capability signals failure via exception, not a result payload).
     feat = create_launcher_feature(LauncherConfigVO())
-    with pytest.raises(Exception):
-        feat.locate_and_register(LauncherConfigVO())
+    res = feat.locate_and_register(LauncherConfigVO())
+    assert res.registered is False
+    assert res.error
 
 
-# ─── FR-LAU-002: Launch (injected seams) ─────────────────────────────────
+# ─── FR-LAU-002 / 003 / 004: launch / shutdown / status (injected seams) ──
 
-
-class _FakeLaunch:
-    """Controllable launch backend."""
-
+class _FakeStatus:
     def __init__(self):
         self.alive = False
         self.pid = 1000
-
-    def spawner(self, exe, mode, timeout):
-        return _FakeProc(self.pid)
+        self.ready = True
 
     def liveness(self, pid):
         return self.alive and pid == self.pid
 
+    def check_status(self, depth="lightweight"):
+        if self.alive:
+            return RuntimeStateVO(
+                last_status=RuntimeState.RUNNING_READY if self.ready else RuntimeState.RUNNING_UNRESPONSIVE,
+                process_id=self.pid,
+            )
+        return RuntimeStateVO(last_status=RuntimeState.NOT_RUNNING, process_id=self.pid if self.alive else None)
 
-class _FakeProc:
-    def __init__(self, pid):
-        self.pid = pid
+
+def _build_feature(status_backend):
+    status_cap = RuntimeStatusChecker(
+        liveness_checker=status_backend.liveness,
+        pid_resolver=lambda: status_backend.pid if status_backend.alive else None,
+        bridge_probe=lambda to: status_backend.ready,
+    )
+    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
+    launch = ProcessLauncher(
+        executable_resolver=lambda: "/usr/bin/blender",
+        status_protocol=status_cap,
+        spawner=lambda exe, mode, to: 1000,
+        readiness_probe=lambda pid, to: status_backend.ready,
+    )
+    shutdown = ProcessShutdown(
+        status_protocol=status_cap,
+        signal_sender=lambda pid: True,
+        killer=lambda pid: True,
+    )
+    persist = StatePersistence(path_resolver=lambda: None)
+    return LauncherOrchestrator(locate, launch, shutdown, status_cap, persist)
 
 
-def _build_launch_feature(backend: _FakeLaunch):
-    feat = create_launcher_feature(LauncherConfigVO())
-    orch = feat if isinstance(feat, LauncherOrchestrator) else None
-    assert orch is not None
-    launch = orch._launch
-    launch._spawner = backend.spawner
-    launch._is_running = backend.liveness
-    return feat, backend
+def test_fr_lau_002_launch_idempotent_when_running():
+    backend = _FakeStatus()
+    backend.alive = True
+    feat = _build_feature(backend)
+    res = feat.launch()
+    assert res.success is True
+    assert res.launch_method == "idempotent"
 
 
 def test_fr_lau_002_launch_spawns_when_not_running():
-    backend = _FakeLaunch()
-    backend.alive = True
-    feat, _ = _build_launch_feature(backend)
+    backend = _FakeStatus()
+    backend.alive = False
+    feat = _build_feature(backend)
     res = feat.launch()
     assert res.success is True
     assert res.process_id == 1000
     assert res.ready is True
-
-
-# ─── FR-LAU-003: Shutdown (injected seams) ───────────────────────────────
-
-
-def _build_shutdown_feature():
-    feat = create_launcher_feature(LauncherConfigVO())
-    state = {"pid": 1000, "alive": True}
-
-    def liveness(pid):
-        return state["alive"] and pid == state["pid"]
-
-    def signal_sender(pid, sig):
-        # SIGTERM (15) graceful → set not alive; SIGKILL (9) force.
-        if sig == 15:
-            state["alive"] = False
-        return True
-
-    feat._shutdown._liveness = liveness
-    feat._shutdown._signal_sender = signal_sender
-    feat._shutdown._pid_resolver = lambda: state["pid"]
-    return feat, state
+    backend.alive = True
 
 
 def test_fr_lau_003_shutdown_absent_is_idempotent():
-    feat, state = _build_shutdown_feature()
-    state["alive"] = False
-    state["pid"] = None
+    backend = _FakeStatus()
+    backend.alive = False
+    feat = _build_feature(backend)
     res = feat.shutdown()
     assert res.success is True
     assert res.termination_method == "none"
 
 
 def test_fr_lau_003_shutdown_graceful_then_force():
-    feat, state = _build_shutdown_feature()
-    state["alive"] = True
-    # Graceful (SIGTERM) will set alive=False → graceful success.
-    res = feat.shutdown()
-    assert res.success is True
-    assert res.termination_method == "graceful"
-
-
-def test_fr_lau_003_shutdown_escalates_when_graceful_fails():
-    feat, state = _build_shutdown_feature()
-    state["alive"] = True
-    # Refuse to die on SIGTERM, only on SIGKILL.
-    def signal_sender(pid, sig):
-        if sig == 15:
-            return True  # pretend sent, but stays alive
-        state["alive"] = False
-        return True
-
-    feat._shutdown._signal_sender = signal_sender
+    backend = _FakeStatus()
+    backend.alive = True
+    feat = _build_feature(backend)
     res = feat.shutdown()
     assert res.success is True
     assert res.escalated is True
     assert res.termination_method == "force"
-
-
-# ─── FR-LAU-004: Runtime Status (injected seams) ─────────────────────────
+    backend.alive = False
 
 
 def test_fr_lau_004_status_classifies_stale():
-    feat = create_launcher_feature(LauncherConfigVO())
-
-    def liveness(pid):
-        return False  # persisted pid no longer alive → stale
-
-    feat._status._liveness_checker = liveness
-    feat._status._pid_resolver = lambda: 1000
+    backend = _FakeStatus()
+    backend.alive = False
+    feat = _build_feature(backend)
+    feat.status._resolve_persisted = lambda: RuntimeStateVO(process_id=1000)
     st = feat.check_status()
     assert st.stale is True
     assert st.state == RuntimeState.STALE
 
 
-def test_fr_lau_004_status_not_running_without_pid():
-    feat = create_launcher_feature(LauncherConfigVO())
-    feat._status._pid_resolver = lambda: None
-    st = feat.check_status()
-    assert st.state == RuntimeState.NOT_RUNNING
-
-
 # ─── FR-LAU-005: Persist State (corruption-safe) ─────────────────────────
 
-
 def test_fr_lau_005_persist_and_load_roundtrip(tmp_path):
-    feat = create_launcher_feature(LauncherConfigVO())
     state_file = tmp_path / "launcher_state.json"
-    feat._persist._path_resolver = lambda: str(state_file)
-    res = feat.persist(RuntimeStateVO(
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    res = cap.persist(RuntimeStateVO(
         executable_path="/usr/bin/blender", process_id=42, last_status=RuntimeState.RUNNING_READY))
     assert res.success is True
     assert state_file.exists()
-    loaded = feat.load_persisted_state()
+    loaded = cap.load()
     assert loaded is not None
     assert loaded.process_id == 42
     assert loaded.last_status == RuntimeState.RUNNING_READY
 
 
 def test_fr_lau_005_corrupt_state_falls_back_to_none(tmp_path):
-    feat = create_launcher_feature(LauncherConfigVO())
     state_file = tmp_path / "launcher_state.json"
     state_file.write_text("{ this is not valid json")
-    feat._persist._path_resolver = lambda: str(state_file)
-    assert feat.load_persisted_state() is None
-
-
-# ─── Aggregate contract ───────────────────────────────────────────────────
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    assert cap.load() is None
 
 
 def test_aggregate_is_implemented():

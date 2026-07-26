@@ -1,110 +1,93 @@
-"""Runtime status capability — verify true process liveness and staleness.
+"""Capabilities: Runtime status — FR-LAU-004.
 
-FR-LAU-004: Check Runtime Status
-- Verifies actual process liveness via OS signals, not persisted state alone
-- Classifies runtime state (not_running / running_ready / running_unresponsive / stale)
-- Guards against PID reuse through bounded, read-only checks
-- Reconciles stale persisted state where enabled
+Verifies true process liveness (not persisted state) and classifies runtime
+state, guarding against PID reuse. Implements RuntimeStatusProtocol.
+
+Liveness and process-info lookup are injected DI boundaries.
 """
 
 from __future__ import annotations
 
-import logging
-import os
 import time
-from typing import Callable
+from typing import Callable, Protocol
 
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_STATUS_CHECKED
+from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
-    RuntimeStateVO,
     RuntimeStatusVO,
 )
 
-logger = logging.getLogger("BlenderMCPServer")
+
+class _LivenessChecker(Protocol):
+    """Returns True if the pid is actually alive. DI boundary."""
+
+    def __call__(self, process_id: int) -> bool:
+        ...
+
+
+class _BridgeProbe(Protocol):
+    """Returns True if the bridge endpoint is responsive. DI boundary."""
+
+    def __call__(self, timeout_seconds: float) -> bool:
+        ...
 
 
 class RuntimeStatusChecker(RuntimeStatusProtocol):
-    """Concrete implementation for runtime status verification.
-
-    FR-LAU-004: Reads true liveness through injected ``liveness_checker`` and
-    ``bridge_probe`` seams. Defaults use OS liveness signals so the capability
-    is usable in production but fully testable without a live process.
-    """
+    """Verifies actual liveness and classifies runtime state with staleness guard."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-
     def __init__(
         self,
-        liveness_checker: Callable[[int], bool] | None = None,
-        pid_resolver: Callable[[], int | None] | None = None,
-        bridge_probe: Callable[[float], bool] | None = None,
-        stale_threshold_seconds: float = 0.0,
+        liveness_checker: _LivenessChecker,
+        pid_resolver: Callable[[], int | None],
+        bridge_probe: _BridgeProbe | None = None,
+        persisted_state_resolver: Callable[[], RuntimeStatusVO | None] = lambda: None,
+        stale_reconciliation_enabled: bool = True,
+        event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
-        self._liveness_checker = liveness_checker or self._default_liveness
-        self._pid_resolver = pid_resolver or (lambda: None)
-        self._bridge_probe = bridge_probe or (lambda _to: True)
-        self._stale_threshold_seconds = stale_threshold_seconds
+        self._is_alive = liveness_checker
+        self._resolve_pid = pid_resolver
+        self._bridge = bridge_probe
+        self._resolve_persisted = persisted_state_resolver
+        self._stale_reconcile = stale_reconciliation_enabled
+        self._events = event_sink
+        self._launch_time: float | None = None
 
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
+    # ─── Block 2: Public Contract ────────────────────────────
     def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
-        """Verify actual liveness and classify runtime state.
-
-        FR-LAU-004: Never trusts persisted state alone. A persisted PID that no
-        longer matches a live process is classified STALE. Read-only except for
-        stale-state reconciliation handled by the caller.
-        """
-        pid = self._pid_resolver()
+        """Verify actual process liveness and classify runtime state."""
+        pid = self._resolve_pid()
         if pid is None:
-            return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=None, ready=False)
+            return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, depth=depth)
 
-        alive = self._safe_liveness(pid)
+        alive = self._is_alive(pid)
         if not alive:
-            # Persisted reference points at a dead process → stale, not running.
-            return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, ready=False, stale=True)
+            persisted = self._resolve_persisted()
+            if persisted is not None and persisted.process_id == pid:
+                if self._stale_reconcile:
+                    self._emit_stale(pid)
+                return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, stale=True, depth=depth)
+            return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=pid, depth=depth)
 
-        # Alive. Bridge readiness only matters for full depth (avoid round-trip).
-        if depth == "full":
-            ready = self._safe_bridge_probe()
-        else:
-            ready = True
+        ready = True
+        if depth == "full" and self._bridge is not None:
+            ready = self._bridge(timeout_seconds=1.0)
 
         state = RuntimeState.RUNNING_READY if ready else RuntimeState.RUNNING_UNRESPONSIVE
-        return RuntimeStatusVO(state=state, process_id=pid, ready=ready)
+        uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
+        return RuntimeStatusVO(state=state, process_id=pid, ready=ready, uptime_seconds=uptime, depth=depth)
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+    # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def mark_launched(self, launch_time: float) -> None:
+        """Record launch time so uptime can be derived (called by launcher)."""
+        self._launch_time = launch_time
 
-    def _safe_liveness(self, pid: int) -> bool:
-        try:
-            return bool(self._liveness_checker(pid))
-        except (ProcessLookupError, PermissionError, OSError):
-            return False
-
-    def _safe_bridge_probe(self) -> bool:
-        try:
-            return bool(self._bridge_probe(self._stale_threshold_seconds or 1.0))
-        except Exception:
-            return False
-
-    @staticmethod
-    def _default_liveness(pid: int) -> bool:
-        """Default liveness via OS signal probe (no kill, ESRCH => dead)."""
-        try:
-            os.kill(pid, 0)
-            return True
-        except (ProcessLookupError, PermissionError):
-            return False
-
-    def classify_persisted(self, persisted: RuntimeStateVO | None, live_pid: int | None) -> RuntimeState:
-        """Classify a persisted record against the live process id (PID reuse guard)."""
-        if persisted is None:
-            return RuntimeState.NOT_RUNNING
-        if live_pid is None:
-            return RuntimeState.NOT_RUNNING
-        if persisted.process_id != live_pid:
-            return RuntimeState.STALE
-        return persisted.last_status
-
-    def __repr__(self) -> str:
-        return "RuntimeStatusChecker()"
+    def _emit_stale(self, pid: int) -> None:
+        if self._events is not None:
+            self._events(LauncherLifecycleEvent(
+                event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                state_before=RuntimeState.RUNNING_READY, state_after=RuntimeState.STALE,
+                process_reference=str(pid), reason_summary="stale_state_detected",
+            ))

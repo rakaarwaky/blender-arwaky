@@ -1,13 +1,11 @@
 """Agent: Launcher feature orchestrator.
 
-Coordinates the five launcher capabilities (locate/register, launch, shutdown,
-status, persist) into the LauncherOperateAggregate facade consumed by CLI/MCP
-surfaces.
+Coordinates the 5 launcher operations through the individual capability
+protocols. Implements LauncherOperateAggregate.
 
-Structure (AES Agent layer):
-  1. Constructor wiring (depends on contracts only)
-  2. Aggregate facade methods — delegate to capabilities, coordinate shared state
-  3. Dunder methods, factories, and helpers
+Orchestration only — no business logic; depends on individual capability
+protocols. Wires the shared RuntimeStatusProtocol into the launcher and
+shutdown capabilities so status is consistent across operations.
 """
 
 from __future__ import annotations
@@ -25,7 +23,6 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchResultVO,
     PersistenceResultVO,
     RegistrationResultVO,
-    RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownResultVO,
@@ -35,82 +32,49 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherOrchestrator(LauncherOperateAggregate):
-    """Aggregate facade coordinating all launcher capabilities.
-
-    Implements LauncherOperateAggregate (FR-LAU-001..005). Owns shared runtime
-    state (active pid) and propagates it across capabilities; never contains
-    business logic itself — it delegates to capabilities and coordinates.
-    """
+    """Orchestrates launcher operations through 5 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-
     def __init__(
         self,
-        locate_register: LocateRegisterProtocol,
-        launch: LaunchProtocol,
-        shutdown: ShutdownProtocol,
-        status: RuntimeStatusProtocol,
-        persist: PersistStateProtocol,
-        config: LauncherConfigVO | None = None,
+        locate_register_cap: LocateRegisterProtocol,
+        launch_cap: LaunchProtocol,
+        shutdown_cap: ShutdownProtocol,
+        status_cap: RuntimeStatusProtocol,
+        persist_cap: PersistStateProtocol,
     ) -> None:
-        self._locate = locate_register
-        self._launch = launch
-        self._shutdown = shutdown
-        self._status = status
-        self._persist = persist
-        self._config = config or LauncherConfigVO()
+        self._locate = locate_register_cap
+        self._launch = launch_cap
+        self._shutdown = shutdown_cap
+        self._status = status_cap
+        self._persist = persist_cap
 
-        # Shared runtime state — coordinated, not owned by a single capability.
-        self._active_pid: int | None = None
-
-    # ─── Block 2: Aggregate Facade Methods (delegate + coordinate) ──
-
+    # ─── Block 2: Aggregate Implementation ───────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationResultVO:
-        """FR-LAU-001: Delegate to LocateRegister capability."""
+        """Delegate executable location/registration to the capabilities layer."""
+        logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
     def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchResultVO:
-        """FR-LAU-002: Launch and capture the active pid into shared state."""
-        result = self._launch.launch(mode, readiness_timeout_seconds)
-        if result.success and result.process_id is not None:
-            self._active_pid = result.process_id
-            if self._config.state_persistence_location:
-                self._persist.persist(
-                    RuntimeStateVO(
-                        process_id=self._active_pid,
-                        last_status=RuntimeState.RUNNING_READY,
-                    )
-                )
-        return result
+        """Delegate launch to the capabilities layer."""
+        logger.info("Orchestrating launch (mode=%s)", mode)
+        return self._launch.launch(mode, readiness_timeout_seconds)
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownResultVO:
-        """FR-LAU-003: Delegate to Shutdown capability; reconcile persisted state."""
-        result = self._shutdown.shutdown(force, allow_escalation)
-        if result.success:
-            self._active_pid = None
-        return result
+        """Delegate shutdown to the capabilities layer."""
+        logger.info("Orchestrating shutdown (force=%s)", force)
+        return self._shutdown.shutdown(force, allow_escalation)
 
     def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
-        """FR-LAU-004: Delegate to Status capability (reads true liveness)."""
+        """Delegate status check to the capabilities layer."""
         return self._status.check_status(depth)
 
     def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
-        """FR-LAU-005: Delegate to Persist capability."""
+        """Delegate state persistence to the capabilities layer."""
         return self._persist.persist(state)
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def load_persisted_state(self) -> RuntimeStateVO | None:
-        """Load persisted runtime state (reconciliation entry point)."""
-        return self._persist.load()
-
-    def get_active_pid(self) -> int | None:
-        return self._active_pid
-
-    def __repr__(self) -> str:
-        return (
-            f"LauncherOrchestrator(active_pid={self._active_pid}, "
-            f"locate={self._locate is not None}, launch={self._launch is not None}, "
-            f"shutdown={self._shutdown is not None}, status={self._status is not None}, "
-            f"persist={self._persist is not None})"
-        )
+    # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    @property
+    def status(self) -> RuntimeStatusProtocol:
+        """Expose the status capability for health composition consumers."""
+        return self._status
