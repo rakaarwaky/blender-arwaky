@@ -1,0 +1,37 @@
+"""Contract: Settings loader protocol (FR-CFG-001).
+
+Defines the inbound behavior interface for loading, validating,
+and reloading application settings.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from ..common.taxonomy_core_vo import ConfigPath
+from .taxonomy_config_event import SettingsLoadedEvent, SettingsReloadEvent
+from .taxonomy_config_vo import SettingsSnapshot
+
+
+class ISettingsLoaderProtocol(ABC):
+    """Protocol for loading and applying settings (FR-CFG-001)."""
+
+    @abstractmethod
+    def load_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+        """Load settings from all sources, apply precedence, validate, return immutable snapshot."""
+        ...
+
+    @abstractmethod
+    def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+        """Atomically replace cached snapshot. Retains previous valid snapshot on failure (permissive)."""
+        ...
+
+    @abstractmethod
+    def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:
+        """Build a settings-loaded event payload for the given snapshot."""
+        ...
+
+    @abstractmethod
+    def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:
+        """Build a settings-reload event payload for the given snapshot."""
+        ...
