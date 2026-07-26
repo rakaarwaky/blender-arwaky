@@ -50,7 +50,7 @@ class GatewayOrchestrator(IBlenderServerAggregate):
         connection: IBlenderConnectionProtocol,
         code_executor: ICodeExecutionProtocol,
         command_adapter: IBlenderCommandProtocol,
-        operation_queue: OperationQueue,  # type: ignore[name-defined]
+        operation_queue: Any,  # OperationQueue (FIFO queue)
         event_publisher: Any,  # IEventPublisher
         metrics_provider: IMetricsProvider,
         queue_wait_timeout_ms: float = 10_000.0,

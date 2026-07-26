@@ -1,5 +1,6 @@
 """Health Check for BlenderArwaky — delegates directly to Agent container aggregate (AES compliant)."""
 
+from modules.mcp.src.container import get_container
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
@@ -13,7 +14,7 @@ class HealthCheckHandler:
         async def health_check() -> Prompt:
             """Check the health and connectivity of BlenderArwaky via Agent aggregate."""
 
-            orchestrator = container.core_agent_orchestrator
+            orchestrator = get_container().core_agent_orchestrator
             return orchestrator.health_check()
 
 

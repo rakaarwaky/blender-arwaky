@@ -107,8 +107,8 @@ class AssetExtractExecutor(AssetExtractProtocol):
 
     # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
-    @staticmethod
     def _extract_with_limits(
+        self,
         artifact: Path,
         destination: Path,
         suffix: str,

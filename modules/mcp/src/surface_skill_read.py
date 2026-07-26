@@ -5,6 +5,7 @@ This provides in-context documentation without leaving the chat.
 Surface delegates directly to Agent container aggregate (AES compliant).
 """
 
+from modules.mcp.src.container import get_container
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SectionRef, SkillName
 
 
@@ -30,7 +31,7 @@ class SkillReadHandler:
             """
             # Keep section as None if not provided (orchestrator handles None vs empty)
 
-            orchestrator = container.core_agent_orchestrator
+            orchestrator = get_container().core_agent_orchestrator
             return orchestrator.read_skill_context(skill_name, section)
 
 

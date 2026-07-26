@@ -15,7 +15,15 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SessionId,
     Timestamp,
 )
-from modules.shared.src.telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationProtocol,
+)
+from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
+    TelemetryRecordingProtocol,
+)
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
+    TelemetrySessionProtocol,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 

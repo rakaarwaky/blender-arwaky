@@ -11,6 +11,7 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import (
     CleanupMode,
+    ObjectCount,
     Prompt,
 )
 from modules.shared.src.scene.contract_scene_cleanup_protocol import SceneCleanupProtocol

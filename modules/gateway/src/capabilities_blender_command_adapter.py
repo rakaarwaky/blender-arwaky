@@ -80,7 +80,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
             ProviderError: If Blender addon returns a failure.
         """
         # Validate command
-        spec = get_command_spec(action)
+        get_command_spec(action)
 
         # Validate parameters
         from modules.gateway.src import validate_command_args

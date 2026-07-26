@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import logging
 import queue
 import threading
@@ -221,7 +220,6 @@ class TelemetrySignalRecorder(TelemetryRecordingPort):
                 "blender_version": event.blender_version,
                 "metadata": event.metadata or {},
             }
-            line = json.dumps(data, ensure_ascii=False, default=str)
             # In production, write to JSONL file
             # with open(self._jsonl_path, "a", encoding="utf-8") as f:
             #     f.write(line + "\n")

@@ -112,7 +112,6 @@ class JobOrchestrator:
     def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, int]:
         """Remove old, finished task records."""
         terminal_states = {"COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"}
-        active_states = {"PENDING", "RUNNING"}
 
         terminal = [jid for jid, s in self._jobs.items() if s.status.value in terminal_states]
         to_remove = terminal[max_retained:] if len(terminal) > max_retained else []

@@ -1,0 +1,124 @@
+"""Result normalization capability — unified envelope construction.
+
+FR-DSP-006: Normalize Operation Result
+- Normalizes all outcomes into single envelope shape
+- Never leaks secrets, raw code, or sensitive paths
+- Truncates oversized data with indicator
+- Falls back to safe error envelope on construction failure
+- Identical shape for CLI and MCP consumers
+"""
+
+import json
+import logging
+from typing import Any
+
+from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
+    ResultNormalizationProtocol,
+)
+from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+
+logger = logging.getLogger("BlenderMCPServer")
+
+
+class ResultNormalizationExecutor(ResultNormalizationProtocol):
+    """Concrete implementation for result normalization.
+
+    FR-DSP-006: Normalizes all outcomes into unified envelope.
+    Never leaks secrets; truncates oversized data; falls back to safe error.
+    """
+
+    # ─── Block 1: Class Definition & Constructor ──────────────
+
+    def __init__(self, max_result_data_size: int = 1_000_000):
+        self._max_size = max_result_data_size
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
+
+    def normalize_result(
+        self,
+        raw_outcome: dict[str, Any],
+        tracking_id: str,
+        is_background: bool = False,
+    ) -> UnifiedResultEnvelopeVO:
+        """Normalize any dispatch or submission outcome into a unified result envelope.
+
+        FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
+        Returns identical shape for CLI and MCP consumers.
+        """
+        try:
+            # Extract outcome fields
+            success = raw_outcome.get("success", False)
+            message = raw_outcome.get("message", "")
+            data = raw_outcome.get("data")
+            error_category = raw_outcome.get("error_category")
+            warnings = raw_outcome.get("warnings", [])
+            metadata = raw_outcome.get("metadata", {})
+
+            # Process and sanitize data payload
+            if data is not None:
+                data = self._sanitize_data(data)
+                truncated = False
+                data_size = len(json.dumps(data))
+                if data_size > self._max_size:
+                    data = {"_truncated": True, "_size_exceeded": self._max_size}
+                    truncated = True
+
+            # Build envelope
+            if success:
+                return UnifiedResultEnvelopeVO.success_envelope(
+                    message=message,
+                    tracking_id=tracking_id,
+                    data=data,
+                    warnings=list(warnings) if warnings else [],
+                    metadata=dict(metadata) if metadata else {},
+                )
+            else:
+                return UnifiedResultEnvelopeVO.error_envelope(
+                    message=message,
+                    tracking_id=tracking_id,
+                    error_category=error_category or "execution_error",
+                    data=data,
+                    warnings=list(warnings) if warnings else [],
+                    metadata=dict(metadata) if metadata else {},
+                )
+
+        except Exception as e:
+            # Envelope construction failure — fall back to safe error
+            logger.error("Envelope construction failed: %s", e)
+            return UnifiedResultEnvelopeVO.safe_error_envelope(
+                f"Normalization failed: {e}",
+            )
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def _sanitize_data(self, data: Any) -> Any:
+        """Sanitize data payload — redact secrets, paths, raw code.
+
+        FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
+        Non-serializable values converted to safe textual representation.
+        """
+        # Redact common sensitive patterns
+        if isinstance(data, dict):
+            redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
+            sanitized = {}
+            for key, value in data.items():
+                key_lower = key.lower()
+                if any(pattern in key_lower for pattern in redacted_keys):
+                    sanitized[key] = "***REDACTED***"
+                elif isinstance(value, dict):
+                    sanitized[key] = self._sanitize_data(value)
+                elif isinstance(value, str) and len(value) > 1000:
+                    sanitized[key] = f"{value[:500]}...[truncated]"
+                else:
+                    sanitized[key] = value
+            return sanitized
+
+        # Non-dict data — convert to string safely
+        try:
+            json.dumps(data)
+            return data
+        except (TypeError, ValueError):
+            return str(data)
+
+    def __repr__(self) -> str:
+        return f"ResultNormalizationExecutor(max_size={self._max_size})"

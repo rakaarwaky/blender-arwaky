@@ -393,7 +393,6 @@ class BlenderConnection(IBlenderConnectionProtocol):
             )
 
         # Extract workspace metadata
-        workspace = resp_dict.get("params", {}).get("workspace", {})
         self._session_id = resp_dict.get("result", {}).get("session_id")
         self._active_file_path = resp_dict.get("result", {}).get("active_file_path")
         self._active_directory = resp_dict.get("result", {}).get("active_directory")

@@ -7,7 +7,6 @@ FR-JOB-004: Automatic Task Record Cleanup
 """
 
 import logging
-import time
 
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
@@ -28,10 +27,8 @@ class JobCleanup:
         Returns summary with removed and retained counts.
         """
         terminal_states = {"COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"}
-        now = time.time()
 
         # Find expired finished tasks
-        to_remove: list[str] = []
         for job_id, status in self._jobs.items():
             if status.status.value in terminal_states:
                 # Check if retention period has passed (simplified - no timestamp stored)

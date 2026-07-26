@@ -7,6 +7,7 @@ Direct delegation to the Agent container via its aggregate contract (AES complia
 import json
 import logging
 
+from modules.mcp.src.container import get_container
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -38,7 +39,7 @@ class CommandExecuteHandler:
             if args is None:
                 args = {}
             try:
-                orchestrator = container.core_agent_orchestrator
+                orchestrator = get_container().core_agent_orchestrator
                 result = await orchestrator.execute_action(action, args)
                 return result
             except Exception as e:

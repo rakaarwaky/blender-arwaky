@@ -153,7 +153,7 @@ class RenderCapability(RenderOperateProtocol):
                 use_denoising, render_engine, camera_id, timeout_seconds
             )
 
-            result = await self.gateway_client.execute_command(render_command)
+            await self.gateway_client.execute_command(render_command)
             duration_ms = (time.monotonic() - start_time) * 1000
 
             return {
