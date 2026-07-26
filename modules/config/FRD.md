@@ -88,7 +88,7 @@ Config is the only feature that loads settings. No other feature reads config fi
   - Reload must replace snapshot atomically under synchronization
   - Failed load must not expose partial settings state
   - Failed reload must retain previous valid snapshot unless strict mode requires failure propagation
-  - Settings source size must be limited to prevent excessive memory usage
+  - Settings source size must be limited to prevent excessive memory usage: limit is 1 MiB (MAX_CONFIG_SIZE_BYTES); in strict mode an oversized source raises ConfigLoadError, in permissive mode it warns and skips the file source (flag-gated behind BLENDERMCP_CONFIG_V2)
   - Secret values present in settings must never be echoed into metadata, logs, or diagnostics
 - **Edge Cases**: Missing settings file, malformed settings content, permission denied, empty settings file, duplicate mapping keys, unsupported tags, oversized settings file, non-UTF-8 encoding, environment override conflict, legacy environment fallback, schema unavailable, secret values in settings, symlinked settings location, settings location pointing to directory instead of file
 - **Error Handling**: Configuration error for missing, unreadable, or malformed settings source in strict mode; validation error for schema violation; load error for oversized or unsafe settings content; warning-level fallback behavior in permissive mode
@@ -109,6 +109,7 @@ Features request settings through config. Config returns immutable values or dee
   - Numeric path segments may access list positions when current node is a list
   - Out-of-range list position returns default
   - Escaped separator may resolve literal dotted key when supported
+  - `\.` resolves a literal dotted key when BLENDERMCP_CONFIG_V2 is enabled
   - Retrieval must be thread-safe and lock-free after initialization where possible
   - Retrieval must not trigger file or environment reads per request
   - Expected type mismatch returns default in permissive mode
@@ -128,17 +129,16 @@ Config determines project root. Asset and render do not determine project root r
 - **Business Rules**:
   - Resolution follows deterministic order:
     1. Explicit workspace override when provided at runtime
-    2. Product-specific workspace environment signal
-    3. Legacy workspace environment signal when backward compatibility is enabled
-    4. Settings file location, using its parent directory
-    5. Upward proximity search for recognized project marker concepts
-    6. Platform-standard user configuration location
-    7. Current working directory
+    2. Product-specific workspace environment signal (BLENDERMCP_ROOT)
+    3. Settings file location, using its parent directory
+    4. Upward proximity search for recognized project marker concepts
+    5. Platform-standard user configuration location
+    6. Current working directory
   - Project marker priority should be:
-    1. Primary settings source
+    1. Primary settings source (config.yaml, config.yml)
     2. Product-specific settings source
-    3. Project manifest
-    4. Version control metadata
+    3. Project manifest (pyproject.toml)
+    4. Version control metadata (.git)
   - Resolved path must be normalized
   - Symbolic links must be resolved safely without unnecessary failure
   - Candidate directory must exist and be readable to be accepted
@@ -147,7 +147,7 @@ Config determines project root. Asset and render do not determine project root r
   - Workspace resolution must not create directories by default
   - If no valid candidate exists, fallback to current working directory
   - If current working directory is inaccessible, raise workspace resolution error
-  - Resolution result should be cached and reused consistently across features
+  - Resolution result is cached for process lifetime and reused consistently across features
   - All file-writing features must derive allowed locations from this resolution rather than their own rules
 - **Edge Cases**: Multiple candidate directories, symlinked directories, non-existent candidate, permission denied candidate, network-mounted filesystem, case-insensitive filesystem, settings location pointing to file versus directory, circular symbolic link, empty environment value, relative path, deleted working directory, platform-specific remote path
 - **Error Handling**: Warning and fallthrough for invalid environment path; fallthrough for non-existent or unreadable candidate; workspace resolution error only when all strategies fail and working directory is inaccessible
@@ -163,14 +163,9 @@ Config provides config source, override count, and warnings. Metadata must not l
   - Metadata should include:
     - resolved settings source location
     - whether settings file existed
-    - whether environment overrides were applied
-    - count of applied overrides
-    - count of applied defaults
+    - count of applied environment overrides (OverrideCount)
     - parse warning list
     - validation warning list
-    - policy mode in effect, strict or permissive
-    - snapshot load or reload timestamp
-    - workspace directory resolution summary
   - Metadata must not include secret values
   - Metadata must not include raw settings content by default
   - Override names may be listed, but override values must be redacted when sensitive
@@ -197,12 +192,13 @@ Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP us
     - credentials
     - connection strings containing secrets
     - signing or encryption material
-  - Rules may be extended through settings without code changes
+  - Rules may be extended via composition-root injection (extra_redaction_patterns) — not from settings at runtime
   - Rules must define placeholder convention used during masking
   - Rules themselves contain key names and patterns only, never secret values
   - Consuming features must retrieve rules from config or security policy and must not hard-code their own lists
   - Rule updates must be reflected consistently across diagnostics, command-line output, and MCP-facing responses
-  - Rules should distinguish between full redaction and partial masking where supported
+  - Matching is substring-based (case-insensitive): e.g. the pattern `auth` also matches `author` — an accepted false positive (Q14)
+  - Redaction is full-only: `full_redact` is always True; partial masking of values is not supported (Q15)
   - Rule retrieval must be lightweight and safe for repeated use
 - **Edge Cases**: Empty rule list, conflicting patterns, unknown secret format, key matching multiple patterns, rule update after load, consumer feature bypassing rules, pattern accidentally matching non-sensitive key
 - **Error Handling**: Missing or invalid rule definition falls back to built-in default sensitive key list; warning emitted when custom rules cannot be parsed; rule failure must never cause secret values to be exposed
@@ -282,6 +278,11 @@ Event payloads must avoid:
 - [ ] Project workspace falls back to current working directory
 - [ ] Project workspace handles symlinked directories safely
 - [ ] Project workspace resolution does not create directories by default
+- [ ] Legacy BLENDERMCP_* environment variables are ignored (Q8)
+- [ ] Runtime overrides are caller-scoped and not cached (A5)
+- [ ] 32-thread first access performs exactly one load (Q19)
+- [ ] Built-in defaults tier is complete; settings file is optional override-only (Q6)
+- [ ] Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_CONFIG_V2
 - [ ] Asset and render derive root locations from workspace resolution instead of own rules
 - [ ] Settings metadata reports source, override count, and warnings
 - [ ] Settings metadata does not leak secret values
@@ -293,3 +294,24 @@ Event payloads must avoid:
 - [ ] Settings loaded event emitted after successful load
 - [ ] Settings reload event emitted after successful reload
 - [ ] Workspace resolved event emitted after resolution
+
+## Feature Flag
+
+`BLENDERMCP_CONFIG_V2` controls the v1.7.0 new-enforcement behaviors. Read once
+at container construction. `None` (unset) → resolved via `parse_env_value` truthiness
+of `BLENDERMCP_CONFIG_V2`; explicit bool wins.
+
+| Behavior | Gated | Flag OFF (v1.7.0 default) | Flag ON |
+|----------|-------|---------------------------|---------|
+| Schema validation (T-06) | ✅ | Skipped entirely | Enforced per policy mode |
+| Runtime overrides param (T-06) | ✅ | Param ignored + parse warning logged | Applied, counted |
+| Size limit > 1 MiB (T-06) | ✅ | Not checked | strict → ConfigLoadError / permissive warn+skip |
+| Strict ConfigTypeError (T-07) | ✅ | Default returned (current behavior) | Raise in strict mode |
+| `\.` escaped separator (T-07) | ✅ | Literal split on every `.` | `\.` resolves literal dotted key |
+| Defaults tier (T-06) | ❌ | Always ON (required by Q6) | — |
+| Legacy prefix removal (T-01) | ❌ breaking | Removed | Removed |
+| Metadata wiring, events, ring buffer (T-06/T-08/T-09) | ❌ | Always ON | — |
+| Workspace fixes + caching (T-10) | ❌ | Always ON | — |
+| Thread-safe init (T-06) | ❌ | Always ON | — |
+
+v1.8.0 plan: flip flag default to ON; v1.9.0 remove flag.

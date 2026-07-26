@@ -1,26 +1,58 @@
-"""Asset provider domain contract: asset search protocol (ABC based)."""
+"""Asset domain contract: asset search protocol (ABC based).
+
+Defines the protocol for unified multi-provider asset search.
+
+FR-AST-001: Search Assets Across Providers
+AES Contract layer — pure ABC definitions, no implementation.
+"""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, SearchQuery, StringList
-from .taxonomy_asset_data_vo import AssetMetadata, ImportedAsset
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetIdList,
+    AssetTypeFilter,
+    NextPageToken,
+    ProviderName,
+    ResultLimit,
+    SearchQuery,
+)
+from .taxonomy_asset_data_vo import AssetMetadata
 
 
 class AssetSearchProtocol(ABC):
-    """Business logic interface for asset searching and importing."""
+    """Protocol for unified multi-provider asset search.
+
+    FR-AST-001: Single search operation regardless of provider count.
+    Returns normalized, aggregated results with pagination and warnings.
+    """
 
     @abstractmethod
     async def search_all(
-        self, query: SearchQuery, providers: StringList | None = None
-    ) -> list[AssetMetadata]:
-        """Search across all registered providers, optionally filtered."""
-        pass
+        self,
+        query: SearchQuery,
+        providers: list[ProviderName] | None = None,
+        asset_type_filter: AssetTypeFilter | None = None,
+        limit: ResultLimit | None = None,
+        page_token: NextPageToken | None = None,
+    ) -> dict[str, Any]:
+        """Search across all enabled providers with unified response.
 
-    @abstractmethod
-    async def fetch_and_import(
-        self, provider_name: ProviderName, asset_id: AssetId
-    ) -> ImportedAsset:
-        """Download from specific provider and import into Blender."""
-        pass
+        FR-AST-001: Each enabled provider queried independently.
+        Failures logged and skipped; partial results returned when possible.
+        Results normalized into common asset metadata shape before aggregation.
+
+        Args:
+            query: Text search query.
+            providers: Optional provider filter; None means all enabled.
+            asset_type_filter: Optional asset type filter.
+            limit: Optional result limit per provider.
+            page_token: Optional pagination cursor.
+
+        Returns:
+            Dict with normalized assets list, provider status summary,
+            pagination metadata, and warnings.
+        """
+        ...

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_server_vo import ServerMetrics
+from modules.gateway.src.taxonomy_server_vo import ServerMetrics
 
 
 class IMetricsProvider(ABC):
