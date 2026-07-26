@@ -19,6 +19,7 @@ from . import (
     diagnostics,
     dispatcher,
     job,
+    launcher,
     object,
     render,
     scene,
@@ -250,6 +251,27 @@ from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_action_request_vo import ActionRequestVO
 from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+
+# === Launcher domain exports ===
+from .launcher.contract_launch_protocol import LaunchProtocol
+from .launcher.contract_launcher_operate_aggregate import LauncherOperateAggregate
+from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from .launcher.contract_persist_state_protocol import PersistStateProtocol
+from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+from .launcher.contract_shutdown_protocol import ShutdownProtocol
+from .launcher.taxonomy_launcher_vo import (
+    ExecutableReferenceVO,
+    LauncherConfigVO,
+    LaunchResultVO,
+    PersistenceResultVO,
+    RegistrationResultVO,
+    RegistrationSource,
+    RuntimeState,
+    RuntimeStateVO,
+    RuntimeStatusVO,
+    ShutdownResultVO,
+    VersionCompatibility,
+)
 
 from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
 from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
@@ -625,4 +647,23 @@ __all__ = [
     "ActionRequestVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
+    # Launcher domain — Protocols
+    "LaunchProtocol",
+    "LauncherOperateAggregate",
+    "LocateRegisterProtocol",
+    "PersistStateProtocol",
+    "RuntimeStatusProtocol",
+    "ShutdownProtocol",
+    # Launcher domain — Value Objects & Enums
+    "ExecutableReferenceVO",
+    "LauncherConfigVO",
+    "LaunchResultVO",
+    "PersistenceResultVO",
+    "RegistrationResultVO",
+    "RegistrationSource",
+    "RuntimeState",
+    "RuntimeStateVO",
+    "RuntimeStatusVO",
+    "ShutdownResultVO",
+    "VersionCompatibility",
 ]
