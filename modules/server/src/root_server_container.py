@@ -2,150 +2,182 @@
 
 Wires capabilities → agent orchestrator and bootstraps the system.
 Provides a single entry point to obtain a fully configured IBlenderServerAggregate.
+Implements v2.0.0 configuration loading from file, env, and programmatic overrides.
 """
 
 from __future__ import annotations
 
 import logging
-import threading
-from typing import TYPE_CHECKING
+from typing import Any
 
 from modules.shared.src.server import (
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
     ICodeExecutionProtocol,
-    QueueConfig,
-    TaskManagerConfig,
+    IMetricsProvider,
+    ServerConfig,
 )
-
-if TYPE_CHECKING:
-    pass
+from modules.shared.src.server import (
+    load_server_config,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class ServerContainer:
-    """DI container that wires server capabilities to the agent orchestrator.
+    """DI container that wires server components per v2.0.0 architecture.
 
-    Thread-safe singleton pattern for shared connection management.
-    All components are lazy-instantiated on first access.
+    Accepts ServerConfig, builds event bus → metrics → queue → connection
+    → command adapter → code executor → orchestrator in dependency order.
+    Provides async start/shutdown lifecycle.
     """
 
-    # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(
-        self,
-        host: str = "localhost",
-        port: int = 9876,
-        queue_config: QueueConfig | None = None,
-        task_config: TaskManagerConfig | None = None,
-    ) -> None:
-        self._host = host
-        self._port = port
-        self._queue_config = queue_config or QueueConfig()
-        self._task_config = task_config or TaskManagerConfig()
-        self._lock = threading.Lock()
-        self._connection: IBlenderConnectionProtocol | None = None
+    def __init__(self, config: ServerConfig | None = None) -> None:
+        """Initialize container with optional config.
+
+        If config is None, loads from file/env/defaults via load_server_config().
+
+        Args:
+            config: Optional ServerConfig. Falls back to load_server_config().
+        """
+        self._config = config or load_server_config()
         self._aggregate: IBlenderServerAggregate | None = None
+        self._event_bus: Any = None  # InMemoryEventBus
+        self._metrics: IMetricsProvider | None = None
 
-    # ─── Block 2: Container Wiring & Accessors ──────────────
+    # ─── Block 2: Container Wiring ─────────────────────────────
 
-    def _build_connection(self) -> IBlenderConnectionProtocol:
-        """Build and return the Blender connection capability."""
-        from .capabilities_blender_connection import BlenderConnection
+    async def start(self) -> IBlenderServerAggregate:
+        """Build all components and start the server.
 
-        conn = BlenderConnection(host=self._host, port=self._port)
-        logger.info("Created connection to %s:%d", self._host, self._port)
-        return conn
+        Returns:
+            Fully wired IBlenderServerAggregate implementation.
 
-    def _build_command_adapter(
-        self,
-        connection: IBlenderConnectionProtocol,
-    ) -> IBlenderCommandProtocol:
-        """Build command dispatch capability."""
-        from .capabilities_blender_command_adapter import BlenderCommandAdapter
-
-        return BlenderCommandAdapter(connection)
-
-    def _build_code_executor(
-        self,
-        connection: IBlenderConnectionProtocol,
-    ) -> ICodeExecutionProtocol:
-        """Build code execution capability with AST validation and task lifecycle management."""
-        from .capabilities_code_execution_adapter import CodeExecutionAdapter
-
-        return CodeExecutionAdapter(connection_port=connection, task_config=self._task_config)
-
-    def get_aggregate(self) -> IBlenderServerAggregate:
-        """Return a fully wired ServerOrchestrator (singleton).
-
-        Lazy-initializes all dependencies on first call.
-        Subsequent calls return the same orchestrator instance.
+        Raises:
+            RuntimeError: If already started.
         """
         if self._aggregate is not None:
             return self._aggregate
 
-        with self._lock:
-            # Double-check after lock acquisition
-            if self._aggregate is not None:
-                return self._aggregate
+        # 1. Build event bus
+        from modules.server.src.capabilities_event_bus import InMemoryEventBus
+        self._event_bus = InMemoryEventBus()
 
-            connection = self._build_connection()
-            self._connection = connection
+        # 2. Build metrics collector and subscribe to event bus
+        from modules.server.src.capabilities_metrics_collector import MetricsCollector
+        self._metrics = MetricsCollector()
+        self._event_bus.subscribe(self._metrics)
 
-            command_adapter = self._build_command_adapter(connection)
-            logger.debug("Command adapter initialized: %s", command_adapter)
+        # 3. Build connection
+        from modules.shared.src.server import ConnectionConfig
+        conn = self._build_connection(self._event_bus)
 
-            code_executor = self._build_code_executor(connection)
+        # 4. Build operation queue
+        from modules.server.src.capabilities_operation_queue import OperationQueue
+        queue = OperationQueue(
+            event_publisher=self._event_bus,
+            max_depth=self._config.queue_max_depth,
+            wait_timeout_ms=self._config.queue_wait_timeout_ms,
+        )
 
-            from .agent_server_orchestrator import ServerOrchestrator
+        # 5. Build command adapter
+        cmd_adapter = self._build_command_adapter(conn, self._event_bus)
 
-            self._aggregate = ServerOrchestrator(
-                connection=connection,
-                code_executor=code_executor,
-                command_adapter=command_adapter,
-            )
+        # 6. Build code executor
+        code_exec = self._build_code_executor(conn, self._event_bus)
 
-        logger.info("Server container fully wired")
+        # 7. Build orchestrator
+        from modules.server.src.agent_server_orchestrator import ServerOrchestrator
+        self._aggregate = ServerOrchestrator(
+            connection=conn,
+            code_executor=code_exec,
+            command_adapter=cmd_adapter,
+            operation_queue=queue,
+            event_publisher=self._event_bus,
+            metrics_provider=self._metrics,
+            queue_wait_timeout_ms=self._config.queue_wait_timeout_ms,
+            execution_default_timeout_ms=self._config.execution_default_timeout_ms,
+        )
+
+        # 8. Start orchestrator (starts queue worker)
+        await self._aggregate.start()
+
+        logger.info("Server container fully wired and started")
         return self._aggregate
 
-    def get_connection(self) -> IBlenderConnectionProtocol:
-        """Return the shared Blender connection (singleton)."""
-        if self._connection is None:
-            with self._lock:
-                if self._connection is None:
-                    self._connection = self._build_connection()
-        return self._connection
-
-    def shutdown(self) -> None:
-        """Gracefully shut down all server components."""
-        with self._lock:
-            if self._connection is not None:
-                try:
-                    self._connection.disconnect()
-                except Exception as e:
-                    logger.warning("Error during connection shutdown: %s", e)
-                self._connection = None
+    async def shutdown(self) -> None:
+        """Gracefully shut down all components."""
+        if self._aggregate is not None:
+            try:
+                await self._aggregate.shutdown()
+            except Exception as e:
+                logger.warning("Error during shutdown: %s", e)
             self._aggregate = None
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def _build_connection(self, event_publisher: Any) -> IBlenderConnectionProtocol:
+        """Build the Blender connection capability."""
+        from modules.server.src.capabilities_blender_connection import BlenderConnection
+        return BlenderConnection(event_publisher=event_publisher)
+
+    def _build_command_adapter(
+        self,
+        connection: IBlenderConnectionProtocol,
+        event_publisher: Any,
+    ) -> IBlenderCommandProtocol:
+        """Build command dispatch capability."""
+        from modules.server.src.capabilities_blender_command_adapter import BlenderCommandAdapter
+        return BlenderCommandAdapter(
+            connection_port=connection,
+            event_publisher=event_publisher,
+            max_command_response_bytes=self._config.max_command_response_bytes,
+        )
+
+    def _build_code_executor(
+        self,
+        connection: IBlenderConnectionProtocol,
+        event_publisher: Any,
+    ) -> ICodeExecutionProtocol:
+        """Build code execution capability with centralized validation."""
+        from modules.shared.src.server import CodeSecurityPolicy
+        from modules.server.src.capabilities_code_execution_adapter import CodeExecutionAdapter
+
+        return CodeExecutionAdapter(
+            connection_port=connection,
+            event_publisher=event_publisher,
+            security_policy=CodeSecurityPolicy(
+                allowed_directories=self._config.allowed_directories,
+                max_payload_bytes=self._config.max_code_payload_bytes,
+            ),
+            task_config=None,  # Default config
+            default_timeout_ms=self._config.execution_default_timeout_ms,
+            max_output_bytes=self._config.max_execution_output_bytes,
+        )
+
+    def get_aggregate(self) -> IBlenderServerAggregate:
+        """Return the wired aggregate (must call start() first)."""
+        if self._aggregate is None:
+            raise RuntimeError("ServerContainer not started. Call start() first.")
+        return self._aggregate
+
     def __repr__(self) -> str:
-        return f"ServerContainer(host={self._host!r}, port={self._port})"
+        return f"ServerContainer(host={self._config.host!r}, port={self._config.port})"
 
 
 def create_container(
-    host: str = "localhost",
-    port: int = 9876,
+    config_path: str | None = None,
+    overrides: dict[str, Any] | None = None,
 ) -> ServerContainer:
     """Factory function to create a new server container.
 
-    Convenience wrapper for developers who don't need custom config.
+    Loads config from file/env/defaults and creates the container.
 
     Args:
-        host: Blender addon host address.
-        port: Blender addon TCP port.
+        config_path: Path to YAML config file. Falls back to BLENDERMCP_CONFIG_PATH.
+        overrides: Programmatic key-value overrides.
 
     Returns:
         Configured ServerContainer instance.
     """
-    return ServerContainer(host=host, port=port)
+    config = load_server_config(config_path=config_path, overrides=overrides)
+    return ServerContainer(config=config)

@@ -2,6 +2,9 @@
 
 All errors subclass ServerError with explicit error codes for MCP serialization.
 No bare string errors in public API.
+Renamed per v2.0.0: QueueFullError → TooManyPendingOperationsError,
+QueueTimeoutError → OperationWaitTimeoutError,
+ProtocolVersionMismatchError → VersionMismatchError.
 """
 
 from __future__ import annotations
@@ -42,13 +45,6 @@ class SecurityViolationError(ServerError):
 # ─── Execution Errors ──────────────────────────────────────────────
 
 
-class CodeValidationError(ServerError):
-    """Raised when code fails static analysis or contains blocked patterns."""
-
-    def __init__(self, message: str = "Code validation failed", details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("code_validation_error", message, details)
-
-
 class ExecutionTimeoutError(ServerError):
     """Raised when code execution exceeds the configured timeout."""
 
@@ -63,21 +59,37 @@ class CommandTimeoutError(ServerError):
         super().__init__("command_timeout", f"Command '{action}' timed out after {timeout_ms}ms", {"action": action, "timeout_ms": timeout_ms})
 
 
-# ─── Queue Errors ────────────────────────────────────────────────
+# ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
 
 
-class QueueFullError(ServerError):
-    """Raised when the serialized execution queue has reached maximum depth."""
+class TooManyPendingOperationsError(ServerError):
+    """Raised when the serialized execution queue has reached maximum depth.
 
-    def __init__(self, max_depth: int = 50, details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("queue_full", f"Queue full (depth={max_depth})", {"max_depth": max_depth})
+    Renamed from QueueFullError in v2.0.0.
+    Error code: 'too_many_pending_operations'
+    """
+
+    def __init__(self, max_depth: int = 50, request_id: str | None = None, details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "too_many_pending_operations",
+            f"Queue full (depth={max_depth})",
+            {"max_depth": max_depth, "request_id": request_id, **(details or {})},
+        )
 
 
-class QueueTimeoutError(ServerError):
-    """Raised when a queued operation exceeds the configured wait timeout."""
+class OperationWaitTimeoutError(ServerError):
+    """Raised when a queued operation exceeds the configured wait timeout.
+
+    Renamed from QueueTimeoutError in v2.0.0.
+    Error code: 'operation_wait_timeout'
+    """
 
     def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("queue_timeout", f"Queue wait timeout for {request_id}", {"request_id": request_id, "timeout_ms": timeout_ms})
+        super().__init__(
+            "operation_wait_timeout",
+            f"Operation wait timeout for {request_id}",
+            {"request_id": request_id, "timeout_ms": timeout_ms},
+        )
 
 
 # ─── Task Errors ────────────────────────────────────────────────
@@ -107,11 +119,19 @@ class AuthenticationError(ServerError):
         super().__init__("authentication_failed", message, details)
 
 
-class ProtocolVersionMismatchError(ServerError):
-    """Raised when server and Blender addon protocol versions are incompatible."""
+class VersionMismatchError(ServerError):
+    """Raised when server and Blender addon protocol versions are incompatible.
+
+    Renamed from ProtocolVersionMismatchError in v2.0.0.
+    Error code: 'version_mismatch'
+    """
 
     def __init__(self, expected: str = "", actual: str = "", details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("protocol_version_mismatch", f"Expected {expected}, got {actual}", {"expected": expected, "actual": actual})
+        super().__init__(
+            "version_mismatch",
+            f"Expected major version {expected}, got {actual}",
+            {"expected": expected, "actual": actual},
+        )
 
 
 class ConnectionClosedError(ServerError):
@@ -128,7 +148,38 @@ class BlenderConnectionExhausted(ServerError):
         super().__init__("connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts})
 
 
+class BlenderConnectionFailure(ServerError):
+    """Raised when connection is lost or unavailable."""
+
+    def __init__(self, message: str = "Blender connection failure", details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("blender_connection_failure", message, details)
+
+
+# ─── Validation Errors ──────────────────────────────────────────
+
+
+class ValidationError(ServerError):
+    """Raised for unknown commands, invalid parameters, or syntax errors."""
+
+    def __init__(self, message: str = "Validation error", code: str = "validation_error", details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(code, message, details)
+
+
 # ─── Adapter / Surface Errors ────────────────────────────────────
+
+
+class ProviderError(ServerError):
+    """Raised when Blender addon returns a command-specific failure."""
+
+    def __init__(self, message: str = "Provider error", details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("provider_error", message, details)
+
+
+class ExecutionError(ServerError):
+    """Raised when Blender code execution returns a runtime failure."""
+
+    def __init__(self, message: str = "Execution error", details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("execution_error", message, details)
 
 
 class AdapterSurfaceError(ServerError):

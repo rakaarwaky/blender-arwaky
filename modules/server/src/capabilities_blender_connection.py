@@ -1,426 +1,578 @@
-"""Capability: Blender socket connection lifecycle management.
+"""Capability: Blender asyncio connection lifecycle management.
 
-Implements IBlenderConnectionProtocol — handles TCP socket connection,
-heartbeat monitoring, auto-reconnect with exponential backoff,
-connection status reporting, and factory instantiation per FR-SRV-001.
+Implements IBlenderConnectionProtocol — handles asyncio stream connection,
+handshake with version/auth, heartbeat asyncio task, reconnect with
+exponential backoff, and event emission per FR-SRV-001 (v2.0.0).
+No blocking I/O, no threading — pure asyncio.
 """
 
 from __future__ import annotations
 
-import contextlib
+import asyncio
 import json
 import logging
-import os
-import select
-import socket
-import threading
+import struct
 import time
-from typing import Any
 
-from modules.config.src.contract_config import ConfigPort
-from modules.shared.src import (
-    ActionName,
-    BlenderConnectionFailure,
-    ConfigPath,
-    Details,
-    ErrorMessage,
-    ExecutionError,
-    SuccessFlag,
-)
 from modules.shared.src.server import (
-    CONNECTION_TIMEOUT_SECONDS,
-    MAX_RECONNECT_ATTEMPTS,
-    RETRY_BASE_DELAY_SECONDS,
-    RETRY_MAX_DELAY_SECONDS,
     AuthenticationError,
     BlenderConnectionExhausted,
+    BlenderConnectionFailure,
+    CommandResult,
+    ConnectionClosedError,
+    ConnectionConfig,
     ConnectionConfigError,
-    ConnectionStatus,
+    ConnectionEstablished,
+    ConnectionLost,
+    ConnectionState,
+    DEFAULT_PROTOCOL_VERSION,
+    HEARTBEAT_FAILURE_THRESHOLD,
+    HEARTBEAT_INTERVAL_SECONDS,
     IBlenderConnectionProtocol,
-    ProtocolVersionMismatchError,
+    IEventPublisher,
+    VersionMismatchError,
+)
+
+from modules.shared.src.server import (
+    CONNECTION_STATE_CONNECTED,
+    CONNECTION_STATE_DISCONNECTED,
+    CONNECTION_STATE_FAILED,
+    CONNECTION_STATE_RECONNECTING,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
 
-RECEIVE_TIMEOUT: float = CONNECTION_TIMEOUT_SECONDS
-
 
 class BlenderConnection(IBlenderConnectionProtocol):
-    """Manages persistent socket connection to Blender addon.
+    """Asyncio-based persistent connection to Blender addon.
 
-    Implements FR-SRV-001 / FR-SRV-004: heartbeat monitoring, auto-reconnect with
-    exponential backoff with jitter, configuration validation, and factory instantiation.
+    Implements FR-SRV-001 (v2.0.0): asyncio stream connection, handshake
+    with version/auth, heartbeat asyncio task, reconnect with exponential
+    backoff + jitter, and event emission through IEventPublisher.
+
+    No threading, no blocking I/O — pure asyncio throughout.
     """
 
-    # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, host: str = "localhost", port: int = 9876, auth_token: str | None = None) -> None:
-        self.host = host
-        self.port = port
-        self.auth_token = auth_token
-        self.sock: socket.socket | None = None
-        self._lock = threading.Lock()
+    def __init__(self, event_publisher: IEventPublisher) -> None:
+        """Initialize connection with event publisher.
 
-        # Heartbeat configuration (FR-SRV-001)
-        self._heartbeat_interval = 10  # seconds
-        self._heartbeat_failure_threshold = 3
-        self._consecutive_failures = 0
+        Args:
+            event_publisher: Event bus for emitting lifecycle events.
+        """
+        self._event_publisher = event_publisher
+
+        # Connection config (set on connect)
+        self._config: ConnectionConfig | None = None
+        self._host: str = "localhost"
+        self._port: int = 9876
+
+        # Asyncio stream
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
+
+        # State tracking
+        self._state: ConnectionState = CONNECTION_STATE_DISCONNECTED
+        self._active_operation: bool = False
+        self._protocol_version: str | None = DEFAULT_PROTOCOL_VERSION
+        self._last_error: str | None = None
+        self._reconnect_attempts: int = 0
+        self._session_id: str | None = None
+        self._active_file_path: str | None = None
+        self._active_directory: str | None = None
         self._last_heartbeat_at: float | None = None
 
-        # Connection state tracking (FR-SRV-001)
-        self._state: str = "disconnected"
-        self._reconnect_attempts: int = 0
-        self._protocol_version: str | None = "1.0.0"
-        self._last_error: str | None = None
+        # Heartbeat task
+        self._heartbeat_task: asyncio.Task[None] | None = None
+        self._consecutive_failures: int = 0
 
-        # Heartbeat thread
-        self._heartbeat_thread: threading.Thread | None = None
-        self._stop_heartbeat = threading.Event()
+        # Lock for thread safety (not needed in asyncio, but kept for safety)
+        self._lock: asyncio.Lock = asyncio.Lock()
 
-    # ─── Block 2: Protocol Method Implementation ─────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
-    async def connect(self) -> SuccessFlag:  # FR-SRV-001
-        """Connect to Blender with exponential backoff retries and jitter.
+    async def connect(self, config: ConnectionConfig) -> ConnectionStatus:
+        """Establish connection with handshake, auth, and version check.
 
-        Implements FR-SRV-001: auto-reconnect with max 3 retry attempts
-        using exponential backoff with jitter (1s, 2s, 4s). Handshake verifies
-        compatibility version and authenticates user token if required.
-        Connection timeout: CONNECTION_TIMEOUT_SECONDS (30s default).
-        Initializes heartbeat monitoring on successful connection.
+        Implements FR-SRV-001 (v2.0.0): validates config, opens asyncio
+        stream, performs handshake with version compatibility check,
+        authenticates if required, starts heartbeat task.
+
+        Args:
+            config: Connection configuration.
+
+        Returns:
+            ConnectionStatus with state='connected'.
+
+        Raises:
+            ConnectionConfigError: Invalid config or missing auth for remote.
+            VersionMismatchError: Incompatible protocol version.
+            AuthenticationError: Invalid auth token.
+            BlenderConnectionExhausted: All reconnect attempts failed.
         """
-        with self._lock:
-            # Update state
-            self._state = "connecting"
-            self._last_error = None
+        self._config = config
+        self._host = config.host or "localhost"
+        self._port = config.port or 9876
 
-            if self.sock is not None:
-                if self._is_socket_alive():
-                    return SuccessFlag(True)
-                self._close_socket()
+        # Validate auth for remote connections
+        if config.require_auth_for_remote and self._is_remote():
+            if not config.auth_token:
+                raise ConnectionConfigError(
+                    message="Remote connection requires authentication token",
+                    details={"host": self._host},
+                )
 
-            for attempt in range(MAX_RECONNECT_ATTEMPTS):
-                try:
-                    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.sock.settimeout(CONNECTION_TIMEOUT_SECONDS)
-                    self.sock.connect((self.host, self.port))
+        # Try to connect with retry/backoff
+        max_attempts = config.reconnect_max_attempts if hasattr(config, 'reconnect_max_attempts') else 3
+        base_delay = config.reconnect_base_delay_seconds if hasattr(config, 'reconnect_base_delay_seconds') else 1.0
+        max_delay = config.reconnect_max_delay_seconds if hasattr(config, 'reconnect_max_delay_seconds') else 4.0
 
-                    # Perform initial handshake verification (FR-SRV-001)
-                    if self.auth_token is not None:
-                        # Send handshake frame for token validation
-                        handshake_payload = json.dumps({
-                            "type": "handshake",
-                            "protocol_version": self._protocol_version,
-                            "auth_token": self.auth_token,
-                        }).encode("utf-8")
-                        self.sock.sendall(handshake_payload)
-                        response_bytes = self.sock.recv(4096)
-                        if response_bytes:
-                            resp = json.loads(response_bytes.decode("utf-8"))
-                            if resp.get("status") == "auth_failed":
-                                raise AuthenticationError(ErrorMessage("Invalid authentication token"))
-                            if resp.get("status") == "version_mismatch":
-                                raise ProtocolVersionMismatchError(ErrorMessage("Incompatible protocol version"))
-
-                    # Update state on success
-                    self._state = "connected"
-                    self._reconnect_attempts = attempt + 1
-                    self._consecutive_failures = 0
-                    self._last_heartbeat_at = time.time()
-                    logger.info("Connected to Blender at %s:%d", self.host, self.port)
-
-                    # Start heartbeat monitoring
-                    self._start_heartbeat()
-                    return SuccessFlag(True)
-
-                except (AuthenticationError, ProtocolVersionMismatchError):
-                    self._state = "failed"
-                    self._close_socket()
-                    raise
-                except Exception as e:
-                    self._state = "failed"
-                    self._last_error = str(e)
-                    logger.warning(
-                        "Connection attempt %d/%d failed: %s",
-                        attempt + 1,
-                        MAX_RECONNECT_ATTEMPTS,
-                        e,
-                    )
-                    self._close_socket()
-
-                    if attempt < MAX_RECONNECT_ATTEMPTS - 1:
-                        # Exponential backoff with jitter (FR-SRV-001)
-                        base_delay = min(
-                            RETRY_BASE_DELAY_SECONDS * (2**attempt),
-                            RETRY_MAX_DELAY_SECONDS,
-                        )
-                        jitter = (time.monotonic() % 0.5) * base_delay
-                        delay = base_delay + jitter
-                        logger.debug("Waiting %.1f seconds before reconnect attempt %d", delay, attempt + 2)
-                        time.sleep(delay)
-
-            # All retries exhausted
-            self._state = "failed"
-            raise BlenderConnectionExhausted(ErrorMessage("Failed to connect after all retry attempts"))
-
-    async def disconnect(self) -> None:  # FR-SRV-001 (idempotent)
-        """Graceful disconnect. Must be idempotent.
-
-        Stops heartbeat monitoring, closes socket, updates state to closed.
-        """
-        with self._lock:
-            self.stop_heartbeat()
-            self._close_socket()
-            self._state = "closed"
-            logger.info("Disconnected from Blender at %s:%d (state=closed)", self.host, self.port)
-
-    async def is_connected(self) -> SuccessFlag:
-        """Check if socket is currently connected and alive."""
-        return SuccessFlag(self._is_socket_alive())
-
-    async def send_command(self, command_type: ActionName, params: Details | None = None) -> Details:
-        """Send a command to Blender and return the JSON response."""
-        with self._lock:
-            if self.sock is None and not await self.connect():
-                raise ConnectionError("Not connected to Blender")
-
-            active_sock = self.sock
-            if active_sock is None:
-                raise ConnectionError("Socket initialization failed")
-
-            command = {"type": str(command_type), "params": params or {}}
-
-            response_data: bytes = b""
+        for attempt in range(max_attempts):
             try:
-                logger.info("Sending command: %s with params: %s", command_type, params)
-                active_sock.settimeout(RECEIVE_TIMEOUT)
-                active_sock.sendall(json.dumps(command).encode("utf-8"))
-                logger.info("Command sent, waiting for response...")
-                response_data = await self.receive_full_response()
-                logger.info("Received %d bytes of data", len(response_data))
+                await self._establish_stream()
+                await self._perform_handshake(config)
+                await self._authenticate(config)
 
-                return self._handle_command_response(response_data)
-            except TimeoutError as e:
-                logger.error("Socket timeout while waiting for response")
-                self._close_socket()
-                raise BlenderConnectionFailure(
-                    ErrorMessage("Timeout waiting for Blender response - try simplifying your request")
-                ) from e
-            except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
-                logger.error("Socket connection error: %s", e)
-                self._close_socket()
-                raise BlenderConnectionFailure(ErrorMessage(f"Connection to Blender lost: {e}")) from e
-            except json.JSONDecodeError as e:
-                logger.error("Invalid JSON response from Blender: %s", e)
-                if response_data:
-                    logger.error(
-                        "Raw response (first 200 bytes): %s",
-                        response_data[:200].decode("utf-8", errors="replace"),
+                # Success
+                self._state = CONNECTION_STATE_CONNECTED
+                self._reconnect_attempts = attempt + 1
+                self._consecutive_failures = 0
+                self._last_heartbeat_at = time.monotonic()
+
+                # Start heartbeat
+                self._start_heartbeat(config)
+
+                # Emit event
+                await self._event_publisher.publish(
+                    ConnectionEstablished(
+                        host=self._host,
+                        port=self._port,
+                        transport_type=config.transport_type,
                     )
-                raise ExecutionError(ErrorMessage(f"Invalid response from Blender: {e}")) from e
+                )
+
+                status = ConnectionStatus(
+                    state=CONNECTION_STATE_CONNECTED,
+                    host=self._host,
+                    port=self._port,
+                    transport_type=config.transport_type,
+                    protocol_version=self._protocol_version,
+                    reconnect_attempts=self._reconnect_attempts,
+                    session_id=self._session_id,
+                    active_file_path=self._active_file_path,
+                    active_directory=self._active_directory,
+                )
+                logger.info("Connected to Blender at %s:%d", self._host, self._port)
+                return status
+
+            except (VersionMismatchError, AuthenticationError, ConnectionConfigError):
+                await self._close_stream()
+                self._state = CONNECTION_STATE_FAILED
+                raise
+
             except Exception as e:
-                logger.error("Error communicating with Blender: %s", e)
-                self._close_socket()
-                raise BlenderConnectionFailure(ErrorMessage(f"Communication error with Blender: {e}")) from e
+                self._state = CONNECTION_STATE_FAILED
+                self._last_error = str(e)
+                logger.warning(
+                    "Connection attempt %d/%d failed: %s",
+                    attempt + 1, max_attempts, e,
+                )
+                await self._close_stream()
 
-    async def receive_full_response(self, buffer_size: int = 8192) -> bytes:
-        """Receive complete JSON response from socket in chunks.
+                if attempt < max_attempts - 1:
+                    # Exponential backoff with jitter
+                    base = min(base_delay * (2 ** attempt), max_delay)
+                    jitter = (time.monotonic() % 0.5) * base
+                    delay = base + jitter
+                    logger.debug("Waiting %.1f seconds before reconnect attempt %d", delay, attempt + 2)
+                    await asyncio.sleep(delay)
 
-        Uses self.sock (the active connection socket).
-        """
-        if self.sock is None:
-            raise BlenderConnectionFailure(ErrorMessage("No active socket connection"))
-        chunks, completed = self._read_response_chunks(self.sock, buffer_size)
-        if completed:
-            return b"".join(chunks)
-        if chunks:
-            return self._finalize_chunks(chunks)
-        raise BlenderConnectionFailure(ErrorMessage("No data received"))
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
-
-    @classmethod
-    def create_from_config(cls, config: ConfigPort | None = None) -> BlenderConnection:  # FR-SRV-004
-        """Factory method to create a BlenderConnection instance from configuration.
-
-        Validates host and port configuration parameters per FR-SRV-004.
-        """
-        host = "localhost"
-        port = 9876
-
-        if config is not None:
-            host_val = config.get(ConfigPath("blender.host"), "localhost")
-            host = str(host_val) if host_val is not None else "localhost"
-            port_val = config.get(ConfigPath("blender.port"), 9876)
-            port = int(port_val) if isinstance(port_val, (int, str)) else 9876
-
-        # Environment variable override
-        env_host = os.getenv("BLENDER_HOST")
-        if env_host:
-            host = env_host
-
-        env_port = os.getenv("BLENDER_PORT")
-        if env_port:
-            port = int(env_port)
-
-        cls._validate_config(host, port)
-        return cls(host=host, port=port)
-
-    @staticmethod
-    def _validate_config(host: str, port: int) -> None:
-        """Validate connection configuration parameters.
-
-        Raises ConnectionConfigError for invalid configuration.
-        """
-        if not host or not host.strip():
-            raise ConnectionConfigError(ErrorMessage("Host cannot be empty"))
-
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            raise ConnectionConfigError(
-                ErrorMessage(f"Port must be between 1 and 65535, got {port}")
-            )
-
-    async def get_status(self) -> ConnectionStatus:  # FR-SRV-001
-        """Return current connection state with metadata."""
-        return ConnectionStatus(
-            state=self._state,
-            transport_type="socket",
-            host=self.host,
-            port=self.port,
-            last_error=self._last_error,
-            last_heartbeat_at=self._last_heartbeat_at,
-            reconnect_attempts=self._reconnect_attempts,
-            protocol_version=self._protocol_version,
-            heartbeat_interval_seconds=self._heartbeat_interval,
-            heartbeat_failure_threshold=self._heartbeat_failure_threshold,
+        # All retries exhausted
+        self._state = CONNECTION_STATE_FAILED
+        raise BlenderConnectionExhausted(
+            attempts=max_attempts,
+            details={"host": self._host, "port": self._port},
         )
 
+    async def disconnect(self) -> None:
+        """Graceful disconnect. Idempotent — no error if already closed.
+
+        Stops heartbeat, closes stream, emits ConnectionLost event.
+        Running operations receive ConnectionClosedError via stream close.
+        """
+        await self._stop_heartbeat()
+        await self._close_stream()
+
+        old_state = self._state
+        self._state = CONNECTION_STATE_CLOSED
+
+        if old_state != CONNECTION_STATE_CLOSED:
+            await self._event_publisher.publish(
+                ConnectionLost(reason="closed")
+            )
+            logger.info("Disconnected from Blender (state=%s)", CONNECTION_STATE_CLOSED)
+
+    async def is_connected(self) -> bool:
+        """Check if socket is currently connected and alive.
+
+        Returns:
+            True if connected, False otherwise.
+
+        Raises:
+            ConnectionClosedError: If connection dropped between checks.
+        """
+        if self._writer is None or self._writer.closed:
+            raise ConnectionClosedError(details={"reason": "writer_closed"})
+        return True
+
+    async def send_command(
+        self,
+        action: str,
+        params: dict | None = None,
+        request_id: str | None = None,
+        timeout_ms: float | None = None,
+    ) -> CommandResult:
+        """Send a command to Blender and return the parsed response.
+
+        Uses asyncio stream writer with length-prefixed JSON framing.
+        Parses response from stream.
+
+        Args:
+            action: The command action name.
+            params: Command parameters.
+            request_id: Optional tracking ID.
+            timeout_ms: Optional timeout in milliseconds.
+
+        Returns:
+            CommandResult with status and data.
+
+        Raises:
+            ConnectionClosedError: If connection lost during send.
+            AuthenticationError: If auth fails.
+            VersionMismatchError: If version mismatch.
+        """
+        if self._writer is None or self._writer.closed:
+            raise ConnectionClosedError(details={"reason": "no_writer"})
+
+        try:
+            # Build request payload
+            payload = {
+                "type": "command",
+                "request_id": request_id or "",
+                "action": action,
+            }
+            if params:
+                payload["params"] = params
+
+            # Encode and send
+            json_bytes = json.dumps(payload).encode("utf-8")
+            header = struct.pack("!I", len(json_bytes))
+            self._writer.write(header + json_bytes)
+            await self._writer.drain()
+
+            # Receive response
+            response = await self._receive_response(timeout_ms)
+
+            # Parse response
+            resp_dict = json.loads(response.decode("utf-8"))
+
+            if resp_dict.get("status") == "error":
+                raise BlenderConnectionFailure(
+                    message=resp_dict.get("message", "Command failed"),
+                    details={"action": action},
+                )
+
+            return CommandResult(
+                status="success",
+                data=resp_dict.get("result", {}),
+                request_id=request_id,
+            )
+
+        except ConnectionClosedError:
+            raise
+        except Exception as e:
+            if isinstance(e, (AuthenticationError, VersionMismatchError)):
+                raise
+            raise BlenderConnectionFailure(
+                message=f"Command '{action}' failed: {e}",
+                details={"action": action},
+            )
+
+    async def receive_full_response(self, buffer_size: int = 8192) -> bytes:
+        """Receive complete JSON response from stream.
+
+        Uses length-prefixed framing (protocol v2).
+
+        Args:
+            buffer_size: Read buffer size.
+
+        Returns:
+            Raw bytes of the JSON response.
+
+        Raises:
+            ConnectionClosedError: If connection dropped.
+        """
+        if self._reader is None:
+            raise ConnectionClosedError(details={"reason": "no_reader"})
+
+        # Read header (4 bytes)
+        header = await self._reader.readexactly(4)
+        msg_len = struct.unpack("!I", header)[0]
+
+        # Read payload
+        payload = await self._reader.readexactly(msg_len)
+        return payload
+
+    def set_active_operation_in_progress(self, active: bool) -> None:
+        """Mark whether an operation is currently running.
+
+        Used by orchestrator to coordinate heartbeat reconnection logic.
+        When True, heartbeat will not trigger reconnect while operation runs.
+
+        Args:
+            active: True if an operation is in progress.
+        """
+        self._active_operation = active
+
+    # ─── Block 3: Dunder Methods & Helpers ────────────────────
+
     def __repr__(self) -> str:
-        return f"BlenderConnection(host={self.host!r}, port={self.port}, state={self._state})"
+        return f"BlenderConnection(host={self._host!r}, port={self._port}, state={self._state})"
 
-    def _start_heartbeat(self) -> None:
-        """Start heartbeat monitoring thread."""
-        self._stop_heartbeat.clear()
-        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
-        self._heartbeat_thread.start()
+    async def _establish_stream(self) -> None:
+        """Open asyncio TCP stream to Blender."""
+        try:
+            self._reader, self._writer = await asyncio.wait_for(
+                asyncio.open_connection(self._host, self._port),
+                timeout=self._config.connection_timeout_seconds if self._config else 30.0,
+            )
+        except asyncio.TimeoutError:
+            raise ConnectionConfigError(
+                message=f"Connection to {self._host}:{self._port} timed out",
+                details={"host": self._host, "port": self._port},
+            )
 
-    def _heartbeat_loop(self) -> None:
-        """Heartbeat monitoring loop. Checks connection liveness periodically."""
-        while not self._stop_heartbeat.is_set():
+    async def _perform_handshake(self, config: ConnectionConfig) -> None:
+        """Perform version handshake with Blender addon."""
+        request_id = str(time.monotonic())
+
+        # Send handshake request
+        payload = {
+            "type": "handshake",
+            "request_id": request_id,
+            "protocol_version": config.protocol_version or DEFAULT_PROTOCOL_VERSION,
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        header = struct.pack("!I", len(json_bytes))
+        self._writer.write(header + json_bytes)
+        await self._writer.drain()
+
+        # Receive handshake response
+        response = await self._receive_response()
+        resp_dict = json.loads(response.decode("utf-8"))
+
+        if resp_dict.get("status") == "version_mismatch":
+            raise VersionMismatchError(
+                expected=config.protocol_version or DEFAULT_PROTOCOL_VERSION,
+                actual=resp_dict.get("protocol_version", ""),
+            )
+
+        if resp_dict.get("status") != "ok":
+            raise ConnectionConfigError(
+                message=f"Handshake failed: {resp_dict.get('message', 'unknown')}",
+            )
+
+        # Extract protocol version and workspace info
+        self._protocol_version = resp_dict.get("protocol_version", DEFAULT_PROTOCOL_VERSION)
+
+        # Check major version compatibility
+        server_major = self._parse_major(config.protocol_version or DEFAULT_PROTOCOL_VERSION)
+        addon_major = self._parse_major(self._protocol_version)
+        if server_major != addon_major:
+            raise VersionMismatchError(
+                expected=config.protocol_version or DEFAULT_PROTOCOL_VERSION,
+                actual=self._protocol_version,
+            )
+
+        # Extract workspace metadata
+        workspace = resp_dict.get("params", {}).get("workspace", {})
+        self._session_id = resp_dict.get("result", {}).get("session_id")
+        self._active_file_path = resp_dict.get("result", {}).get("active_file_path")
+        self._active_directory = resp_dict.get("result", {}).get("active_directory")
+
+    async def _authenticate(self, config: ConnectionConfig) -> None:
+        """Authenticate if token is present and required."""
+        if not config.auth_token:
+            return  # No auth needed (local connection)
+
+        # Send auth frame
+        payload = {
+            "type": "auth",
+            "request_id": str(time.monotonic()),
+            "token": config.auth_token,
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        header = struct.pack("!I", len(json_bytes))
+        self._writer.write(header + json_bytes)
+        await self._writer.drain()
+
+        # Receive auth response
+        try:
+            response = await self._receive_response()
+            resp_dict = json.loads(response.decode("utf-8"))
+
+            if resp_dict.get("status") == "auth_failed":
+                raise AuthenticationError(
+                    message="Invalid authentication token",
+                    details={"host": self._host},
+                )
+        except ConnectionClosedError:
+            raise AuthenticationError(message="Authentication connection lost")
+
+    async def _receive_response(self, timeout_ms: float | None = None) -> bytes:
+        """Receive a length-prefixed response from stream.
+
+        Args:
+            timeout_ms: Optional timeout in milliseconds.
+
+        Returns:
+            Raw bytes of the response payload.
+
+        Raises:
+            ConnectionClosedError: If connection dropped.
+            asyncio.TimeoutError: If timeout exceeded.
+        """
+        if timeout_ms:
+            timeout_s = timeout_ms / 1000.0
+        else:
+            timeout_s = 30.0
+
+        # Read header (4 bytes)
+        try:
+            header = await asyncio.wait_for(self._reader.readexactly(4), timeout=timeout_s)
+        except asyncio.TimeoutError:
+            raise ConnectionClosedError(details={"reason": "response_timeout"})
+        except asyncio.IncompleteReadError:
+            raise ConnectionClosedError(details={"reason": "connection_dropped"})
+
+        msg_len = struct.unpack("!I", header)[0]
+
+        # Read payload
+        try:
+            payload = await asyncio.wait_for(
+                self._reader.readexactly(msg_len),
+                timeout=timeout_s,
+            )
+        except asyncio.TimeoutError:
+            raise ConnectionClosedError(details={"reason": "payload_timeout"})
+        except asyncio.IncompleteReadError:
+            raise ConnectionClosedError(details={"reason": "connection_dropped_during_read"})
+
+        return payload
+
+    def _is_remote(self) -> bool:
+        """Check if the configured host is remote (not localhost)."""
+        return self._host not in ("localhost", "127.0.0.1", "::1")
+
+    @staticmethod
+    def _parse_major(version: str) -> int:
+        """Extract major version number from semver string."""
+        try:
+            return int(version.split(".")[0])
+        except (IndexError, ValueError):
+            return 0
+
+    # ─── Heartbeat ────────────────────────────────────────────
+
+    def _start_heartbeat(self, config: ConnectionConfig) -> None:
+        """Start the asyncio heartbeat task."""
+        interval = getattr(config, 'heartbeat_interval_seconds', HEARTBEAT_INTERVAL_SECONDS) or 10
+        threshold = getattr(config, 'heartbeat_failure_threshold', HEARTBEAT_FAILURE_THRESHOLD) or 3
+
+        self._heartbeat_task = asyncio.create_task(
+            self._heartbeat_loop(interval, threshold)
+        )
+        logger.debug("Heartbeat started (interval=%ds, threshold=%d)", interval, threshold)
+
+    async def _stop_heartbeat(self) -> None:
+        """Stop the heartbeat task."""
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
             try:
-                time.sleep(self._heartbeat_interval)
-                if self._stop_heartbeat.is_set():
-                    break
+                await self._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+            self._heartbeat_task = None
 
-                # Check if socket is alive
-                if not self._is_socket_alive():
-                    self._consecutive_failures += 1
-                    logger.warning(
-                        "Heartbeat failure %d/%d",
-                        self._consecutive_failures,
-                        self._heartbeat_failure_threshold,
+    async def _heartbeat_loop(self, interval: int, threshold: int) -> None:
+        """Heartbeat monitoring loop using asyncio sleep."""
+        while True:
+            try:
+                await asyncio.sleep(interval)
+
+                # Check if connection is alive (send ping)
+                try:
+                    request_id = str(time.monotonic())
+                    payload = {
+                        "type": "ping",
+                        "request_id": request_id,
+                    }
+                    json_bytes = json.dumps(payload).encode("utf-8")
+                    header = struct.pack("!I", len(json_bytes))
+                    self._writer.write(header + json_bytes)
+                    await self._writer.drain()
+
+                    # Wait for pong response (short timeout — just check liveness)
+                    try:
+                        response = await asyncio.wait_for(
+                            self._receive_response(timeout_ms=5000),
+                            timeout=5.0,
+                        )
+                        resp_dict = json.loads(response.decode("utf-8"))
+                        if resp_dict.get("status") == "ok":
+                            self._consecutive_failures = 0
+                            self._last_heartbeat_at = time.monotonic()
+                            continue
+                    except (asyncio.TimeoutError, ConnectionClosedError):
+                        pass
+
+                except ConnectionClosedError:
+                    pass
+
+                # Failure detected
+                self._consecutive_failures += 1
+                logger.warning(
+                    "Heartbeat failure %d/%d",
+                    self._consecutive_failures, threshold,
+                )
+
+                if self._consecutive_failures >= threshold:
+                    # Check if operation is in progress (protect running ops)
+                    if self._active_operation:
+                        logger.warning(
+                            "Operation in progress — deferring reconnect"
+                        )
+                        continue
+
+                    # Trigger reconnect
+                    self._state = CONNECTION_STATE_RECONNECTING
+                    await self._event_publisher.publish(
+                        ConnectionLost(reason="heartbeat_timeout")
                     )
+                    await self._close_stream()
 
-                    if self._consecutive_failures >= self._heartbeat_failure_threshold:
-                        self._state = "reconnecting"
-                        logger.info("Heartbeat threshold reached, triggering reconnect")
-                        self._close_socket()
-                        # Trigger reconnect in background
-                        threading.Thread(target=self._reconnect_background, daemon=True).start()
-                else:
-                    # Success - reset failure count
-                    self._consecutive_failures = 0
-                    self._last_heartbeat_at = time.time()
-
+            except asyncio.CancelledError:
+                break
             except Exception as e:
                 logger.error("Heartbeat error: %s", e)
                 self._consecutive_failures += 1
 
-    def _reconnect_background(self) -> None:
-        """Background reconnect attempt."""
-        try:
-            self.connect()
-        except Exception as e:
-            logger.error("Background reconnect failed: %s", e)
-
-    def stop_heartbeat(self) -> None:
-        """Stop heartbeat monitoring thread."""
-        self._stop_heartbeat.set()
-        if self._heartbeat_thread is not None:
-            self._heartbeat_thread.join(timeout=5.0)
-        self._heartbeat_thread = None
-
-    def _close_socket(self) -> None:
-        if self.sock:
-            with contextlib.suppress(Exception):
-                self.sock.close()
-            self.sock = None
-
-    def _is_socket_alive(self) -> bool:
-        if self.sock is None:
-            return False
-        try:
-            ready, _, _ = select.select([self.sock], [], [], 0)
-            if ready:
-                data = self.sock.recv(1, socket.MSG_PEEK)
-                if not data:
-                    return False
-            return True
-        except (ConnectionError, BrokenPipeError, ConnectionResetError, OSError, BlenderConnectionFailure):
-            return False
-
-    def _read_response_chunks(self, sock: socket.socket, buffer_size: int) -> tuple[list[bytes], bool]:
-        """Read socket chunks until a complete JSON is received or connection ends.
-
-        Returns (chunks, completed_via_json) where completed_via_json is True
-        if we successfully parsed JSON and have the complete response.
-        """
-        chunks: list[bytes] = []
-        try:
-            while True:
-                try:
-                    chunk = sock.recv(buffer_size)
-                    if not chunk:
-                        if not chunks:
-                            raise BlenderConnectionFailure(ErrorMessage("Connection closed before receiving any data"))
-                        break
-                    chunks.append(chunk)
-                    try:
-                        data = b"".join(chunks)
-                        json.loads(data.decode("utf-8"))
-                        logger.info("Received complete response (%d bytes)", len(data))
-                        return chunks, True
-                    except json.JSONDecodeError:
-                        continue
-                except TimeoutError:
-                    logger.warning("Socket timeout during chunked receive")
-                    break
-                except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
-                    logger.error("Socket connection error: %s", e)
-                    raise
-        except TimeoutError:
-            logger.warning("Socket timeout during chunked receive")  # pragma: no cover
-        except Exception as e:
-            logger.error("Error during receive: %s", e)
-            raise
-        return chunks, False
-
-    def _finalize_chunks(self, chunks: list[bytes]) -> bytes:
-        """Process collected chunks into a complete response."""
-        data = b"".join(chunks)
-        logger.info("Returning data after receive completion (%d bytes)", len(data))
-        try:
-            json.loads(data.decode("utf-8"))
-            return data
-        except json.JSONDecodeError as e:
-            raise ExecutionError(ErrorMessage("Incomplete JSON response received")) from e
-
-    def _handle_command_response(self, response_data: bytes) -> dict[str, Any]:
-        """Parse and validate the JSON response from Blender."""
-        response = json.loads(response_data.decode("utf-8"))
-        logger.info("Response parsed, status: %s", response.get("status", "unknown"))
-
-        if response.get("status") == "error":
-            logger.error("Blender error: %s", response.get("message"))
-            raise ExecutionError(ErrorMessage(response.get("message", "Unknown error from Blender")))
-
-        result: dict[str, Any] = response.get("result", {})
-        return result
+    async def _close_stream(self) -> None:
+        """Close the asyncio stream cleanly."""
+        if self._writer is not None and not self._writer.closed:
+            try:
+                self._writer.close()
+                await self._writer.wait_closed()
+            except Exception:
+                pass
+        self._reader = None
+        self._writer = None

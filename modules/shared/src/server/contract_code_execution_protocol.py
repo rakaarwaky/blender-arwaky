@@ -1,7 +1,7 @@
-"""Contract: Protocol for executing Python code in Blender.
+"""Contract: Protocol for executing Python code in Blender and managing async tasks.
 
 Implemented by Capabilities that handle code validation,
-execution queue, and result formatting.
+execution queue coordination, and result formatting per FR-SRV-002.
 AES Protocol layer — depends only on Taxonomy.
 """
 
@@ -9,12 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..common.taxonomy_core_vo import Prompt
-from .taxonomy_server_error import (
-    CodeValidationError,
-    ExecutionTimeoutError,
-    TaskNotFoundError,
-)
+from .taxonomy_server_error import ExecutionTimeoutError, TaskNotFoundError
 from .taxonomy_server_event import (
     CodeExecuted,
     CodeExecutionFailed,
@@ -36,11 +31,11 @@ class ICodeExecutionProtocol(ABC):
     """
 
     @abstractmethod
-    async def execute_blender_code(self, code: Prompt) -> ExecutionResult:
+    async def execute_blender_code(self, code: str, request_id: str | None = None) -> ExecutionResult:
         """Execute arbitrary Python code in Blender and return result.
 
-        Success: Returns ExecutionResult with status='success', data from execution
-        Failure: Raises CodeValidationError (blocked patterns), ExecutionTimeoutError,
+        Success: Returns ExecutionResult with status='success'
+        Failure: Raises SecurityViolationError (blocked patterns), ExecutionTimeoutError,
                  or any Blender execution exception
         Event: CodeExecuted(request_id, execution_time_ms) on success;
                  CodeExecutionFailed(request_id, error_type, message) on failure
@@ -48,34 +43,15 @@ class ICodeExecutionProtocol(ABC):
         ...
 
     @abstractmethod
-    async def submit_async_task(self, code: Prompt, request_id: str) -> str:
-        """Submit long-running code for async execution. Returns new TaskId.
-
-        Success: Returns newly created TaskId; event=TaskCreated(task_id, request_id)
-        Failure: Raises CodeValidationError (code contains blocked patterns)
-        Event: TaskCreated(task_id, request_id)
-        """
+    async def execute_task(self, task_id: str, code: str, request_id: str | None = None) -> ExecutionResult:
+        """Execute code for an existing task. Internal use by queue worker."""
         ...
 
     @abstractmethod
-    async def poll_task_result(self, task_id: str) -> ExecutionResult:
-        """Poll async task status and final result.
+    def create_task(self, request_id: str | None = None) -> str:
+        """Create a new pending task. Returns the new task_id.
 
-        Success: Returns ExecutionResult (success or error) with event=TaskCompleted(task_id)
-                 if task is in terminal state
-        Failure: Raises TaskNotFoundError if task not found or expired
-        Event: TaskCompleted(task_id, execution_time_ms) on success;
-                 TaskFailed(task_id, error_type, message) on error
-        """
-        ...
-
-    @abstractmethod
-    def create_task(self, request_id: str) -> str:
-        """Create a new pending task. Returns the new TaskId.
-
-        Success: Returns TaskId; event=TaskCreated(task_id, request_id)
-        Failure: Raises ExecutionTimeoutError if task creation exceeds deadline
-        Event: TaskCreated(task_id, request_id)
+        Success: Returns task_id; event=TaskCreated(task_id, request_id)
         """
         ...
 
@@ -90,52 +66,33 @@ class ICodeExecutionProtocol(ABC):
         ...
 
     @abstractmethod
-    def mark_running(self, task_id: str) -> None:
-        """Transition task to running state.
+    async def poll_task_result(self, task_id: str, request_id: str | None = None) -> TaskStatus:
+        """Poll async task status and final result.
 
-        Success: No return; event=TaskStarted(task_id)
-        Failure: Raises TaskNotFoundError if task not found
-        Event: TaskStarted(task_id)
+        Success: Returns TaskStatus with current state and optional ExecutionResult
+        Failure: Raises TaskNotFoundError if not found or expired
+        Event: TaskCompleted(task_id, execution_time_ms) on success;
+                 TaskFailed(task_id, error_type, message) on error
         """
         ...
 
     @abstractmethod
-    def mark_completed(self, task_id: str, result: ExecutionResult) -> None:
-        """Transition task to success state with result.
+    async def cancel_async_task(self, task_id: str, request_id: str | None = None) -> TaskStatus:
+        """Cancel a pending or running task.
 
-        Success: No return; event=TaskCompleted(task_id, execution_time_ms)
-        Failure: Raises TaskNotFoundError if task not found
-        Event: TaskCompleted(task_id, execution_time_ms)
+        Success: Returns TaskStatus with updated state
+        - If pending: removes from queue, marks cancelled, emits TaskCancelled
+        - If running: attempts asyncio cancellation, sets cancel_requested=True
+        Failure: Raises TaskNotFoundError if not found
+        Event: TaskCancelled(task_id) on successful cancellation
         """
         ...
 
     @abstractmethod
-    def mark_error(self, task_id: str, error_type: str, message: str) -> None:
-        """Transition task to error state.
+    def cleanup_expired(self) -> int:
+        """Remove expired tasks beyond retention window.
 
-        Success: No return; event=TaskFailed(task_id, error_type, message)
-        Failure: Raises TaskNotFoundError if task not found
-        Event: TaskFailed(task_id, error_type, message)
-        """
-        ...
-
-    @abstractmethod
-    def mark_timeout(self, task_id: str) -> None:
-        """Transition task to timeout state.
-
-        Success: No return; event=TaskTimedOut(task_id)
-        Failure: Raises TaskNotFoundError if task not found
-        Event: TaskTimedOut(task_id)
-        """
-        ...
-
-    @abstractmethod
-    def cancel_task(self, task_id: str) -> bool:
-        """Cancel a pending task. Returns True if cancelled, False if already running.
-
-        Success: Returns True (cancelled) or False (already running);
-                 event=TaskCancelled(task_id) on successful cancellation
-        Failure: Raises TaskNotFoundError if task not found; raises no exception on already-running
-        Event: TaskCancelled(task_id)
+        Success: Returns number of tasks removed.
+        Called on task creation, polling, and queue worker cycles.
         """
         ...

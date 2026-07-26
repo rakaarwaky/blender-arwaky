@@ -1,7 +1,8 @@
-"""Server domain — Typed domain events for connection, execution, and task lifecycle.
+"""Server domain — Typed domain events for connection, execution, task lifecycle, and security.
 
 Frozen dataclasses for immutable, serializable event objects.
 All events use past-tense naming for completed actions.
+Includes the ServerEvent union type for type-safe event publishing.
 """
 
 from __future__ import annotations
@@ -19,12 +20,40 @@ class ConnectionEstablished:
     host: str
     port: int
     transport_type: str = "socket"
+    request_id: str | None = None
 
 
 @dataclass(frozen=True)
 class ConnectionLost:
     """Connection lost or closed."""
     reason: str  # "timeout" | "closed" | "error"
+    request_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ConnectionStateChanged:
+    """Connection state changed."""
+    old_state: str
+    new_state: str
+    reason: str | None = None
+    request_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ConnectionReconnectAttempted:
+    """Reconnect attempt made."""
+    attempt: int
+    delay_seconds: float
+    request_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ConnectionReconnectFailed:
+    """All reconnect attempts have failed."""
+    attempts: int
+    error_type: str
+    message: str
+    request_id: str | None = None
 
 
 # ============================================================
@@ -45,6 +74,18 @@ class CodeExecutionFailed:
     request_id: str
     error_type: str
     message: str
+
+
+# ============================================================
+# Security Events
+# ============================================================
+
+@dataclass(frozen=True)
+class SecurityViolationDetected:
+    """Security policy violation detected in user code."""
+    request_id: str | None
+    rule: str
+    code_fingerprint: str
 
 
 # ============================================================
@@ -100,6 +141,16 @@ class CommandDispatched:
     """Command dispatched to Blender addon."""
     action: str
     execution_time_ms: float
+    request_id: str | None = None
+
+
+@dataclass(frozen=True)
+class CommandFailed:
+    """Command failed with error."""
+    action: str
+    request_id: str | None
+    error_type: str
+    message: str
 
 
 @dataclass(frozen=True)
@@ -107,6 +158,7 @@ class CommandTimedOut:
     """Command exceeded timeout threshold."""
     action: str
     timeout_ms: float
+    request_id: str | None = None
 
 
 # ============================================================
@@ -124,3 +176,42 @@ class ItemEnqueued:
 class ItemDequeued:
     """Item removed from execution queue."""
     request_id: str
+
+
+# ============================================================
+# Operation Events
+# ============================================================
+
+@dataclass(frozen=True)
+class OperationRejected:
+    """Operation rejected by queue or connection state."""
+    request_id: str | None
+    reason: str
+
+
+# ============================================================
+# ServerEvent Union Type
+# ============================================================
+
+ServerEvent = (
+    ConnectionEstablished
+    | ConnectionLost
+    | ConnectionStateChanged
+    | ConnectionReconnectAttempted
+    | ConnectionReconnectFailed
+    | CodeExecuted
+    | CodeExecutionFailed
+    | SecurityViolationDetected
+    | TaskCreated
+    | TaskStarted
+    | TaskCompleted
+    | TaskFailed
+    | TaskTimedOut
+    | TaskCancelled
+    | CommandDispatched
+    | CommandFailed
+    | CommandTimedOut
+    | ItemEnqueued
+    | ItemDequeued
+    | OperationRejected
+)

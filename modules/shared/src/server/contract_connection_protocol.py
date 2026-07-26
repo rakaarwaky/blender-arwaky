@@ -1,7 +1,7 @@
 """Contract: Protocol for Blender connection lifecycle management.
 
 Implemented by Capabilities that handle TCP/stdio connection,
-heartbeat monitoring, auto-reconnect, and status reporting.
+heartbeat monitoring, auto-reconnect, and status reporting per FR-SRV-001.
 AES Protocol layer — depends only on Taxonomy.
 """
 
@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..common.taxonomy_core_vo import ActionName, Details
 from .taxonomy_server_error import (
     AuthenticationError,
     BlenderConnectionExhausted,
     ConnectionClosedError,
     ConnectionConfigError,
-    ProtocolVersionMismatchError,
+    VersionMismatchError,
 )
 from .taxonomy_server_event import ConnectionEstablished, ConnectionLost
 from .taxonomy_server_vo import CommandResult, ConnectionConfig, ConnectionStatus
@@ -34,7 +33,7 @@ class IBlenderConnectionProtocol(ABC):
 
         Success: Returns ConnectionStatus with state='connected'
         Failure: Raises ConnectionConfigError, AuthenticationError,
-                 ProtocolVersionMismatchError, or BlenderConnectionExhausted
+                 VersionMismatchError, or BlenderConnectionExhausted
         Event: ConnectionEstablished(host, port, transport_type)
         """
         ...
@@ -62,26 +61,34 @@ class IBlenderConnectionProtocol(ABC):
     @abstractmethod
     async def send_command(
         self,
-        command_type: ActionName,
-        params: Details | None = None,
+        action: str,
+        params: dict | None = None,
+        request_id: str | None = None,
+        timeout_ms: float | None = None,
     ) -> CommandResult:
         """Send a command to Blender and return the parsed response.
 
-        Success: Returns CommandResult with status='success', data from JSON response
-        Failure: Raises ConnectionClosedError, AuthenticationError, or ProtocolVersionMismatchError
-        Event: CommandDispatched(action=str(command_type), execution_time_ms)
+        Success: Returns CommandResult with status='success'
+        Failure: Raises ConnectionClosedError, AuthenticationError, or VersionMismatchError
+        Event: CommandDispatched(action, execution_time_ms)
         """
         ...
 
     @abstractmethod
-    async def receive_full_response(
-        self,
-        buffer_size: int = 8192,
-    ) -> bytes:
+    async def receive_full_response(self, buffer_size: int = 8192) -> bytes:
         """Receive complete JSON response from socket in chunks.
 
         Success: Returns raw bytes of the JSON response
         Failure: Raises ConnectionClosedError if connection dropped during receive
         Event: None (infrastructure-level detail)
+        """
+        ...
+
+    @abstractmethod
+    def set_active_operation_in_progress(self, active: bool) -> None:
+        """Mark whether an operation is currently running on this connection.
+
+        Used by the orchestrator to coordinate heartbeat reconnection logic.
+        When True, heartbeat will not trigger reconnect while operation runs.
         """
         ...
