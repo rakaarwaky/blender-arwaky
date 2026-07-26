@@ -154,6 +154,7 @@ async def test_fr_scn_002_cleanup_with_preservation():
     request = CleanupRequestVO(
         mode=CleanupMode("all"),
         preservation_list=("camera", "light"),
+        confirmation=True,
     )
     result = await executor.cleanup_scene(request)
 
@@ -180,7 +181,9 @@ async def test_fr_scn_002_dry_run_does_not_mutate():
     assert isinstance(result, CleanupRequestVO)
     assert result.success == SuccessFlag(True)
     assert result.dry_run == True
-    assert result.removed_count == ObjectCount(0)  # dry-run doesn't actually remove
+    # Dry-run returns preview counts (what WOULD be removed), not actual removal
+    assert result.removed_count == ObjectCount(2)
+    assert result.preserved_count == ObjectCount(2)
 
 
 @pytest.mark.asyncio
@@ -223,7 +226,7 @@ async def test_fr_scn_002_cleanup_modes():
     executor = SceneOperateExecutor(mock)
 
     for mode in ["all", "objects", "meshes"]:
-        request = CleanupRequestVO(mode=CleanupMode(mode))
+        request = CleanupRequestVO(mode=CleanupMode(mode), confirmation=True)
         result = await executor.cleanup_scene(request)
         assert isinstance(result, CleanupRequestVO)
         assert result.success == SuccessFlag(True)
@@ -236,7 +239,7 @@ async def test_fr_scn_002_child_handling_policy():
     executor = SceneOperateExecutor(mock)
 
     # Valid policy
-    request = CleanupRequestVO(child_handling_policy="detach")
+    request = CleanupRequestVO(child_handling_policy="detach", confirmation=True)
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(True)
 
@@ -253,7 +256,7 @@ async def test_fr_scn_002_dependent_handling_policy():
     executor = SceneOperateExecutor(mock)
 
     # Valid policy
-    request = CleanupRequestVO(dependent_handling_policy="reject")
+    request = CleanupRequestVO(dependent_handling_policy="reject", confirmation=True)
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(True)
 
@@ -273,7 +276,7 @@ async def test_fr_scn_001_missing_active_camera():
 
     class NoCameraExecutor:
         async def __call__(self, code: Prompt) -> str:
-            data = dict(MockCodeExecutor()._inspection_result) if hasattr(MockCodeExecutor(), '_inspection_result') else {
+            data = {
                 "scene_name": "Scene",
                 "total_object_count": 1,
                 "visible_object_count": 1,
@@ -319,7 +322,7 @@ async def test_fr_scn_002_cleanup_partial_failure():
             })
 
     executor = SceneOperateExecutor(PartialFailureExecutor())
-    request = CleanupRequestVO(mode=CleanupMode("all"))
+    request = CleanupRequestVO(mode=CleanupMode("all"), confirmation=True)
     result = await executor.cleanup_scene(request)
 
     assert isinstance(result, CleanupRequestVO)
