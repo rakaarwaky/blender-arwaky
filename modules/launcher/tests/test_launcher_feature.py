@@ -66,7 +66,7 @@ class _FakeStatus:
 def _build_feature(status_backend):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
-        pid_resolver=lambda: status_backend.pid if status_backend.alive else None,
+        pid_resolver=lambda: status_backend.pid,
         bridge_probe=lambda to: status_backend.ready,
     )
     locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))

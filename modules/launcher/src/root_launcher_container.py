@@ -23,7 +23,6 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    RuntimeState,
 )
 
 from .agent_launcher_orchestrator import LauncherOrchestrator

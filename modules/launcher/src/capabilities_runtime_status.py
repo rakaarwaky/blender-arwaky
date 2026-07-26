@@ -9,7 +9,8 @@ Liveness and process-info lookup are injected DI boundaries.
 from __future__ import annotations
 
 import time
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_STATUS_CHECKED

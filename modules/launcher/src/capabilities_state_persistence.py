@@ -11,10 +11,9 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from typing import Callable
+from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
-from modules.shared.src.launcher.taxonomy_launcher_error import StateError
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     PersistenceResultVO,
     RuntimeState,
@@ -56,7 +55,7 @@ class StatePersistence(PersistStateProtocol):
         if not path or not os.path.exists(path):
             return None
         try:
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
             if not isinstance(data, dict):
                 return None

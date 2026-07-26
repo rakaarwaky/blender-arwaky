@@ -1,16 +1,14 @@
-"""Scene operation request and response value objects — comprehensive VOs.
+"""Scene operation value objects — unified input/output per operation.
+
+Each VO merges request (input) and response (output) into a single frozen dataclass.
+Caller sets input fields; callee sets output fields. No split Request/Response classes.
 
 Enhanced VOs per FRD:
-- CleanupRequestVO: cleanup request with preservation policy, dry-run, child/dependent handling
-- CleanupReportVO: cleanup report with removed/preserved/skipped counts and references
-- InspectionRequestVO: inspection request with detail level, hidden objects filter, summary mode
-- SceneStateSummaryVO: comprehensive scene state summary
-- CameraInfoVO: camera object information
-- LightInfoVO: light object information
-- CollectionSummaryVO: collection summary
-- ProtectedObjectSummaryVO: protected object summary
+- CleanupRequestVO: cleanup with preservation policy, dry-run, child/dependent handling → success/message
+- InspectionRequestVO: inspection with detail level, hidden objects filter → scene state summary/message
+- SceneStateSummaryVO: comprehensive scene state (used as output in InspectionRequestVO)
 
-Backward-compatible legacy aliases maintained.
+Supports legacy aliases for backward compatibility.
 """
 
 from __future__ import annotations
@@ -34,15 +32,17 @@ from ..common.taxonomy_core_vo import (
 )
 
 
-# ─── Request VOs ──────────────────────────────────────────────
+# ─── Unified Operation VOs (merged request + response) ────────
 
 
 @dataclass(frozen=True)
 class CleanupRequestVO:
-    """Scene cleanup request with preservation policy and handling options.
+    """Scene cleanup — input and output in one VO.
 
-    Input: mode, preservation list, dry-run flag, confirmation flag,
-    child handling policy, dependent handling policy, protected object policy.
+    Input: mode, preservation_list, dry_run, confirmation, child_handling_policy,
+           dependent_handling_policy, include_hidden_objects, correlation_id.
+    Output: success, removed/preserved/skipped counts and references, message.
+    Same structure for actual cleanup and dry-run preview.
     """
     # Input fields
     mode: CleanupMode = field(default=CleanupMode("all"))
@@ -56,14 +56,21 @@ class CleanupRequestVO:
 
     # Output fields (set by capability)
     success: SuccessFlag = field(default=SuccessFlag(False))
+    removed_count: ObjectCount = 0
+    preserved_count: ObjectCount = 0
+    skipped_count: ObjectCount = 0
+    removed_object_references: list[str] = field(default_factory=list)
+    preserved_object_references: list[str] = field(default_factory=list)
+    skipped_object_references: list[str] = field(default_factory=list)
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
 @dataclass(frozen=True)
 class InspectionRequestVO:
-    """Scene inspection request with detail level and filters.
+    """Scene inspection — input and output in one VO.
 
-    Input: detail level, hidden objects filter, summary mode, object type filter.
+    Input: detail_level, include_hidden_objects, object_type_filter, correlation_id.
+    Output: success, scene_state_summary (SceneStateSummaryVO), message.
     """
     # Input fields
     detail_level: str = "standard"  # "minimal", "standard", "detailed", "summary"
@@ -73,59 +80,7 @@ class InspectionRequestVO:
 
     # Output fields (set by capability)
     success: SuccessFlag = field(default=SuccessFlag(False))
-    message: Prompt = field(default_factory=lambda: Prompt(""))
-
-
-@dataclass(frozen=True)
-class GetSceneInfoRequestVO:
-    """Legacy request VO for backward compatibility.
-
-    Input: (none).
-    Output: scene_info dict.
-    """
-    pass
-
-
-# ─── Report/Response VOs ──────────────────────────────────────
-
-
-@dataclass(frozen=True)
-class CleanupReportVO:
-    """Scene cleanup report with detailed counts and references.
-
-    Output: success, removed/preserved/skipped counts and references,
-    dry-run indicator, message. Same structure for both actual cleanup
-    and dry-run preview.
-    """
-    # Output fields
-    success: SuccessFlag = field(default=SuccessFlag(False))
-    removed_count: ObjectCount = 0
-    preserved_count: ObjectCount = 0
-    skipped_count: ObjectCount = 0
-    removed_object_references: list[str] = field(default_factory=list)
-    preserved_object_references: list[str] = field(default_factory=list)
-    skipped_object_references: list[str] = field(default_factory=list)
-    dry_run: bool = False
-    message: Prompt = field(default_factory=lambda: Prompt(""))
-
-
-@dataclass(frozen=True)
-class CleanupPreviewVO(CleanupReportVO):
-    """Dry-run cleanup preview — same structure as CleanupReportVO.
-
-    Inherits from CleanupReportVO with dry_run=True by default.
-    """
-    dry_run: bool = True
-
-
-@dataclass(frozen=True)
-class GetSceneInfoResponseVO:
-    """Legacy response VO for backward compatibility.
-
-    Output: success, scene_info dict, message.
-    """
-    success: SuccessFlag = field(default=SuccessFlag(False))
-    scene_info: dict[str, Any] | None = None
+    scene_state_summary: SceneStateSummaryVO | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
@@ -235,3 +190,42 @@ class SceneStateSummaryVO:
 
     # Message
     message: str = ""
+
+
+# ─── Legacy Aliases (backward compatibility) ──────────────────
+
+# Merge CleanupRequestVO as the unified cleanup VO
+CleanupSceneVO = CleanupRequestVO
+CleanupSceneRequestVO = CleanupSceneVO
+CleanupSceneResponseVO = CleanupSceneVO
+
+# Merge InspectionRequestVO as the unified inspection VO
+GetSceneInfoVO = InspectionRequestVO
+GetSceneInfoRequestVO = GetSceneInfoVO
+GetSceneInfoResponseVO = GetSceneInfoVO
+
+# Setup Environment unified VO (defined in taxonomy_scene_vo)
+from .taxonomy_scene_vo import SetupEnvironmentVO
+SetupEnvironmentRequestVO = SetupEnvironmentVO
+SetupEnvironmentResponseVO = SetupEnvironmentVO
+
+__all__ = [
+    # Unified VOs (merged request + response)
+    "CleanupRequestVO",
+    "InspectionRequestVO",
+    # Scene State Summary VOs
+    "CameraInfoVO",
+    "LightInfoVO",
+    "CollectionSummaryVO",
+    "ProtectedObjectSummaryVO",
+    "SceneStateSummaryVO",
+    # Legacy aliases (point to unified VOs)
+    "CleanupSceneVO",
+    "CleanupSceneRequestVO",
+    "CleanupSceneResponseVO",
+    "GetSceneInfoVO",
+    "GetSceneInfoRequestVO",
+    "GetSceneInfoResponseVO",
+    "SetupEnvironmentRequestVO",
+    "SetupEnvironmentResponseVO",
+]

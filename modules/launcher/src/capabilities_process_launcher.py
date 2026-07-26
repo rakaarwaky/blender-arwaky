@@ -10,17 +10,16 @@ logic is testable without launching a real Blender process.
 from __future__ import annotations
 
 import time
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STARTED,
     LAUNCHER_EVENT_LAUNCH_FAILED,
-    LAUNCHER_MODE_HEADLESS,
     LAUNCHER_MODE_INTERFACE,
 )
-from modules.shared.src.launcher.taxonomy_launcher_error import LaunchTimeoutError
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchResultVO,

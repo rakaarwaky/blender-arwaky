@@ -6,18 +6,14 @@ from .contract_scene_operate_protocol import SceneOperateProtocol
 from .taxonomy_scene_info_vo import SceneInfo
 from .taxonomy_scene_request_vo import (
     CleanupRequestVO,
-    CleanupReportVO,
     CleanupSceneRequestVO,
     CleanupSceneResponseVO,
-    CleanupPreviewVO,
     InspectionRequestVO,
     GetSceneInfoRequestVO,
     GetSceneInfoResponseVO,
-    SetupEnvironmentRequestVO,
-    SetupEnvironmentResponseVO,
 )
 
-# Enhanced VOs
+# Unified VOs (merged request + response — no split classes)
 from .taxonomy_scene_request_vo import (
     CameraInfoVO,
     CollectionSummaryVO,
@@ -50,26 +46,23 @@ __all__ = [
     "SceneInspectionPort",
     "SceneCleanupProtocol",
     "SceneOperateProtocol",
-    # Legacy Request/Response VOs
-    "SceneInfo",
-    "CleanupSceneRequestVO",
-    "CleanupSceneResponseVO",
-    "GetSceneInfoRequestVO",
-    "GetSceneInfoResponseVO",
-    "SetupEnvironmentRequestVO",
-    "SetupEnvironmentResponseVO",
-    # Enhanced Request VOs
+    # Unified VOs (merged request + response — no split classes)
     "CleanupRequestVO",
     "InspectionRequestVO",
-    # Enhanced Report/Response VOs
-    "CleanupReportVO",
-    "CleanupPreviewVO",
     # Scene State Summary VOs
     "CameraInfoVO",
     "LightInfoVO",
     "CollectionSummaryVO",
     "ProtectedObjectSummaryVO",
     "SceneStateSummaryVO",
+    # Legacy aliases (point to unified VOs)
+    "CleanupSceneVO",
+    "CleanupSceneRequestVO",
+    "CleanupSceneResponseVO",
+    "GetSceneInfoVO",
+    "GetSceneInfoRequestVO",
+    "GetSceneInfoResponseVO",
+    "SceneInfo",
     # Error VOs
     "SceneStateError",
     "ProtectionError",

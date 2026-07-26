@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import os
 import shutil
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
-from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_DISCOVERY_ORDER
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
-    LauncherConfigError,
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,

@@ -2,6 +2,8 @@
 
 Wires scene capabilities to the agent orchestrator and bootstraps the system.
 Provides a single entry point to obtain a fully configured SceneOrchestrator.
+
+FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ class SceneContainer:
 
     Thread-safe singleton pattern for shared scene management.
     All components are lazy-instantiated on first access.
+
+    FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
     """
 
     def __init__(self, code_executor: object) -> None:
@@ -38,6 +42,8 @@ class SceneContainer:
 
         Lazy-initializes all dependencies on first call.
         Subsequent calls return the same orchestrator instance.
+
+        FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
         """
         if self._orchestrator is not None:
             return self._orchestrator
