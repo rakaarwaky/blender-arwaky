@@ -16,7 +16,6 @@ from modules.shared.src.server import (
     IBlenderServerAggregate,
     ICodeExecutionProtocol,
     IExecutionQueueProtocol,
-    ITaskManagerProtocol,
     QueueConfig,
     TaskManagerConfig,
 )
@@ -73,22 +72,16 @@ class ServerContainer:
         self,
         connection: IBlenderConnectionProtocol,
     ) -> ICodeExecutionProtocol:
-        """Build code execution capability with AST validation."""
+        """Build code execution capability with AST validation and task lifecycle management."""
         from .capabilities_code_execution_adapter import CodeExecutionAdapter
 
-        return CodeExecutionAdapter(connection)
+        return CodeExecutionAdapter(connection_port=connection, task_config=self._task_config)
 
     def _build_queue(self) -> IExecutionQueueProtocol:
         """Build serialized execution queue."""
         from .capabilities_blender_command_adapter import ExecutionQueue
 
         return ExecutionQueue(config=self._queue_config)
-
-    def _build_task_manager(self) -> ITaskManagerProtocol:
-        """Build async task lifecycle manager."""
-        from .capabilities_code_execution_adapter import TaskManager
-
-        return TaskManager(config=self._task_config)
 
     def get_aggregate(self) -> IBlenderServerAggregate:
         """Return a fully wired ServerOrchestrator (singleton).
@@ -108,7 +101,6 @@ class ServerContainer:
             self._connection = connection
 
             queue = self._build_queue()
-            task_manager = self._build_task_manager()
             code_executor = self._build_code_executor(connection)
             command_adapter = self._build_command_adapter(connection)
             logger.debug("Command adapter initialized: %s", command_adapter)
@@ -119,7 +111,6 @@ class ServerContainer:
                 connection=connection,
                 code_executor=code_executor,
                 queue=queue,
-                task_manager=task_manager,
             )
 
         logger.info("Server container fully wired")

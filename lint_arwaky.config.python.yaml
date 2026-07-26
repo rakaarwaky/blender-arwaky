@@ -162,6 +162,12 @@ architecture:
                   "auditor",
                   "actions",
                   "helper",
+                  "adapter",
+                  "connector",
+                  "connection",
+                  "client",
+                  "gateway",
+                  "dispatcher",
                 ]
             - forbidden:
                 [

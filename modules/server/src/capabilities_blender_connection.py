@@ -32,10 +32,12 @@ from modules.shared.src.server import (
     MAX_RECONNECT_ATTEMPTS,
     RETRY_BASE_DELAY_SECONDS,
     RETRY_MAX_DELAY_SECONDS,
+    AuthenticationError,
     BlenderConnectionExhausted,
     ConnectionConfigError,
     ConnectionStatus,
     IBlenderConnectionProtocol,
+    ProtocolVersionMismatchError,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -51,9 +53,10 @@ class BlenderConnection(IBlenderConnectionProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, host: str = "localhost", port: int = 9876) -> None:
+    def __init__(self, host: str = "localhost", port: int = 9876, auth_token: str | None = None) -> None:
         self.host = host
         self.port = port
+        self.auth_token = auth_token
         self.sock: socket.socket | None = None
         self._lock = threading.Lock()
 
@@ -66,7 +69,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         # Connection state tracking (FR-SRV-001)
         self._state: str = "disconnected"
         self._reconnect_attempts: int = 0
-        self._protocol_version: str | None = None
+        self._protocol_version: str | None = "1.0.0"
         self._last_error: str | None = None
 
         # Heartbeat thread
@@ -79,7 +82,8 @@ class BlenderConnection(IBlenderConnectionProtocol):
         """Connect to Blender with exponential backoff retries and jitter.
 
         Implements FR-SRV-001: auto-reconnect with max 3 retry attempts
-        using exponential backoff with jitter (1s, 2s, 4s).
+        using exponential backoff with jitter (1s, 2s, 4s). Handshake verifies
+        compatibility version and authenticates user token if required.
         Connection timeout: CONNECTION_TIMEOUT_SECONDS (30s default).
         Initializes heartbeat monitoring on successful connection.
         """
@@ -99,6 +103,23 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     self.sock.settimeout(CONNECTION_TIMEOUT_SECONDS)
                     self.sock.connect((self.host, self.port))
 
+                    # Perform initial handshake verification (FR-SRV-001)
+                    if self.auth_token is not None:
+                        # Send handshake frame for token validation
+                        handshake_payload = json.dumps({
+                            "type": "handshake",
+                            "protocol_version": self._protocol_version,
+                            "auth_token": self.auth_token,
+                        }).encode("utf-8")
+                        self.sock.sendall(handshake_payload)
+                        response_bytes = self.sock.recv(4096)
+                        if response_bytes:
+                            resp = json.loads(response_bytes.decode("utf-8"))
+                            if resp.get("status") == "auth_failed":
+                                raise AuthenticationError(ErrorMessage("Invalid authentication token"))
+                            if resp.get("status") == "version_mismatch":
+                                raise ProtocolVersionMismatchError(ErrorMessage("Incompatible protocol version"))
+
                     # Update state on success
                     self._state = "connected"
                     self._reconnect_attempts = attempt + 1
@@ -110,6 +131,10 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     self._start_heartbeat()
                     return SuccessFlag(True)
 
+                except (AuthenticationError, ProtocolVersionMismatchError):
+                    self._state = "failed"
+                    self._close_socket()
+                    raise
                 except Exception as e:
                     self._state = "failed"
                     self._last_error = str(e)
@@ -139,14 +164,13 @@ class BlenderConnection(IBlenderConnectionProtocol):
     async def disconnect(self) -> None:  # FR-SRV-001 (idempotent)
         """Graceful disconnect. Must be idempotent.
 
-        Stops heartbeat monitoring, closes socket, updates state.
-        Fails pending queued operations with ConnectionClosedError.
+        Stops heartbeat monitoring, closes socket, updates state to closed.
         """
         with self._lock:
             self.stop_heartbeat()
             self._close_socket()
-            self._state = "disconnected"
-            logger.info("Disconnected from Blender at %s:%d", self.host, self.port)
+            self._state = "closed"
+            logger.info("Disconnected from Blender at %s:%d (state=closed)", self.host, self.port)
 
     async def is_connected(self) -> SuccessFlag:
         """Check if socket is currently connected and alive."""

@@ -29,7 +29,6 @@ __all__ = [
     "BlenderConnection",
     "CodeExecutionAdapter",
     "ExecutionQueue",
-    "TaskManager",
     # ─── Root (DI Container) ──────────────────────────────────
     "ServerContainer",
     "create_container",

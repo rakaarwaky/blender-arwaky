@@ -24,8 +24,8 @@ from modules.shared.src.server import (
     ExecutionResult,
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
+    ICodeExecutionProtocol,
     IExecutionQueueProtocol,
-    ITaskManagerProtocol,
     QueueFullError,
     TaskNotFoundError,
 )
@@ -40,14 +40,12 @@ class ServerOrchestrator(IBlenderServerAggregate):
     def __init__(
         self,
         connection: IBlenderConnectionProtocol,
-        code_executor: Any,  # ICodeExecutionProtocol
+        code_executor: ICodeExecutionProtocol,
         queue: IExecutionQueueProtocol | None = None,
-        task_manager: ITaskManagerProtocol | None = None,
     ) -> None:
         self._connection = connection
         self._code_executor = code_executor
         self._queue = queue
-        self._task_manager = task_manager
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
@@ -71,14 +69,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
 
     async def get_status(self) -> ConnectionStatus:
         """Return current connection state with metadata."""
-        host_val = str(getattr(self._connection, "host", "localhost"))
-        port_val = int(getattr(self._connection, "port", 9876))
-        return ConnectionStatus(
-            state="connected",
-            transport_type="socket",
-            host=host_val,
-            port=port_val,
-        )
+        return await self._connection.get_status()
 
     async def execute_code(self, code: str, request_id: str) -> ExecutionResult:
         """Execute Python code synchronously in Blender.
@@ -126,44 +117,20 @@ class ServerOrchestrator(IBlenderServerAggregate):
     async def submit_async_task(self, code: str, request_id: str) -> dict[str, Any]:
         """Submit long-running code for async execution.
 
-        Creates task entry with configurable TTL retention via TaskManager,
-        returns task_id and initial pending status per FRD-SRV-002.
+        Delegates to ICodeExecutionProtocol capability layer per FRD-SRV-002.
         """
         logger.info("Submitting async task for request %s (code length=%d)", request_id, len(code))
-        if self._task_manager is None:
-            # Fallback to in-memory tracking if no TaskManager configured
-            task_id = f"task_{request_id}_{int(time.monotonic() * 1000)}"
-            return {"task_id": task_id, "status": "pending"}
-
-        task_id = self._task_manager.create_task(request_id)
-        return {"task_id": task_id, "status": "pending"}
+        return await self._code_executor.submit_async_task(code, request_id)
 
     async def poll_task_result(self, task_id: str, request_id: str = "") -> ExecutionResult:
         """Poll async task status and final result.
 
-        Returns ExecutionResult with current task state. Unknown or
-        expired tasks raise TaskNotFoundError per FRD-SRV-002.
+        Delegates to ICodeExecutionProtocol capability layer per FRD-SRV-002.
         """
         logger.debug("Polling task %s for request %s", task_id, request_id)
-        if self._task_manager is not None:
-            try:
-                task_status = self._task_manager.get_task(task_id)
-                return ExecutionResult(
-                    status=StatusString(task_status.state),
-                    data=task_status.result,
-                )
-            except TaskNotFoundError:
-                return ExecutionResult(
-                    status=StatusString("error"),
-                    error=ExecutionErrorDetail(
-                        error_type="TaskNotFoundError",
-                        message=f"Task not found or expired: {task_id}",
-                    ),
-                )
-
-        # Fallback to in-memory tracking
-        tasks = getattr(self, "_tasks", {})
-        if task_id not in tasks:
+        try:
+            return await self._code_executor.poll_task_result(task_id, request_id)
+        except TaskNotFoundError:
             return ExecutionResult(
                 status=StatusString("error"),
                 error=ExecutionErrorDetail(
@@ -171,12 +138,6 @@ class ServerOrchestrator(IBlenderServerAggregate):
                     message=f"Task not found or expired: {task_id}",
                 ),
             )
-
-        task = tasks[task_id]
-        return ExecutionResult(
-            status=StatusString(task["state"]),
-            data={"task_id": task_id, "state": task["state"]},
-        )
 
     async def send_command(
         self,
@@ -202,8 +163,9 @@ class ServerOrchestrator(IBlenderServerAggregate):
         """
         start = time.monotonic()
         try:
-            # Enqueue for serialized bpy access (control ops may bypass)
-            if self._queue is not None:
+            # Enqueue for serialized bpy access (non-scene read-only commands bypass queue per FR-003)
+            is_non_scene = action.startswith("get_") or action in ("ping", "get_status", "get_version", "get_scene_info")
+            if self._queue is not None and not is_non_scene:
                 await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
 
             # Dispatch through connection protocol

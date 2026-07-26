@@ -41,11 +41,22 @@ class QueueItem:
     error: Exception | None = None
 
 class BlenderCommandAdapter(IBlenderCommandProtocol):
-    """Command dispatch capability for Blender TCP socket operations."""
+    """Command dispatch and execution queueing capability for Blender TCP socket operations.
+
+    Implements FR-SRV-003: dispatches named commands with timeout enforcement,
+    schema validation, and FIFO queue serialization to prevent concurrent bpy access.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, connection_port: IBlenderConnectionProtocol) -> None:
+    def __init__(
+        self,
+        connection_port: IBlenderConnectionProtocol,
+        queue_config: QueueConfig | None = None,
+    ) -> None:
         self._connection = connection_port
+        self._config = queue_config or QueueConfig()
+        self._queue: list[QueueItem] = []
+        self._queue_lock = asyncio.Lock()
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -121,37 +132,13 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
                 "execution_time_ms": elapsed_ms,
             }
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
-    def __repr__(self) -> str:
-        return "BlenderCommandAdapter()"
-
-    def _send_sync(self, action: ActionName, params: dict[str, Any]) -> dict[str, Any]:
-        """Synchronous send_command for use with asyncio.to_thread."""
-        return self._connection.send_command(action, params)
-
-
-class ExecutionQueue(IExecutionQueueProtocol):
-    """FIFO execution queue with depth limit and wait timeout.
-
-    Serializes requests to prevent concurrent bpy access.
-    Rejects with QueueFullError when max_depth exceeded.
-    Rejects with QueueTimeoutError when wait exceeds configured timeout.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, config: QueueConfig | None = None) -> None:
-        self._config = config or QueueConfig()
-        self._queue: list[QueueItem] = []
-        self._lock = asyncio.Lock()
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
     async def enqueue(
         self,
         request_id: str,
         payload: dict[str, Any],
     ) -> str:
         """Add item to queue. Raises QueueFullError if depth limit exceeded."""
-        async with self._lock:
+        async with self._queue_lock:
             if len(self._queue) >= self._config.max_depth:
                 raise QueueFullError(
                     f"Queue full: {len(self._queue)}/{self._config.max_depth}"
@@ -164,7 +151,7 @@ class ExecutionQueue(IExecutionQueueProtocol):
 
     async def dequeue(self) -> str | None:
         """Remove and return the next request_id from the queue."""
-        async with self._lock:
+        async with self._queue_lock:
             if not self._queue:
                 return None
             item = self._queue.pop(0)
@@ -198,16 +185,20 @@ class ExecutionQueue(IExecutionQueueProtocol):
 
     async def get_depth(self) -> int:
         """Return current queue depth."""
-        async with self._lock:
+        async with self._queue_lock:
             return len(self._queue)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ────────
     def __repr__(self) -> str:
-        return f"ExecutionQueue(max_depth={self._config.max_depth})"
+        return f"BlenderCommandAdapter(queue_max_depth={self._config.max_depth})"
+
+    def _send_sync(self, action: ActionName, params: dict[str, Any]) -> dict[str, Any]:
+        """Synchronous send_command for use with asyncio.to_thread."""
+        return self._connection.send_command(action, params)
 
     async def _find_item(self, request_id: str) -> QueueItem | None:
         """Find queue item by request_id."""
-        async with self._lock:
+        async with self._queue_lock:
             for item in self._queue:
                 if item.request_id == request_id:
                     return item
