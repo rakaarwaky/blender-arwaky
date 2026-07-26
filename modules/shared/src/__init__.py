@@ -625,5 +625,4 @@ __all__ = [
     "ActionRequestVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
-    "ValidationResultVO",
 ]
