@@ -240,6 +240,9 @@ from .asset.taxonomy_asset_data_vo import (
 
 from .asset.taxonomy_asset_vo import (
     AssetDownloadVO,
+    AssetDownloadCacheVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
     AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
@@ -302,6 +305,13 @@ from .telemetry.contract_telemetry_classification import TelemetryClassification
 from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
 from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
 from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
+
+# MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
+from .mcp.contract_server_bootstrap import ServerBootstrapManagerAggregate
+from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
+from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
+from .mcp.contract_server_health_protocol import ServerHealthProtocol
+from .mcp.contract_server_response_protocol import ServerResponseProtocol
 
 __all__ = [
     # Domain folders

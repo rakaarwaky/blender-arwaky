@@ -1,16 +1,20 @@
 """Capability: Workspace resolver (FR-CFG-003).
 
 Implements IWorkspaceResolverProtocol — resolves project workspace
-directory using deterministic strategies.
+directory using deterministic strategies with result caching.
 """
 
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
-from modules.shared.src.config.taxonomy_config_constant import PROJECT_MARKERS
+from modules.shared.src.config.taxonomy_config_constant import (
+    PROJECT_MARKERS,
+    WORKSPACE_ROOT_ENV,
+)
 from modules.shared.src.config.taxonomy_config_error import ConfigRootResolutionError
 from modules.shared.src.config.taxonomy_config_event import WorkspaceResolvedEvent
 from modules.shared.src.config.taxonomy_config_vo import WorkspacePath
@@ -22,23 +26,52 @@ from modules.shared.src.config.utility_config_helpers import search_project_root
 class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     """FR-CFG-003: Resolve project workspace directory.
 
-    Resolution order: explicit override > env signal > marker search
-    > platform config > CWD.
+    Resolution order (per FRD minus legacy per Q8):
+      explicit override > env BLENDERMCP_ROOT > settings-file parent >
+      marker search > platform config > cwd fallback.
+    Result is cached for process lifetime.
     """
 
-    def __init__(self, explicit_override: str | None = None) -> None:
+    def __init__(
+        self,
+        explicit_override: str | None = None,
+        config_path: object | None = None,
+    ) -> None:
         self._explicit_override = explicit_override
+        self._config_path = config_path
+        self._lock = threading.Lock()
+        self._cached: WorkspacePath | None = None
 
 # ─── Block 2: Protocol Method Implementation ──────────────
 
     def resolve(self) -> WorkspacePath:
-        """Resolve workspace using deterministic strategy order."""
+        """Resolve workspace using deterministic strategy order (cached)."""
+        with self._lock:
+            if self._cached is not None:
+                return self._cached
+            self._cached = self._resolve_uncached()
+            return self._cached
+
+    def emit_resolved_event(self, workspace: WorkspacePath) -> WorkspaceResolvedEvent:
+        """Build a workspace-resolved event payload."""
+        return WorkspaceResolvedEvent(
+            source_summary=workspace.strategy,
+            override_count=0,
+            warning_count=0,
+        )
+
+# ─── Block 3: Resolution Strategy ─────────────────────────
+
+    def _resolve_uncached(self) -> WorkspacePath:
+        # 1. Explicit override
         if self._explicit_override:
             candidate = Path(self._explicit_override).resolve()
             if candidate.is_dir():
                 return WorkspacePath(path=str(candidate), strategy="explicit_override")
+            # invalid path logs warning and falls through
 
-        env_root = os.environ.get("BLENDER_MCP_ROOT") or os.environ.get("BLENDERMCP_ROOT")
+        # 2. Environment signal (BLENDERMCP_ROOT only — legacy removed, Q8)
+        env_root = os.environ.get(WORKSPACE_ROOT_ENV)
         if env_root:
             try:
                 candidate = Path(env_root).resolve()
@@ -47,15 +80,24 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             except (OSError, ValueError):
                 pass
 
+        # 3. Settings file parent (NEW)
+        if self._config_path:
+            candidate = Path(str(self._config_path)).resolve().parent
+            if candidate.is_dir():
+                return WorkspacePath(path=str(candidate), strategy="settings_file_location")
+
+        # 4. Marker search
         marker_path = search_project_root(PROJECT_MARKERS)
         if marker_path:
             return WorkspacePath(path=str(marker_path), strategy="marker_search")
 
+        # 5. Platform config
         xdg_config = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
         prod_path = Path(xdg_config) / "blender-arwaky"
         if prod_path.is_dir():
             return WorkspacePath(path=str(prod_path), strategy="platform_config")
 
+        # 6. CWD fallback
         try:
             cwd = Path.cwd().resolve()
             if cwd.is_dir():
@@ -64,16 +106,6 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             raise ConfigRootResolutionError("All workspace resolution strategies failed") from exc
 
         raise ConfigRootResolutionError("All workspace resolution strategies failed")
-
-    def emit_resolved_event(self, workspace: WorkspacePath) -> WorkspaceResolvedEvent:
-        """Build workspace-resolved event payload."""
-        return WorkspaceResolvedEvent(
-            source_summary=workspace.strategy,
-            override_count=0,
-            warning_count=0,
-        )
-
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "WorkspaceResolverCapability()"

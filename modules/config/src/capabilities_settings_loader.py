@@ -13,6 +13,8 @@ from __future__ import annotations
 import copy
 import os
 import threading
+import time
+from pathlib import Path
 from typing import Any, Mapping
 
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -29,7 +31,6 @@ from modules.shared.src.config.taxonomy_config_constant import (
     DEFAULT_POLICY_MODE,
     DEFAULT_SETTINGS,
     ENV_PREFIX_PRODUCT,
-    EVENT_RING_BUFFER_SIZE,
     MAX_CONFIG_SIZE_BYTES,
     POLICY_MODE_PERMISSIVE,
     POLICY_MODE_STRICT,
@@ -52,7 +53,6 @@ from modules.shared.src.config.utility_config_helpers import (
     apply_env_overrides,
     deep_merge_dicts,
     load_yaml_safe,
-    parse_settings_path,
     resolve_default_config_path,
     set_nested_value,
     validate_settings_schema,
@@ -119,7 +119,6 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 return SettingsSnapshot(_data=final)
 
             if overrides is not None and not self._config_v2_enabled:
-                # Flag OFF: overrides ignored, parse warning logged.
                 self._last_metadata = ConfigMetadata(
                     source=self._last_metadata.source,
                     exists=self._last_metadata.exists,
@@ -201,7 +200,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         (used as base for caller-scoped runtime overrides).
         """
         resolved = resolve_default_config_path(path)
-        p = Path_resolved(resolved)
+        p = Path(str(resolved))
 
         parse_warnings: list[ParseWarning] = []
         file_data: dict[str, Any] = {}
@@ -223,21 +222,23 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     raise ConfigLoadError(
                         f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes"
                     )
-                parse_warnings.append(
-                    ParseWarning(f"settings file too large: {resolved}; skipped")
-                )
+                parse_warnings.append(ParseWarning(f"settings file too large: {resolved}; skipped"))
             else:
                 try:
                     file_data = self._file_loader(ConfigPath(str(p)))
                 except (ConfigParseError, ConfigLoadError, ConfigValidationError):
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise
-                    parse_warnings.append(ParseWarning(f"failed to parse {resolved}; using defaults"))
+                    parse_warnings.append(
+                        ParseWarning(f"failed to parse {resolved}; using defaults")
+                    )
                     file_data = {}
                 except Exception as exc:
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(ParseWarning(f"failed to load {resolved}; using defaults"))
+                    parse_warnings.append(
+                        ParseWarning(f"failed to load {resolved}; using defaults")
+                    )
                     file_data = {}
 
         # Merge precedence: defaults < file < env
@@ -263,6 +264,3 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             validation_warnings=tuple(validation_warnings),
         )
         return merged, file_data, metadata
-
-
-from pathlib import Path as Path_resolved  # noqa: E402

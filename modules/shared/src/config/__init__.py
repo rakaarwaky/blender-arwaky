@@ -59,9 +59,6 @@ from .taxonomy_config_error import (
     ConfigValidationError,
 )
 
-# ─── Taxonomy: Event Sink Protocol ────────────────────────────
-from .contract_config_event_sink_protocol import IConfigEventSinkProtocol
-
 __all__ = [
     # Contracts — Protocols
     "IConfigAggregate",
@@ -70,7 +67,6 @@ __all__ = [
     "IWorkspaceResolverProtocol",
     "ISettingsMetadataProtocol",
     "IRedactionRulesProtocol",
-    "IConfigEventSinkProtocol",
     # Taxonomy — Value Objects
     "SettingsSnapshot",
     "WorkspacePath",

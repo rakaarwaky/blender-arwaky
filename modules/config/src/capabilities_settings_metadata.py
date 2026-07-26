@@ -6,7 +6,7 @@ about settings loading without leaking secrets.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
@@ -18,28 +18,25 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
 
     Exposes source, override count, warnings, policy mode, and timestamps.
     Must never include secret values or raw settings content.
+
+    The metadata supplier is a bound method (e.g. loader.get_last_metadata)
+    wired by the composition root — no capability-to-capability imports.
     """
 
-    def __init__(self, metadata: ConfigMetadata | None = None) -> None:
-        self._metadata = metadata
+    def __init__(self, metadata_supplier: Callable[[], ConfigMetadata] | None = None) -> None:
+        self._metadata_supplier = metadata_supplier
 
 # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_metadata(self) -> ConfigMetadata:
-        """Return current settings metadata."""
-        if self._metadata is None:
+        """Return current settings metadata (reflects latest load/reload)."""
+        if self._metadata_supplier is None:
             return ConfigMetadata()
-        return self._metadata
+        return self._metadata_supplier()
 
     def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
-        """Serialize metadata for diagnostics output."""
-        return {
-            "source": metadata.source,
-            "exists": metadata.exists,
-            "overrides": metadata.overrides,
-            "parse_warnings": metadata.parse_warnings,
-            "validation_warnings": metadata.validation_warnings,
-        }
+        """Serialize metadata for diagnostics output (secrets excluded)."""
+        return metadata.to_dict()
 
 # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 

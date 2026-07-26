@@ -28,6 +28,9 @@ from .taxonomy_asset_vo import (
 
 from .contract_asset_provider import AssetProviderPort
 from .contract_asset_search_protocol import AssetSearchProtocol
+from .contract_asset_download_protocol import AssetDownloadProtocol
+from .contract_asset_extract_protocol import AssetExtractProtocol
+from .contract_asset_import_protocol import AssetImportProtocol
 from .contract_import_export_protocol import ImportExportProtocol
 from .contract_library_download_protocol import LibraryDownloadProtocol, LibraryDownloadResult
 from .contract_library_search_protocol import LibraryAssetMetadata, LibrarySearchProtocol, LibrarySearchResponse
@@ -50,6 +53,9 @@ __all__ = [
     "ImportedAsset",
     "AssetSearchVO",
     "AssetDownloadVO",
+    "AssetDownloadCacheVO",
+    "AssetExtractArchiveVO",
+    "AssetImportBlenderVO",
     "ImportGlbVO",
     "ExportModelVO",
     # Library/Marketplace VOs
@@ -66,6 +72,9 @@ __all__ = [
     "SketchfabApiPort",
     # Contracts — Protocols
     "AssetSearchProtocol",
+    "AssetDownloadProtocol",
+    "AssetExtractProtocol",
+    "AssetImportProtocol",
     "ImportExportProtocol",
     "LibrarySearchProtocol",
     "LibraryDownloadProtocol",
