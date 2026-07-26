@@ -1,48 +1,17 @@
-"""Import/Export operation request and response value objects."""
+"""Import/Export operation request and response value objects.
 
-from __future__ import annotations
+Re-exports merged VOs from taxonomy_asset_vo.py for backward compatibility.
+"""
 
-from dataclasses import dataclass
+from .taxonomy_asset_vo import ExportModelVO, ImportGlbVO
 
-from modules.shared.src.common.taxonomy_core_vo import (
-    ExportFormat,
-    ObjectName,
-    SuccessFlag,
-)
+# Legacy aliases — prefer the merged VO names above
+ImportGlbRequestVO = ImportGlbVO
+ImportGlbResponseVO = ImportGlbVO
+ExportModelRequestVO = ExportModelVO
+ExportModelResponseVO = ExportModelVO
 
-
-@dataclass(frozen=True)
-class ImportGlbRequestVO:
-    """Request to import a GLB/GLTF model."""
-
-    file_path: str
-    object_name: ObjectName | None = None
-
-
-@dataclass(frozen=True)
-class ImportGlbResponseVO:
-    """Response from a GLB import operation."""
-
-    success: SuccessFlag
-    object_name: ObjectName
-    file_path: str
-    message: str
-
-
-@dataclass(frozen=True)
-class ExportModelRequestVO:
-    """Request to export a model."""
-
-    object_name: ObjectName
-    file_path: str
-    export_format: ExportFormat | None = None
-
-
-@dataclass(frozen=True)
-class ExportModelResponseVO:
-    """Response from an export operation."""
-
-    success: SuccessFlag
-    file_path: str
-    object_name: ObjectName
-    message: str
+__all__ = [
+    "ExportModelVO",
+    "ImportGlbVO",
+]

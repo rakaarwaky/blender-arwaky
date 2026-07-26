@@ -4,27 +4,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_import_export_vo import (
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
-)
+from .taxonomy_asset_vo import ExportModelVO, ImportGlbVO
 
 
 class ImportExportProtocol(ABC):
     """Protocol interface for external file operations (GLB/OBJ)."""
 
     @abstractmethod
-    async def import_glb(
-        self, request: ImportGlbRequestVO
-    ) -> ImportGlbResponseVO:
+    async def import_glb(self, request: ImportGlbVO) -> ImportGlbVO:
         """Import a 3D model into Blender."""
-        pass
+        ...
 
     @abstractmethod
-    async def export_model(
-        self, request: ExportModelRequestVO
-    ) -> ExportModelResponseVO:
+    async def export_model(self, request: ExportModelVO) -> ExportModelVO:
         """Export Blender objects to file."""
-        pass
+        ...

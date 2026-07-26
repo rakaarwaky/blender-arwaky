@@ -24,6 +24,13 @@ from .taxonomy_asset_request_vo import (
     AssetSearchResponseVO,
 )
 
+from .taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetSearchVO,
+    ExportModelVO,
+    ImportGlbVO,
+)
+
 from .taxonomy_import_export_vo import (
     ExportModelRequestVO,
     ExportModelResponseVO,
@@ -61,6 +68,11 @@ __all__ = [
     "ImportGlbResponseVO",
     "ExportModelRequestVO",
     "ExportModelResponseVO",
+    # Merged VOs
+    "AssetSearchVO",
+    "AssetDownloadVO",
+    "ImportGlbVO",
+    "ExportModelVO",
     # Library/Marketplace VOs
     "LibraryAssetMetadata",
     "LibrarySearchResponse",

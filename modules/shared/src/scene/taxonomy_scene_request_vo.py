@@ -1,61 +1,35 @@
-"""Scene operation request and response value objects."""
+"""Scene operation request and response value objects.
 
-from __future__ import annotations
+Re-exports merged VOs from taxonomy_scene_vo.py for backward compatibility.
+Legacy Request/Response names point to the unified VO classes.
+"""
 
-from dataclasses import dataclass, field
-
-from ..common.taxonomy_core_vo import (
-    CleanupMode,
-    ObjectCount,
-    Prompt,
-    SuccessFlag,
+from .taxonomy_scene_vo import (
+    CleanupSceneVO,
+    GetSceneInfoVO,
+    SetupEnvironmentVO,
 )
 
+# Legacy request aliases
+CleanupSceneRequestVO = CleanupSceneVO
+GetSceneInfoRequestVO = GetSceneInfoVO
+SetupEnvironmentRequestVO = SetupEnvironmentVO
 
-@dataclass(frozen=True)
-class CleanupSceneRequestVO:
-    """Request to clean up the scene."""
+# Legacy response aliases — ResponseVO is merged into the unified VO
+CleanupSceneResponseVO = CleanupSceneVO
+GetSceneInfoResponseVO = GetSceneInfoVO
+SetupEnvironmentResponseVO = SetupEnvironmentVO
 
-    mode: CleanupMode = field(default=CleanupMode("all"))
-
-
-@dataclass(frozen=True)
-class CleanupSceneResponseVO:
-    """Response from a scene cleanup operation."""
-
-    success: SuccessFlag
-    objects_removed: ObjectCount
-    message: Prompt
-
-
-@dataclass(frozen=True)
-class GetSceneInfoRequestVO:
-    """Request to retrieve scene information."""
-
-    pass
-
-
-@dataclass(frozen=True)
-class GetSceneInfoResponseVO:
-    """Response containing scene information."""
-
-    success: SuccessFlag
-    scene_info: object  # SceneInfo or similar
-    message: Prompt
-
-
-@dataclass(frozen=True)
-class SetupEnvironmentRequestVO:
-    """Request to set up scene environment (HDRI, lighting)."""
-
-    hdri_id: str
-    strength: float = 1.0
-
-
-@dataclass(frozen=True)
-class SetupEnvironmentResponseVO:
-    """Response from environment setup operation."""
-
-    success: SuccessFlag
-    hdri_path: str | None
-    message: Prompt
+__all__ = [
+    # Unified VO names
+    "CleanupSceneVO",
+    "GetSceneInfoVO",
+    "SetupEnvironmentVO",
+    # Legacy aliases
+    "CleanupSceneRequestVO",
+    "GetSceneInfoRequestVO",
+    "SetupEnvironmentRequestVO",
+    "CleanupSceneResponseVO",
+    "GetSceneInfoResponseVO",
+    "SetupEnvironmentResponseVO",
+]

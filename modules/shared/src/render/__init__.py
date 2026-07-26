@@ -14,6 +14,14 @@ from .taxonomy_render_request_vo import (
     RenderResponseVO,
     ScreenshotResponseVO,
 )
+from .taxonomy_render_vo import (
+    CameraConfigVO,
+    CameraSetupVO,
+    GetScreenshotVO,
+    HdriConfigVO,
+    HdriSetupVO,
+    RenderVO,
+)
 
 __all__ = [
     # Protocols
@@ -21,7 +29,7 @@ __all__ = [
     "HdriConfigProtocol",
     "RenderOperateProtocol",
     "ViewportCapturePort",
-    # Request/Result VOs
+    # Request/Result VOs (legacy aliases)
     "CameraSetupRequestVO",
     "CameraConfigResultVO",
     "GetScreenshotRequestVO",
@@ -30,4 +38,11 @@ __all__ = [
     "RenderRequestVO",
     "RenderResponseVO",
     "ScreenshotResponseVO",
+    # Merged VOs
+    "CameraConfigVO",
+    "CameraSetupVO",
+    "GetScreenshotVO",
+    "HdriConfigVO",
+    "HdriSetupVO",
+    "RenderVO",
 ]

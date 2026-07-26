@@ -12,6 +12,7 @@ from . import (
     taxonomy_object_policy_vo,
     taxonomy_object_request_vo,
     taxonomy_object_result_vo,
+    taxonomy_object_vo,
 )
 from .contract_apply_modifier_protocol import ApplyModifierProtocol
 from .contract_create_primitive_protocol import CreatePrimitiveProtocol
@@ -38,5 +39,6 @@ __all__ = [
     "taxonomy_object_policy_vo",
     "taxonomy_object_request_vo",
     "taxonomy_object_result_vo",
+    "taxonomy_object_vo",
 ]
 
