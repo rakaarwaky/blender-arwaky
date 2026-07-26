@@ -11,6 +11,7 @@ Organized by domain:
 from . import (
     asset,
     common,
+    config,
     job,
     object,
     render,
@@ -259,6 +260,43 @@ from .asset.taxonomy_import_export_vo import (
 )
 
 # === Contract layer exports (organized by domain) ===
+
+# Config domain — Protocols (inbound behavior interfaces)
+from .config.contract_config_aggregate import IConfigAggregate
+from .config.contract_settings_loader_protocol import ISettingsLoaderProtocol
+from .config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
+from .config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
+from .config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
+from .config.contract_redaction_rules_protocol import IRedactionRulesProtocol
+
+# Config domain — Value Objects
+from .config.taxonomy_config_vo import (
+    RedactionRule,
+    SensitiveKeyPattern,
+    SettingsSnapshot,
+    WorkspacePath,
+)
+
+# Config domain — Events
+from .config.taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
+)
+
+# Config domain — Constants
+from .config.taxonomy_config_constant import (
+    DEFAULT_POLICY_MODE,
+    ENV_PREFIX_LEGACY,
+    ENV_PREFIX_PRODUCT,
+    MAX_CONFIG_SIZE_BYTES,
+    POLICY_MODE_PERMISSIVE,
+    POLICY_MODE_STRICT,
+    PROJECT_MARKERS,
+    REDACTION_PLACEHOLDER,
+    SENSITIVE_KEY_PATTERNS,
+)
 
 # Protocols (business behavior contracts)
 from .scene.contract_scene_operate_protocol import SceneOperateProtocol
