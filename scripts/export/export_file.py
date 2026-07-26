@@ -11,7 +11,7 @@ Usage:
     python3 scripts/export/export_file.py
 
     # CLI mode (non-interactive):
-    python3 scripts/export/export_file.py --file modules/server/src/capabilities_blender_command_adapter.py
+    python3 scripts/export/export_file.py --file modules/gateway/src/capabilities_blender_command_adapter.py
     python3 scripts/export/export_file.py --file modules/telemetry/src/agent_orchestrator.py --output /tmp/out.md
 """
 
@@ -64,7 +64,7 @@ def prompt_file(sources: list[Path]) -> Path:
     """Prompt user to type or paste the file path to export.
 
     Supports:
-      - Paste full path (e.g. modules/server/src/capabilities_blender_command_adapter.py)
+      - Paste full path (e.g. modules/gateway/src/capabilities_blender_command_adapter.py)
       - Type relative path from project root
       - Drag-and-drop (shell expands to full path)
       - Tab completion if available
@@ -233,7 +233,7 @@ def resolve_dependency_path(dep: dict, file_path: Path, project_root: Path) -> s
 
     elif source == "python":
         # Python: look in modules/, same directory, __init__.py parents
-        # e.g., modules.server.src.capabilities -> modules/server/src/
+        # e.g., modules.gateway.src.capabilities -> modules/gateway/src/
         search_bases = [project_root / "modules"]
 
         for base in search_bases:
