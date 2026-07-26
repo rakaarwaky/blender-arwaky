@@ -13,10 +13,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .agent_orchestrator import AssetOrchestrator
-    from .capabilities_asset_search_collector import AssetSearchCollector
-    from .capabilities_import_export_executor import ImportExportExecutor
-    from .capabilities_polyhaven_adapter import PolyhavenAssetAdapter
-    from .capabilities_sketchfab_adapter import SketchfabAssetAdapter
 
 logger = logging.getLogger("BlenderMCPServer")
 

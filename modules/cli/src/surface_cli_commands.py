@@ -1,11 +1,9 @@
 """Commands: High-level CLI operations (init, run, screenshot, render, close, status)."""
 
-import json
 import os
-import tempfile
-from typing import Any, Optional
+from typing import Any
 
-from .blender_manager import kill_blender, is_running, launch_blender
+from .blender_manager import is_running, kill_blender, launch_blender
 from .registry import Registry
 from .socket_client import BlenderSocketClient
 
@@ -85,7 +83,7 @@ def screenshot(
     view_angle: str = "PERSPECTIVE",
     shading: str = "MATERIAL",
     show_overlays: bool = True,
-    focus_object: Optional[str] = None,
+    focus_object: str | None = None,
 ) -> dict[str, Any]:
     """Capture a viewport screenshot.
 

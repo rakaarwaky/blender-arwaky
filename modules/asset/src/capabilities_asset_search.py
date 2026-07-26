@@ -6,23 +6,19 @@ Returns normalized, aggregated results with pagination and warnings.
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
 from modules.shared.src.asset.contract_asset_provider import AssetProviderPort
+from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetId,
-    AssetName,
-    AssetType,
     AssetTypeFilter,
     NextPageToken,
     ProviderName,
     ResultLimit,
     SearchQuery,
-    ThumbnailUrl,
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
 

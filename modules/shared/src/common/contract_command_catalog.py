@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_core_vo import ActionName, DomainRef
 from .taxonomy_command_catalog_constant import CommandSpec
+from .taxonomy_core_vo import ActionName, DomainRef
 
 
 class CommandCatalogPort(ABC):

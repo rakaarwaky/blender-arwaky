@@ -15,9 +15,7 @@ from modules.shared.src.asset.contract_asset_import_protocol import AssetImportP
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     FilePath,
-    ObjectName,
 )
-from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 

@@ -7,17 +7,20 @@ the Sketchfab API through the server module's command dispatch capability.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
+from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.asset import (
+    AssetMetadata,
+    AssetMetadataVO,
     AssetProviderPort,
 )
 from modules.shared.src.asset.taxonomy_asset_vo import (
     AssetDownloadVO,
     AssetSearchVO,
 )
-from modules.shared.src.asset import AssetMetadata, AssetMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
     AssetCount,
     AssetId,
     AssetName,
@@ -29,9 +32,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     TagList,
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
-
-from modules.shared.src.common.taxonomy_core_vo import ActionName
-from modules.gateway.src import IBlenderConnectionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

@@ -15,11 +15,8 @@ from modules.shared.src.asset.contract_asset_provider_metadata_protocol import (
 )
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
-    AssetName,
-    AssetType,
     ProviderName,
 )
-from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 

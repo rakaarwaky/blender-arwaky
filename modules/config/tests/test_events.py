@@ -7,11 +7,11 @@ import logging
 import pytest
 
 from modules.config.src.agent_config_orchestrator import ConfigOrchestrator
+from modules.config.src.capabilities_redaction_rules import RedactionRulesCapability
 from modules.config.src.capabilities_settings_loader import SettingsLoaderCapability
 from modules.config.src.capabilities_settings_metadata import SettingsMetadataCapability
 from modules.config.src.capabilities_settings_retriever import SettingsRetrieverCapability
 from modules.config.src.capabilities_workspace_resolver import WorkspaceResolverCapability
-from modules.config.src.capabilities_redaction_rules import RedactionRulesCapability
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
 
 

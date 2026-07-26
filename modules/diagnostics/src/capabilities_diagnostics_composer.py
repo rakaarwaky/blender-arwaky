@@ -12,11 +12,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.shared.src.diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
-from modules.shared.src.diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
 from modules.shared.src.diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
-from modules.shared.src.diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
 from modules.shared.src.diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
+from modules.shared.src.diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
+from modules.shared.src.diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
+from modules.shared.src.diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

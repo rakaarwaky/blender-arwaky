@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING
 
 from modules.diagnostics.src.contract_event_bus_protocol import IEventSubscriber
 from modules.gateway.src.taxonomy_server_event import (
@@ -123,15 +122,7 @@ class MetricsCollector(IEventSubscriber, IMetricsProvider):
                 self._command_latencies = self._command_latencies[-100:]
             updated = True
 
-        elif isinstance(event, CommandFailed):
-            self._counters["failed_request_count"] += 1
-            updated = True
-
-        elif isinstance(event, CommandTimedOut):
-            self._counters["failed_request_count"] += 1
-            updated = True
-
-        elif isinstance(event, OperationRejected):
+        elif isinstance(event, CommandFailed) or isinstance(event, CommandTimedOut) or isinstance(event, OperationRejected):
             self._counters["failed_request_count"] += 1
             updated = True
 

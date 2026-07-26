@@ -9,16 +9,12 @@ FR-JOB-001: Track and Update Task Lifecycle
 
 import logging
 import uuid
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
     Progress,
     ResultUrl,
-)
-from modules.shared.src.job.contract_job_tracker_protocol import (
-    JobTrackerProtocol,
 )
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 

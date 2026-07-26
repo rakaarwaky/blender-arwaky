@@ -8,7 +8,6 @@ FR-JOB-004: Automatic Task Record Cleanup
 
 import logging
 import time
-from typing import Any
 
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from modules.shared.src.common.taxonomy_core_vo import AssetId
+
 from .taxonomy_asset_data_vo import AssetMetadata
 from .taxonomy_asset_vo import AssetDownloadVO, AssetSearchVO
 

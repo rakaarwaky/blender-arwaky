@@ -8,6 +8,7 @@ import threading
 
 import pytest
 
+from modules.config.src.capabilities_settings_loader import SettingsLoaderCapability
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.taxonomy_config_constant import MAX_CONFIG_SIZE_BYTES
 from modules.shared.src.config.taxonomy_config_error import (
@@ -16,7 +17,6 @@ from modules.shared.src.config.taxonomy_config_error import (
     ConfigPathError,
     ConfigValidationError,
 )
-from modules.config.src.capabilities_settings_loader import SettingsLoaderCapability
 
 
 def _write(path: str, content: str) -> None:

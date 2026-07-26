@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import copy
-
 import pytest
 
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot

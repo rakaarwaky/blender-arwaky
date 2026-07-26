@@ -9,8 +9,8 @@ FR-TLM-004: Enrich Events with Environment Metadata
 from __future__ import annotations
 
 import platform
-import sys
 import subprocess
+import sys
 from typing import Any
 
 from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol

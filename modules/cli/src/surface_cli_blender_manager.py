@@ -5,7 +5,6 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Optional
 
 
 def find_blender() -> str:
@@ -49,7 +48,7 @@ def launch_blender(
     filepath: str,
     mode: str = "headless",
     port: int = 9876,
-    addon_path: Optional[str] = None,
+    addon_path: str | None = None,
 ) -> int:
     """Launch Blender with addon and return PID.
 
@@ -121,7 +120,7 @@ def _wait_for_addon(port: int, timeout: int = 30) -> None:
             sock.connect(("localhost", port))
             sock.close()
             return
-        except (ConnectionRefusedError, socket.timeout, OSError):
+        except (TimeoutError, ConnectionRefusedError, OSError):
             time.sleep(0.5)
 
     raise TimeoutError(f"Blender addon not ready on port {port} after {timeout}s")

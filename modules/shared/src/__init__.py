@@ -9,6 +9,9 @@ Organized by domain:
 - diagnostics/: Diagnostics observability protocols
 """
 
+# MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
+from modules.mcp.src.contract_server_bootstrap import ServerBootstrapManagerAggregate
+
 from . import (
     asset,
     common,
@@ -20,9 +23,61 @@ from . import (
     scene,
     telemetry,
 )
+from .asset.contract_asset_download_protocol import AssetDownloadProtocol
+from .asset.contract_asset_extract_protocol import AssetExtractProtocol
+from .asset.contract_asset_import_protocol import AssetImportProtocol
+from .asset.contract_asset_provider import AssetProviderPort
+from .asset.contract_asset_provider_metadata_protocol import AssetProviderMetadataProtocol
+from .asset.contract_asset_search_protocol import AssetSearchProtocol
+from .asset.contract_import_export_protocol import ImportExportProtocol
+from .asset.contract_polyhaven_api import PolyhavenApiPort
+from .asset.contract_sketchfab_api import SketchfabApiPort
+
+# === Asset domain exports ===
+from .asset.taxonomy_asset_constant import (
+    ASSET_TYPE_HDRIS,
+    ASSET_TYPE_MODELS,
+    ASSET_TYPE_TEXTURES,
+    PROVIDER_POLYHAVEN,
+    PROVIDER_SKETCHFAB,
+)
+from .asset.taxonomy_asset_data_vo import (
+    AssetMetadata,
+    ImportedAsset,
+    create_asset_id,
+    create_provider_name,
+)
+from .asset.taxonomy_asset_vo import (
+    AssetDownloadCacheVO,
+    AssetDownloadVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
+    AssetMetadataItem,
+    AssetMetadataVO,
+    AssetSearchVO,
+    ExportModelVO,
+    ImportGlbVO,
+)
+
+# CLI domain — Protocols (command routing, render output, error display)
+from .cli.contract_cli_command_protocol import CliCommandProtocol
+from .cli.contract_cli_error_protocol import CliErrorProtocol
+from .cli.contract_cli_render_protocol import CliRenderProtocol
+
+# Protocols (inbound behavior interfaces — Capabilities implement these)
+from .common.contract_command_catalog import CommandCatalogPort
+from .common.contract_execute_action_protocol import ExecuteActionProtocol
+from .common.contract_workflow_protocol import WorkflowProtocol
+from .common.taxonomy_app_config_vo import ApplicationConfig
+from .common.taxonomy_bounding_box_vo import BoundingBox
+from .common.taxonomy_command_catalog_constant import (
+    ACTION_NAMES,
+    COMMAND_CATALOG,
+    CommandCatalog,
+    CommandSpec,
+)
 
 # Re-export all taxonomy types from domain folders for backward compatibility
-
 # === Common domain exports ===
 from .common.taxonomy_core_vo import (
     ActionName,
@@ -45,6 +100,7 @@ from .common.taxonomy_core_vo import (
     DomainRef,
     DurationMs,
     EnabledFlag,
+    ErrorMessage,
     ErrorString,
     ExitCode,
     ExportFormat,
@@ -107,7 +163,6 @@ from .common.taxonomy_core_vo import (
     VersionString,
     WorkflowName,
 )
-
 from .common.taxonomy_domain_error import (
     AssetNotFoundError,
     BlenderConnectionFailure,
@@ -121,44 +176,85 @@ from .common.taxonomy_domain_error import (
     SceneValidationError,
     ValidationError,
 )
-
-from .common.taxonomy_core_vo import ErrorMessage
-
-from .common.taxonomy_command_catalog_constant import (
-    ACTION_NAMES,
-    COMMAND_CATALOG,
-    CommandCatalog,
-    CommandSpec,
-)
-
 from .common.taxonomy_vector3d_vo import Vector3D
 
-from .common.taxonomy_bounding_box_vo import BoundingBox
+# === Contract layer exports (organized by domain) ===
+# Config domain — Protocols (inbound behavior interfaces)
+from .config.contract_config_aggregate import IConfigAggregate
+from .config.contract_redaction_rules_protocol import IRedactionRulesProtocol
+from .config.contract_settings_loader_protocol import ISettingsLoaderProtocol
+from .config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
+from .config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
+from .config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 
-from .common.taxonomy_app_config_vo import ApplicationConfig
-
-# === Scene domain exports ===
-from .scene.taxonomy_scene_info_vo import (
-    RENDER_ENGINE_CYCLES,
-    RENDER_ENGINE_EEVEE,
-    SceneInfo,
+# Config domain — Constants
+from .config.taxonomy_config_constant import (
+    DEFAULT_POLICY_MODE,
+    ENV_PREFIX_PRODUCT,
+    MAX_CONFIG_SIZE_BYTES,
+    POLICY_MODE_PERMISSIVE,
+    POLICY_MODE_STRICT,
+    PROJECT_MARKERS,
+    REDACTION_PLACEHOLDER,
+    SENSITIVE_KEY_PATTERNS,
 )
 
-from .scene.taxonomy_scene_request_vo import (
-    CleanupSceneRequestVO,
-    CleanupSceneResponseVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
-    SetupEnvironmentRequestVO,
-    SetupEnvironmentResponseVO,
+# Config domain — Events
+from .config.taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
 )
+
+# Config domain — Value Objects
+from .config.taxonomy_config_vo import (
+    RedactionRule,
+    SettingsSnapshot,
+    WorkspacePath,
+)
+from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
+from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
+
+# Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
+from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
+from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
+from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
+from .job.contract_job_cancel_protocol import JobCancelProtocol
+from .job.contract_job_cleanup_protocol import JobCleanupProtocol
+from .job.contract_job_monitor_protocol import JobMonitorProtocol
+from .job.contract_job_tracker_protocol import JobTrackerProtocol
+
+# === Job domain exports ===
+from .job.taxonomy_job_state_constant import (
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+)
+from .job.taxonomy_job_status_entity import (
+    JobStatus,
+    create_job_id,
+    create_progress,
+)
+from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
+from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
+from .mcp.contract_server_health_protocol import ServerHealthProtocol
+from .mcp.contract_server_response_protocol import ServerResponseProtocol
+from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
+from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
+from .object.contract_delete_object_protocol import DeleteObjectProtocol
+from .object.contract_get_object_info_protocol import GetObjectInfoProtocol
+from .object.contract_object_operate_protocol import ObjectOperateProtocol
+from .object.contract_place_asset_protocol import PlaceAssetProtocol
+from .object.contract_set_material_protocol import SetMaterialProtocol
+from .object.contract_set_transform_protocol import SetObjectTransformProtocol
 
 # === Object domain exports ===
 from .object.taxonomy_blender_object_entity import (
     BlenderObject,
     create_object_id,
 )
-
 from .object.taxonomy_object_constant import (
     ALLOWED_OBJECT_TYPES,
     OBJECT_TYPE_ARMATURE,
@@ -175,7 +271,6 @@ from .object.taxonomy_object_constant import (
     OBJECT_TYPE_SURFACE,
     OBJECT_TYPE_VOLUME,
 )
-
 from .object.taxonomy_object_vo import (
     ApplyModifierVO,
     CreatePrimitiveVO,
@@ -185,7 +280,11 @@ from .object.taxonomy_object_vo import (
     SetMaterialVO,
     SetObjectTransformVO,
 )
-
+from .render.contract_camera_config_protocol import CameraConfigProtocol
+from .render.contract_hdri_config_protocol import HdriConfigProtocol
+from .render.contract_render_operate_protocol import RenderOperateProtocol
+from .render.contract_viewport_capture import ViewportCapturePort
+from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
 
 # === Render domain exports ===
 from .render.taxonomy_render_vo import (
@@ -196,21 +295,35 @@ from .render.taxonomy_render_vo import (
     HdriSetupVO,
     RenderVO,
 )
+from .scene.contract_scene_inspection import SceneInspectionPort
 
+# Protocols (business behavior contracts)
+from .scene.contract_scene_operate_protocol import SceneOperateProtocol
 
-# === Job domain exports ===
-from .job.taxonomy_job_state_constant import (
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
+# === Scene domain exports ===
+from .scene.taxonomy_scene_info_vo import (
+    RENDER_ENGINE_CYCLES,
+    RENDER_ENGINE_EEVEE,
+    SceneInfo,
 )
-
-from .job.taxonomy_job_status_entity import (
-    JobStatus,
-    create_job_id,
-    create_progress,
+from .scene.taxonomy_scene_request_vo import (
+    CleanupSceneRequestVO,
+    CleanupSceneResponseVO,
+    GetSceneInfoRequestVO,
+    GetSceneInfoResponseVO,
+    SetupEnvironmentRequestVO,
+    SetupEnvironmentResponseVO,
 )
+from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
+
+# Telemetry domain — Protocols (recording, classification, session, enrichment)
+from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationProtocol
+from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
+from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
+from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
+from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
+from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
+from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
 
 # === Telemetry domain exports ===
 from .telemetry.taxonomy_event_constant import (
@@ -220,133 +333,7 @@ from .telemetry.taxonomy_event_constant import (
     EVENT_TYPE_STARTUP,
     EVENT_TYPE_TOOL_EXECUTION,
 )
-
 from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
-
-# === Asset domain exports ===
-from .asset.taxonomy_asset_constant import (
-    ASSET_TYPE_HDRIS,
-    ASSET_TYPE_MODELS,
-    ASSET_TYPE_TEXTURES,
-    PROVIDER_POLYHAVEN,
-    PROVIDER_SKETCHFAB,
-)
-
-from .asset.taxonomy_asset_data_vo import (
-    AssetMetadata,
-    ImportedAsset,
-    create_asset_id,
-    create_provider_name,
-)
-
-from .asset.taxonomy_asset_vo import (
-    AssetDownloadVO,
-    AssetDownloadCacheVO,
-    AssetExtractArchiveVO,
-    AssetImportBlenderVO,
-    AssetMetadataItem,
-    AssetMetadataVO,
-    AssetSearchVO,
-    ExportModelVO,
-    ImportGlbVO,
-)
-
-# === Contract layer exports (organized by domain) ===
-
-# Config domain — Protocols (inbound behavior interfaces)
-from .config.contract_config_aggregate import IConfigAggregate
-from .config.contract_settings_loader_protocol import ISettingsLoaderProtocol
-from .config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
-from .config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
-from .config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
-from .config.contract_redaction_rules_protocol import IRedactionRulesProtocol
-
-# Config domain — Value Objects
-from .config.taxonomy_config_vo import (
-    RedactionRule,
-    SettingsSnapshot,
-    WorkspacePath,
-)
-
-# Config domain — Events
-from .config.taxonomy_config_event import (
-    SettingsLoadedEvent,
-    SettingsReloadEvent,
-    SettingsValidationWarningEvent,
-    WorkspaceResolvedEvent,
-)
-
-# Config domain — Constants
-from .config.taxonomy_config_constant import (
-    DEFAULT_POLICY_MODE,
-    ENV_PREFIX_PRODUCT,
-    MAX_CONFIG_SIZE_BYTES,
-    POLICY_MODE_PERMISSIVE,
-    POLICY_MODE_STRICT,
-    PROJECT_MARKERS,
-    REDACTION_PLACEHOLDER,
-    SENSITIVE_KEY_PATTERNS,
-)
-
-# Protocols (business behavior contracts)
-from .scene.contract_scene_operate_protocol import SceneOperateProtocol
-from .object.contract_object_operate_protocol import ObjectOperateProtocol
-from .object.contract_place_asset_protocol import PlaceAssetProtocol
-from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
-from .object.contract_set_transform_protocol import SetObjectTransformProtocol
-from .object.contract_set_material_protocol import SetMaterialProtocol
-from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
-from .object.contract_delete_object_protocol import DeleteObjectProtocol
-from .object.contract_get_object_info_protocol import GetObjectInfoProtocol
-from .render.contract_render_operate_protocol import RenderOperateProtocol
-from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
-from .render.contract_camera_config_protocol import CameraConfigProtocol
-from .render.contract_hdri_config_protocol import HdriConfigProtocol
-from .asset.contract_asset_search_protocol import AssetSearchProtocol
-from .asset.contract_asset_download_protocol import AssetDownloadProtocol
-from .asset.contract_asset_extract_protocol import AssetExtractProtocol
-from .asset.contract_asset_import_protocol import AssetImportProtocol
-from .asset.contract_asset_provider_metadata_protocol import AssetProviderMetadataProtocol
-from .asset.contract_import_export_protocol import ImportExportProtocol
-from .common.contract_workflow_protocol import WorkflowProtocol
-from .common.contract_execute_action_protocol import ExecuteActionProtocol
-
-# Protocols (inbound behavior interfaces — Capabilities implement these)
-from .common.contract_command_catalog import CommandCatalogPort
-from .scene.contract_scene_inspection import SceneInspectionPort
-from .render.contract_viewport_capture import ViewportCapturePort
-from .asset.contract_asset_provider import AssetProviderPort
-from .asset.contract_polyhaven_api import PolyhavenApiPort
-from .asset.contract_sketchfab_api import SketchfabApiPort
-from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
-from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
-from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
-from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
-
-# MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
-from modules.mcp.src.contract_server_bootstrap import ServerBootstrapManagerAggregate
-from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
-from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
-from .mcp.contract_server_health_protocol import ServerHealthProtocol
-from .mcp.contract_server_response_protocol import ServerResponseProtocol
-
-# CLI domain — Protocols (command routing, render output, error display)
-from .cli.contract_cli_command_protocol import CliCommandProtocol
-from .cli.contract_cli_render_protocol import CliRenderProtocol
-from .cli.contract_cli_error_protocol import CliErrorProtocol
-
-# Telemetry domain — Protocols (recording, classification, session, enrichment)
-from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationProtocol
-from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
-from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
-from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
-
-# Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
-from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
-from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
-from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
-from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
-from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
 
 __all__ = [
     # Domain folders
@@ -537,6 +524,10 @@ __all__ = [
     "ApplyModifierProtocol",
     "DeleteObjectProtocol",
     "GetObjectInfoProtocol",
+    "JobTrackerProtocol",
+    "JobMonitorProtocol",
+    "JobCancelProtocol",
+    "JobCleanupProtocol",
     "RenderOperateProtocol",
     "ViewportCaptureProtocol",
     "CameraConfigProtocol",

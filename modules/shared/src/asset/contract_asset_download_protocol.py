@@ -18,7 +18,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     FilePath,
     MaxSize,
     ProviderName,
-    SuccessFlag,
 )
 
 

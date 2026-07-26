@@ -239,64 +239,64 @@ Event payloads must avoid:
 
 ## Configuration Keys
 
-| Configuration Concept | Description | Typical Default |
-| --------------------- | ----------- | --------------- |
-| Settings source location | Location of primary settings file used during load | Resolved from workspace or platform-standard location |
-| Workspace directory | Project root directory used for file-based operations | Resolved through deterministic workspace strategies |
-| Sensitive key list | List of key names and patterns treated as secret for redaction | Common token, key, password, and credential patterns |
-| Environment override prefix | Product-specific prefix recognized for environment overrides | Product prefix with nested key convention |
-| Legacy environment fallback | Whether legacy environment prefix is accepted | Enabled for backward compatibility |
-| Policy mode | Strict or permissive behavior for parse and schema issues | Strict |
-| Maximum settings size | Maximum allowed settings source size | Conservative size limit |
-| Default values source | Built-in defaults applied when no other source provides value | Feature-defined safe defaults |
+
+| Configuration Concept       | Description                                                    | Typical Default                                       |
+| ----------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| Settings source location    | Location of primary settings file used during load             | Resolved from workspace or platform-standard location |
+| Workspace directory         | Project root directory used for file-based operations          | Resolved through deterministic workspace strategies   |
+| Sensitive key list          | List of key names and patterns treated as secret for redaction | Common token, key, password, and credential patterns  |
+| Environment override prefix | Product-specific prefix recognized for environment overrides   | Product prefix with nested key convention             |
+| Legacy environment fallback | Whether legacy environment prefix is accepted                  | Enabled for backward compatibility                    |
+| Policy mode                 | Strict or permissive behavior for parse and schema issues      | Strict                                                |
+| Maximum settings size       | Maximum allowed settings source size                           | Conservative size limit                               |
+| Default values source       | Built-in defaults applied when no other source provides value  | Feature-defined safe defaults                         |
 
 ## QA Checklist
 
-- [ ] Settings load from file, environment, and defaults with correct precedence
-- [ ] Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_CONFIG_V2=on`; ignored with warning when off)
-- [ ] Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
-- [ ] Environment override takes precedence over file and defaults
-- [ ] File values take precedence over built-in defaults
-- [ ] Missing settings file falls back to environment and defaults without fatal error
-- [ ] Malformed settings content raises configuration error in strict mode
-- [ ] Malformed settings content falls back safely in permissive mode
-- [ ] Schema violation raises validation error in strict mode
-- [ ] Schema violation logs warning in permissive mode
-- [ ] Unsafe settings content is rejected without object instantiation
-- [ ] Oversized settings source raises load error
-- [ ] Environment values convert to boolean, integer, float, null, list, and mapping types correctly
-- [ ] Legacy environment prefix fallback works when enabled
-- [ ] Immutable snapshot returned on retrieve
-- [ ] Retrieved structured values are deep-copied or immutable
-- [ ] Missing key returns provided default
-- [ ] Empty path returns full settings snapshot safely
-- [ ] List position access works and out-of-range returns default
-- [ ] Expected type mismatch returns default in permissive mode
-- [ ] Expected type mismatch raises type conversion error in strict mode
-- [ ] Concurrent first access loads settings only once
-- [ ] Reload replaces snapshot atomically
-- [ ] Failed reload retains previous valid snapshot in non-fatal mode
-- [ ] Project workspace resolves correctly through explicit override
-- [ ] Project workspace resolves correctly through environment signal
-- [ ] Project workspace resolves correctly through settings file location
-- [ ] Project workspace resolves correctly through proximity markers
-- [ ] Project workspace falls back to current working directory
-- [ ] Project workspace handles symlinked directories safely
-- [ ] Project workspace resolution does not create directories by default
-- [ ] Legacy BLENDERMCP_* environment variables are ignored (Q8)
-- [ ] Runtime overrides are caller-scoped and not cached (A5)
-- [ ] 32-thread first access performs exactly one load (Q19)
-- [ ] Built-in defaults tier is complete; settings file is optional override-only (Q6)
-- [ ] Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_CONFIG_V2
-- [ ] Asset and render derive root locations from workspace resolution instead of own rules
-- [ ] Settings metadata reports source, override count, and warnings
-- [ ] Settings metadata does not leak secret values
-- [ ] Redaction keys mask sensitive values in diagnostics
-- [ ] Redaction keys mask sensitive values in command-line output
-- [ ] Redaction keys mask sensitive values in MCP-facing responses
-- [ ] Redaction rules contain key patterns only, never secret values
-- [ ] Custom redaction rules extend built-in defaults safely
-- [ ] Settings loaded event emitted after successful load
-- [ ] Settings reload event emitted after successful reload
-- [ ] Workspace resolved event emitted after resolution
-
+- [ ]  Settings load from file, environment, and defaults with correct precedence
+- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_CONFIG_V2=on`; ignored with warning when off)
+- [ ]  Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
+- [ ]  Environment override takes precedence over file and defaults
+- [ ]  File values take precedence over built-in defaults
+- [ ]  Missing settings file falls back to environment and defaults without fatal error
+- [ ]  Malformed settings content raises configuration error in strict mode
+- [ ]  Malformed settings content falls back safely in permissive mode
+- [ ]  Schema violation raises validation error in strict mode
+- [ ]  Schema violation logs warning in permissive mode
+- [ ]  Unsafe settings content is rejected without object instantiation
+- [ ]  Oversized settings source raises load error
+- [ ]  Environment values convert to boolean, integer, float, null, list, and mapping types correctly
+- [ ]  Legacy environment prefix fallback works when enabled
+- [ ]  Immutable snapshot returned on retrieve
+- [ ]  Retrieved structured values are deep-copied or immutable
+- [ ]  Missing key returns provided default
+- [ ]  Empty path returns full settings snapshot safely
+- [ ]  List position access works and out-of-range returns default
+- [ ]  Expected type mismatch returns default in permissive mode
+- [ ]  Expected type mismatch raises type conversion error in strict mode
+- [ ]  Concurrent first access loads settings only once
+- [ ]  Reload replaces snapshot atomically
+- [ ]  Failed reload retains previous valid snapshot in non-fatal mode
+- [ ]  Project workspace resolves correctly through explicit override
+- [ ]  Project workspace resolves correctly through environment signal
+- [ ]  Project workspace resolves correctly through settings file location
+- [ ]  Project workspace resolves correctly through proximity markers
+- [ ]  Project workspace falls back to current working directory
+- [ ]  Project workspace handles symlinked directories safely
+- [ ]  Project workspace resolution does not create directories by default
+- [ ]  Legacy BLENDERMCP_* environment variables are ignored (Q8)
+- [ ]  Runtime overrides are caller-scoped and not cached (A5)
+- [ ]  32-thread first access performs exactly one load (Q19)
+- [ ]  Built-in defaults tier is complete; settings file is optional override-only (Q6)
+- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_CONFIG_V2
+- [ ]  Asset and render derive root locations from workspace resolution instead of own rules
+- [ ]  Settings metadata reports source, override count, and warnings
+- [ ]  Settings metadata does not leak secret values
+- [ ]  Redaction keys mask sensitive values in diagnostics
+- [ ]  Redaction keys mask sensitive values in command-line output
+- [ ]  Redaction keys mask sensitive values in MCP-facing responses
+- [ ]  Redaction rules contain key patterns only, never secret values
+- [ ]  Custom redaction rules extend built-in defaults safely
+- [ ]  Settings loaded event emitted after successful load
+- [ ]  Settings reload event emitted after successful reload
+- [ ]  Workspace resolved event emitted after resolution

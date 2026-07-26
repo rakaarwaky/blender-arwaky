@@ -4,7 +4,6 @@ from . import (
     taxonomy_event_constant,
     taxonomy_telemetry_event,
 )
-
 from .contract_telemetry_classification import TelemetryClassificationPort
 from .contract_telemetry_enrichment import TelemetryEnrichmentPort
 from .contract_telemetry_recording import TelemetryRecordingPort

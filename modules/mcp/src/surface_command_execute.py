@@ -34,7 +34,6 @@ class CommandExecuteHandler:
             Returns:
                 JSON string result from execution
             """
-            from modules.mcp.src.container import get_container
 
             if args is None:
                 args = {}

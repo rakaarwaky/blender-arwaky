@@ -5,8 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import cast
 
-from modules.shared.src.common.taxonomy_core_vo import ProviderName
-from modules.shared.src.common.taxonomy_core_vo import AssetId, AssetName, AssetType, ObjectName, TagList, ThumbnailUrl
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetName,
+    AssetType,
+    ObjectName,
+    ProviderName,
+    TagList,
+    ThumbnailUrl,
+)
 
 
 @dataclass(frozen=True)

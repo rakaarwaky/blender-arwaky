@@ -17,8 +17,6 @@ from modules.gateway.src import (
     ICodeExecutionProtocol,
     IMetricsProvider,
     ServerConfig,
-)
-from modules.gateway.src import (
     load_server_config,
 )
 

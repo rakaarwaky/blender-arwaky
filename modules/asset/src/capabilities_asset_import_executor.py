@@ -11,16 +11,15 @@ import json
 import logging
 from pathlib import Path
 
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.asset.taxonomy_asset_vo import AssetImportBlenderVO
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetName,
     ErrorMessage,
-    FilePath,
     ObjectName,
     SuccessFlag,
 )
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

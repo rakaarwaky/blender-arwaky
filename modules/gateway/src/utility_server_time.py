@@ -10,7 +10,6 @@ from __future__ import annotations
 import time
 from typing import Final
 
-
 # Default time unit mappings (binary notation: 1k = 1024)
 _MS_PER_SECOND: Final[float] = 1_000.0
 _SECONDS_PER_MINUTE: Final[float] = 60.0

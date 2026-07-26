@@ -5,11 +5,9 @@ Delegates to AssetSearchProtocol and AssetProviderPort contracts.
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.asset import (
     AssetMetadata,
-    AssetProviderPort,
     AssetSearchProtocol,
     ImportedAsset,
 )

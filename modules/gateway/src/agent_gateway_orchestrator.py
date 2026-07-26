@@ -13,6 +13,7 @@ import time
 from typing import Any
 
 from modules.gateway.src import (
+    CONNECTION_STATE_CONNECTED,
     BlenderConnectionFailure,
     CommandResult,
     CommandTimeoutError,
@@ -33,10 +34,6 @@ from modules.gateway.src import (
     is_scene_mutating,
 )
 
-from modules.gateway.src import (
-    CONNECTION_STATE_CONNECTED,
-)
-
 logger = logging.getLogger("BlenderMCPServer")
 
 
@@ -53,7 +50,7 @@ class GatewayOrchestrator(IBlenderServerAggregate):
         connection: IBlenderConnectionProtocol,
         code_executor: ICodeExecutionProtocol,
         command_adapter: IBlenderCommandProtocol,
-        operation_queue: "OperationQueue",  # type: ignore[name-defined]
+        operation_queue: OperationQueue,  # type: ignore[name-defined]
         event_publisher: Any,  # IEventPublisher
         metrics_provider: IMetricsProvider,
         queue_wait_timeout_ms: float = 10_000.0,
@@ -169,7 +166,7 @@ class GatewayOrchestrator(IBlenderServerAggregate):
 
         try:
             # Enqueue for serialized execution
-            from modules.gateway.src import QueuedOperation, OPERATION_TYPE_CODE_SYNC
+            from modules.gateway.src import OPERATION_TYPE_CODE_SYNC, QueuedOperation
             operation = QueuedOperation(
                 request_id=request_id or "",
                 operation_type=OPERATION_TYPE_CODE_SYNC,
@@ -282,7 +279,7 @@ class GatewayOrchestrator(IBlenderServerAggregate):
         try:
             # Check if scene-mutating — serialize through queue
             if is_scene_mutating(action):
-                from modules.gateway.src import QueuedOperation, OPERATION_TYPE_COMMAND
+                from modules.gateway.src import OPERATION_TYPE_COMMAND, QueuedOperation
                 operation = QueuedOperation(
                     request_id=request_id or "",
                     operation_type=OPERATION_TYPE_COMMAND,

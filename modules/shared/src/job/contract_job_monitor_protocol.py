@@ -11,6 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from modules.shared.src.common.taxonomy_core_vo import JobId
+
 from .taxonomy_job_status_entity import JobStatus
 
 

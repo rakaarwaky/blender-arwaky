@@ -9,22 +9,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from dataclasses import dataclass
 
 from modules.gateway.src import (
+    ExecutionResult,
     IEventPublisher,
     IOperationQueueProtocol,
-    OperationRejected,
-    OperationWaitTimeoutError,
-    TooManyPendingOperationsError,
-)
-
-from modules.gateway.src import (
     ItemDequeued,
     ItemEnqueued,
-    ExecutionResult,
+    OperationRejected,
+    OperationWaitTimeoutError,
     QueuedOperation,
+    TooManyPendingOperationsError,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -59,7 +55,7 @@ class OperationQueue(IOperationQueueProtocol):
         self._queue: list[QueuedOperation] = []
 
         # Operation state tracking
-        self._operation_states: dict[str, "OperationState"] = {}
+        self._operation_states: dict[str, OperationState] = {}
         self._started_events: dict[str, asyncio.Future] = {}
         self._result_events: dict[str, asyncio.Future] = {}
 

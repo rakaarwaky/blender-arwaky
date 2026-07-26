@@ -12,7 +12,6 @@ class HealthCheckHandler:
         @mcp.tool()
         async def health_check() -> Prompt:
             """Check the health and connectivity of BlenderArwaky via Agent aggregate."""
-            from modules.mcp.src.container import get_container
 
             orchestrator = container.core_agent_orchestrator
             return orchestrator.health_check()

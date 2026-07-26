@@ -7,13 +7,11 @@ and enrichment across all capability layers.
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    Details,
     DurationMs,
     ErrorMessage,
     SuccessFlag,
     ToolName,
 )
-from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.telemetry.contract_telemetry_classification import (
     TelemetryClassificationPort,
 )
@@ -26,7 +24,6 @@ from modules.shared.src.telemetry.contract_telemetry_recording import (
 from modules.shared.src.telemetry.contract_telemetry_session_management import (
     TelemetrySessionManagementPort,
 )
-from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
 
 logger = logging.getLogger("BlenderMCPServer")
 

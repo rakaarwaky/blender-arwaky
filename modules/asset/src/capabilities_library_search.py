@@ -8,12 +8,11 @@ FR-AST-003: Search External Asset Libraries
 
 import logging
 
-from modules.shared.src.asset import LibrarySearchProtocol, LibrarySearchResponse
+from modules.shared.src.asset import LibrarySearchResponse
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
     ErrorMessage,
     NextPageToken,
-    ProviderName,
     SearchQuery,
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError

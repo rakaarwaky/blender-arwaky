@@ -70,35 +70,7 @@ class SceneCleanupExecutor(SceneCleanupProtocol):
         """
         mode_str = str(mode).lower()
 
-        if mode_str == "cameras":
-            code = (
-                "import bpy\n"
-                "objects_to_delete = []\n"
-                "for obj in bpy.data.objects:\n"
-                "    if obj.type not in ('CAMERA', 'LIGHT'):\n"
-                "        objects_to_delete.append(obj.name)\n"
-                "removed_count = 0\n"
-                "for name in objects_to_delete:\n"
-                "    obj = bpy.data.objects.get(name)\n"
-                "    if obj:\n"
-                "        bpy.data.objects.remove(obj)\n"
-                "        removed_count += 1\n"
-            )
-        elif mode_str == "lights":
-            code = (
-                "import bpy\n"
-                "objects_to_delete = []\n"
-                "for obj in bpy.data.objects:\n"
-                "    if obj.type not in ('CAMERA', 'LIGHT'):\n"
-                "        objects_to_delete.append(obj.name)\n"
-                "removed_count = 0\n"
-                "for name in objects_to_delete:\n"
-                "    obj = bpy.data.objects.get(name)\n"
-                "    if obj:\n"
-                "        bpy.data.objects.remove(obj)\n"
-                "        removed_count += 1\n"
-            )
-        elif mode_str == "both":
+        if mode_str == "cameras" or mode_str == "lights" or mode_str == "both":
             code = (
                 "import bpy\n"
                 "objects_to_delete = []\n"

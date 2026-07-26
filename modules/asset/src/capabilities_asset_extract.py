@@ -7,12 +7,11 @@ under security policy supervision. Never implements path traversal protection.
 from __future__ import annotations
 
 import logging
+import tarfile
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-import zipfile
-import tarfile
 
 from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
 from modules.shared.src.common.taxonomy_core_vo import FilePath

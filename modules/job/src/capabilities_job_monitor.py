@@ -7,12 +7,8 @@ FR-JOB-002: Monitor Task Status
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import JobId
-from modules.shared.src.job.contract_job_monitor_protocol import (
-    JobMonitorProtocol,
-)
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")

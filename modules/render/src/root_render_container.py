@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .agent_orchestrator import RenderOrchestrator
-    from .capabilities_render_operate_executor import RenderOperateExecutor
 
 logger = logging.getLogger("BlenderMCPServer")
 

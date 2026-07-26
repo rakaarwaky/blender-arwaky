@@ -12,15 +12,16 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 from modules.gateway.src import (
+    DEFAULT_EXECUTION_TIMEOUT_MS,
+    MAX_EXECUTION_OUTPUT_BYTES,
     CodeExecuted,
-    CodeExecutionFailed,
     CodeSecurityPolicy,
     ExecutionErrorDetail,
     ExecutionResult,
     ExecutionStatus,
+    ExecutionTimeoutError,
     IBlenderConnectionProtocol,
     ICodeExecutionProtocol,
     IEventPublisher,
@@ -29,23 +30,14 @@ from modules.gateway.src import (
     TaskCompleted,
     TaskCreated,
     TaskFailed,
+    TaskManagerConfig,
     TaskNotFoundError,
-    TaskStarted,
-    TaskStatus,
     TaskState,
-    TaskTimedOut,
+    TaskStatus,
     ValidationError,
     check_payload_size,
     code_fingerprint,
     validate_code_ast,
-)
-
-from modules.gateway.src import (
-    DEFAULT_EXECUTION_TIMEOUT_MS,
-    ExecutionTimeoutError,
-    MAX_CODE_PAYLOAD_BYTES,
-    MAX_EXECUTION_OUTPUT_BYTES,
-    TaskManagerConfig,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -83,7 +75,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         self._max_output_bytes = max_output_bytes
 
         # Task storage: task_id -> TaskEntry
-        self._tasks: dict[str, "TaskEntry"] = {}
+        self._tasks: dict[str, TaskEntry] = {}
         self._lock: asyncio.Lock = asyncio.Lock()
 
     # ─── Block 2: ICodeExecutionProtocol Methods ──────────────

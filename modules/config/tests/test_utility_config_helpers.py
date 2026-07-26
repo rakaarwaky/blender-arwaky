@@ -19,7 +19,6 @@ from modules.shared.src.config.utility_config_helpers import (
     validate_settings_schema,
 )
 
-
 # ─── parse_env_value (scalar-only, Q7) ───────────────────────
 
 @pytest.mark.unit

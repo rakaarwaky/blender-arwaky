@@ -3,9 +3,8 @@
 import json
 import os
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
-
 
 REGISTRY_FILE = "registry.json"
 DEFAULT_PORT = 9876
@@ -14,9 +13,9 @@ DEFAULT_PORT = 9876
 @dataclass
 class RegistryState:
     """State of the active Blender instance."""
-    active_entity: Optional[str] = None
+    active_entity: str | None = None
     port: int = DEFAULT_PORT
-    pid: Optional[int] = None
+    pid: int | None = None
 
 
 class Registry:
@@ -46,7 +45,7 @@ class Registry:
         """Load state from registry.json."""
         if os.path.exists(self._path):
             try:
-                with open(self._path, "r") as f:
+                with open(self._path) as f:
                     data = json.load(f)
                 self._state = RegistryState(
                     active_entity=data.get("active_entity"),
@@ -67,7 +66,7 @@ class Registry:
             with open(self._path, "w") as f:
                 json.dump(data, f, indent=2)
 
-    def get_active(self) -> Optional[str]:
+    def get_active(self) -> str | None:
         """Get the active entity filepath."""
         return self._state.active_entity
 
@@ -75,7 +74,7 @@ class Registry:
         """Get the active port."""
         return self._state.port
 
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get the active Blender PID."""
         return self._state.pid
 

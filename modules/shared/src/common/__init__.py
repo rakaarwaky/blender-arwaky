@@ -12,7 +12,6 @@ from . import (
     taxonomy_domain_error,
     taxonomy_vector3d_vo,
 )
-
 from .taxonomy_domain_error import ConnectionFailure
 
 __all__ = [

@@ -11,13 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetCount,
     AssetTypeFilter,
-    ErrorMessage,
-    NextPageToken,
-    ProviderName,
     SearchQuery,
-    StringList,
 )
 
 

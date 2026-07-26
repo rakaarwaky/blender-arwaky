@@ -8,16 +8,15 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
 from typing import Any
 
-from modules.shared.src.render.contract_viewport_capture_protocol import ViewportCaptureProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
     FilePath,
     ImageFormat,
     MaxImageSize,
     ObjectId,
 )
+from modules.shared.src.render.contract_viewport_capture_protocol import ViewportCaptureProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

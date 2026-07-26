@@ -34,7 +34,6 @@ class CommandsListHandler:
             # to match zero commands and return {}.
             resolved_format = format or FormatRef("detailed")
 
-            from modules.mcp.src.container import get_container
 
             orchestrator = container.core_agent_orchestrator
             return orchestrator.list_commands(domain, resolved_format)

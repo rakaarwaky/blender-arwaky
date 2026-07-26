@@ -5,7 +5,8 @@ Wires capabilities together per FR-JOB requirements.
 """
 
 import logging
-from typing import Any
+
+from modules.shared.src.job.contract_job_status_entity import JobStatus
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
@@ -13,7 +14,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Progress,
     ResultUrl,
 )
-from modules.shared.src.job.contract_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")
 

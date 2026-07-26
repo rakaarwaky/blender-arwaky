@@ -16,8 +16,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     RenderEngine,
     RenderSamples,
-    ResolutionX,
-    ResolutionY,
     RotationVector,
     RuleName,
     SuccessFlag,

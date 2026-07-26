@@ -6,12 +6,11 @@ Returns resolved camera reference and final settings.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
-from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
 from modules.shared.src.common.taxonomy_core_vo import ObjectId
+from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

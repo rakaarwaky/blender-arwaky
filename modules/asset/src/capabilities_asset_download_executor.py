@@ -9,9 +9,7 @@ AES Capabilities layer — depends on Taxonomy, Contract, Utility.
 
 import hashlib
 import logging
-import os
 import shutil
-import tempfile
 from pathlib import Path
 
 from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol

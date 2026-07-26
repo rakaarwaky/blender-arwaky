@@ -12,14 +12,12 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetIdList,
     AssetTypeFilter,
     NextPageToken,
     ProviderName,
     ResultLimit,
     SearchQuery,
 )
-from .taxonomy_asset_data_vo import AssetMetadata
 
 
 class AssetSearchProtocol(ABC):

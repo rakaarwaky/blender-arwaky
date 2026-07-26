@@ -2,9 +2,10 @@
 
 import logging
 
-from modules.shared.src.asset import AssetProviderPort, AssetSearchProtocol
 from modules.shared.src.asset import (
     AssetMetadata,
+    AssetProviderPort,
+    AssetSearchProtocol,
     ImportedAsset,
 )
 from modules.shared.src.asset.taxonomy_asset_vo import (

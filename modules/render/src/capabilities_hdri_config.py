@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
 from modules.shared.src.common.taxonomy_core_vo import FilePath
+from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

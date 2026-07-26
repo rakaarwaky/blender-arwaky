@@ -6,10 +6,9 @@ through the container's agent orchestrator.
 
 from __future__ import annotations
 
-import json
 import logging
 
-from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
+from modules.shared.src.common.taxonomy_core_vo import ActionName
 from modules.shared.src.mcp.contract_server_execute_protocol import ServerExecuteProtocol
 
 logger = logging.getLogger("BlenderMCPServer")

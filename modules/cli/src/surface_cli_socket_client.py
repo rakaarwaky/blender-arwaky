@@ -5,7 +5,6 @@ import socket
 import struct
 from typing import Any
 
-
 MAX_MESSAGE_SIZE = 10 * 1024 * 1024  # 10MB
 DEFAULT_TIMEOUT = 30.0
 

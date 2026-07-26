@@ -4,7 +4,7 @@ Specialized structural contract for the agent layer.
 Defines the server bootstrap interface for MCP server lifecycle management.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath, ObjectName
 

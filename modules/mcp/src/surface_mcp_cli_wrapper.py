@@ -4,8 +4,7 @@ import asyncio
 import json
 import os
 import sys
-import tempfile
-from typing import Any, Optional
+from typing import Any
 
 
 async def run_cli_command(
@@ -119,7 +118,7 @@ async def capture_screenshot(
     view_angle: str = "PERSPECTIVE",
     shading: str = "MATERIAL",
     show_overlays: bool = True,
-    focus_object: Optional[str] = None,
+    focus_object: str | None = None,
 ) -> dict[str, Any]:
     """Capture a viewport screenshot."""
     result = await run_cli_command("screenshot", {

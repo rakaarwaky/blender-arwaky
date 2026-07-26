@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_server_error import CommandTimeoutError
-from .taxonomy_server_event import CommandDispatched
 from .taxonomy_server_vo import CommandResult
 
 

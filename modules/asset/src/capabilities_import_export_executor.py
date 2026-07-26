@@ -6,10 +6,10 @@ Depends on ICodeExecutionProtocol for Blender code execution (not raw port).
 
 import logging
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 from modules.shared.src.asset.contract_import_export_protocol import ImportExportProtocol
 from modules.shared.src.asset.taxonomy_asset_vo import ExportModelVO, ImportGlbVO
-from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 
 logger = logging.getLogger("BlenderMCPServer")
 

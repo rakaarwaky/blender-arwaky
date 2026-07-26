@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..common.taxonomy_core_vo import Details
-
 
 class ServerExecuteProtocol(ABC):
     """Protocol for executing 3D actions via CLI environment."""

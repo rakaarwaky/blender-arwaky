@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.config.src.capabilities_settings_metadata import SettingsMetadataCapability
+from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 
 
 @pytest.mark.unit

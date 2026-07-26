@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from typing import Final
 
-
 # Common patterns
 _UTF8_BOM: Final[bytes] = b"\xef\xbb\xbf"
 _WHITESPACE_PATTERN: Final[re.Pattern[str]] = re.compile(r"\s+", re.UNICODE)

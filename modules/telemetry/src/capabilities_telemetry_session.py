@@ -11,11 +11,9 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any
 from uuid import uuid4
 
 from modules.shared.src.telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
-from modules.shared.src.common.taxonomy_core_vo import SessionId, Timestamp
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -99,7 +97,7 @@ class TelemetrySessionCapability(TelemetrySessionProtocol):
         if not self._session_file or not os.path.exists(self._session_file):
             return
         try:
-            with open(self._session_file, "r") as f:
+            with open(self._session_file) as f:
                 data = json.load(f)
             self._current_session_id = data.get("session_id")
             self._created_timestamp = data.get("created_at")

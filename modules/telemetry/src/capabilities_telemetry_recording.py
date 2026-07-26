@@ -16,6 +16,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     BlenderVersion,
@@ -27,12 +28,13 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ToolName,
 )
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
-from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.telemetry.contract_telemetry_recording import (
     TelemetryRecordingPort,
 )
 from modules.shared.src.telemetry.taxonomy_telemetry_event import (
     EventType,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
     TelemetryEvent as TelemetryEventType,
 )
 

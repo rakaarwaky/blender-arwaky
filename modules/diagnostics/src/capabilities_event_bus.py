@@ -7,7 +7,6 @@ exceptions, and logs subscriber failures without stopping publish flow.
 from __future__ import annotations
 
 import logging
-from typing import List
 
 from modules.diagnostics.src.contract_event_bus_protocol import IEventBus, IEventSubscriber
 from modules.gateway.src.taxonomy_server_event import ServerEvent
@@ -24,7 +23,7 @@ class InMemoryEventBus(IEventBus):
     """
 
     def __init__(self) -> None:
-        self._subscribers: List[IEventSubscriber] = []
+        self._subscribers: list[IEventSubscriber] = []
         self._lock = False  # Not using threading; asyncio handles concurrency
 
     def subscribe(self, subscriber: IEventSubscriber) -> None:
@@ -58,6 +57,6 @@ class InMemoryEventBus(IEventBus):
                     exc_info=True,
                 )
 
-    def get_subscribers(self) -> List[IEventSubscriber]:
+    def get_subscribers(self) -> list[IEventSubscriber]:
         """Return list of registered subscribers (for testing)."""
         return list(self._subscribers)

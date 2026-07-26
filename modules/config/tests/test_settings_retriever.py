@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
+from modules.config.src.capabilities_settings_retriever import SettingsRetrieverCapability
 from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
-from modules.config.src.capabilities_settings_retriever import SettingsRetrieverCapability
 
 
 def _retriever(mode="strict", escape=False):

@@ -15,7 +15,6 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     FilePath,
-    ObjectName,
 )
 
 

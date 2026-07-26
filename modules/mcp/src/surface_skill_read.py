@@ -29,7 +29,6 @@ class SkillReadHandler:
                 Markdown content of the SKILL.md (or empty string if not found)
             """
             # Keep section as None if not provided (orchestrator handles None vs empty)
-            from modules.mcp.src.container import get_container
 
             orchestrator = container.core_agent_orchestrator
             return orchestrator.read_skill_context(skill_name, section)

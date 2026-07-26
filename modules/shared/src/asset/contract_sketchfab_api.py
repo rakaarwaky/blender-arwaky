@@ -9,7 +9,15 @@ AES Port layer — depends only on taxonomy entities.
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.common.taxonomy_core_vo import AssetId, EnabledFlag, ImageBytes, ResultLimit, ScaleFactor, SearchQuery, StatusString
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    EnabledFlag,
+    ImageBytes,
+    ResultLimit,
+    ScaleFactor,
+    SearchQuery,
+    StatusString,
+)
 
 
 class SketchfabApiPort(ABC):

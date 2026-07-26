@@ -9,7 +9,6 @@ FR-TLM-003: Manage Analytics Sessions
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 
 class TelemetrySessionProtocol(ABC):

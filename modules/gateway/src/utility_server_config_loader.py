@@ -13,7 +13,8 @@ Implements v2.0.0 configuration behavior per Section 4.1.
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 try:
     import yaml
@@ -86,11 +87,11 @@ def load_server_config(
     file_path = config_path or env.get("BLENDERMCP_CONFIG_PATH")
     if file_path is not None and yaml is not None:
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 file_data = yaml.safe_load(f)
             if isinstance(file_data, dict):
                 _merge_dict(config_dict, file_data)
-        except Exception as e:  # pragma: no cover
+        except Exception:  # pragma: no cover
             # Config file is optional; warn but continue with defaults
             pass
 

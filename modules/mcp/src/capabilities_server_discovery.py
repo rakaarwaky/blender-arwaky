@@ -99,7 +99,7 @@ class ServerDiscoveryCapability(ServerDiscoveryProtocol):
 
             # Read and return documentation
             if os.path.exists(skill_path):
-                with open(skill_path, "r", encoding="utf-8") as f:
+                with open(skill_path, encoding="utf-8") as f:
                     content = f.read()
                 return {
                     "success": True,

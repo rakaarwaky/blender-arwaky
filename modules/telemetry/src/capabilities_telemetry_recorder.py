@@ -10,14 +10,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from uuid import uuid4
 
-from modules.shared.src.telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
-    Progress,
     SessionId,
     Timestamp,
 )
+from modules.shared.src.telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

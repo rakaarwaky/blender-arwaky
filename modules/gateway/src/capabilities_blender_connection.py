@@ -15,6 +15,14 @@ import struct
 import time
 
 from modules.gateway.src import (
+    CONNECTION_STATE_CLOSED,
+    CONNECTION_STATE_CONNECTED,
+    CONNECTION_STATE_DISCONNECTED,
+    CONNECTION_STATE_FAILED,
+    CONNECTION_STATE_RECONNECTING,
+    DEFAULT_PROTOCOL_VERSION,
+    HEARTBEAT_FAILURE_THRESHOLD,
+    HEARTBEAT_INTERVAL_SECONDS,
     AuthenticationError,
     BlenderConnectionExhausted,
     BlenderConnectionFailure,
@@ -26,20 +34,9 @@ from modules.gateway.src import (
     ConnectionLost,
     ConnectionState,
     ConnectionStatus,
-    DEFAULT_PROTOCOL_VERSION,
-    HEARTBEAT_FAILURE_THRESHOLD,
-    HEARTBEAT_INTERVAL_SECONDS,
     IBlenderConnectionProtocol,
     IEventPublisher,
     VersionMismatchError,
-)
-
-from modules.gateway.src import (
-    CONNECTION_STATE_CLOSED,
-    CONNECTION_STATE_CONNECTED,
-    CONNECTION_STATE_DISCONNECTED,
-    CONNECTION_STATE_FAILED,
-    CONNECTION_STATE_RECONNECTING,
 )
 
 logger = logging.getLogger("BlenderMCPServer")

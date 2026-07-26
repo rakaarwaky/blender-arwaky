@@ -7,12 +7,8 @@ FR-JOB-003: Cancel a Task
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString, JobId
-from modules.shared.src.job.contract_job_cancel_protocol import (
-    JobCancelProtocol,
-)
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -38,11 +34,11 @@ class JobCancel:
 
         # Only Pending or Running tasks can be cancelled
         if state == "COMPLETED":
-            return False, f"Cannot cancel task already completed"
+            return False, "Cannot cancel task already completed"
         if state == "FAILED":
-            return False, f"Cannot cancel task already failed"
+            return False, "Cannot cancel task already failed"
         if state == "CANCELLED":
-            return False, f"Task already cancelled"
+            return False, "Task already cancelled"
 
         # Transition to Cancelled
         status.mark_cancelled(ErrorString(f"Cancelled: {reason}") if reason else ErrorString("Cancelled"))

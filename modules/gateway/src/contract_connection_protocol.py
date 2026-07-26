@@ -9,14 +9,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_server_error import (
-    AuthenticationError,
-    BlenderConnectionExhausted,
-    ConnectionClosedError,
-    ConnectionConfigError,
-    VersionMismatchError,
-)
-from .taxonomy_server_event import ConnectionEstablished, ConnectionLost
 from .taxonomy_server_vo import CommandResult, ConnectionConfig, ConnectionStatus
 
 
