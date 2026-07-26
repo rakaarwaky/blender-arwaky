@@ -2,19 +2,28 @@
 
 ## Purpose
 
-Single owner for loading, validating, and providing settings to all features.
+Single owner for loading, validating, and providing settings to all features of **blender-arwaky**.
+
+This feature is the only authority for settings resolution. It loads settings from files, environment, and built-in defaults, applies deterministic precedence rules, validates settings against schema, exposes immutable settings snapshots, resolves the project workspace directory, provides settings metadata, and supplies redaction rules for sensitive values.
+
+No other feature reads settings files directly, determines precedence rules, resolves the project workspace independently, or defines its own sensitive value masking rules.
 
 ## Scope
 
-- Load settings from file, environment, and defaults
-- Precedence rules
-- Type conversion
-- Validation schema
-- Immutable settings snapshot
-- Hierarchical setting retrieval
+- Load settings from file, environment, and built-in defaults
+- Deterministic precedence rules across settings sources
+- Type conversion for environment-provided values
+- Validation schema enforcement
+- Immutable settings snapshot after load
+- Hierarchical setting retrieval using dot-separated paths
 - Project workspace resolution
-- Settings metadata
+- Settings metadata exposure
 - Redaction policy for secret values
+- Safe parsing without arbitrary object instantiation
+- Cached singleton access with thread-safe initialization
+- Reload support with atomic snapshot replacement
+- Strict and permissive policy modes
+- Settings size and encoding limits
 
 ## Out of Scope
 
@@ -24,6 +33,10 @@ Single owner for loading, validating, and providing settings to all features.
 - Feature-specific business rules
 - Command catalog
 - Logging infrastructure
+- Secret storage or secret management infrastructure
+- Remote settings synchronization
+- Per-user profile management
+- Enforcement of redaction in output, which belongs to security policy and consuming features
 
 ## Depends On
 
@@ -33,47 +46,247 @@ None (foundational feature).
 
 All features.
 
+Typical consumers include gateway, asset, render, scene, object, job, security policy, diagnostics, command-line tooling, and the MCP layer.
+
 ## Functional Requirements
 
 ### FR-CFG-001: Load and Apply Settings
 
 Config is the only feature that loads settings. No other feature reads config files directly.
 
+- **Description**: Load settings from all supported sources, apply precedence rules, validate the merged result, and expose a single immutable snapshot
+- **Input**: Optional explicit settings location override, optional runtime override mapping, otherwise environment and filesystem sources
+- **Output**: Immutable settings snapshot concept containing merged settings values
+- **Business Rules**:
+  - Settings loading follows deterministic precedence order:
+    1. Explicit runtime overrides when provided
+    2. Environment-based overrides
+    3. Settings file values
+    4. Built-in default values
+  - Settings file must be parsed using safe parsing mode only
+  - Arbitrary object instantiation from settings content is forbidden
+  - Settings file must be UTF-8 encoded
+  - Missing settings file is not fatal by default and falls back to environment and defaults
+  - Malformed settings content raises configuration error in strict mode
+  - Malformed settings content logs warning and falls back safely in permissive mode
+  - Schema violation raises validation error in strict mode
+  - Schema violation logs warning and continues where safe in permissive mode
+  - Environment values are converted to typed values when safely detectable:
+    - boolean-like values become boolean
+    - integer-like values become integer
+    - float-like values become float
+    - null-like values become empty value
+    - list-like or mapping-like values may be parsed when safely detectable
+    - otherwise values remain text
+  - Environment overrides use product-specific prefix and deterministic nested key convention
+  - Legacy environment prefix may be accepted as fallback for backward compatibility
+  - Settings snapshot must be immutable after successful load
+  - Settings snapshot must be cached after first successful load
+  - Reload must replace snapshot atomically under synchronization
+  - Failed load must not expose partial settings state
+  - Failed reload must retain previous valid snapshot unless strict mode requires failure propagation
+  - Settings source size must be limited to prevent excessive memory usage
+  - Secret values present in settings must never be echoed into metadata, logs, or diagnostics
+- **Edge Cases**: Missing settings file, malformed settings content, permission denied, empty settings file, duplicate mapping keys, unsupported tags, oversized settings file, non-UTF-8 encoding, environment override conflict, legacy environment fallback, schema unavailable, secret values in settings, symlinked settings location, settings location pointing to directory instead of file
+- **Error Handling**: Configuration error for missing, unreadable, or malformed settings source in strict mode; validation error for schema violation; load error for oversized or unsafe settings content; warning-level fallback behavior in permissive mode
+
 ### FR-CFG-002: Retrieve Settings Values
 
 Features request settings through config. Config returns immutable values or deep copies.
+
+- **Description**: Retrieve settings values through hierarchical dot-separated paths with safe copy semantics
+- **Input**: Dot-separated settings path, optional default value, optional expected type
+- **Output**: Resolved settings value or default
+- **Business Rules**:
+  - Retrieval traverses nested settings structure by dot-separated segments
+  - Missing key returns provided default value
+  - Missing intermediate container returns provided default value
+  - Empty path returns full settings snapshot
+  - Returned snapshot and structured values must be immutable or deep-copied to prevent caller mutation
+  - Numeric path segments may access list positions when current node is a list
+  - Out-of-range list position returns default
+  - Escaped separator may resolve literal dotted key when supported
+  - Retrieval must be thread-safe and lock-free after initialization where possible
+  - Retrieval must not trigger file or environment reads per request
+  - Expected type mismatch returns default in permissive mode
+  - Expected type mismatch raises type conversion error in strict mode
+  - Default values must never be mutated by retrieval
+  - Retrieval behavior must be deterministic for identical snapshot state
+- **Edge Cases**: Empty path, missing key, missing intermediate key, trailing separator, leading separator, repeated separators, whitespace in path, non-text path, list position on non-list, out-of-range list position, key containing literal dot, expected type mismatch, mutable default value, deeply nested path
+- **Error Handling**: Default value returned for missing keys; validation error for malformed path in strict mode; type conversion error for expected type mismatch in strict mode; mutation disallowed through immutable snapshot or copy semantics
 
 ### FR-CFG-003: Resolve Project Workspace Directory
 
 Config determines project root. Asset and render do not determine project root rules themselves.
 
+- **Description**: Resolve the project workspace directory using deterministic strategies and expose it as the single trusted root for file-based operations
+- **Input**: None; reads environment and filesystem signals
+- **Output**: Workspace directory concept representing resolved project root
+- **Business Rules**:
+  - Resolution follows deterministic order:
+    1. Explicit workspace override when provided at runtime
+    2. Product-specific workspace environment signal
+    3. Legacy workspace environment signal when backward compatibility is enabled
+    4. Settings file location, using its parent directory
+    5. Upward proximity search for recognized project marker concepts
+    6. Platform-standard user configuration location
+    7. Current working directory
+  - Project marker priority should be:
+    1. Primary settings source
+    2. Product-specific settings source
+    3. Project manifest
+    4. Version control metadata
+  - Resolved path must be normalized
+  - Symbolic links must be resolved safely without unnecessary failure
+  - Candidate directory must exist and be readable to be accepted
+  - Invalid environment-provided path logs warning and falls through to next strategy
+  - First valid candidate according to resolution order wins
+  - Workspace resolution must not create directories by default
+  - If no valid candidate exists, fallback to current working directory
+  - If current working directory is inaccessible, raise workspace resolution error
+  - Resolution result should be cached and reused consistently across features
+  - All file-writing features must derive allowed locations from this resolution rather than their own rules
+- **Edge Cases**: Multiple candidate directories, symlinked directories, non-existent candidate, permission denied candidate, network-mounted filesystem, case-insensitive filesystem, settings location pointing to file versus directory, circular symbolic link, empty environment value, relative path, deleted working directory, platform-specific remote path
+- **Error Handling**: Warning and fallthrough for invalid environment path; fallthrough for non-existent or unreadable candidate; workspace resolution error only when all strategies fail and working directory is inaccessible
+
 ### FR-CFG-004: Provide Settings Metadata
 
 Config provides config source, override count, and warnings. Metadata must not leak secrets.
+
+- **Description**: Expose diagnostic metadata about how settings were loaded, merged, and validated
+- **Input**: None
+- **Output**: Settings metadata concept containing source information, override information, warning list, and load timing information
+- **Business Rules**:
+  - Metadata should include:
+    - resolved settings source location
+    - whether settings file existed
+    - whether environment overrides were applied
+    - count of applied overrides
+    - count of applied defaults
+    - parse warning list
+    - validation warning list
+    - policy mode in effect, strict or permissive
+    - snapshot load or reload timestamp
+    - workspace directory resolution summary
+  - Metadata must not include secret values
+  - Metadata must not include raw settings content by default
+  - Override names may be listed, but override values must be redacted when sensitive
+  - Metadata should be safe for diagnostics, command-line output, and MCP-facing responses
+  - Metadata must reflect the current active snapshot, not stale load state
+  - Metadata exposure must not mutate settings state
+- **Edge Cases**: Settings file missing, overrides applied from legacy prefix, sensitive override values, validation warnings present, permissive mode fallback active, reload in progress, metadata requested before first load, oversized warning list
+- **Error Handling**: Metadata retrieval returns safe partial metadata when some details are unavailable; redaction failure falls back to omitting the affected field rather than exposing it
 
 ### FR-CFG-005: Provide Redaction Rules
 
 Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP use these rules for masking.
 
+- **Description**: Provide the authoritative list of sensitive key patterns and redaction rules used by consuming features to mask secret values
+- **Input**: None
+- **Output**: Redaction rules concept containing sensitive key patterns, pattern-based detection rules, and placeholder convention
+- **Business Rules**:
+  - Redaction rules define which settings keys are considered sensitive
+  - Sensitive key detection supports exact key match and pattern-based match
+  - Rules should cover common secret categories:
+    - tokens
+    - API keys
+    - passwords
+    - credentials
+    - connection strings containing secrets
+    - signing or encryption material
+  - Rules may be extended through settings without code changes
+  - Rules must define placeholder convention used during masking
+  - Rules themselves contain key names and patterns only, never secret values
+  - Consuming features must retrieve rules from config or security policy and must not hard-code their own lists
+  - Rule updates must be reflected consistently across diagnostics, command-line output, and MCP-facing responses
+  - Rules should distinguish between full redaction and partial masking where supported
+  - Rule retrieval must be lightweight and safe for repeated use
+- **Edge Cases**: Empty rule list, conflicting patterns, unknown secret format, key matching multiple patterns, rule update after load, consumer feature bypassing rules, pattern accidentally matching non-sensitive key
+- **Error Handling**: Missing or invalid rule definition falls back to built-in default sensitive key list; warning emitted when custom rules cannot be parsed; rule failure must never cause secret values to be exposed
+
 ## Error Categories
 
-- `ConfigurationError` — invalid/missing config file
-- `ValidationError` — config schema violation
+- configuration error — invalid, missing, or unreadable settings source
+- validation error — settings schema violation or malformed settings path
+- load error — oversized, unsafe, or rejected settings content
+- type conversion error — settings value does not match expected type in strict mode
+- workspace resolution error — project workspace cannot be resolved from any strategy
 
 ## Events
 
-- `config.loaded` — settings loaded successfully
-- `config.reload` — settings reloaded
+- settings loaded event — emitted after settings snapshot is successfully loaded
+- settings reload event — emitted after settings snapshot is successfully replaced
+- workspace resolved event — emitted after project workspace directory is resolved
+- settings validation warning event — emitted when schema or parse warnings occur in permissive mode
+
+Event payloads should include:
+
+- event category
+- source summary
+- override count
+- warning count
+- policy mode
+- timestamp
+
+Event payloads must avoid:
+
+- raw settings content
+- secret values
+- sensitive override values
 
 ## Configuration Keys
 
-- `config.path` — path to config file
-- `config.workspace` — project root directory
-- `config.secrets` — list of redacted keys
+| Configuration Concept | Description | Typical Default |
+| --------------------- | ----------- | --------------- |
+| Settings source location | Location of primary settings file used during load | Resolved from workspace or platform-standard location |
+| Workspace directory | Project root directory used for file-based operations | Resolved through deterministic workspace strategies |
+| Sensitive key list | List of key names and patterns treated as secret for redaction | Common token, key, password, and credential patterns |
+| Environment override prefix | Product-specific prefix recognized for environment overrides | Product prefix with nested key convention |
+| Legacy environment fallback | Whether legacy environment prefix is accepted | Enabled for backward compatibility |
+| Policy mode | Strict or permissive behavior for parse and schema issues | Strict |
+| Maximum settings size | Maximum allowed settings source size | Conservative size limit |
+| Default values source | Built-in defaults applied when no other source provides value | Feature-defined safe defaults |
 
 ## QA Checklist
 
-- [ ] Settings load from file, env, and defaults with correct precedence
+- [ ] Settings load from file, environment, and defaults with correct precedence
+- [ ] Runtime override takes precedence over environment, file, and defaults
+- [ ] Environment override takes precedence over file and defaults
+- [ ] File values take precedence over built-in defaults
+- [ ] Missing settings file falls back to environment and defaults without fatal error
+- [ ] Malformed settings content raises configuration error in strict mode
+- [ ] Malformed settings content falls back safely in permissive mode
+- [ ] Schema violation raises validation error in strict mode
+- [ ] Schema violation logs warning in permissive mode
+- [ ] Unsafe settings content is rejected without object instantiation
+- [ ] Oversized settings source raises load error
+- [ ] Environment values convert to boolean, integer, float, null, list, and mapping types correctly
+- [ ] Legacy environment prefix fallback works when enabled
 - [ ] Immutable snapshot returned on retrieve
+- [ ] Retrieved structured values are deep-copied or immutable
+- [ ] Missing key returns provided default
+- [ ] Empty path returns full settings snapshot safely
+- [ ] List position access works and out-of-range returns default
+- [ ] Expected type mismatch returns default in permissive mode
+- [ ] Expected type mismatch raises type conversion error in strict mode
+- [ ] Concurrent first access loads settings only once
+- [ ] Reload replaces snapshot atomically
+- [ ] Failed reload retains previous valid snapshot in non-fatal mode
+- [ ] Project workspace resolves correctly through explicit override
+- [ ] Project workspace resolves correctly through environment signal
+- [ ] Project workspace resolves correctly through settings file location
+- [ ] Project workspace resolves correctly through proximity markers
+- [ ] Project workspace falls back to current working directory
+- [ ] Project workspace handles symlinked directories safely
+- [ ] Project workspace resolution does not create directories by default
+- [ ] Asset and render derive root locations from workspace resolution instead of own rules
+- [ ] Settings metadata reports source, override count, and warnings
+- [ ] Settings metadata does not leak secret values
 - [ ] Redaction keys mask sensitive values in diagnostics
-- [ ] Project workspace resolves correctly
+- [ ] Redaction keys mask sensitive values in command-line output
+- [ ] Redaction keys mask sensitive values in MCP-facing responses
+- [ ] Redaction rules contain key patterns only, never secret values
+- [ ] Custom redaction rules extend built-in defaults safely
+- [ ] Settings loaded event emitted after successful load
+- [ ] Settings reload event emitted after successful reload
+- [ ] Workspace resolved event emitted after resolution
