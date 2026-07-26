@@ -19,8 +19,9 @@ from modules.shared.src.launcher.contract_persist_state_protocol import (
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    RegistrationResultVO,
     LaunchResultVO,
+    RegistrationResultVO,
+    RuntimeStateVO,
     ShutdownResultVO,
     StatusCheckResultVO,
 )
@@ -62,13 +63,6 @@ class LauncherOrchestrator:
         logger.info("Locating and registering Blender executable")
         result = self._locate_register.locate_and_register(config, override)
         logger.info("Registration complete: %s", result.source.value)
-
-        # Persist the registered path for later use
-        if result.registered and result.executable:
-            self._persist_state.persist_state(
-                process_id=None, ready=False, bridge_endpoint=None
-            )
-
         return result
 
     def launch_blender(
@@ -82,13 +76,13 @@ class LauncherOrchestrator:
         Updates runtime state after successful launch.
         """
         # Check persisted state for idempotency
-        pid, ready, endpoint = self._persist_state.load_state()
-        if ready and pid is not None:
-            logger.info("Blender already running (restored pid=%d)", pid)
-            self._status_check.update_runtime_state(pid, ready, endpoint)
+        persisted = self._persist_state.load()
+        if persisted is not None and persisted.process_id is not None:
+            logger.info("Blender already running (restored pid=%d)", persisted.process_id)
             return LaunchResultVO(
-                success=True, process_id=pid, ready=True,
-                bridge_endpoint=endpoint, duration_ms=0.0, launch_method="existing",
+                success=True, process_id=persisted.process_id, ready=True,
+                bridge_endpoint=persisted.bridge_endpoint,
+                duration_ms=0.0, launch_method="existing",
             )
 
         logger.info("Launching Blender (mode=%s)", mode)
@@ -96,12 +90,10 @@ class LauncherOrchestrator:
 
         # Update runtime state after launch
         if result.success:
-            self._status_check.update_runtime_state(
-                result.process_id, result.ready, result.bridge_endpoint
-            )
-            self._persist_state.persist_state(
-                result.process_id, result.ready, result.bridge_endpoint
-            )
+            self._persist_state.persist(RuntimeStateVO(
+                process_id=result.process_id,
+                bridge_endpoint=result.bridge_endpoint,
+            ))
 
         return result
 
@@ -119,9 +111,7 @@ class LauncherOrchestrator:
 
         # Clear state on successful shutdown
         if result.success:
-            self._shutdown.mark_stopped()
-            self._status_check.update_runtime_state(None, False, None)
-            self._persist_state.persist_state(None, False, None)
+            self._persist_state.persist(RuntimeStateVO())
 
         return result
 
@@ -129,13 +119,3 @@ class LauncherOrchestrator:
         """FR-LAU-004: Verify actual process liveness and classify state."""
         logger.debug("Checking runtime status")
         return self._status_check.check_status()
-
-    def update_runtime_state(
-        self,
-        process_id: int | None,
-        ready: bool,
-        bridge_endpoint: str | None,
-    ) -> None:
-        """Coordinate state updates across all capabilities."""
-        self._status_check.update_runtime_state(process_id, ready, bridge_endpoint)
-        self._persist_state.persist_state(process_id, ready, bridge_endpoint)

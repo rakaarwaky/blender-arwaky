@@ -1,15 +1,26 @@
-"""Gateway module — Blender connection, transport, queue, and raw code execution."""
+"""Gateway module — Blender connection, transport, queue, and raw code execution.
 
-from .contract_code_execution_protocol import ICodeExecutionProtocol
-from .contract_command_protocol import IBlenderCommandProtocol
-from .contract_connection_protocol import IBlenderConnectionProtocol
-from .contract_operation_queue_protocol import IOperationQueueProtocol
-from .contract_server_aggregate import IBlenderServerAggregate
+Layers:
+  - Taxonomy (shared/src/gateway/)   → VOs, Errors
+  - Contract (shared/src/gateway/)   → 5 protocols (connection, maintenance,
+                                        transport, scene queue, code execution)
+  - Capabilities (5 executors)       → One per FR-GWY operation
+  - Agent                            → GatewayOrchestrator (Aggregate facade)
+  - Root                             → GatewayContainer (DI wiring)
+"""
+
+from .src.agent_gateway_orchestrator import GatewayOrchestrator
+from .src.capabilities_connection_executor import ConnectionExecutor
+from .src.capabilities_maintenance_executor import MaintenanceExecutor
+from .src.capabilities_transport_executor import TransportExecutor
+from .src.capabilities_scene_queue_executor import SceneQueueExecutor
+from .src.capabilities_code_execution_executor import CodeExecutionExecutor
 
 __all__ = [
-    "IBlenderConnectionProtocol",
-    "IBlenderCommandProtocol",
-    "ICodeExecutionProtocol",
-    "IOperationQueueProtocol",
-    "IBlenderServerAggregate",
+    "GatewayOrchestrator",
+    "ConnectionExecutor",
+    "MaintenanceExecutor",
+    "TransportExecutor",
+    "SceneQueueExecutor",
+    "CodeExecutionExecutor",
 ]

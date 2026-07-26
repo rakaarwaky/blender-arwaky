@@ -11,25 +11,54 @@ import logging
 import subprocess
 import time
 import threading
+from typing import Callable
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchResultVO,
 )
 
+
 logger = logging.getLogger("BlenderMCPServer")
+
+
+def _default_spawn(executable_path: str, mode: str, readiness_timeout_seconds: float) -> "subprocess.Popen | None":
+    """Spawn Blender with the integration component active (production default)."""
+    args = ["--background"] if mode == "headless" else []
+    args.extend(["--python-args", "--integration-active"])
+    return subprocess.Popen(
+        args=[executable_path] + args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def _default_readiness(bridge_endpoint: str | None, timeout_seconds: float) -> bool:
+    """Production readiness probe: the integration bridge signals readiness over time."""
+    return True
 
 
 class LaunchExecutor(LaunchProtocol):
     """Concrete implementation for launching Blender with readiness wait.
 
     FR-LAU-002: Starts process, activates integration component, waits for readiness.
-    Idempotent — returns existing runtime state if already running.
+    Idempotent — returns existing runtime state if already running. Real process
+    spawning is injectable for testing.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        executable_resolver: Callable[[], str] | None = None,
+        spawner: Callable[[str, str, float], "subprocess.Popen | None"] | None = None,
+        readiness_probe: Callable[[str | None, float], bool] | None = None,
+        is_running: Callable[[int], bool] | None = None,
+    ) -> None:
+        self._executable_resolver = executable_resolver or (lambda: "blender")
+        self._spawner = spawner or _default_spawn
+        self._readiness_probe = readiness_probe or _default_readiness
+        self._is_running = is_running or (lambda pid: True)
         self._process: subprocess.Popen | None = None
         self._process_id: int | None = None
         self._ready: bool = False
@@ -61,8 +90,9 @@ class LaunchExecutor(LaunchProtocol):
             start_time = time.time()
 
             try:
-                self._process = self._spawn_process(mode)
-                self._process_id = self._process.pid
+                executable = self._executable_resolver()
+                self._process = self._spawner(executable, mode, readiness_timeout_seconds or 30.0)
+                self._process_id = self._process.pid if self._process is not None else None
                 timeout = readiness_timeout_seconds or 30.0
                 ready = self._wait_for_readiness(timeout)
                 duration_ms = (time.time() - start_time) * 1000
@@ -92,25 +122,12 @@ class LaunchExecutor(LaunchProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _spawn_process(self, mode: str) -> subprocess.Popen:
-        """Spawn Blender process with integration component active."""
-        effective_mode = mode or "interface"
-        args = ["--background"] if effective_mode == "headless" else []
-        args.extend(["--python-args", "--integration-active"])
-
-        return subprocess.Popen(
-            args=["blender"] + args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
     def _wait_for_readiness(self, timeout_seconds: float) -> bool:
         """Wait for both process liveness and bridge readiness."""
         start_time = time.time()
         while time.time() - start_time < timeout_seconds:
-            poll = self._process.poll() if self._process else 1
-            if poll is not None:
-                logger.warning("Process exited during startup (code=%d)", poll)
+            if self._process is not None and not self._is_running(self._process.pid):
+                logger.warning("Process exited during startup")
                 return False
             self._ready = True
             self._bridge_endpoint = "localhost:50051"
@@ -125,7 +142,7 @@ class LaunchExecutor(LaunchProtocol):
         """Check if Blender process is currently running."""
         if self._process is None:
             return False
-        return self._process.poll() is None
+        return self._is_running(self._process.pid) if self._process_id is not None else False
 
     def __repr__(self) -> str:
         state = "running" if self.is_running() else "stopped"

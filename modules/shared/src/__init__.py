@@ -270,7 +270,41 @@ from .launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownResultVO,
+    StatusCheckResultVO,
+    StatePersistenceResultVO,
     VersionCompatibility,
+)
+
+# === Gateway domain exports ===
+from .gateway.contract_code_execution_protocol import CodeExecutionProtocol
+from .gateway.contract_connection_protocol import ConnectionProtocol
+from .gateway.contract_maintenance_protocol import ConnectionMaintenanceProtocol
+from .gateway.contract_scene_queue_protocol import SceneQueueProtocol
+from .gateway.contract_transport_protocol import TransportProtocol
+from .gateway.taxonomy_gateway_error import (
+    AuthenticationError,
+    ChannelConflictError,
+    ConnectionError,
+    GatewayError,
+    PayloadLimitError,
+    ProtocolVersionMismatchError,
+    SecurityViolationError,
+    TimeoutError,
+    TransportParseError,
+)
+from .gateway.taxonomy_gateway_vo import (
+    CodeExecutionRequestVO,
+    CodeExecutionResultVO,
+    ConnectionState,
+    ConnectionRequestVO,
+    ConnectionResultVO,
+    ConnectionStatusVO,
+    QueueStatusVO,
+    SceneOperationResultVO,
+    SceneOperationVO,
+    TransportRequestVO,
+    TransportResponseVO,
+    TransportType,
 )
 
 from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
@@ -665,5 +699,36 @@ __all__ = [
     "RuntimeStateVO",
     "RuntimeStatusVO",
     "ShutdownResultVO",
+    "StatusCheckResultVO",
+    "StatePersistenceResultVO",
     "VersionCompatibility",
+    # Gateway domain — Protocols
+    "ConnectionProtocol",
+    "ConnectionMaintenanceProtocol",
+    "TransportProtocol",
+    "SceneQueueProtocol",
+    "CodeExecutionProtocol",
+    # Gateway domain — Errors
+    "GatewayError",
+    "ConnectionError",
+    "TimeoutError",
+    "ProtocolVersionMismatchError",
+    "AuthenticationError",
+    "ChannelConflictError",
+    "SecurityViolationError",
+    "TransportParseError",
+    "PayloadLimitError",
+    # Gateway domain — Value Objects & Enums
+    "ConnectionState",
+    "TransportType",
+    "ConnectionRequestVO",
+    "ConnectionResultVO",
+    "ConnectionStatusVO",
+    "TransportRequestVO",
+    "TransportResponseVO",
+    "SceneOperationVO",
+    "SceneOperationResultVO",
+    "QueueStatusVO",
+    "CodeExecutionRequestVO",
+    "CodeExecutionResultVO",
 ]

@@ -8,23 +8,21 @@ Layers:
   - Root                              → LauncherContainer (DI wiring)
 """
 
-from .agent_orchestrator import LauncherOrchestrator
-from .capabilities_locate_register_executor import LocateRegisterExecutor
+from .agent_launcher_orchestrator import LauncherOrchestrator
 from .capabilities_launch_executor import LaunchExecutor
+from .capabilities_locate_register_executor import LocateRegisterExecutor
+from .capabilities_runtime_status import RuntimeStatusChecker
 from .capabilities_shutdown_executor import ShutdownExecutor
-from .capabilities_runtime_status_executor import RuntimeStatusExecutor
-from .capabilities_persist_state_executor import PersistStateExecutor
-from . import root_launcher_container
+from .capabilities_state_persistence import StatePersistence
 from .root_launcher_container import LauncherContainer, create_launcher_feature
 
 __all__ = [
+    "LauncherOrchestrator",
+    "LaunchExecutor",
+    "LocateRegisterExecutor",
+    "RuntimeStatusChecker",
+    "ShutdownExecutor",
+    "StatePersistence",
     "LauncherContainer",
     "create_launcher_feature",
-    "LauncherOrchestrator",
-    "LocateRegisterExecutor",
-    "LaunchExecutor",
-    "ShutdownExecutor",
-    "RuntimeStatusExecutor",
-    "PersistStateExecutor",
-    "root_launcher_container",
 ]

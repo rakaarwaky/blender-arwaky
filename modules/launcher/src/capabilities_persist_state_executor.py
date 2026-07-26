@@ -17,8 +17,9 @@ from modules.shared.src.launcher.contract_persist_state_protocol import (
     PersistStateProtocol,
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    PersistenceResultVO,
     RuntimeState,
-    StatePersistenceResultVO,
+    RuntimeStateVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -39,12 +40,7 @@ class PersistStateExecutor(PersistStateProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def persist_state(
-        self,
-        process_id: int | None,
-        ready: bool,
-        bridge_endpoint: str | None,
-    ) -> StatePersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
         """Persist runtime state atomically to disk.
 
         FR-LAU-005: Atomic write (temp + rename). Corruption fallback on read.
@@ -53,30 +49,27 @@ class PersistStateExecutor(PersistStateProtocol):
 
         try:
             self._atomic_write(self._state_path, {
-                "process_id": process_id,
-                "ready": ready,
-                "bridge_endpoint": bridge_endpoint,
+                "process_id": state.process_id,
+                "ready": state.last_status == RuntimeState.RUNNING_READY,
+                "bridge_endpoint": state.bridge_endpoint,
             })
             duration_ms = (time.time() - start_time) * 1000
-            logger.debug("State persisted: pid=%s, ready=%s", process_id, ready)
-            return StatePersistenceResultVO(success=True, duration_ms=duration_ms)
+            logger.debug("State persisted: pid=%s", state.process_id)
+            return PersistenceResultVO(success=True)
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error("State persistence failed: %s", e)
-            return StatePersistenceResultVO(
-                success=False, duration_ms=duration_ms,
-                error=f"State persistence failed: {e}",
-            )
+            return PersistenceResultVO(success=False)
 
-    def load_state(self) -> tuple[int | None, bool, str | None]:
+    def load(self) -> RuntimeStateVO | None:
         """Load persisted state with corruption fallback.
 
         FR-LAU-005: On corrupt data, falls back to empty state.
         """
         try:
             if not os.path.exists(self._state_path):
-                return None, False, None
+                return None
 
             data = self._atomic_read(self._state_path)
             process_id = data.get("process_id")
@@ -84,11 +77,15 @@ class PersistStateExecutor(PersistStateProtocol):
             bridge_endpoint = data.get("bridge_endpoint")
 
             logger.debug("State loaded: pid=%s, ready=%s", process_id, ready)
-            return process_id, ready, bridge_endpoint
+            return RuntimeStateVO(
+                process_id=process_id,
+                bridge_endpoint=bridge_endpoint,
+                last_status=RuntimeState.RUNNING_READY if ready else RuntimeState.NOT_RUNNING,
+            )
 
         except Exception as e:
             logger.warning("Failed to load state, falling back to empty: %s", e)
-            return None, False, None
+            return None
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
