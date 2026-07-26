@@ -27,7 +27,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
     ToolName,
 )
-from modules.shared.src.config.contract_config import ConfigPort
+from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.telemetry.contract_telemetry_recording import (
     TelemetryRecordingPort,
@@ -50,7 +50,7 @@ class TelemetrySignalRecorder(TelemetryRecordingPort):
     def __init__(
         self,
         connection: IBlenderConnectionProtocol,
-        config: ConfigPort,
+        config: IConfigAggregate,
     ) -> None:
         self._connection = connection
         self.config_application = config

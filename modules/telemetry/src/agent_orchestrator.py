@@ -13,7 +13,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
     ToolName,
 )
-from modules.shared.src.config.contract_config import ConfigPort
 from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.telemetry.contract_telemetry_classification import (
     TelemetryClassificationPort,

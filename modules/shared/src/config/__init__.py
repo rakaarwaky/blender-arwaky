@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 # ─── Contracts (Protocols) ─────────────────────────────────────
-from .contract_config import ConfigPort
 from .contract_config_aggregate import IConfigAggregate
 from .contract_redaction_rules_protocol import IRedactionRulesProtocol
 from .contract_settings_loader_protocol import ISettingsLoaderProtocol
 from .contract_settings_metadata_protocol import ISettingsMetadataProtocol
 from .contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
-
-# ─── Contracts (Legacy) ────────────────────────────────────────
-from .contract_config_loader_protocol import ConfigLoaderProtocol
 
 # ─── Taxonomy: Value Objects ───────────────────────────────────
 from .taxonomy_config_vo import (
@@ -63,9 +59,6 @@ __all__ = [
     "IWorkspaceResolverProtocol",
     "ISettingsMetadataProtocol",
     "IRedactionRulesProtocol",
-    # Contracts — Legacy
-    "ConfigPort",
-    "ConfigLoaderProtocol",
     # Taxonomy — Value Objects
     "SettingsSnapshot",
     "WorkspacePath",
