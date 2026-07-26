@@ -25,7 +25,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, catalog: dict[str, any] = None):
+    def __init__(self, catalog: dict[str, any] = None) -> None:
         self._catalog = catalog or {}
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -35,7 +35,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
         name_filter: str | None = None,
         capability_filter: str | None = None,
         detail_level: str = "standard",
-    ) -> dict[str, any]:
+    ) -> DiscoveryResultVO:
         """Discover actions from the catalog with optional filtering.
 
         FR-DSP-002: Returns canonical shape to all consumers.
@@ -43,31 +43,31 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
         """
         actions = list(self._catalog.values())
 
-        # Apply name filter (case-insensitive)
         if name_filter:
             actions = [a for a in actions if name_filter.lower() in str(a.action_name).lower()]
 
-        # Apply capability filter (matches owning_feature_ref or risk_level)
         if capability_filter:
             actions = [
-                a for a in actions
+                a
+                for a in actions
                 if capability_filter.lower() in str(a.owning_feature_ref).lower()
                 or capability_filter.lower() in str(a.risk_level).lower()
             ]
 
-        # Build discovery result
         result = DiscoveryResultVO(
             actions=[self._format_action(a, detail_level) for a in actions],
-            catalog_version=max((a.catalog_version for a in self._catalog.values()), default=0),
+            catalog_version=max(
+                (a.catalog_version for a in self._catalog.values()), default=0
+            ),
             result_count=len(actions),
         )
 
-        logger.debug("Discovery: %d actions returned (filter=%s)", len(actions), name_filter or "none")
-        return {
-            "actions": result.actions,
-            "catalog_version": result.catalog_version,
-            "result_count": result.result_count,
-        }
+        logger.debug(
+            "Discovery: %d actions returned (filter=%s)",
+            len(actions),
+            name_filter or "none",
+        )
+        return result
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 

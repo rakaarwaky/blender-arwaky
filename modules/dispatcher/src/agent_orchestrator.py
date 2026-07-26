@@ -19,8 +19,8 @@ from modules.shared.src.dispatcher.contract_request_validation_protocol import R
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from modules.shared.src.dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-from modules.shared.src.dispatcher.taxonomy_validation_result_vo import ValidationResultVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -66,7 +66,7 @@ class DispatcherOrchestrator:
         name_filter: str | None = None,
         capability_filter: str | None = None,
         detail_level: str = "standard",
-    ) -> dict[str, Any]:
+    ) -> DiscoveryResultVO:
         """Discover actions from the catalog.
 
         FR-DSP-002: Delegates to ActionDiscoveryProtocol.
@@ -80,17 +80,18 @@ class DispatcherOrchestrator:
             detail_level=detail_level,
         )
 
-    def validate_request(self, request: ActionRequestVO) -> ValidationResultVO:
+    def validate_request(self, request: ActionRequestVO) -> ActionRequestVO:
         """Validate an action request against the catalog.
 
         FR-DSP-003: Delegates to RequestValidationProtocol.
-        Unknown action → not found error; invalid params → field-level detail.
+        Unknown action -> not found error; invalid params -> field-level detail.
+        Returns enriched same VO type (merged input+output pattern).
         """
         if self._validation is None:
             raise RuntimeError("RequestValidationProtocol not configured")
         return self._validation.validate_request(request)
 
-    def dispatch_sync(self, validated_request: ValidationResultVO) -> UnifiedResultEnvelopeVO:
+    def dispatch_sync(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
         """Dispatch a validated action synchronously to its owning feature.
 
         FR-DSP-004: Delegates to SyncDispatchProtocol.
@@ -98,7 +99,7 @@ class DispatcherOrchestrator:
         """
         if self._dispatch is None:
             raise RuntimeError("SyncDispatchProtocol not configured")
-        return self._dispatch.dispatch_sync(validated_request)
+        return self._dispatch.dispatch_sync(request)
 
     def submit_background(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
         """Submit an action for background execution via job feature.
@@ -127,28 +128,23 @@ class DispatcherOrchestrator:
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def execute_action(self, action_name: str, parameters: dict[str, Any]) -> dict[str, Any]:
+    def execute_action(self, action_name: str, parameters: dict[str, Any]) -> UnifiedResultEnvelopeVO:
         """Execute an action through the full dispatcher pipeline.
 
         This is the main facade method — validates, dispatches, and normalizes
         in a single call for consumers who don't need intermediate results.
         """
-        # Build request
         request = ActionRequestVO(action_name=action_name, parameters=parameters)
 
         try:
-            # Step 1: Validate
             validated = self.validate_request(request)
 
-            # Step 2: Dispatch (sync or background based on eligibility)
             bg_eligible = validated.resolved_metadata.get("background_eligibility_flag", False)
             long_running = validated.resolved_metadata.get("long_running_flag", False)
 
             if bg_eligible or long_running:
-                # Submit as background job
-                envelope = self.submit_background(request)
+                envelope = self.submit_background(validated)
             else:
-                # Dispatch synchronously
                 envelope = self.dispatch_sync(validated)
 
             return envelope
@@ -159,11 +155,11 @@ class DispatcherOrchestrator:
                 message=str(e),
                 tracking_id="",
                 error_category="validation_error",
-            ).__dict__
+            )
 
         except Exception as e:
             logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e)).__dict__
+            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
 
     def __repr__(self) -> str:
         return (

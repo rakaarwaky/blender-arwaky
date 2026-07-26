@@ -250,7 +250,6 @@ from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_action_request_vo import ActionRequestVO
 from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-from .dispatcher.taxonomy_validation_result_vo import ValidationResultVO
 
 from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
 from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
