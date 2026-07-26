@@ -129,7 +129,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
         """
         logger.debug("Polling task %s for request %s", task_id, request_id)
         try:
-            return await self._code_executor.poll_task_result(task_id, request_id)
+            return await self._code_executor.poll_task_result(task_id)
         except TaskNotFoundError:
             return ExecutionResult(
                 status=StatusString("error"),

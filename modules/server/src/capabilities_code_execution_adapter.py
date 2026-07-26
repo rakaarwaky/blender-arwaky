@@ -155,24 +155,19 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 error={"type": type(e).__name__, "message": str(e)},
             )
 
-    async def submit_async_task(self, code: str, request_id: str) -> dict[str, Any]:
-        """Submit long-running code for async execution. Returns task_id and status."""
-        self._validate_code_ast(code)
+    async def submit_async_task(self, code: Prompt, request_id: str) -> str:
+        """Submit long-running code for async execution. Returns new TaskId."""
+        self._validate_code_ast(str(code))
 
         task_id = self.create_task(request_id)
 
-        # Store code reference alongside the task entry
-        entry = self._tasks[task_id]
-        entry.code = code  # type: ignore[attr-defined]
+        # Start async execution in background
+        asyncio.ensure_future(self._run_async_task(task_id, str(code)))
 
         logger.info("Submitted async task %s for request %s", task_id, request_id)
+        return task_id
 
-        # Start async execution in background
-        asyncio.ensure_future(self._run_async_task(task_id, code))
-
-        return {"task_id": task_id, "status": "pending"}
-
-    async def poll_task_result(self, task_id: str, request_id: str = "") -> ExecutionResult:
+    async def poll_task_result(self, task_id: str) -> ExecutionResult:
         """Poll async task status and final result."""
         task_status = self.get_task(task_id)
 
@@ -229,14 +224,14 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             entry.result = result
             entry.completed_at = time.monotonic()
 
-    def mark_error(self, task_id: str, error: str) -> None:
-        """Mark task as failed with error message."""
+    def mark_error(self, task_id: str, error_type: str, message: str) -> None:
+        """Mark task as failed with error type and message."""
         entry = self._tasks.get(task_id)
         if entry:
             entry.state = "error"
             entry.result = ExecutionResult(
                 status="error",
-                error={"type": "ExecutionError", "message": error},
+                error={"type": error_type, "message": message},
             )
             entry.completed_at = time.monotonic()
 

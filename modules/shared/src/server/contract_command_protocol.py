@@ -8,42 +8,42 @@ and FIFO queue serialization.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from ..common.taxonomy_core_vo import ActionName
-from .taxonomy_server_vo import ExecutionResult
+from .taxonomy_server_error import (
+    CommandTimeoutError,
+    QueueFullError,
+    QueueTimeoutError,
+)
+from .taxonomy_server_event import (
+    CommandDispatched,
+    ItemDequeued,
+    ItemEnqueued,
+)
+from .taxonomy_server_vo import CommandResult, ExecutionResult
 
 
 class IBlenderCommandProtocol(ABC):
     """Protocol for dispatching named commands and managing execution queue.
 
-    Implemented by Capabilities layer (BlenderCommandAdapter). Each command is routed through
-    TCP socket with configurable timeout enforcement per FR-SRV-003, with FIFO queue serialization.
+    Implemented by Capabilities layer (BlenderCommandAdapter).
+    Each command is routed through TCP socket with configurable timeout
+    enforcement per FR-SRV-003, with FIFO queue serialization.
     """
 
     @abstractmethod
     async def send_command(
         self,
         action: ActionName,
-        params: dict[str, Any] | None = None,
+        params: dict | None = None,
         timeout_ms: float | None = None,
-    ) -> dict[str, Any]:
+    ) -> CommandResult:
         """Dispatch a named command to Blender addon.
 
-        Routes through TCP socket; response parsed as JSON.
-        Default timeout: 5000ms (DEFAULT_COMMAND_TIMEOUT_MS).
-        Raises CommandTimeoutError if response exceeds timeout.
-
-        Args:
-            action: Named action to dispatch to Blender.
-            params: Optional command arguments dictionary.
-            timeout_ms: Override timeout in milliseconds. Uses default if None.
-
-        Returns:
-            Command result dict with status, data, error, execution_time_ms.
-
-        Raises:
-            CommandTimeoutError: if response exceeds configured timeout.
+        Success: Returns CommandResult with status='success', data from JSON response,
+                 event=CommandDispatched(action, execution_time_ms)
+        Failure: Raises CommandTimeoutError if response exceeds configured timeout
+        Event: CommandDispatched(action, execution_time_ms)
         """
         ...
 
@@ -51,14 +51,24 @@ class IBlenderCommandProtocol(ABC):
     async def enqueue(
         self,
         request_id: str,
-        payload: dict[str, Any],
-    ) -> str:
-        """Add item to queue. Raises QueueFullError if depth limit exceeded."""
+        payload: dict,
+    ) -> int:
+        """Add item to queue. Returns current queue depth.
+
+        Success: Returns queue depth after enqueue; event=ItemEnqueued(request_id, queue_depth)
+        Failure: Raises QueueFullError if max_depth exceeded
+        Event: ItemEnqueued(request_id, queue_depth)
+        """
         ...
 
     @abstractmethod
     async def dequeue(self) -> str | None:
-        """Remove and return the next request_id from the queue."""
+        """Remove and return the next request_id from the queue.
+
+        Success: Returns request_id; event=ItemDequeued(request_id)
+        Failure: None (returns None if queue is empty — not an error)
+        Event: ItemDequeued(request_id)
+        """
         ...
 
     @abstractmethod
@@ -67,10 +77,20 @@ class IBlenderCommandProtocol(ABC):
         request_id: str,
         timeout_ms: float | None = None,
     ) -> ExecutionResult:
-        """Wait for a queued item to be processed and return result."""
+        """Wait for a queued item to be processed and return result.
+
+        Success: Returns ExecutionResult with status from queue processing
+        Failure: Raises QueueTimeoutError if wait exceeds timeout_ms
+        Event: None (internal queue detail)
+        """
         ...
 
     @abstractmethod
     async def get_depth(self) -> int:
-        """Return current queue depth."""
+        """Return current queue depth.
+
+        Success: Returns queue depth as int
+        Failure: Raises ConnectionClosedError if connection lost
+        Event: None (pure query)
+        """
         ...

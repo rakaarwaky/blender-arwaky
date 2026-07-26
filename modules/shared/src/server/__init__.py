@@ -32,6 +32,7 @@ from .taxonomy_server_constant import (
 from .taxonomy_server_error import (
     AuthenticationError,
     BlenderConnectionExhausted,
+    CodeValidationError,
     CommandTimeoutError,
     ConnectionClosedError,
     ConnectionConfigError,
@@ -43,6 +44,7 @@ from .taxonomy_server_error import (
     TaskNotFoundError,
 )
 from .taxonomy_server_vo import (
+    CommandResult,
     ConnectionConfig,
     ConnectionStatus,
     ExecutionErrorDetail,
@@ -54,6 +56,22 @@ from .taxonomy_server_vo import (
     TaskManagerConfig,
     TaskStatus,
     TaskState,
+)
+
+from .taxonomy_server_event import (
+    CodeExecuted,
+    CodeExecutionFailed,
+    CommandDispatched,
+    ConnectionEstablished,
+    ConnectionLost,
+    ItemDequeued,
+    ItemEnqueued,
+    TaskCancelled,
+    TaskCompleted,
+    TaskCreated,
+    TaskFailed,
+    TaskStarted,
+    TaskTimedOut,
 )
 
 # ─── Contracts (Aggregate — single unified facade) ─────────────
@@ -123,9 +141,24 @@ __all__ = [
     "HeartbeatConfig",
     "QueueConfig",
     "RetryPolicy",
+    "CommandResult",
     "TaskManagerConfig",
     "TaskStatus",
     "TaskState",
+    # ─── Events ───────────────────────────────────────────────
+    "ConnectionEstablished",
+    "ConnectionLost",
+    "CodeExecuted",
+    "CodeExecutionFailed",
+    "TaskCreated",
+    "TaskStarted",
+    "TaskCompleted",
+    "TaskFailed",
+    "TaskTimedOut",
+    "TaskCancelled",
+    "CommandDispatched",
+    "ItemEnqueued",
+    "ItemDequeued",
     # ─── Constants ──────────────────────────────────────────────
     "TRANSPORT_SOCKET",
     "CONNECTION_TIMEOUT_SECONDS",
@@ -144,6 +177,7 @@ __all__ = [
     "DEFAULT_TASK_RETENTION_SECONDS",
     # ─── Errors ─────────────────────────────────────────────────
     "SecurityViolationError",
+    "CodeValidationError",
     "ExecutionTimeoutError",
     "QueueFullError",
     "QueueTimeoutError",

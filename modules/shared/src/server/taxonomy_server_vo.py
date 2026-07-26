@@ -1,9 +1,12 @@
-"""Server domain — Value Objects for connection, execution, and task state."""
+"""Server domain — Value Objects for connection, execution, and task state.
+
+Frozen dataclasses with explicit types. All VOs are immutable.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
-from typing import Any
+
 
 # ============================================================
 # Connection State
@@ -21,15 +24,12 @@ class ConnectionStatus:
     """
 
     state: ConnectionState
-    transport_type: str  # "socket" | "stdio"
     host: str
     port: int
+    transport_type: str = "socket"
     last_error: str | None = None
-    last_heartbeat_at: float | None = None  # Unix timestamp
-    reconnect_attempts: int = 0
     protocol_version: str | None = None
-    heartbeat_interval_seconds: int | None = None
-    heartbeat_failure_threshold: int | None = None
+    reconnect_attempts: int = 0
 
 
 # ============================================================
@@ -58,10 +58,23 @@ class ExecutionResult:
     """
 
     status: ExecutionStatus
-    data: Any | None = None
+    data: str | bytes | None = None
     error: ExecutionErrorDetail | None = None
     execution_time_ms: float = 0.0
     truncated: bool = False
+
+
+# ============================================================
+# Command Result (replaces dict[str, Any] for command dispatch)
+# ============================================================
+
+@dataclass(frozen=True)
+class CommandResult:
+    """Typed command dispatch result (replaces dict[str, Any])."""
+
+    status: str  # "success" | "error"
+    data: dict | None = None
+    execution_time_ms: float = 0.0
 
 
 # ============================================================
@@ -135,7 +148,7 @@ class QueueConfig:
     """Immutable configuration for execution queue parameters."""
 
     max_depth: int = 50
-    wait_timeout_ms: float = 10000.0  # 10 seconds default
+    wait_timeout_ms: float = 10_000.0  # 10 seconds default
 
 
 # ============================================================
