@@ -9,18 +9,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from .taxonomy_action_request_vo import ActionRequestVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-from .taxonomy_validation_result_vo import ValidationResultVO
 
 
 class SyncDispatchProtocol(ABC):
     """Protocol for routing validated actions to owning features synchronously."""
 
     @abstractmethod
-    def dispatch_sync(self, validated_request: ValidationResultVO) -> UnifiedResultEnvelopeVO:
+    def dispatch_sync(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
         """Route a validated action to its owning feature and return normalized result.
 
         FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
         Returns standardized envelope; does not retry non-idempotent actions.
         """
-        pass
+        ...

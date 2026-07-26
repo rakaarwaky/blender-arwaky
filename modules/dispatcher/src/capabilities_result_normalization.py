@@ -57,7 +57,6 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             # Process and sanitize data payload
             if data is not None:
                 data = self._sanitize_data(data)
-                truncated = False
                 data_size = len(json.dumps(data))
                 if data_size > self._max_size:
                     data = {"_truncated": True, "_size_exceeded": self._max_size}

@@ -1,8 +1,8 @@
 """Dispatcher domain — taxonomy Value Objects and contract protocols.
 
 Shared layer (shared/src/dispatcher/):
-  - Taxonomy VOs: ActionMetadataVO, ActionRequestVO, ValidationResultVO,
-    DiscoveryResultVO, UnifiedResultEnvelopeVO
+  - Taxonomy VOs: ActionMetadataVO, ActionRequestVO, DiscoveryResultVO,
+    UnifiedResultEnvelopeVO
   - Contracts: 6 individual protocol ABCs
 
 Capability layer lives in modules/dispatcher/src/.
@@ -13,14 +13,12 @@ from .taxonomy_action_metadata_vo import ActionMetadataVO
 from .taxonomy_action_request_vo import ActionRequestVO
 from .taxonomy_discovery_result_vo import DiscoveryResultVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-from .taxonomy_validation_result_vo import ValidationResultVO
 
 __all__ = [
     "ActionMetadataVO",
     "ActionRequestVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
-    "ValidationResultVO",
 ]
 
 # Protocol imports (contract layer)
