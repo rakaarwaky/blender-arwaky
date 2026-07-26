@@ -13,7 +13,7 @@ Structure:
 import logging
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectName, ObjectType, Prompt, SuccessFlag
+from modules.shared.src.common.taxonomy_core_vo import ObjectType, Prompt, SuccessFlag
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidModifierTypeError, ModifierActionConfirmationError
 from modules.shared.src.object.taxonomy_object_vo import ApplyModifierVO

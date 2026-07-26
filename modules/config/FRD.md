@@ -40,9 +40,7 @@ No other feature reads settings files directly, determines precedence rules, res
 
 ## Depends On
 
-Shared taxonomy primitives (`modules.shared.src.common.taxonomy_core_vo`: `ConfigMetadata`, `ConfigPath`) and the shared `mcp` bootstrap aggregator (`modules.shared.src.__init__` re-exports `ServerBootstrapManagerAggregate`).
-
-> Cross-module dependency risk: the shared `mcp` subpackage must provide `contract_server_bootstrap` for `import modules.shared` to succeed. If that subpackage is missing its `__init__.py` / `contract_server_bootstrap.py`, the entire import graph (including this feature) breaks.
+- shared taxonomy primitives (`ConfigMetadata`, `ConfigPath`) and the shared `mcp` bootstrap aggregator for module initialization
 
 ## Provides To
 
@@ -219,21 +217,19 @@ Config or security provides list of sensitive keys. Diagnostics, CLI, and MCP us
 
 ## Events
 
-Events are emitted by the **Config orchestrator (Agent layer)**, which owns the bounded event ring buffer, and surfaced to consumers via `recent_events()`. Capabilities build event payloads from `get_last_metadata()` but do not record them.
-
 - settings loaded event — emitted after settings snapshot is successfully loaded
 - settings reload event — emitted after settings snapshot is successfully replaced
 - workspace resolved event — emitted after project workspace directory is resolved
 - settings validation warning event — emitted when schema or parse warnings occur in permissive mode
 
-Event payloads are fixed-shape dataclasses (`SettingsLoadedEvent`, `SettingsReloadEvent`, `WorkspaceResolvedEvent`, `SettingsValidationWarningEvent`) with these fields:
+Event payloads should include:
 
-- `category` (event type string)
-- `source_summary` (resolved settings/workspace source, never raw content)
-- `override_count` (int)
-- `warning_count` (int)
-- `policy_mode` (strict | permissive)
-- `timestamp` (epoch seconds)
+- event category
+- source summary
+- override count
+- warning count
+- policy mode
+- timestamp
 
 Event payloads must avoid:
 
@@ -303,25 +299,4 @@ Event payloads must avoid:
 - [ ] Settings loaded event emitted after successful load
 - [ ] Settings reload event emitted after successful reload
 - [ ] Workspace resolved event emitted after resolution
-
-## Feature Flag
-
-`BLENDERMCP_CONFIG_V2` controls the v1.7.0 new-enforcement behaviors. Read once
-at container construction. `None` (unset) → resolved via `parse_env_value` truthiness
-of `BLENDERMCP_CONFIG_V2`; explicit bool wins.
-
-| Behavior | Gated | Flag OFF (v1.7.0 default) | Flag ON |
-|----------|-------|---------------------------|---------|
-| Schema validation | ✅ | Skipped entirely | Enforced per policy mode |
-| Runtime overrides param | ✅ | Param ignored + parse warning logged | Applied, counted |
-| Size limit > 1 MiB | ✅ | Not checked | strict → ConfigLoadError / permissive warn+skip |
-| Strict ConfigTypeError | ✅ | Default returned (current behavior) | Raise in strict mode |
-| `\.` escaped separator | ✅ | Literal split on every `.` | `\.` resolves literal dotted key |
-| Defaults tier | ❌ | Always ON (required by Q6) | — |
-| Legacy prefix removal | ❌ breaking | Removed | Removed |
-| Metadata wiring, events, ring buffer | ❌ | Always ON | — |
-| Workspace fixes + caching | ❌ | Always ON | — |
-| Thread-safe init | ❌ | Always ON | — |
-
-v1.8.0 plan: flip flag default to ON; v1.9.0 remove flag.
 

@@ -12,9 +12,8 @@ Structure:
 import logging
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
+from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import MaterialAssignmentError
 from modules.shared.src.object.taxonomy_object_vo import SetMaterialVO
 
 logger = logging.getLogger("BlenderMCPServer")

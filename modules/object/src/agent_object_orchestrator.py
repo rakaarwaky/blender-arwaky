@@ -9,9 +9,8 @@ Structure:
 """
 
 import logging
-from typing import Any
-
 import typing as _typing
+from typing import Any
 
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol

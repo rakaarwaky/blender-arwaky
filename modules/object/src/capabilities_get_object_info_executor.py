@@ -15,7 +15,6 @@ from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -52,7 +51,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
 
         try:
             result_data = await self._executor.execute_blender_code(Prompt(code))
-            
+
             # Parse result data into ObjectInfoResultVO
             if isinstance(result_data, dict):
                 return GetObjectInfoVO(
@@ -94,20 +93,20 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
             "import json\n",
             "info = {\n",
-            f"    'name': obj.name,\n",
-            f"    'type': obj.type,\n",
+            "    'name': obj.name,\n",
+            "    'type': obj.type,\n",
         ]
 
         # Add transform data
         lines.append(
-            f"    'location': [obj.location.x, obj.location.y, obj.location.z],\n"
-            f"    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],\n"
-            f"    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],\n"
+            "    'location': [obj.location.x, obj.location.y, obj.location.z],\n"
+            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],\n"
+            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],\n"
         )
 
         # Add parent information
         lines.append(
-            f"    'parent_name': obj.parent.name if obj.parent else None,\n"
+            "    'parent_name': obj.parent.name if obj.parent else None,\n"
         )
 
         # Add collection membership (avoid cyclic references)
@@ -117,7 +116,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
 
         # Add material references
         lines.append(
-            f"    'material_names': [mat.name for mat in obj.data.materials if mat],\n"
+            "    'material_names': [mat.name for mat in obj.data.materials if mat],\n"
         )
 
         # Add modifier summaries
@@ -127,7 +126,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
 
         # Add visibility state
         lines.append(
-            f"    'visibility': obj.visible_get(),\n"
+            "    'visibility': obj.visible_get(),\n"
         )
 
         # Add mesh statistics (only for mesh objects, full detail level)
@@ -136,9 +135,9 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             "if obj.type == 'MESH' and obj.data:\n"
             "    mesh = obj.data\n"
             "    info['mesh_statistics'] = {\n"
-            f"        'vertex_count': len(mesh.vertices),\n"
-            f"        'edge_count': len(mesh.edges),\n"
-            f"        'face_count': len(mesh.polygons),\n"
+            "        'vertex_count': len(mesh.vertices),\n"
+            "        'edge_count': len(mesh.edges),\n"
+            "        'face_count': len(mesh.polygons),\n"
             "    }\n"
         )
 

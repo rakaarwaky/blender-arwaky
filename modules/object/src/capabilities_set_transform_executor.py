@@ -15,14 +15,11 @@ from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     CoordinateList,
-    ObjectName,
     Prompt,
-    RotationVector,
     ScaleVector,
     SuccessFlag,
 )
 from modules.shared.src.object.contract_set_transform_protocol import SetObjectTransformProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import TransformLockError
 from modules.shared.src.object.taxonomy_object_vo import SetObjectTransformVO
 
 logger = logging.getLogger("BlenderMCPServer")

@@ -11,16 +11,12 @@ Structure:
 """
 
 import logging
-import re
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     CoordinateList,
     ObjectName,
-    ObjectType,
     Prompt,
-    RotationVector,
-    ScaleVector,
     SuccessFlag,
 )
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol

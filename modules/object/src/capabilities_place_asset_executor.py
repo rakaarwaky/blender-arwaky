@@ -14,11 +14,9 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetId,
     CoordinateList,
     ObjectName,
     Prompt,
-    RotationVector,
     ScaleVector,
     SuccessFlag,
 )
