@@ -42,7 +42,6 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
 
         # Check for duplicate registration
         if metadata.action_name in self._catalog:
-            existing = self._catalog[metadata.action_name]
             logger.warning(
                 "Duplicate action '%s' registration; replacing per policy",
                 metadata.action_name,

@@ -207,21 +207,7 @@ class TelemetrySignalRecorder(TelemetryRecordingPort):
     def _send_event(self, event: TelemetryEventType) -> None:
         """Write telemetry event to JSONL file (best-effort, never raises)."""
         try:
-            data = {
-                "session_id": event.session_id,
-                "event_type": event.event_type.value,
-                "tool_name": event.tool_name,
-                "prompt_text": event.prompt_text,
-                "success": event.success,
-                "duration_ms": event.duration_ms,
-                "error_message": event.error_message,
-                "version": event.version,
-                "platform": event.platform,
-                "blender_version": event.blender_version,
-                "metadata": event.metadata or {},
-            }
-            # In production, write to JSONL file
-            # with open(self._jsonl_path, "a", encoding="utf-8") as f:
-            #     f.write(line + "\n")
+            # In production, serialize event to JSONL and append to self._jsonl_path
+            pass
         except Exception as e:
             logger.debug("Failed to write telemetry event: %s", e)

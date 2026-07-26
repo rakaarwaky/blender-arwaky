@@ -61,7 +61,6 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
                 data_size = len(json.dumps(data))
                 if data_size > self._max_size:
                     data = {"_truncated": True, "_size_exceeded": self._max_size}
-                    truncated = True
 
             # Build envelope
             if success:

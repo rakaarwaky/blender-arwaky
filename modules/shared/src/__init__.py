@@ -17,6 +17,7 @@ from . import (
     common,
     config,
     diagnostics,
+    dispatcher,
     job,
     object,
     render,
@@ -237,6 +238,20 @@ from .job.taxonomy_job_status_entity import (
     create_job_id,
     create_progress,
 )
+
+# === Dispatcher domain exports ===
+from .dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
+from .dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
+from .dispatcher.contract_catalog_registration_protocol import CatalogRegistrationProtocol
+from .dispatcher.contract_request_validation_protocol import RequestValidationProtocol
+from .dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
+from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
+from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
+from .dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
+from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from .dispatcher.taxonomy_validation_result_vo import ValidationResultVO
+
 from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
 from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
 from .mcp.contract_server_health_protocol import ServerHealthProtocol
@@ -599,4 +614,17 @@ __all__ = [
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",
     "DEFAULT_POLICY_MODE",
+    # Dispatcher domain — Protocols
+    "ActionDiscoveryProtocol",
+    "BackgroundSubmitProtocol",
+    "CatalogRegistrationProtocol",
+    "RequestValidationProtocol",
+    "ResultNormalizationProtocol",
+    "SyncDispatchProtocol",
+    # Dispatcher domain — Value Objects
+    "ActionMetadataVO",
+    "ActionRequestVO",
+    "DiscoveryResultVO",
+    "UnifiedResultEnvelopeVO",
+    "ValidationResultVO",
 ]
