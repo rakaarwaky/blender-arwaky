@@ -17,7 +17,7 @@ from modules.shared.src.object.contract_set_transform_protocol import SetObjectT
 from modules.shared.src.object.taxonomy_object_error_vo import TransformLockError
 from modules.shared.src.object.taxonomy_object_request_vo import SetObjectTransformRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import TransformResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

@@ -23,10 +23,10 @@ from modules.shared.src.server import (
 )
 
 # Import from server module capabilities
-from modules.server.src.capabilities_code_execution_adapter import CodeExecutionAdapter
-from modules.server.src.capabilities_event_bus import InMemoryEventBus
-from modules.server.src.capabilities_metrics_collector import MetricsCollector
-from modules.server.src.capabilities_operation_queue import OperationQueue
+from modules.gateway.src.capabilities_code_execution_adapter import CodeExecutionAdapter
+from modules.gateway.src.capabilities_event_bus import InMemoryEventBus
+from modules.gateway.src.capabilities_metrics_collector import MetricsCollector
+from modules.gateway.src.capabilities_operation_queue import OperationQueue
 
 
 # ─── Test Helpers ──────────────────────────────────────────────

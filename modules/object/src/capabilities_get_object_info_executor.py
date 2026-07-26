@@ -17,7 +17,7 @@ from modules.shared.src.object.contract_get_object_info_protocol import GetObjec
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_request_vo import GetObjectInfoRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import ObjectInfoResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

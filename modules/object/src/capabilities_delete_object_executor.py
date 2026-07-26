@@ -17,7 +17,7 @@ from modules.shared.src.object.contract_delete_object_protocol import DeleteObje
 from modules.shared.src.object.taxonomy_object_error_vo import DeletionProtectionError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_request_vo import DeleteObjectRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import DeletionResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

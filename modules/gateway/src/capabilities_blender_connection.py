@@ -14,7 +14,7 @@ import logging
 import struct
 import time
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     AuthenticationError,
     BlenderConnectionExhausted,
     BlenderConnectionFailure,
@@ -34,7 +34,7 @@ from modules.shared.src.server import (
     VersionMismatchError,
 )
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     CONNECTION_STATE_CLOSED,
     CONNECTION_STATE_CONNECTED,
     CONNECTION_STATE_DISCONNECTED,

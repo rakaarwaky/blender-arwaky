@@ -31,7 +31,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
 from modules.shared.src.common.taxonomy_core_vo import ActionName
-from modules.shared.src.server import IBlenderConnectionProtocol
+from modules.gateway.src import IBlenderConnectionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

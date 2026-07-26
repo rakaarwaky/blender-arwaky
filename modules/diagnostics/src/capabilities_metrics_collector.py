@@ -10,7 +10,8 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from modules.shared.src.server import (
+from modules.diagnostics.src import IEventSubscriber, IMetricsProvider
+from modules.gateway.src import (
     CodeExecuted,
     CodeExecutionFailed,
     CommandDispatched,
@@ -20,10 +21,9 @@ from modules.shared.src.server import (
     ConnectionLost,
     ConnectionReconnectAttempted,
     ConnectionReconnectFailed,
-    IEventSubscriber,
-    IMetricsProvider,
     OperationRejected,
     SecurityViolationDetected,
+    ServerEvent,
     ServerMetrics,
     TaskCancelled,
     TaskCompleted,
@@ -31,9 +31,6 @@ from modules.shared.src.server import (
     TaskFailed,
     TaskTimedOut,
 )
-
-if TYPE_CHECKING:
-    from modules.shared.src.server import ServerEvent
 
 logger = logging.getLogger("BlenderMCPServer")
 

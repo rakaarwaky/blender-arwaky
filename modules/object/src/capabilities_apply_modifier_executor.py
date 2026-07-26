@@ -17,7 +17,7 @@ from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModi
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidModifierTypeError, ModifierActionConfirmationError
 from modules.shared.src.object.taxonomy_object_request_vo import ApplyModifierRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import ModifierResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

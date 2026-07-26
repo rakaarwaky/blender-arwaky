@@ -12,7 +12,7 @@ import logging
 import time
 from dataclasses import dataclass
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     IEventPublisher,
     IOperationQueueProtocol,
     OperationRejected,
@@ -20,7 +20,7 @@ from modules.shared.src.server import (
     TooManyPendingOperationsError,
 )
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     ItemDequeued,
     ItemEnqueued,
     ExecutionResult,

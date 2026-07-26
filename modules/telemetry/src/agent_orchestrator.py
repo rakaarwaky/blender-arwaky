@@ -14,7 +14,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ToolName,
 )
 from modules.shared.src.config.contract_config import ConfigPort
-from modules.shared.src.server import IBlenderConnectionProtocol
+from modules.gateway.src import IBlenderConnectionProtocol
 from modules.shared.src.telemetry.contract_telemetry_classification import (
     TelemetryClassificationPort,
 )

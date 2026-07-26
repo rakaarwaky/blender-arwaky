@@ -14,7 +14,7 @@ from modules.shared.src.asset.taxonomy_import_export_vo import (
     ImportGlbRequestVO,
     ImportGlbResponseVO,
 )
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

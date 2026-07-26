@@ -12,7 +12,7 @@ import logging
 import time
 from typing import Any
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     BlenderConnectionFailure,
     CommandResult,
     CommandTimeoutError,
@@ -33,14 +33,14 @@ from modules.shared.src.server import (
     is_scene_mutating,
 )
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     CONNECTION_STATE_CONNECTED,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ServerOrchestrator(IBlenderServerAggregate):
+class GatewayOrchestrator(IBlenderServerAggregate):
     """Unified orchestrator for Blender server operations.
 
     Implements IBlenderServerAggregate (v2.0.0). Owns the operation queue,
@@ -169,7 +169,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
 
         try:
             # Enqueue for serialized execution
-            from modules.shared.src.server import QueuedOperation, OPERATION_TYPE_CODE_SYNC
+            from modules.gateway.src import QueuedOperation, OPERATION_TYPE_CODE_SYNC
             operation = QueuedOperation(
                 request_id=request_id or "",
                 operation_type=OPERATION_TYPE_CODE_SYNC,
@@ -282,7 +282,7 @@ class ServerOrchestrator(IBlenderServerAggregate):
         try:
             # Check if scene-mutating — serialize through queue
             if is_scene_mutating(action):
-                from modules.shared.src.server import QueuedOperation, OPERATION_TYPE_COMMAND
+                from modules.gateway.src import QueuedOperation, OPERATION_TYPE_COMMAND
                 operation = QueuedOperation(
                     request_id=request_id or "",
                     operation_type=OPERATION_TYPE_COMMAND,
@@ -403,4 +403,4 @@ class ServerOrchestrator(IBlenderServerAggregate):
                 await asyncio.sleep(0.1)
 
     def __repr__(self) -> str:
-        return "ServerOrchestrator()"
+        return "GatewayOrchestrator()"

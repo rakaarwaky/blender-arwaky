@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     CodeExecuted,
     CodeExecutionFailed,
     CodeSecurityPolicy,
@@ -40,7 +40,7 @@ from modules.shared.src.server import (
     validate_code_ast,
 )
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     DEFAULT_EXECUTION_TIMEOUT_MS,
     ExecutionTimeoutError,
     MAX_CODE_PAYLOAD_BYTES,

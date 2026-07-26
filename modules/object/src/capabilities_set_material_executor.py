@@ -16,7 +16,7 @@ from modules.shared.src.object.contract_set_material_protocol import SetMaterial
 from modules.shared.src.object.taxonomy_object_error_vo import MaterialAssignmentError
 from modules.shared.src.object.taxonomy_object_request_vo import SetMaterialRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import MaterialResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

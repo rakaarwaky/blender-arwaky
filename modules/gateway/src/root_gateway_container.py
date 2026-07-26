@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
@@ -18,14 +18,14 @@ from modules.shared.src.server import (
     IMetricsProvider,
     ServerConfig,
 )
-from modules.shared.src.server import (
+from modules.gateway.src import (
     load_server_config,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ServerContainer:
+class GatewayContainer:
     """DI container that wires server components per v2.0.0 architecture.
 
     Accepts ServerConfig, builds event bus → metrics → queue → connection
@@ -61,11 +61,11 @@ class ServerContainer:
             return self._aggregate
 
         # 1. Build event bus
-        from modules.server.src.capabilities_event_bus import InMemoryEventBus
+        from modules.gateway.src.capabilities_event_bus import InMemoryEventBus
         self._event_bus = InMemoryEventBus()
 
         # 2. Build metrics collector and subscribe to event bus
-        from modules.server.src.capabilities_metrics_collector import MetricsCollector
+        from modules.gateway.src.capabilities_metrics_collector import MetricsCollector
         self._metrics = MetricsCollector()
         self._event_bus.subscribe(self._metrics)
 
@@ -73,7 +73,7 @@ class ServerContainer:
         conn = self._build_connection(self._event_bus)
 
         # 4. Build operation queue
-        from modules.server.src.capabilities_operation_queue import OperationQueue
+        from modules.gateway.src.capabilities_operation_queue import OperationQueue
         queue = OperationQueue(
             event_publisher=self._event_bus,
             max_depth=self._config.queue_max_depth,
@@ -87,8 +87,8 @@ class ServerContainer:
         code_exec = self._build_code_executor(conn, self._event_bus)
 
         # 7. Build orchestrator
-        from modules.server.src.agent_server_orchestrator import ServerOrchestrator
-        self._aggregate = ServerOrchestrator(
+        from modules.gateway.src.agent_gateway_orchestrator import GatewayOrchestrator
+        self._aggregate = GatewayOrchestrator(
             connection=conn,
             code_executor=code_exec,
             command_adapter=cmd_adapter,
@@ -116,7 +116,7 @@ class ServerContainer:
 
     def _build_connection(self, event_publisher: Any) -> IBlenderConnectionProtocol:
         """Build the Blender connection capability."""
-        from modules.server.src.capabilities_blender_connection import BlenderConnection
+        from modules.gateway.src.capabilities_blender_connection import BlenderConnection
         return BlenderConnection(event_publisher=event_publisher)
 
     def _build_command_adapter(
@@ -125,7 +125,7 @@ class ServerContainer:
         event_publisher: Any,
     ) -> IBlenderCommandProtocol:
         """Build command dispatch capability."""
-        from modules.server.src.capabilities_blender_command_adapter import BlenderCommandAdapter
+        from modules.gateway.src.capabilities_blender_command_adapter import BlenderCommandAdapter
         return BlenderCommandAdapter(
             connection_port=connection,
             event_publisher=event_publisher,
@@ -138,8 +138,8 @@ class ServerContainer:
         event_publisher: Any,
     ) -> ICodeExecutionProtocol:
         """Build code execution capability with centralized validation."""
-        from modules.shared.src.server import CodeSecurityPolicy
-        from modules.server.src.capabilities_code_execution_adapter import CodeExecutionAdapter
+        from modules.gateway.src import CodeSecurityPolicy
+        from modules.gateway.src.capabilities_code_execution_adapter import CodeExecutionAdapter
 
         return CodeExecutionAdapter(
             connection_port=connection,
@@ -156,17 +156,17 @@ class ServerContainer:
     def get_aggregate(self) -> IBlenderServerAggregate:
         """Return the wired aggregate (must call start() first)."""
         if self._aggregate is None:
-            raise RuntimeError("ServerContainer not started. Call start() first.")
+            raise RuntimeError("GatewayContainer not started. Call start() first.")
         return self._aggregate
 
     def __repr__(self) -> str:
-        return f"ServerContainer(host={self._config.host!r}, port={self._config.port})"
+        return f"GatewayContainer(host={self._config.host!r}, port={self._config.port})"
 
 
 def create_container(
     config_path: str | None = None,
     overrides: dict[str, Any] | None = None,
-) -> ServerContainer:
+) -> GatewayContainer:
     """Factory function to create a new server container.
 
     Loads config from file/env/defaults and creates the container.
@@ -176,7 +176,7 @@ def create_container(
         overrides: Programmatic key-value overrides.
 
     Returns:
-        Configured ServerContainer instance.
+        Configured GatewayContainer instance.
     """
     config = load_server_config(config_path=config_path, overrides=overrides)
-    return ServerContainer(config=config)
+    return GatewayContainer(config=config)

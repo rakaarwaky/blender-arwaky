@@ -3,7 +3,7 @@
 
 def main() -> None:
     """Entry point for the blender-mcp MCP server."""
-    from modules.server.src.capabilities_server_start import ServerStartHandler
+    from modules.gateway.src.capabilities_server_start import ServerStartHandler
 
     ServerStartHandler.main()
 

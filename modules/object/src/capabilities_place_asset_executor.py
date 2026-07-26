@@ -25,7 +25,7 @@ from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetPr
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_request_vo import PlaceAssetRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import PlacementResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

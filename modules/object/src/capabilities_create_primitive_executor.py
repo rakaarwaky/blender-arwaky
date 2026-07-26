@@ -25,7 +25,7 @@ from modules.shared.src.object.contract_create_primitive_protocol import CreateP
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidPrimitiveTypeError
 from modules.shared.src.object.taxonomy_object_request_vo import CreatePrimitiveRequestVO
 from modules.shared.src.object.taxonomy_object_result_vo import CreationResultVO
-from modules.shared.src.server.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

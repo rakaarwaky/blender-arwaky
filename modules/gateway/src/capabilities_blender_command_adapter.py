@@ -12,7 +12,7 @@ import asyncio
 import logging
 import time
 
-from modules.shared.src.server import (
+from modules.gateway.src import (
     CommandDispatched,
     CommandResult,
     CommandTimeoutError,
@@ -83,7 +83,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         spec = get_command_spec(action)
 
         # Validate parameters
-        from modules.shared.src.server import validate_command_args
+        from modules.gateway.src import validate_command_args
         try:
             validate_command_args(action, params)
         except ValidationError:

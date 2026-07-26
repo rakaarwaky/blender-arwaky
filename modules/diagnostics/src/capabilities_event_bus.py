@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from modules.shared.src.server import IEventBus, IEventSubscriber, ServerEvent
+from modules.diagnostics.src import IEventBus, IEventSubscriber
+from modules.gateway.src import ServerEvent
 
 logger = logging.getLogger("BlenderMCPServer")
 
