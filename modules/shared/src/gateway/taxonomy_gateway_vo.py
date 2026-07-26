@@ -50,7 +50,7 @@ class ConnectionConfigVO:
 
 
 @dataclass(frozen=True)
-class ConnectionResultVO:
+class ConnectionOutcomeVO:
     """Unified connection result — input and output in one VO."""
 
     state: ConnectionState = ConnectionState.DISCONNECTED
@@ -91,7 +91,7 @@ class TransportMessageVO:
 
 
 @dataclass(frozen=True)
-class TransportResultVO:
+class TransportOutcomeVO:
     """Unified transport response — input and output in one VO."""
 
     tracking_id: str = ""
@@ -117,7 +117,7 @@ class SceneOperationVO:
 
 
 @dataclass(frozen=True)
-class SceneOperationResultVO:
+class SceneOperationOutcomeVO:
     """Unified scene operation result — input and output in one VO."""
 
     status: str = "pending"  # success | error | rejected | timeout
@@ -151,7 +151,7 @@ class CodeExecutionVO:
 
 
 @dataclass(frozen=True)
-class CodeExecutionResultVO:
+class CodeExecutionOutcomeVO:
     """Unified code execution result — input and output in one VO."""
 
     status: str = "pending"  # success | error | timeout | security_violation

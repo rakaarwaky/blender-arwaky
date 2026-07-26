@@ -18,12 +18,12 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import SceneQueueP
 from modules.shared.src.gateway.contract_transport_protocol import TransportProtocol
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionVO,
-    ConnectionResultVO,
+    ConnectionOutcomeVO,
     ConnectionState,
     ConnectionStatusVO,
     SceneOperationVO,
     TransportMessageVO,
-    TransportResultVO,
+    TransportOutcomeVO,
 )
 
 # ─── Mock Implementations ──────────────────────────────────────────────────
@@ -35,9 +35,9 @@ class MockConnection(ConnectionProtocol):
     def __init__(self) -> None:
         self._connected = False
 
-    def establish_connection(self) -> ConnectionResultVO:
+    def establish_connection(self) -> ConnectionOutcomeVO:
         self._connected = True
-        return ConnectionResultVO(state=ConnectionState.CONNECTED, protocol_version="1.0")
+        return ConnectionOutcomeVO(state=ConnectionState.CONNECTED, protocol_version="1.0")
 
     def disconnect(self) -> None:
         self._connected = False
@@ -73,8 +73,8 @@ class MockMaintenance(ConnectionMaintenanceProtocol):
 class MockTransport(TransportProtocol):
     """Mock transport for testing."""
 
-    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
-        return TransportResultVO(
+    def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
+        return TransportOutcomeVO(
             tracking_id=request.tracking_id,
             status="success",
         )
@@ -84,8 +84,8 @@ class MockSceneQueue(SceneQueueProtocol):
     """Mock scene queue for testing."""
 
     def enqueue_operation(self, operation: SceneOperationVO) -> object:
-        from modules.shared.src.gateway.taxonomy_gateway_vo import SceneOperationResultVO
-        return SceneOperationResultVO(status="success")
+        from modules.shared.src.gateway.taxonomy_gateway_vo import SceneOperationOutcomeVO
+        return SceneOperationOutcomeVO(status="success")
 
     def get_queue_status(self) -> object:
         from modules.shared.src.gateway.taxonomy_gateway_vo import QueueStatusVO
@@ -96,8 +96,8 @@ class MockCodeExecutor(CodeExecutionProtocol):
     """Mock code executor for testing."""
 
     def execute_code(self, request: CodeExecutionVO) -> object:
-        from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionResultVO
-        return CodeExecutionResultVO(status="success", output="hello")
+        from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
+        return CodeExecutionOutcomeVO(status="success", output="hello")
 
 
 # ─── FR-GWY-001: Establish Connection ──────────────────────────────────────

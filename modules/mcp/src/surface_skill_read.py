@@ -35,5 +35,3 @@ class SkillReadHandler:
             return orchestrator.read_skill_context(skill_name, section)
 
 
-# Module-level alias for backward compatibility
-register_read_skill_context = SkillReadHandler.register_read_skill_context

@@ -25,7 +25,7 @@ from modules.shared.src.launcher.taxonomy_launcher_constant import (
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
-    ShutdownResultVO,
+    ShutdownOutcomeVO,
 )
 
 
@@ -64,16 +64,16 @@ class ProcessShutdown(ShutdownProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownResultVO:
+    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force when allowed."""
         current = self._status.check_status(depth="lightweight")
 
         if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
             self._emit(LAUNCHER_EVENT_APPLICATION_STOPPED, current.state, RuntimeState.NOT_RUNNING, method=LAUNCHER_TERMINATION_NONE)
-            return ShutdownResultVO(success=True, termination_method=LAUNCHER_TERMINATION_NONE, final_state=RuntimeState.NOT_RUNNING)
+            return ShutdownOutcomeVO(success=True, termination_method=LAUNCHER_TERMINATION_NONE, final_state=RuntimeState.NOT_RUNNING)
 
         if current.process_id is None:
-            return ShutdownResultVO(success=False, error="Process id unknown for running instance")
+            return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
 
         start = time.monotonic()
         method = LAUNCHER_TERMINATION_GRACEFUL
@@ -90,14 +90,14 @@ class ProcessShutdown(ShutdownProtocol):
                 self._emit(LAUNCHER_EVENT_SHUTDOWN_ESCALATION, RuntimeState.STOPPING, RuntimeState.NOT_RUNNING, process_reference=str(current.process_id))
             else:
                 duration_ms = (time.monotonic() - start) * 1000.0
-                return ShutdownResultVO(
+                return ShutdownOutcomeVO(
                     success=False, termination_method=LAUNCHER_TERMINATION_GRACEFUL,
                     duration_ms=duration_ms, error="Graceful shutdown exceeded timeout; escalation disallowed",
                 )
 
         duration_ms = (time.monotonic() - start) * 1000.0
         self._emit(LAUNCHER_EVENT_APPLICATION_STOPPED, RuntimeState.STOPPING, RuntimeState.NOT_RUNNING, process_reference=str(current.process_id), method=method)
-        return ShutdownResultVO(success=True, termination_method=method, duration_ms=duration_ms, final_state=RuntimeState.NOT_RUNNING, escalated=escalated)
+        return ShutdownOutcomeVO(success=True, termination_method=method, duration_ms=duration_ms, final_state=RuntimeState.NOT_RUNNING, escalated=escalated)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _wait_exit(self, process_id: int) -> bool:

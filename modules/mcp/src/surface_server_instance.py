@@ -94,9 +94,9 @@ class ServerInstanceHandler:
 
             # Register tools and prompts (Handler layer delegation)
             from .surface_prompt_register import register_prompts
-            from .surface_tool_registry import register_tools
+            from .surface_tool_registry import ToolRegistryHandler
 
-            register_tools(_mcp_instance)
+            ToolRegistryHandler.register_tools(_mcp_instance)
             register_prompts(_mcp_instance)
 
             return _mcp_instance

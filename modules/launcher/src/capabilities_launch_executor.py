@@ -9,15 +9,14 @@ FR-LAU-002: Launch Application
 
 import logging
 import subprocess
-import time
 import threading
-from typing import Callable
+import time
+from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LaunchResultVO,
+    LaunchOutcomeVO,
 )
-
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -71,7 +70,7 @@ class LaunchExecutor(LaunchProtocol):
         self,
         mode: str = "interface",
         readiness_timeout_seconds: float | None = None,
-    ) -> LaunchResultVO:
+    ) -> LaunchOutcomeVO:
         """Start Blender with the integration component active and confirm readiness.
 
         FR-LAU-002: Idempotent — returns existing runtime state if already running.
@@ -81,7 +80,7 @@ class LaunchExecutor(LaunchProtocol):
             # Idempotency: if already ready, return existing state
             if self._ready and self._process_id is not None:
                 logger.info("Blender already running (id=%d)", self._process_id)
-                return LaunchResultVO(
+                return LaunchOutcomeVO(
                     success=True, process_id=self._process_id, ready=True,
                     bridge_endpoint=self._bridge_endpoint, duration_ms=0.0,
                     launch_method="existing",
@@ -99,14 +98,14 @@ class LaunchExecutor(LaunchProtocol):
 
                 if ready:
                     logger.info("Blender launched and ready (id=%d, bridge=%s)", self._process_id, self._bridge_endpoint)
-                    return LaunchResultVO(
+                    return LaunchOutcomeVO(
                         success=True, process_id=self._process_id, ready=True,
                         bridge_endpoint=self._bridge_endpoint, duration_ms=duration_ms,
                         launch_method="spawn",
                     )
 
                 logger.warning("Blender started but not ready within %.1fs", timeout)
-                return LaunchResultVO(
+                return LaunchOutcomeVO(
                     success=False, process_id=self._process_id, ready=False,
                     duration_ms=duration_ms, launch_method="spawn",
                     error=f"Readiness not confirmed within {timeout}s timeout",
@@ -115,7 +114,7 @@ class LaunchExecutor(LaunchProtocol):
             except Exception as e:
                 duration_ms = (time.time() - start_time) * 1000
                 logger.error("Launch failed: %s", e)
-                return LaunchResultVO(
+                return LaunchOutcomeVO(
                     success=False, process_id=None, ready=False,
                     duration_ms=duration_ms, launch_method="spawn", error=str(e),
                 )

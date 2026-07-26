@@ -40,5 +40,3 @@ class CommandsListHandler:
             return orchestrator.list_commands(domain, resolved_format)
 
 
-# Module-level alias for backward compatibility
-register_list_commands = CommandsListHandler.register_list_commands

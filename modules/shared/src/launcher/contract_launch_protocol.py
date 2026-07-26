@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import LaunchResultVO
+from .taxonomy_launcher_vo import LaunchOutcomeVO
 
 
 class LaunchProtocol(ABC):
     """Protocol interface for launching the Blender process with readiness wait."""
 
     @abstractmethod
-    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchResultVO:
+    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """Start Blender with the integration component active and confirm readiness."""
         ...

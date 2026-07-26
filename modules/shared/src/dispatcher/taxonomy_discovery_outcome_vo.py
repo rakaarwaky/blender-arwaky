@@ -11,7 +11,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class DiscoveryResultVO:
+class DiscoveryOutcomeVO:
     """Discovery result concept — action list with metadata and catalog version.
 
     Same canonical shape returned to CLI and MCP consumers.

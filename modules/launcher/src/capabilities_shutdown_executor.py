@@ -9,12 +9,12 @@ FR-LAU-003: Shut Down Application
 
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
-    ShutdownResultVO,
+    ShutdownOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -22,7 +22,6 @@ logger = logging.getLogger("BlenderMCPServer")
 
 def _default_signal_sender(pid: int, sig: int) -> bool:
     import os
-    import signal
 
     try:
         os.kill(pid, sig)
@@ -74,7 +73,7 @@ class ShutdownExecutor(ShutdownProtocol):
         self,
         force: bool = False,
         allow_escalation: bool = True,
-    ) -> ShutdownResultVO:
+    ) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force termination when allowed.
 
         FR-LAU-003: Graceful first, escalates to force when unresponsive.
@@ -86,7 +85,7 @@ class ShutdownExecutor(ShutdownProtocol):
         if pid is None or not self._liveness(pid):
             logger.info("Process not running — shutdown is a no-op")
             self._notify_stopped()
-            return ShutdownResultVO(
+            return ShutdownOutcomeVO(
                 success=True, termination_method="none", duration_ms=0.0,
                 final_state=RuntimeState.NOT_RUNNING, escalated=False,
             )
@@ -100,7 +99,7 @@ class ShutdownExecutor(ShutdownProtocol):
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info("Graceful shutdown completed")
                 self._notify_stopped()
-                return ShutdownResultVO(
+                return ShutdownOutcomeVO(
                     success=True, termination_method="graceful",
                     duration_ms=duration_ms, final_state=RuntimeState.NOT_RUNNING,
                     escalated=False,
@@ -113,7 +112,7 @@ class ShutdownExecutor(ShutdownProtocol):
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info("Force termination completed and verified")
                 self._notify_stopped()
-                return ShutdownResultVO(
+                return ShutdownOutcomeVO(
                     success=verified, termination_method="force",
                     duration_ms=duration_ms,
                     final_state=RuntimeState.NOT_RUNNING if verified else RuntimeState.RUNNING_UNRESPONSIVE,
@@ -122,7 +121,7 @@ class ShutdownExecutor(ShutdownProtocol):
 
             duration_ms = (time.time() - start_time) * 1000
             logger.warning("Graceful shutdown timed out and force escalation disallowed")
-            return ShutdownResultVO(
+            return ShutdownOutcomeVO(
                 success=False, termination_method="none", duration_ms=duration_ms,
                 final_state=RuntimeState.RUNNING_UNRESPONSIVE, escalated=False,
                 error="Graceful shutdown timed out and force escalation is disallowed",
@@ -131,7 +130,7 @@ class ShutdownExecutor(ShutdownProtocol):
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error("Shutdown failed: %s", e)
-            return ShutdownResultVO(
+            return ShutdownOutcomeVO(
                 success=False, termination_method="none", duration_ms=duration_ms,
                 final_state=RuntimeState.RUNNING_UNRESPONSIVE, escalated=False,
                 error=str(e),

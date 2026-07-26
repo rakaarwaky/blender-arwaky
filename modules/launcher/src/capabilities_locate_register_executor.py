@@ -16,16 +16,13 @@ import subprocess
 from modules.shared.src.launcher.contract_locate_register_protocol import (
     LocateRegisterProtocol,
 )
-from modules.shared.src.launcher.taxonomy_launcher_constant import (
-    LAUNCHER_MODE_INTERFACE,
-)
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     LauncherConfigError,
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
-    RegistrationResultVO,
+    RegistrationOutcomeVO,
     RegistrationSource,
     VersionCompatibility,
 )
@@ -51,7 +48,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
         self,
         config: LauncherConfigVO,
         override: str | None = None,
-    ) -> RegistrationResultVO:
+    ) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable per discovery order.
 
         FR-LAU-001: Deterministic search order — override > configured > env > platform > system.
@@ -65,7 +62,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
                 ref = ExecutableReferenceVO(path=candidate, version_summary=version_summary, compatibility=compatibility)
                 self._register_path(candidate)
                 logger.info("Registered Blender via override: %s (v%s)", candidate, version_summary)
-                return RegistrationResultVO(executable=ref, source=RegistrationSource.OVERRIDE, registered=True)
+                return RegistrationOutcomeVO(executable=ref, source=RegistrationSource.OVERRIDE, registered=True)
 
         # 2. Configured path
         if config.executable_path:
@@ -75,7 +72,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
                 ref = ExecutableReferenceVO(path=candidate, version_summary=version_summary, compatibility=compatibility)
                 self._register_path(candidate)
                 logger.info("Registered Blender via configured path: %s (v%s)", candidate, version_summary)
-                return RegistrationResultVO(executable=ref, source=RegistrationSource.CONFIGURED, registered=True)
+                return RegistrationOutcomeVO(executable=ref, source=RegistrationSource.CONFIGURED, registered=True)
 
         # 3. Environment signal
         env_path = os.environ.get("BLENDER_PATH") or os.environ.get("BLENDER_EXECUTABLE")
@@ -86,7 +83,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
                 ref = ExecutableReferenceVO(path=candidate, version_summary=version_summary, compatibility=compatibility)
                 self._register_path(candidate)
                 logger.info("Registered Blender via environment: %s (v%s)", candidate, version_summary)
-                return RegistrationResultVO(executable=ref, source=RegistrationSource.ENVIRONMENT, registered=True)
+                return RegistrationOutcomeVO(executable=ref, source=RegistrationSource.ENVIRONMENT, registered=True)
 
         # 4. Platform-standard locations
         for location in config.search_locations or ():
@@ -96,7 +93,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
                 ref = ExecutableReferenceVO(path=candidate, version_summary=version_summary, compatibility=compatibility)
                 self._register_path(candidate)
                 logger.info("Registered Blender via platform location: %s (v%s)", candidate, version_summary)
-                return RegistrationResultVO(executable=ref, source=RegistrationSource.PLATFORM, registered=True)
+                return RegistrationOutcomeVO(executable=ref, source=RegistrationSource.PLATFORM, registered=True)
 
         # 5. System path
         system_blender = shutil.which("blender")
@@ -105,7 +102,7 @@ class LocateRegisterExecutor(LocateRegisterProtocol):
             ref = ExecutableReferenceVO(path=system_blender, version_summary=version_summary, compatibility=compatibility)
             self._register_path(system_blender)
             logger.info("Registered Blender via system path: %s (v%s)", system_blender, version_summary)
-            return RegistrationResultVO(executable=ref, source=RegistrationSource.SYSTEM_PATH, registered=True)
+            return RegistrationOutcomeVO(executable=ref, source=RegistrationSource.SYSTEM_PATH, registered=True)
 
         # No valid candidate found
         logger.error("No valid Blender executable found")

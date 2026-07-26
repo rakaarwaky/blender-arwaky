@@ -7,25 +7,21 @@ injected seams (no real Blender process). Run via pytest from repo root.
 from __future__ import annotations
 
 import os
-import tempfile
-
-import pytest
 
 from modules.launcher.src import create_launcher_feature
-from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LauncherConfigVO,
-    RegistrationSource,
-    RuntimeState,
-    RuntimeStateVO,
-)
-from modules.shared.src.launcher.contract_launcher_operate_aggregate import LauncherOperateAggregate
 from modules.launcher.src.agent_launcher_orchestrator import LauncherOrchestrator
 from modules.launcher.src.capabilities_executable_locator import ExecutableLocator
 from modules.launcher.src.capabilities_process_launcher import ProcessLauncher
 from modules.launcher.src.capabilities_process_shutdown import ProcessShutdown
 from modules.launcher.src.capabilities_runtime_status import RuntimeStatusChecker
 from modules.launcher.src.capabilities_state_persistence import StatePersistence
-
+from modules.shared.src.launcher.contract_launcher_operate_aggregate import LauncherOperateAggregate
+from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    LauncherConfigVO,
+    RegistrationSource,
+    RuntimeState,
+    RuntimeStateVO,
+)
 
 # ─── FR-LAU-001: Locate and Register ─────────────────────────────────────
 

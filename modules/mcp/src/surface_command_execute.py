@@ -47,5 +47,3 @@ class CommandExecuteHandler:
                 return Prompt(json.dumps({"error": str(e), "action": str(action)}, indent=2))
 
 
-# Module-level alias for backward compatibility
-register_execute_command = CommandExecuteHandler.register_execute_command

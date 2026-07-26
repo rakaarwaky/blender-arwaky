@@ -19,7 +19,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     ProtocolVersionMismatchError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    ConnectionResultVO,
+    ConnectionOutcomeVO,
     ConnectionState,
     TransportType,
 )
@@ -45,7 +45,7 @@ class ConnectionExecutor(ConnectionProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def establish_connection(self) -> ConnectionResultVO:
+    def establish_connection(self) -> ConnectionOutcomeVO:
         """Establish transport channel to Blender with handshake and protocol check.
 
         FR-GWY-001: Idempotent when already connected. Validates protocol version.
@@ -53,7 +53,7 @@ class ConnectionExecutor(ConnectionProtocol):
         """
         if self._state == ConnectionState.CONNECTED:
             logger.info("Already connected — idempotent")
-            return ConnectionResultVO(
+            return ConnectionOutcomeVO(
                 state=ConnectionState.CONNECTED,
                 protocol_version=self._protocol_version,
                 transport_type=TransportType.LOCAL_SOCKET,
@@ -87,7 +87,7 @@ class ConnectionExecutor(ConnectionProtocol):
             duration_ms = (time.time() - start_time) * 1000
             logger.info("Connection established (v%s, %.1fms)", self._protocol_version, duration_ms)
 
-            return ConnectionResultVO(
+            return ConnectionOutcomeVO(
                 state=ConnectionState.CONNECTED,
                 protocol_version=self._protocol_version,
                 transport_type=TransportType.LOCAL_SOCKET,
@@ -102,7 +102,7 @@ class ConnectionExecutor(ConnectionProtocol):
         except Exception as e:
             self._state = ConnectionState.FAILED
             logger.error("Connection failed: %s", e)
-            return ConnectionResultVO(
+            return ConnectionOutcomeVO(
                 state=ConnectionState.FAILED, error=str(e),
             )
 

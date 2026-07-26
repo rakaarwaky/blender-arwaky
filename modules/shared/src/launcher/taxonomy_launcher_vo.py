@@ -7,9 +7,9 @@ Input and output fields live in a single VO per concept.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from enum import Enum
-
 
 # ============================================================
 # Registration Source / Discovery
@@ -63,7 +63,7 @@ class ExecutableReferenceVO:
 
 
 @dataclass(frozen=True)
-class RegistrationResultVO:
+class RegistrationOutcomeVO:
     """Unified registration result — input and output in one VO."""
 
     executable: ExecutableReferenceVO | None = None
@@ -78,7 +78,7 @@ class RegistrationResultVO:
 # ============================================================
 
 @dataclass(frozen=True)
-class LaunchResultVO:
+class LaunchOutcomeVO:
     """Unified launch result — input and output in one VO."""
 
     success: bool = False
@@ -95,7 +95,7 @@ class LaunchResultVO:
 # ============================================================
 
 @dataclass(frozen=True)
-class ShutdownResultVO:
+class ShutdownOutcomeVO:
     """Unified shutdown result — input and output in one VO."""
 
     success: bool = False
@@ -123,7 +123,7 @@ class RuntimeStatusVO:
 
 
 @dataclass(frozen=True)
-class StatusCheckResultVO:
+class StatusCheckOutcomeVO:
     """Unified runtime status check result — input and output in one VO."""
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
@@ -149,7 +149,7 @@ class RuntimeStateVO:
 
 
 @dataclass(frozen=True)
-class PersistenceResultVO:
+class PersistenceOutcomeVO:
     """Unified persistence result — input and output in one VO."""
 
     success: bool = False
@@ -158,7 +158,7 @@ class PersistenceResultVO:
 
 
 @dataclass(frozen=True)
-class StatePersistenceResultVO:
+class StatePersistenceOutcomeVO:
     """Unified state persistence result — input and output in one VO."""
 
     success: bool = False
@@ -182,7 +182,7 @@ class RuntimeStateVO:
 
 
 @dataclass(frozen=True)
-class PersistenceResultVO:
+class PersistenceOutcomeVO:
     """Unified persistence result — input and output in one VO."""
 
     success: bool = False

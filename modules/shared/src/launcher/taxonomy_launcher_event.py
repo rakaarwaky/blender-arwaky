@@ -5,7 +5,7 @@ Event payloads avoid secrets, bridge secrets, and full process environment.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
 
 from .taxonomy_launcher_vo import RuntimeState
 

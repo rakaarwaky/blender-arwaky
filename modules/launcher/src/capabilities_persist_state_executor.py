@@ -17,7 +17,7 @@ from modules.shared.src.launcher.contract_persist_state_protocol import (
     PersistStateProtocol,
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    PersistenceResultVO,
+    PersistenceOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
 )
@@ -40,7 +40,7 @@ class PersistStateExecutor(PersistStateProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Persist runtime state atomically to disk.
 
         FR-LAU-005: Atomic write (temp + rename). Corruption fallback on read.
@@ -55,12 +55,12 @@ class PersistStateExecutor(PersistStateProtocol):
             })
             duration_ms = (time.time() - start_time) * 1000
             logger.debug("State persisted: pid=%s", state.process_id)
-            return PersistenceResultVO(success=True)
+            return PersistenceOutcomeVO(success=True)
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error("State persistence failed: %s", e)
-            return PersistenceResultVO(success=False)
+            return PersistenceOutcomeVO(success=False)
 
     def load(self) -> RuntimeStateVO | None:
         """Load persisted state with corruption fallback.
@@ -113,7 +113,7 @@ class PersistStateExecutor(PersistStateProtocol):
 
     def _atomic_read(self, path: str) -> dict:
         """Read with JSON parsing."""
-        with open(path, "r") as f:
+        with open(path) as f:
             return json.load(f)
 
     def get_state_path(self) -> str:

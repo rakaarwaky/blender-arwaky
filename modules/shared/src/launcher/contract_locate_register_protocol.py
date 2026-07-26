@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import LauncherConfigVO, RegistrationResultVO
+from .taxonomy_launcher_vo import LauncherConfigVO, RegistrationOutcomeVO
 
 
 class LocateRegisterProtocol(ABC):
     """Protocol interface for discovering and registering the Blender executable."""
 
     @abstractmethod
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationResultVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable per discovery order."""
         ...

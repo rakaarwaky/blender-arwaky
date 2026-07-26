@@ -15,7 +15,7 @@ from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    PersistenceResultVO,
+    PersistenceOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
 )
@@ -31,7 +31,7 @@ class StatePersistence(PersistStateProtocol):
         self._resolve_path = path_resolver
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Atomically write runtime state; degrade gracefully on failure."""
         warnings: list[str] = []
         if self._contains_secret(state):
@@ -39,15 +39,15 @@ class StatePersistence(PersistStateProtocol):
 
         path = self._resolve_path()
         if not path:
-            return PersistenceResultVO(success=False, warnings=tuple(warnings + ["no persistence location"]))
+            return PersistenceOutcomeVO(success=False, warnings=tuple(warnings + ["no persistence location"]))
 
         payload = self._to_dict(state)
         try:
             self._atomic_write(path, payload)
-            return PersistenceResultVO(success=True, warnings=tuple(warnings))
+            return PersistenceOutcomeVO(success=True, warnings=tuple(warnings))
         except OSError as exc:
             warnings.append(f"persistence failed: {exc}")
-            return PersistenceResultVO(success=False, warnings=tuple(warnings))
+            return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
     def load(self) -> RuntimeStateVO | None:
         """Load persisted state; return None on missing/corrupt content."""

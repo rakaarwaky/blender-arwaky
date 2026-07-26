@@ -11,12 +11,12 @@ from abc import ABC, abstractmethod
 
 from .taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchResultVO,
-    PersistenceResultVO,
-    RegistrationResultVO,
+    LaunchOutcomeVO,
+    PersistenceOutcomeVO,
+    RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
-    ShutdownResultVO,
+    ShutdownOutcomeVO,
 )
 
 
@@ -27,17 +27,17 @@ class LauncherOperateAggregate(ABC):
     """
 
     @abstractmethod
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationResultVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
         """FR-LAU-001: Locate and register the Blender executable."""
         ...
 
     @abstractmethod
-    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchResultVO:
+    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """FR-LAU-002: Launch Blender and confirm readiness."""
         ...
 
     @abstractmethod
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownResultVO:
+    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """FR-LAU-003: Graceful-then-force shutdown."""
         ...
 
@@ -47,6 +47,6 @@ class LauncherOperateAggregate(ABC):
         ...
 
     @abstractmethod
-    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """FR-LAU-005: Persist runtime state (corruption-safe)."""
         ...

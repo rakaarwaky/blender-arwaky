@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import ConnectionResultVO
+from .taxonomy_gateway_vo import ConnectionOutcomeVO
 
 
 class ConnectionProtocol(ABC):
     """Protocol interface for establishing and managing transport connection."""
 
     @abstractmethod
-    def establish_connection(self) -> ConnectionResultVO:
+    def establish_connection(self) -> ConnectionOutcomeVO:
         """Establish transport channel to Blender with handshake and protocol check.
 
         FR-GWY-001: Idempotent when already connected. Validates protocol version.

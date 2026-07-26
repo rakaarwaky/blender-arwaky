@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import CodeExecutionResultVO, CodeExecutionVO
+from .taxonomy_gateway_vo import CodeExecutionOutcomeVO, CodeExecutionVO
 
 
 class CodeExecutionProtocol(ABC):
     """Protocol interface for raw Python code execution with security checks."""
 
     @abstractmethod
-    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionResultVO:
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """Execute raw Python code in Blender with security validation.
 
         FR-GWY-005: Validates code via security policy feature before transport.

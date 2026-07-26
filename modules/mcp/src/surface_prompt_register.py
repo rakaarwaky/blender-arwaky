@@ -57,16 +57,11 @@ Only fall back to scripting when:
         mcp.prompt(name="text_to_scene_orchestrator")(PromptHandlerModule.text_to_scene_orchestrator)
 
 
-# Module-level alias for backward compatibility
-asset_creation_strategy = PromptHandlerModule.asset_creation_strategy
+
 register_prompts = PromptHandlerModule.register_prompts
 
 
-# Module-level aliases for backward compatibility
-def get_lighting_expert_prompt():
-    from modules.mcp.src.prompts import get_lighting_expert_prompt as _get
 
-    return _get()
 
 
 def get_layout_expert_prompt():

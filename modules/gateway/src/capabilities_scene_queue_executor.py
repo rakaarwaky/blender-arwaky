@@ -20,7 +20,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     QueueStatusVO,
-    SceneOperationResultVO,
+    SceneOperationOutcomeVO,
     SceneOperationVO,
 )
 
@@ -44,7 +44,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def enqueue_operation(self, operation: SceneOperationVO) -> SceneOperationResultVO:
+    def enqueue_operation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         """Enqueue a scene operation for serialized execution.
 
         FR-GWY-004: Mutating operations pass through queue. Read-only bypasses queue.
@@ -73,7 +73,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
         if not self._processing:
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
 
-        return SceneOperationResultVO(
+        return SceneOperationOutcomeVO(
             status="success",
             queue_wait_ms=(time.time() - start_time) * 1000,
         )
@@ -91,11 +91,11 @@ class SceneQueueExecutor(SceneQueueProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _execute_directly(self, operation: SceneOperationVO) -> SceneOperationResultVO:
+    def _execute_directly(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         """Execute read-only operation directly (bypasses queue)."""
         start_time = time.time()
         logger.debug("Executing read-only operation directly")
-        return SceneOperationResultVO(
+        return SceneOperationOutcomeVO(
             status="success",
             execution_duration_ms=(time.time() - start_time) * 1000,
         )

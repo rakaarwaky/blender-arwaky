@@ -21,7 +21,7 @@ from modules.shared.src.launcher.taxonomy_launcher_error import (
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
-    RegistrationResultVO,
+    RegistrationOutcomeVO,
     RegistrationSource,
     VersionCompatibility,
 )
@@ -47,11 +47,11 @@ class ExecutableLocator(LocateRegisterProtocol):
         self._runner = command_runner
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationResultVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable."""
         candidates = self._build_candidate_order(config, override)
         if not candidates:
-            return RegistrationResultVO(registered=False, error="No candidate locations available")
+            return RegistrationOutcomeVO(registered=False, error="No candidate locations available")
 
         for source, path in candidates:
             if not path or not os.path.exists(path):
@@ -61,9 +61,9 @@ class ExecutableLocator(LocateRegisterProtocol):
             except ExecutableValidationError:
                 continue
             self._register(config, path)
-            return RegistrationResultVO(executable=ref, source=source, registered=True)
+            return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
-        return RegistrationResultVO(registered=False, error="No valid Blender executable found")
+        return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _build_candidate_order(self, config: LauncherConfigVO, override: str | None) -> list[tuple[RegistrationSource, str]]:

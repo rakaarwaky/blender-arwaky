@@ -23,7 +23,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
-    TransportResultVO,
+    TransportOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -45,7 +45,7 @@ class TransportExecutor(TransportProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
+    def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
         """Send command to Blender and receive correlated response.
 
         FR-GWY-003: Every request carries unique tracking ID. Every response
@@ -100,7 +100,7 @@ class TransportExecutor(TransportProtocol):
             raise
         except Exception as e:
             logger.error("Transport error: %s", e)
-            return TransportResultVO(
+            return TransportOutcomeVO(
                 tracking_id=request.tracking_id,
                 status="error",
                 error=str(e),
@@ -142,7 +142,7 @@ class TransportExecutor(TransportProtocol):
 
         return data
 
-    def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportResultVO:
+    def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportOutcomeVO:
         """Parse JSON response and correlate tracking ID."""
         try:
             message = json.loads(data.decode("utf-8"))
@@ -156,7 +156,7 @@ class TransportExecutor(TransportProtocol):
                 expected_tracking_id, message.get("tracking_id"),
             )
 
-        return TransportResultVO(
+        return TransportOutcomeVO(
             tracking_id=message.get("tracking_id", ""),
             status=message.get("status", "error"),
             payload=(message.get("payload") or "").encode("hex") if message.get("payload") else None,

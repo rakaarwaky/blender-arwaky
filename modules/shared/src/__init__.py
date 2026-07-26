@@ -249,7 +249,7 @@ from .dispatcher.contract_result_normalization_protocol import ResultNormalizati
 from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
+from .dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 # === Launcher domain exports ===
@@ -262,16 +262,16 @@ from .launcher.contract_shutdown_protocol import ShutdownProtocol
 from .launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
-    LaunchResultVO,
-    PersistenceResultVO,
-    RegistrationResultVO,
+    LaunchOutcomeVO,
+    PersistenceOutcomeVO,
+    RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
-    ShutdownResultVO,
-    StatusCheckResultVO,
-    StatePersistenceResultVO,
+    ShutdownOutcomeVO,
+    StatusCheckOutcomeVO,
+    StatePersistenceOutcomeVO,
     VersionCompatibility,
 )
 
@@ -294,16 +294,16 @@ from .gateway.taxonomy_gateway_error import (
 )
 from .gateway.taxonomy_gateway_vo import (
     CodeExecutionVO,
-    CodeExecutionResultVO,
+    CodeExecutionOutcomeVO,
     ConnectionState,
     ConnectionConfigVO,
-    ConnectionResultVO,
+    ConnectionOutcomeVO,
     ConnectionStatusVO,
     QueueStatusVO,
-    SceneOperationResultVO,
+    SceneOperationOutcomeVO,
     SceneOperationVO,
     TransportMessageVO,
-    TransportResultVO,
+    TransportOutcomeVO,
     TransportType,
 )
 
@@ -655,7 +655,7 @@ __all__ = [
     "SyncDispatchProtocol",
     "ActionMetadataVO",
     "ActionCommandVO",
-    "DiscoveryResultVO",
+    "DiscoveryOutcomeVO",
     "UnifiedResultEnvelopeVO",
     "LaunchProtocol",
     "LauncherOperateAggregate",
@@ -665,16 +665,16 @@ __all__ = [
     "ShutdownProtocol",
     "ExecutableReferenceVO",
     "LauncherConfigVO",
-    "LaunchResultVO",
-    "PersistenceResultVO",
-    "RegistrationResultVO",
+    "LaunchOutcomeVO",
+    "PersistenceOutcomeVO",
+    "RegistrationOutcomeVO",
     "RegistrationSource",
     "RuntimeState",
     "RuntimeStateVO",
     "RuntimeStatusVO",
-    "ShutdownResultVO",
-    "StatusCheckResultVO",
-    "StatePersistenceResultVO",
+    "ShutdownOutcomeVO",
+    "StatusCheckOutcomeVO",
+    "StatePersistenceOutcomeVO",
     "VersionCompatibility",
     "ConnectionProtocol",
     "ConnectionMaintenanceProtocol",
@@ -693,13 +693,13 @@ __all__ = [
     "ConnectionState",
     "TransportType",
     "ConnectionConfigVO",
-    "ConnectionResultVO",
+    "ConnectionOutcomeVO",
     "ConnectionStatusVO",
     "TransportMessageVO",
-    "TransportResultVO",
+    "TransportOutcomeVO",
     "SceneOperationVO",
-    "SceneOperationResultVO",
+    "SceneOperationOutcomeVO",
     "QueueStatusVO",
     "CodeExecutionVO",
-    "CodeExecutionResultVO",
+    "CodeExecutionOutcomeVO",
 ]

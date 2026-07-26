@@ -19,7 +19,7 @@ from modules.shared.src.dispatcher.contract_request_validation_protocol import R
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
+from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -66,7 +66,7 @@ class DispatcherOrchestrator:
         name_filter: str | None = None,
         capability_filter: str | None = None,
         detail_level: str = "standard",
-    ) -> DiscoveryResultVO:
+    ) -> DiscoveryOutcomeVO:
         """Discover actions from the catalog.
 
         FR-DSP-002: Delegates to ActionDiscoveryProtocol.

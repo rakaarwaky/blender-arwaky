@@ -16,7 +16,7 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import (
 )
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
-    StatusCheckResultVO,
+    StatusCheckOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -40,7 +40,7 @@ class RuntimeStatusExecutor(RuntimeStatusProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def check_status(self) -> StatusCheckResultVO:
+    def check_status(self) -> StatusCheckOutcomeVO:
         """Verify actual process liveness and classify runtime state.
 
         FR-LAU-004: Reads from OS, classifies state, reconciles stale references.
@@ -53,7 +53,7 @@ class RuntimeStatusExecutor(RuntimeStatusProtocol):
             duration_ms = (time.time() - start_time) * 1000
 
             logger.info("Status check completed: %s", state.value)
-            return StatusCheckResultVO(
+            return StatusCheckOutcomeVO(
                 state=state, process_id=self._process_id,
                 bridge_endpoint=self._bridge_endpoint, duration_ms=duration_ms,
             )
@@ -61,7 +61,7 @@ class RuntimeStatusExecutor(RuntimeStatusProtocol):
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error("Status check failed: %s", e)
-            return StatusCheckResultVO(
+            return StatusCheckOutcomeVO(
                 state=RuntimeState.STALE, process_id=self._process_id,
                 bridge_endpoint=self._bridge_endpoint, duration_ms=duration_ms,
                 error=str(e),

@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import ShutdownResultVO
+from .taxonomy_launcher_vo import ShutdownOutcomeVO
 
 
 class ShutdownProtocol(ABC):
     """Protocol interface for graceful-then-force shutdown of the Blender process."""
 
     @abstractmethod
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownResultVO:
+    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force termination when allowed."""
         ...

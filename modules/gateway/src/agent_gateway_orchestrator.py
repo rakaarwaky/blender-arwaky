@@ -22,15 +22,15 @@ from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionResultVO,
+    CodeExecutionOutcomeVO,
     CodeExecutionVO,
-    ConnectionResultVO,
+    ConnectionOutcomeVO,
     ConnectionStatusVO,
     QueueStatusVO,
-    SceneOperationResultVO,
+    SceneOperationOutcomeVO,
     SceneOperationVO,
     TransportMessageVO,
-    TransportResultVO,
+    TransportOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -61,7 +61,7 @@ class GatewayOrchestrator:
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def establish_connection(self) -> ConnectionResultVO:
+    def establish_connection(self) -> ConnectionOutcomeVO:
         """FR-GWY-001: Establish connection and wire transport layer."""
         logger.info("Establishing gateway connection")
         result = self._connection.establish_connection()
@@ -90,12 +90,12 @@ class GatewayOrchestrator:
         """FR-GWY-002: Attempt reconnection."""
         return self._maintenance.attempt_reconnect()
 
-    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
+    def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
         """FR-GWY-003: Send transport request and receive response."""
         logger.debug("Sending transport request: %s", request.tracking_id)
         return self._transport.send_request(request)
 
-    def enqueue_scene_operation(self, operation: SceneOperationVO) -> SceneOperationResultVO:
+    def enqueue_scene_operation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         """FR-GWY-004: Enqueue scene operation."""
         logger.debug("Enqueuing scene operation: mutation=%s", operation.is_mutation)
         return self._scene_queue.enqueue_operation(operation)
@@ -104,7 +104,7 @@ class GatewayOrchestrator:
         """FR-GWY-004: Get queue status."""
         return self._scene_queue.get_queue_status()
 
-    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionResultVO:
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
         return self._code_executor.execute_code(request)

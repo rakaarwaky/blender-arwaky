@@ -52,7 +52,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         try:
             result_data = await self._executor.execute_blender_code(Prompt(code))
 
-            # Parse result data into ObjectInfoResultVO
+            # Parse result data into ObjectInfoOutcomeVO
             if isinstance(result_data, dict):
                 return GetObjectInfoVO(
                     object_name=ObjectName(result_data.get("name", str(request.object_name))),

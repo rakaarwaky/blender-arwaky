@@ -18,5 +18,3 @@ class HealthCheckHandler:
             return orchestrator.health_check()
 
 
-# Module-level alias for backward compatibility
-register_health_check = HealthCheckHandler.register_health_check

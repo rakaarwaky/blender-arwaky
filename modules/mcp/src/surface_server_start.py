@@ -50,5 +50,3 @@ class ServerStartHandler:
             mcp.run()
 
 
-# Module-level alias for backward compatibility
-main = ServerStartHandler.main

@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import QueueStatusVO, SceneOperationResultVO, SceneOperationVO
+from .taxonomy_gateway_vo import QueueStatusVO, SceneOperationOutcomeVO, SceneOperationVO
 
 
 class SceneQueueProtocol(ABC):
     """Protocol interface for serialized scene-mutating operation queue."""
 
     @abstractmethod
-    def enqueue_operation(self, operation: SceneOperationVO) -> SceneOperationResultVO:
+    def enqueue_operation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         """Enqueue a scene operation for serialized execution.
 
         FR-GWY-004: Mutating operations pass through queue. Read-only bypasses queue.

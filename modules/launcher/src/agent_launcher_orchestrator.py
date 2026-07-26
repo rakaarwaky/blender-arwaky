@@ -20,12 +20,12 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchResultVO,
-    PersistenceResultVO,
-    RegistrationResultVO,
+    LaunchOutcomeVO,
+    PersistenceOutcomeVO,
+    RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
-    ShutdownResultVO,
+    ShutdownOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -50,17 +50,17 @@ class LauncherOrchestrator(LauncherOperateAggregate):
         self._persist = persist_cap
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationResultVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
         """Delegate executable location/registration to the capabilities layer."""
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchResultVO:
+    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
         logger.info("Orchestrating launch (mode=%s)", mode)
         return self._launch.launch(mode, readiness_timeout_seconds)
 
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownResultVO:
+    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Delegate shutdown to the capabilities layer."""
         logger.info("Orchestrating shutdown (force=%s)", force)
         return self._shutdown.shutdown(force, allow_escalation)
@@ -69,7 +69,7 @@ class LauncherOrchestrator(LauncherOperateAggregate):
         """Delegate status check to the capabilities layer."""
         return self._status.check_status(depth)
 
-    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Delegate state persistence to the capabilities layer."""
         return self._persist.persist(state)
 

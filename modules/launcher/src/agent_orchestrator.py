@@ -6,24 +6,24 @@ status check, and state persistence via individual protocol delegation.
 
 import logging
 
-from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import (
     LocateRegisterProtocol,
 )
-from modules.shared.src.launcher.contract_runtime_status_protocol import (
-    RuntimeStatusProtocol,
-)
 from modules.shared.src.launcher.contract_persist_state_protocol import (
     PersistStateProtocol,
 )
+from modules.shared.src.launcher.contract_runtime_status_protocol import (
+    RuntimeStatusProtocol,
+)
+from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchResultVO,
-    RegistrationResultVO,
+    LaunchOutcomeVO,
+    RegistrationOutcomeVO,
     RuntimeStateVO,
-    ShutdownResultVO,
-    StatusCheckResultVO,
+    ShutdownOutcomeVO,
+    StatusCheckOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -58,7 +58,7 @@ class LauncherOrchestrator:
         self,
         config: LauncherConfigVO,
         override: str | None = None,
-    ) -> RegistrationResultVO:
+    ) -> RegistrationOutcomeVO:
         """FR-LAU-001: Locate, validate, and register Blender executable."""
         logger.info("Locating and registering Blender executable")
         result = self._locate_register.locate_and_register(config, override)
@@ -69,7 +69,7 @@ class LauncherOrchestrator:
         self,
         mode: str = "interface",
         readiness_timeout_seconds: float | None = None,
-    ) -> LaunchResultVO:
+    ) -> LaunchOutcomeVO:
         """FR-LAU-002: Launch Blender and wait for readiness.
 
         Loads persisted state first (idempotency check), then spawns.
@@ -79,7 +79,7 @@ class LauncherOrchestrator:
         persisted = self._persist_state.load()
         if persisted is not None and persisted.process_id is not None:
             logger.info("Blender already running (restored pid=%d)", persisted.process_id)
-            return LaunchResultVO(
+            return LaunchOutcomeVO(
                 success=True, process_id=persisted.process_id, ready=True,
                 bridge_endpoint=persisted.bridge_endpoint,
                 duration_ms=0.0, launch_method="existing",
@@ -101,7 +101,7 @@ class LauncherOrchestrator:
         self,
         force: bool = False,
         allow_escalation: bool = True,
-    ) -> ShutdownResultVO:
+    ) -> ShutdownOutcomeVO:
         """FR-LAU-003: Graceful shutdown with force escalation.
 
         Coordinates shutdown and clears persisted state on success.
@@ -115,7 +115,7 @@ class LauncherOrchestrator:
 
         return result
 
-    def check_status(self) -> StatusCheckResultVO:
+    def check_status(self) -> StatusCheckOutcomeVO:
         """FR-LAU-004: Verify actual process liveness and classify state."""
         logger.debug("Checking runtime status")
         return self._status_check.check_status()

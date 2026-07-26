@@ -11,8 +11,8 @@ from . import (
     taxonomy_launcher_event,
     taxonomy_launcher_vo,
 )
-from .contract_launcher_operate_aggregate import LauncherOperateAggregate
 from .contract_launch_protocol import LaunchProtocol
+from .contract_launcher_operate_aggregate import LauncherOperateAggregate
 from .contract_locate_register_protocol import LocateRegisterProtocol
 from .contract_persist_state_protocol import PersistStateProtocol
 from .contract_runtime_status_protocol import RuntimeStatusProtocol

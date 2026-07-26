@@ -11,7 +11,7 @@ import logging
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
     ActionDiscoveryProtocol,
 )
-from modules.shared.src.dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
+from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -35,7 +35,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
         name_filter: str | None = None,
         capability_filter: str | None = None,
         detail_level: str = "standard",
-    ) -> DiscoveryResultVO:
+    ) -> DiscoveryOutcomeVO:
         """Discover actions from the catalog with optional filtering.
 
         FR-DSP-002: Returns canonical shape to all consumers.
@@ -54,7 +54,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
                 or capability_filter.lower() in str(a.risk_level).lower()
             ]
 
-        result = DiscoveryResultVO(
+        result = DiscoveryOutcomeVO(
             actions=[self._format_action(a, detail_level) for a in actions],
             catalog_version=max(
                 (a.catalog_version for a in self._catalog.values()), default=0

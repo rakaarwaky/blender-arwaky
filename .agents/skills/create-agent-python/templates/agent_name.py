@@ -11,7 +11,7 @@ class <Name>Orchestrator(I<Name>Aggregate):
         self._service = service
 
     # ─── Block 2: Public Contract (domain aggregate ONLY) ──
-    def execute(self, request: <RequestVO>) -> <ResultVO>:
+    def execute(self, request: <RequestVO>) -> <OutcomeVO>:
         # orchestration only - delegate to protocol
         return self._service.process(request)
 

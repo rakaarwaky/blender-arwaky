@@ -2,7 +2,7 @@
 
 Layers:
   - Taxonomy (shared/src/dispatcher/) → VOs: ActionMetadataVO, ActionCommandVO,
-    ValidationResultVO, DiscoveryResultVO, UnifiedResultEnvelopeVO
+    ValidationOutcomeVO, DiscoveryOutcomeVO, UnifiedResultEnvelopeVO
   - Contract (shared/src/dispatcher/) → 6 individual protocols
   - Capabilities (6 executors)        → One per FR operation
   - Agent                             → DispatcherOrchestrator (Aggregate facade)

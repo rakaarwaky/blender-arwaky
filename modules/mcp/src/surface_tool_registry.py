@@ -39,5 +39,3 @@ class ToolRegistryHandler:
         register_health_check(mcp)
 
 
-# Module-level alias for backward compatibility
-register_tools = ToolRegistryHandler.register_tools

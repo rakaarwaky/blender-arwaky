@@ -23,8 +23,8 @@ class Capabilities<NameCapability>(I<NameCapability>Protocol):
         self._policy = policy
 
     # ─── Block 2: Public Contract (domain protocol ONLY) ──
-    def execute(self, input: <DomainVO>) -> list[<ResultVO>]:
-        results: list[<ResultVO>] = []
+    def execute(self, input: <DomainVO>) -> list[<OutcomeVO>]:
+        results: list[<OutcomeVO>] = []
         # domain logic using injected dependencies
         return results
 

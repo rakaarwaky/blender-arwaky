@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import PersistenceResultVO, RuntimeStateVO
+from .taxonomy_launcher_vo import PersistenceOutcomeVO, RuntimeStateVO
 
 
 class PersistStateProtocol(ABC):
     """Protocol interface for corruption-safe runtime state persistence."""
 
     @abstractmethod
-    def persist(self, state: RuntimeStateVO) -> PersistenceResultVO:
+    def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Atomically persist runtime state; corrupt reads fall back to empty."""
         ...
 

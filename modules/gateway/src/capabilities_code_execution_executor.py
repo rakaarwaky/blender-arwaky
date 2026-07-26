@@ -18,7 +18,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     TimeoutError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionResultVO,
+    CodeExecutionOutcomeVO,
     CodeExecutionVO,
 )
 
@@ -40,7 +40,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionResultVO:
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """Execute raw Python code in Blender with security validation.
 
         FR-GWY-005: Validates code via security policy feature before transport.
@@ -69,7 +69,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
                 "Code execution complete: status=%s, %.1fms, truncated=%s",
                 "success", duration_ms, truncated,
             )
-            return CodeExecutionResultVO(
+            return CodeExecutionOutcomeVO(
                 status="success",
                 output=output[:500],  # Keep a reasonable slice for observability
                 truncated=truncated,
@@ -78,14 +78,14 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
         except TimeoutError:
             logger.error("Code execution timed out after %.1fs", timeout)
-            return CodeExecutionResultVO(
+            return CodeExecutionOutcomeVO(
                 status="timeout",
                 error_message=f"Execution timed out after {timeout}s",
                 duration_ms=(time.time() - start_time) * 1000,
             )
         except Exception as e:
             logger.error("Code execution failed: %s", e)
-            return CodeExecutionResultVO(
+            return CodeExecutionOutcomeVO(
                 status="error",
                 error_category="runtime",
                 error_message=str(e),
