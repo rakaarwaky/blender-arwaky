@@ -33,8 +33,8 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
-if TYPE_CHECKING:
-    from modules.shared.src.server.contract_command_protocol import IBlenderCommandProtocol
+from modules.shared.src.common.taxonomy_core_vo import ActionName
+from modules.shared.src.server import IBlenderConnectionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -42,19 +42,19 @@ logger = logging.getLogger("BlenderMCPServer")
 class PolyhavenAssetAdapter(AssetProviderPort):
     """Implementation of AssetProviderPort for Polyhaven."""
 
-    def __init__(self, command_sender: IBlenderCommandProtocol) -> None:  # type: ignore[name-defined]
-        """Initialize with a command sender from the server module.
+    def __init__(self, connection: IBlenderConnectionProtocol) -> None:  # type: ignore[name-defined]
+        """Initialize with a Blender connection from the server module.
 
         Args:
-            command_sender: A callable that sends commands to Blender.
+            connection: A Blender TCP connection for command dispatch.
         """
-        self._command_sender = command_sender
+        self._connection = connection
         self.provider_name = "Polyhaven"
 
     async def search_assets(self, request: AssetSearchRequestVO) -> AssetSearchResponseVO:
         try:
-            result = await self._command_sender(
-                "search_polyhaven_assets",
+            result = await self._connection.send_command(
+                ActionName("search_polyhaven_assets"),
                 {"asset_type": str(request.asset_type) if request.asset_type else "all", "categories": request.categories},
             )
 
@@ -92,7 +92,9 @@ class PolyhavenAssetAdapter(AssetProviderPort):
     async def get_asset_details(self, asset_id: str) -> AssetMetadata | None:
         """Get detailed info for a Polyhaven asset."""
         try:
-            result = await self._command_sender("get_polyhaven_asset_details", {"asset_id": asset_id})
+            result = await self._connection.send_command(
+                ActionName("get_polyhaven_asset_details"), {"asset_id": asset_id}
+            )
             if isinstance(result, dict) and "error" in result:
                 logger.warning("Polyhaven get_asset_details error: %s", result["error"])
                 return None
@@ -111,8 +113,8 @@ class PolyhavenAssetAdapter(AssetProviderPort):
     async def download_asset(self, request: AssetDownloadRequestVO) -> AssetDownloadResponseVO:
         try:
             asset_type = "models"
-            result = await self._command_sender(
-                "download_polyhaven_asset", {"asset_id": str(request.asset_id), "asset_type": asset_type}
+            result = await self._connection.send_command(
+                ActionName("download_polyhaven_asset"), {"asset_id": str(request.asset_id), "asset_type": asset_type}
             )
             if not result.get("success"):
                 raise ProviderError(result.get("message", "Download failed"))

@@ -273,7 +273,6 @@ from .common.contract_execute_action_protocol import ExecuteActionProtocol
 from .server import (
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
-    IBlenderSocketAdapterProtocol,
     ICodeExecutionProtocol,
     IBlenderServerAggregate,
 )
@@ -458,7 +457,6 @@ __all__ = [
     # Protocols — Server domain (inbound behavior)
     "IBlenderCommandProtocol",
     "IBlenderConnectionProtocol",
-    "IBlenderSocketAdapterProtocol",
     "ICodeExecutionProtocol",
     # Aggregates — Server domain (facade for Surface)
     "IBlenderServerAggregate",

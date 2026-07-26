@@ -1,16 +1,11 @@
 """Contract: Command dispatch protocol for Blender operations.
 
 Implemented by Capabilities layer (BlenderCommandAdapter).
-Per FR-SRV-003: Send Blender Commands via TCP socket with timeout enforcement.
+Per FR-SRV-003: Send Blender Commands via TCP socket with timeout enforcement
+and FIFO queue serialization.
 """
 
 from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from typing import Any
-
-from ..common.taxonomy_core_vo import ActionName
-
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -20,7 +15,7 @@ from .taxonomy_server_vo import ExecutionResult
 
 
 class IBlenderCommandProtocol(ABC):
-    """Protocol for dispatching named commands and managing execution queueing.
+    """Protocol for dispatching named commands and managing execution queue.
 
     Implemented by Capabilities layer (BlenderCommandAdapter). Each command is routed through
     TCP socket with configurable timeout enforcement per FR-SRV-003, with FIFO queue serialization.
@@ -79,4 +74,3 @@ class IBlenderCommandProtocol(ABC):
     async def get_depth(self) -> int:
         """Return current queue depth."""
         ...
-

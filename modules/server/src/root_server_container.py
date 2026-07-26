@@ -15,7 +15,6 @@ from modules.shared.src.server import (
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
     ICodeExecutionProtocol,
-    IExecutionQueueProtocol,
     QueueConfig,
     TaskManagerConfig,
 )
@@ -77,12 +76,6 @@ class ServerContainer:
 
         return CodeExecutionAdapter(connection_port=connection, task_config=self._task_config)
 
-    def _build_queue(self) -> IExecutionQueueProtocol:
-        """Build serialized execution queue."""
-        from .capabilities_blender_command_adapter import ExecutionQueue
-
-        return ExecutionQueue(config=self._queue_config)
-
     def get_aggregate(self) -> IBlenderServerAggregate:
         """Return a fully wired ServerOrchestrator (singleton).
 
@@ -100,17 +93,17 @@ class ServerContainer:
             connection = self._build_connection()
             self._connection = connection
 
-            queue = self._build_queue()
-            code_executor = self._build_code_executor(connection)
             command_adapter = self._build_command_adapter(connection)
             logger.debug("Command adapter initialized: %s", command_adapter)
+
+            code_executor = self._build_code_executor(connection)
 
             from .agent_server_orchestrator import ServerOrchestrator
 
             self._aggregate = ServerOrchestrator(
                 connection=connection,
                 code_executor=code_executor,
-                queue=queue,
+                command_adapter=command_adapter,
             )
 
         logger.info("Server container fully wired")

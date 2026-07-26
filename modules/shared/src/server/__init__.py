@@ -6,8 +6,7 @@ errors (SecurityViolationError, ExecutionTimeoutError, etc.), and constants.
 Contracts: IBlenderServerAggregate — unified facade for connection lifecycle
 and code execution operations. Implemented by Agent layer.
 
-Protocols: IBlenderConnectionProtocol, IBlenderSocketAdapterProtocol,
-ICodeExecutionProtocol, IExecutionQueueProtocol, ITaskManagerProtocol
+Protocols: IBlenderCommandProtocol, IBlenderConnectionProtocol, ICodeExecutionProtocol
 — implemented by Capabilities.
 """
 
@@ -65,10 +64,7 @@ from .contract_server_aggregate import IBlenderServerAggregate
 
 from .contract_code_execution_protocol import ICodeExecutionProtocol
 from .contract_connection_protocol import IBlenderConnectionProtocol
-from .contract_socket_adapter_protocol import IBlenderSocketAdapterProtocol
 from .contract_command_protocol import IBlenderCommandProtocol
-from .contract_queue_protocol import IExecutionQueueProtocol
-from .contract_task_manager_protocol import ITaskManagerProtocol
 
 # ─── Utility (stateless standalone functions) ─────────────────
 
@@ -164,9 +160,6 @@ __all__ = [
     "IBlenderCommandProtocol",
     "IBlenderConnectionProtocol",
     "ICodeExecutionProtocol",
-    "IBlenderSocketAdapterProtocol",
-    "IExecutionQueueProtocol",
-    "ITaskManagerProtocol",
     # ─── Utility ────────────────────────────────────────────────
     "validate_code_ast",
     "check_payload_size",

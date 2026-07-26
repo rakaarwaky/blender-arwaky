@@ -1,8 +1,7 @@
 """Capability: Blender command dispatch with timeout enforcement and execution queueing.
 
-Implements IBlenderCommandProtocol & IExecutionQueueProtocol — dispatches named commands
-to the Blender addon via TCP socket with configurable timeout and FIFO serialization per FR-SRV-003.
-Includes argument schema validation and execution queueing.
+Implements IBlenderCommandProtocol — dispatches named commands to the Blender addon via TCP socket
+with configurable timeout, FIFO queue, and schema validation per FR-SRV-003.
 """
 
 from __future__ import annotations
@@ -21,7 +20,6 @@ from modules.shared.src.server import (
     ExecutionResult,
     IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
-    IExecutionQueueProtocol,
     QueueConfig,
     QueueFullError,
     QueueTimeoutError,

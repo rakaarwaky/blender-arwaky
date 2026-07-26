@@ -22,10 +22,10 @@ from modules.shared.src.server import (
     ConnectionStatus,
     ExecutionErrorDetail,
     ExecutionResult,
+    IBlenderCommandProtocol,
     IBlenderConnectionProtocol,
     IBlenderServerAggregate,
     ICodeExecutionProtocol,
-    IExecutionQueueProtocol,
     QueueFullError,
     TaskNotFoundError,
 )
@@ -41,11 +41,11 @@ class ServerOrchestrator(IBlenderServerAggregate):
         self,
         connection: IBlenderConnectionProtocol,
         code_executor: ICodeExecutionProtocol,
-        queue: IExecutionQueueProtocol | None = None,
+        command_adapter: IBlenderCommandProtocol | None = None,
     ) -> None:
         self._connection = connection
         self._code_executor = code_executor
-        self._queue = queue
+        self._command_adapter = command_adapter
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
@@ -81,8 +81,8 @@ class ServerOrchestrator(IBlenderServerAggregate):
         start = time.monotonic()
         try:
             # Enqueue for serialized bpy access
-            if self._queue is not None:
-                await self._queue.enqueue(request_id, {"code": code})
+            if self._command_adapter is not None:
+                await self._command_adapter.enqueue(request_id, {"code": code})
 
             # Execute through capability layer
             result = await self._code_executor.execute_blender_code(Prompt(code))
@@ -165,8 +165,8 @@ class ServerOrchestrator(IBlenderServerAggregate):
         try:
             # Enqueue for serialized bpy access (non-scene read-only commands bypass queue per FR-003)
             is_non_scene = action.startswith("get_") or action in ("ping", "get_status", "get_version", "get_scene_info")
-            if self._queue is not None and not is_non_scene:
-                await self._queue.enqueue(f"cmd_{action}", {"action": action, "params": params})
+            if self._command_adapter is not None and not is_non_scene:
+                await self._command_adapter.enqueue(f"cmd_{action}", {"action": action, "params": params})
 
             # Dispatch through connection protocol
             cmd_params = dict(params or {})

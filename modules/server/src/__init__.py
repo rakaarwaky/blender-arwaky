@@ -16,9 +16,9 @@ Surface handlers live in CLI and MCP modules.
 """
 
 from .agent_server_orchestrator import ServerOrchestrator
-from .capabilities_blender_command_adapter import BlenderCommandAdapter, ExecutionQueue
+from .capabilities_blender_command_adapter import BlenderCommandAdapter
 from .capabilities_blender_connection import BlenderConnection
-from .capabilities_code_execution_adapter import CodeExecutionAdapter, TaskManager
+from .capabilities_code_execution_adapter import CodeExecutionAdapter
 from .root_server_container import ServerContainer, create_container
 
 __all__ = [
@@ -28,8 +28,7 @@ __all__ = [
     "BlenderCommandAdapter",
     "BlenderConnection",
     "CodeExecutionAdapter",
-    "ExecutionQueue",
-    # ─── Root (DI Container) ──────────────────────────────────
+    # ─── Root (DI Container) —─────────────────────────────────
     "ServerContainer",
     "create_container",
 ]
