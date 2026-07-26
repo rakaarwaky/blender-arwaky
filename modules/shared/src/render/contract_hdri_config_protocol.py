@@ -10,19 +10,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.common.taxonomy_core_vo import HdriId, LightStrength
-from .taxonomy_render_request_vo import HdriSetupRequestVO
+from .taxonomy_render_vo import HdriSetupVO
 
 
 class HdriConfigProtocol(ABC):
     """Protocol for configuring HDRI environment lighting."""
 
     @abstractmethod
-    async def configure_hdri(self, request: HdriSetupRequestVO) -> dict:
+    async def configure_hdri(self, request: HdriSetupVO) -> HdriSetupVO:
         """Set up HDRI-based environment lighting.
 
         FR-RND-004: Applies environment lighting from locally available HDRI asset.
         Resolves strength (0.0-10.0), rotation, and overwrite policy.
         Returns resolved environment reference and applied settings.
         """
-        pass
+        ...

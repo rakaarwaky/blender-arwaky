@@ -8,12 +8,7 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 from modules.shared.src.asset.contract_import_export_protocol import ImportExportProtocol
-from modules.shared.src.asset.taxonomy_import_export_vo import (
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
-)
+from modules.shared.src.asset.taxonomy_asset_vo import ExportModelVO, ImportGlbVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -28,7 +23,7 @@ class ImportExportExecutor(ImportExportProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def import_glb(self, request: ImportGlbRequestVO) -> ImportGlbResponseVO:
+    async def import_glb(self, request: ImportGlbVO) -> ImportGlbVO:
         """Import a GLB/GLTF file into the Blender scene.
 
         FR-IMP-001: Imports the specified file path, optionally renames
@@ -42,17 +37,17 @@ class ImportExportExecutor(ImportExportProtocol):
             code += f"imported_obj = bpy.context.active_object\nif imported_obj:\n    imported_obj.name = {safe_name}\n"
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return ImportGlbResponseVO(
-                success=True,  # type: ignore[arg-type]
-                object_name=request.object_name or ObjectName("ImportedModel"),
+            return ImportGlbVO(
                 file_path=request.file_path,
+                object_name=request.object_name or ObjectName("ImportedModel"),
+                success=True,  # type: ignore[arg-type]
                 message="Import successful",
             )
         except Exception as e:
             logger.error("Import failed: %s", e)
             raise RuntimeError(f"Import failed: {e}") from e
 
-    async def export_model(self, request: ExportModelRequestVO) -> ExportModelResponseVO:
+    async def export_model(self, request: ExportModelVO) -> ExportModelVO:
         """Export a Blender object to GLTF format.
 
         FR-IMP-002: Selects the named object and exports it to the specified path.
@@ -69,10 +64,11 @@ class ImportExportExecutor(ImportExportProtocol):
         )
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return ExportModelResponseVO(
-                success=True,  # type: ignore[arg-type]
-                file_path=request.file_path,
+            return ExportModelVO(
                 object_name=request.object_name,
+                file_path=request.file_path,
+                export_format=request.export_format,
+                success=True,  # type: ignore[arg-type]
                 message="Export successful",
             )
         except Exception as e:

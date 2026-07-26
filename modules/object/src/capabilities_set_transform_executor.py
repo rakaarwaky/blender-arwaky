@@ -15,8 +15,7 @@ import logging
 from modules.shared.src.common.taxonomy_core_vo import CoordinateList, ObjectName, Prompt, RotationVector, ScaleVector
 from modules.shared.src.object.contract_set_transform_protocol import SetObjectTransformProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import TransformLockError
-from modules.shared.src.object.taxonomy_object_request_vo import SetObjectTransformRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import TransformResultVO
+from modules.shared.src.object.taxonomy_object_vo import SetObjectTransformVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -36,9 +35,7 @@ class SetTransformExecutor(SetObjectTransformProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def set_object_transform(
-        self, request: SetObjectTransformRequestVO
-    ) -> TransformResultVO:
+    async def set_object_transform(self, request: SetObjectTransformVO) -> SetObjectTransformVO:
         """Modify location, rotation, or scale of an existing object.
 
         FR-OBJ-003: Only sets provided transform fields; omitted fields are preserved.
@@ -55,12 +52,12 @@ class SetTransformExecutor(SetObjectTransformProtocol):
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return TransformResultVO(
-                success=True,  # type: ignore[arg-type]
+            return SetObjectTransformVO(
                 object_name=request.object_name,
                 location=request.location,
                 rotation=request.rotation,
                 scale=request.scale,
+                success=True,  # type: ignore[arg-type]
                 message="Transform set successfully",
             )
         except Exception as e:
@@ -69,7 +66,7 @@ class SetTransformExecutor(SetObjectTransformProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _generate_transform_code(self, request: SetObjectTransformRequestVO) -> str:
+    def _generate_transform_code(self, request: SetObjectTransformVO) -> str:
         """Generate Blender Python code for transform modification.
 
         Supports absolute and relative transform modes. Only sets provided fields;

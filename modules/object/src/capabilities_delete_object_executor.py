@@ -15,8 +15,7 @@ import logging
 from modules.shared.src.common.taxonomy_core_vo import ObjectCount, ObjectName, Prompt
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import DeletionProtectionError, ObjectNotFoundError
-from modules.shared.src.object.taxonomy_object_request_vo import DeleteObjectRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import DeletionResultVO
+from modules.shared.src.object.taxonomy_object_vo import DeleteObjectVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -44,7 +43,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def delete_object(self, request: DeleteObjectRequestVO) -> DeletionResultVO:
+    async def delete_object(self, request: DeleteObjectVO) -> DeleteObjectVO:
         """Remove an object from the scene.
 
         FR-OBJ-006: Validates object exists, checks protected categories,
@@ -65,7 +64,8 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         except Exception:
             # Check idempotent policy
             if getattr(request, "idempotent", False):
-                return DeletionResultVO(
+                return DeleteObjectVO(
+                    object_name=request.object_name,
                     success=True,  # type: ignore[arg-type]
                     deleted_count=0,
                     deleted_names=[],
@@ -81,7 +81,8 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return DeletionResultVO(
+            return DeleteObjectVO(
+                object_name=request.object_name,
                 success=True,  # type: ignore[arg-type]
                 deleted_count=1,
                 deleted_names=[request.object_name],
@@ -94,7 +95,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    async def _check_protected_categories(self, request: DeleteObjectRequestVO) -> None:
+    async def _check_protected_categories(self, request: DeleteObjectVO) -> None:
         """Check if object belongs to protected categories.
 
         FR-OBJ-006: Protected object categories such as active camera, sole camera,
@@ -127,7 +128,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         except Exception:
             pass  # Object doesn't exist or error already handled
 
-    def _generate_deletion_code(self, request: DeleteObjectRequestVO) -> str:
+    def _generate_deletion_code(self, request: DeleteObjectVO) -> str:
         """Generate Blender Python code for object deletion.
 
         Removes object from collections before final removal. Handles children

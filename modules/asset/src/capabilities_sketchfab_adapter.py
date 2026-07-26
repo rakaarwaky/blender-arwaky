@@ -10,11 +10,11 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 from modules.shared.src.asset import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
     AssetProviderPort,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
+)
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetSearchVO,
 )
 from modules.shared.src.asset import AssetMetadata, AssetMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -48,7 +48,7 @@ class SketchfabAssetAdapter(AssetProviderPort):
         self._connection = connection
         self.provider_name = "Sketchfab"
 
-    async def search_assets(self, request: AssetSearchRequestVO) -> AssetSearchResponseVO:
+    async def search_assets(self, request: AssetSearchVO) -> AssetSearchVO:
         try:
             result = await self._connection.send_command(
                 ActionName("search_sketchfab_models"),
@@ -66,7 +66,8 @@ class SketchfabAssetAdapter(AssetProviderPort):
                         tags=cast(TagList, []),
                     )
                 )
-            return AssetSearchResponseVO(
+            return AssetSearchVO(
+                query=request.query,
                 assets=[
                     AssetMetadataVO(
                         id=a.id,
@@ -106,7 +107,7 @@ class SketchfabAssetAdapter(AssetProviderPort):
             logger.error("Sketchfab details error: %s", e)
             return None
 
-    async def download_asset(self, request: AssetDownloadRequestVO) -> AssetDownloadResponseVO:
+    async def download_asset(self, request: AssetDownloadVO) -> AssetDownloadVO:
         try:
             target_size = 1.0
             result = await self._connection.send_command(
@@ -115,7 +116,9 @@ class SketchfabAssetAdapter(AssetProviderPort):
             )
             if not result.get("success"):
                 raise ProviderError(result.get("message", "Download failed"))
-            return AssetDownloadResponseVO(
+            return AssetDownloadVO(
+                asset_id=request.asset_id,
+                destination_path=request.destination_path,
                 success=SuccessFlag(True),
                 file_path=FilePath(",".join(result.get("imported_objects", []))),
                 message=ErrorMessage("Download successful"),  # type: ignore[arg-type]

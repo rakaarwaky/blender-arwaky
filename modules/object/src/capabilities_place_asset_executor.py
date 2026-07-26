@@ -23,8 +23,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectAmbiguityError, ObjectNotFoundError
-from modules.shared.src.object.taxonomy_object_request_vo import PlaceAssetRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import PlacementResultVO
+from modules.shared.src.object.taxonomy_object_vo import PlaceAssetVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -44,7 +43,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def place_asset(self, request: PlaceAssetRequestVO) -> PlacementResultVO:
+    async def place_asset(self, request: PlaceAssetVO) -> PlaceAssetVO:
         """Position an existing object or imported asset at target transform.
 
         FR-OBJ-001: Resolves object deterministically, validates parameters,
@@ -64,13 +63,13 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return PlacementResultVO(
-                success=True,  # type: ignore[arg-type]
-                object_name=ObjectName(resolved_name),
+            return PlaceAssetVO(
                 asset_id=request.asset_id,
+                object_name=ObjectName(resolved_name),
                 location=request.location,
                 rotation=request.rotation,
                 scale=request.scale,
+                success=True,  # type: ignore[arg-type]
                 message="Asset placed successfully",
             )
         except Exception as e:
@@ -79,7 +78,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    async def _resolve_object(self, request: PlaceAssetRequestVO) -> str:
+    async def _resolve_object(self, request: PlaceAssetVO) -> str:
         """Resolve object reference with deterministic fallback strategy.
 
         Resolution order: unique identifier → exact name → qualified path
@@ -144,7 +143,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
             if val == 0:
                 logger.warning("Zero scale detected at component %d", i)
 
-    def _generate_placement_code(self, object_name: str, request: PlaceAssetRequestVO) -> str:
+    def _generate_placement_code(self, object_name: str, request: PlaceAssetVO) -> str:
         """Generate Blender Python code for asset placement.
 
         Supports location, rotation, and scale transforms with proper formatting.

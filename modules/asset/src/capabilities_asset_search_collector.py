@@ -4,10 +4,12 @@ import logging
 
 from modules.shared.src.asset import AssetProviderPort, AssetSearchProtocol
 from modules.shared.src.asset import (
-    AssetDownloadRequestVO,
     AssetMetadata,
-    AssetSearchRequestVO,
     ImportedAsset,
+)
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetSearchVO,
 )
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
@@ -35,7 +37,7 @@ class AssetSearchCollector(AssetSearchProtocol):
         for name, provider in self.providers.items():
             if providers is None or name in providers:
                 try:
-                    request = AssetSearchRequestVO(query=query)
+                    request = AssetSearchVO(query=query)
                     response = await provider.search_assets(request)
                     all_results.extend(
                         AssetMetadata(
@@ -59,7 +61,7 @@ class AssetSearchCollector(AssetSearchProtocol):
             raise ProviderError(ErrorMessage(f"Provider {provider_name} not found"))
 
         try:
-            request = AssetDownloadRequestVO(asset_id=asset_id, destination_path=FilePath(""))
+            request = AssetDownloadVO(asset_id=asset_id, destination_path=FilePath(""))
             response = await provider.download_asset(request)
             if not response.file_path:
                 raise ProviderError(ErrorMessage("Download returned no file path"))

@@ -11,9 +11,9 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
-from modules.shared.src.render.taxonomy_render_request_vo import (
-    CameraConfigResultVO,
-    CameraSetupRequestVO,
+from modules.shared.src.render.taxonomy_render_vo import (
+    CameraConfigVO,
+    CameraSetupVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -40,7 +40,7 @@ class CameraConfigExecutor(CameraConfigProtocol):
         """
         self._code_executor = code_executor
 
-    async def configure_camera(self, request: CameraSetupRequestVO) -> CameraConfigResultVO:
+    async def configure_camera(self, request: CameraSetupVO) -> CameraConfigVO:
         """Position and configure a scene camera.
 
         FR-RND-003: Creates camera if none exists (when policy allows).
@@ -120,7 +120,7 @@ class CameraConfigExecutor(CameraConfigProtocol):
                 final_settings["framing_target"] = request.framing_target
 
             logger.info("Camera configured successfully: %s", camera_name)
-            return CameraConfigResultVO(
+            return CameraConfigVO(
                 success=True,  # type: ignore[call-arg]
                 camera_name=camera_name,
                 final_settings=final_settings,
@@ -128,7 +128,7 @@ class CameraConfigExecutor(CameraConfigProtocol):
             )
         except Exception as e:
             logger.error("Camera configuration failed: %s", e)
-            return CameraConfigResultVO(
+            return CameraConfigVO(
                 success=False,  # type: ignore[call-arg]
                 camera_name=camera_name,
                 final_settings={},

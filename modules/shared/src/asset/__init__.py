@@ -15,27 +15,13 @@ from .taxonomy_asset_data_vo import (
     create_provider_name,
 )
 
-from .taxonomy_asset_request_vo import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
-    AssetMetadataItem,
-    AssetMetadataVO,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
-)
-
 from .taxonomy_asset_vo import (
     AssetDownloadVO,
+    AssetMetadataItem,
+    AssetMetadataVO,
     AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
-)
-
-from .taxonomy_import_export_vo import (
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
 )
 
 from .contract_asset_provider import AssetProviderPort
@@ -60,15 +46,6 @@ __all__ = [
     "AssetMetadataItem",
     "AssetMetadataVO",
     "ImportedAsset",
-    "AssetSearchRequestVO",
-    "AssetSearchResponseVO",
-    "AssetDownloadRequestVO",
-    "AssetDownloadResponseVO",
-    "ImportGlbRequestVO",
-    "ImportGlbResponseVO",
-    "ExportModelRequestVO",
-    "ExportModelResponseVO",
-    # Merged VOs
     "AssetSearchVO",
     "AssetDownloadVO",
     "ImportGlbVO",

@@ -45,12 +45,10 @@ class LibrarySearchCapability:
             try:
                 # Search through each provider's search_assets method
                 if hasattr(provider, "search_assets"):
-                    from modules.shared.src.asset import AssetSearchRequestVO
+                    from modules.shared.src.asset.taxonomy_asset_vo import AssetSearchVO
 
-                    request = AssetSearchRequestVO(
+                    request = AssetSearchVO(
                         query=query,
-                        asset_type=asset_type,
-                        categories=categories or [],
                     )
                     response = await provider.search_assets(request)
                     for item in response.assets:

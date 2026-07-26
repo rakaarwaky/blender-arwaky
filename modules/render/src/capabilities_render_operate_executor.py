@@ -24,11 +24,9 @@ from modules.shared.src.common.taxonomy_core_vo import (
     UseDenoising,
 )
 from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
-from modules.shared.src.render.taxonomy_render_request_vo import (
-    GetScreenshotRequestVO,
-    RenderRequestVO,
-    RenderResponseVO,
-    ScreenshotResponseVO,
+from modules.shared.src.render.taxonomy_render_vo import (
+    GetScreenshotVO,
+    RenderVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -55,7 +53,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
         """
         self._code_executor = code_executor
 
-    async def get_viewport_screenshot(self, request: GetScreenshotRequestVO) -> ScreenshotResponseVO:
+    async def get_viewport_screenshot(self, request: GetScreenshotVO) -> GetScreenshotVO:
         logger.info(
             "Capturing viewport screenshot: max_size=%s, view=%s, shading=%s, overlays=%s, focus=%s",
             request.max_size,
@@ -168,7 +166,7 @@ class RenderOperateExecutor(RenderOperateProtocol):
             logger.error("apply_composition failed: %s", e)
             raise RuntimeError(f"Failed to apply composition: {e}") from e
 
-    async def render(self, request: RenderRequestVO) -> RenderResponseVO:
+    async def render(self, request: RenderVO) -> RenderVO:
         logger.info("Rendering frame to %s", request.output_path)
 
         safe_path = _py_str(str(request.output_path))
@@ -177,7 +175,12 @@ class RenderOperateExecutor(RenderOperateProtocol):
             start_time = time.perf_counter()
             await self._execute_code(code)
             render_time = round(time.perf_counter() - start_time, 2)
-            return RenderResponseVO(
+            return RenderVO(
+                output_path=request.output_path,
+                resolution_x=request.resolution_x,
+                resolution_y=request.resolution_y,
+                samples=request.samples,
+                use_denoising=request.use_denoising,
                 success=SuccessFlag(True),
                 image_path=request.output_path,
                 render_time=render_time,

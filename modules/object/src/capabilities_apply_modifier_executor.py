@@ -15,8 +15,7 @@ import logging
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, ObjectType, Prompt, SuccessFlag
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import InvalidModifierTypeError, ModifierActionConfirmationError
-from modules.shared.src.object.taxonomy_object_request_vo import ApplyModifierRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import ModifierResultVO
+from modules.shared.src.object.taxonomy_object_vo import ApplyModifierVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -63,7 +62,7 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def apply_modifier(self, request: ApplyModifierRequestVO) -> ModifierResultVO:
+    async def apply_modifier(self, request: ApplyModifierVO) -> ApplyModifierVO:
         """Add, update, remove, or apply a modifier on an object.
 
         FR-OBJ-005: Maps human-readable modifier name to Blender enum,
@@ -91,10 +90,10 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return ModifierResultVO(
-                success=True,  # type: ignore[arg-type]
+            return ApplyModifierVO(
                 object_name=request.object_name,
                 modifier_name=request.modifier_name,
+                success=True,  # type: ignore[arg-type]
                 modifier_type=ObjectType(mod_type_enum),
                 action=request.action,
                 applied_destructively=SuccessFlag(request.action == "apply"),  # type: ignore[arg-type]
@@ -106,7 +105,7 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _generate_modifier_code(self, request: ApplyModifierRequestVO, mod_type_enum: str) -> str:
+    def _generate_modifier_code(self, request: ApplyModifierVO, mod_type_enum: str) -> str:
         """Generate Blender Python code for modifier operations.
 
         Handles add, update, remove, and destructive apply actions.

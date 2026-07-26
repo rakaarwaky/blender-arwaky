@@ -15,8 +15,7 @@ import logging
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import ObjectNotFoundError
-from modules.shared.src.object.taxonomy_object_request_vo import GetObjectInfoRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import ObjectInfoResultVO
+from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -39,7 +38,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def get_object_info(self, request: GetObjectInfoRequestVO) -> ObjectInfoResultVO:
+    async def get_object_info(self, request: GetObjectInfoVO) -> GetObjectInfoVO:
         """Retrieve detailed information about an object.
 
         FR-OBJ-007: Retrieves comprehensive object data with optional detail level.
@@ -56,9 +55,9 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             
             # Parse result data into ObjectInfoResultVO
             if isinstance(result_data, dict):
-                return ObjectInfoResultVO(
-                    success=True,  # type: ignore[arg-type]
+                return GetObjectInfoVO(
                     object_name=ObjectName(result_data.get("name", str(request.object_name))),
+                    success=True,  # type: ignore[arg-type]
                     object_type=result_data.get("type"),
                     location=result_data.get("location"),
                     rotation=result_data.get("rotation"),
@@ -72,9 +71,9 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
                     message="Object info retrieved successfully",
                 )
             else:
-                return ObjectInfoResultVO(
-                    success=True,  # type: ignore[arg-type]
+                return GetObjectInfoVO(
                     object_name=request.object_name,
+                    success=True,  # type: ignore[arg-type]
                     message="Object info retrieved successfully",
                 )
         except Exception as e:
@@ -83,7 +82,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _generate_info_code(self, request: GetObjectInfoRequestVO) -> str:
+    def _generate_info_code(self, request: GetObjectInfoVO) -> str:
         """Generate Blender Python code for object information retrieval.
 
         Collects comprehensive data based on detail level. Avoids cyclic references.

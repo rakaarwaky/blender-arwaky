@@ -175,30 +175,25 @@ from .object.taxonomy_object_constant import (
     OBJECT_TYPE_VOLUME,
 )
 
-from .object.taxonomy_object_request_vo import (
-    ApplyModifierRequestVO,
-    ApplyModifierResponseVO,
-    CreatePrimitiveRequestVO,
-    CreatePrimitiveResponseVO,
-    DeleteObjectRequestVO,
-    DeleteObjectResponseVO,
-    GetObjectInfoRequestVO,
-    GetObjectInfoResponseVO,
-    PlaceAssetRequestVO,
-    PlaceAssetResponseVO,
-    SetMaterialRequestVO,
-    SetMaterialResponseVO,
-    SetObjectTransformRequestVO,
-    SetObjectTransformResponseVO,
+from .object.taxonomy_object_vo import (
+    ApplyModifierVO,
+    CreatePrimitiveVO,
+    DeleteObjectVO,
+    GetObjectInfoVO,
+    PlaceAssetVO,
+    SetMaterialVO,
+    SetObjectTransformVO,
 )
 
 
 # === Render domain exports ===
-from .render.taxonomy_render_request_vo import (
-    GetScreenshotRequestVO,
-    RenderRequestVO,
-    RenderResponseVO,
-    ScreenshotResponseVO,
+from .render.taxonomy_render_vo import (
+    CameraConfigVO,
+    CameraSetupVO,
+    GetScreenshotVO,
+    HdriConfigVO,
+    HdriSetupVO,
+    RenderVO,
 )
 
 
@@ -243,20 +238,11 @@ from .asset.taxonomy_asset_data_vo import (
     create_provider_name,
 )
 
-from .asset.taxonomy_asset_request_vo import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
-    AssetMetadataItem,
-    AssetMetadataVO,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
-)
-
-from .asset.taxonomy_import_export_vo import (
-    ExportModelRequestVO,
-    ExportModelResponseVO,
-    ImportGlbRequestVO,
-    ImportGlbResponseVO,
+from .asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetSearchVO,
+    ExportModelVO,
+    ImportGlbVO,
 )
 
 # === Contract layer exports (organized by domain) ===
@@ -420,6 +406,24 @@ __all__ = [
     "ImportedAsset",
     "SceneInfo",
     "ApplicationConfig",
+    # Merged VOs
+    "PlaceAssetVO",
+    "GetObjectInfoVO",
+    "SetObjectTransformVO",
+    "DeleteObjectVO",
+    "CreatePrimitiveVO",
+    "SetMaterialVO",
+    "ApplyModifierVO",
+    "AssetSearchVO",
+    "AssetDownloadVO",
+    "ImportGlbVO",
+    "ExportModelVO",
+    "GetScreenshotVO",
+    "RenderVO",
+    "CameraSetupVO",
+    "HdriSetupVO",
+    "CameraConfigVO",
+    "HdriConfigVO",
     # Entities
     "BlenderObject",
     "JobStatus",

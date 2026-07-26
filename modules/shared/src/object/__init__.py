@@ -1,7 +1,7 @@
 """Object domain — taxonomy types and contracts.
 
-Provides Value Objects, Entities, Events, Errors, Constants, Requests/Results,
-7 individual Protocol interfaces, and Aggregate facade for all 7 object manipulation operations per the Object FRD.
+Provides Value Objects, Entities, Events, Errors, Constants,
+7 individual Protocol interfaces, and Aggregate facade.
 """
 
 from . import (
@@ -10,8 +10,6 @@ from . import (
     taxonomy_object_error_vo,
     taxonomy_object_event_vo,
     taxonomy_object_policy_vo,
-    taxonomy_object_request_vo,
-    taxonomy_object_result_vo,
     taxonomy_object_vo,
 )
 from .contract_apply_modifier_protocol import ApplyModifierProtocol
@@ -37,8 +35,5 @@ __all__ = [
     "taxonomy_object_error_vo",
     "taxonomy_object_event_vo",
     "taxonomy_object_policy_vo",
-    "taxonomy_object_request_vo",
-    "taxonomy_object_result_vo",
     "taxonomy_object_vo",
 ]
-

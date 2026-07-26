@@ -10,11 +10,11 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 from modules.shared.src.asset import (
-    AssetDownloadRequestVO,
-    AssetDownloadResponseVO,
     AssetProviderPort,
-    AssetSearchRequestVO,
-    AssetSearchResponseVO,
+)
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetSearchVO,
 )
 from modules.shared.src.asset import (
     AssetMetadata,
@@ -51,7 +51,7 @@ class PolyhavenAssetAdapter(AssetProviderPort):
         self._connection = connection
         self.provider_name = "Polyhaven"
 
-    async def search_assets(self, request: AssetSearchRequestVO) -> AssetSearchResponseVO:
+    async def search_assets(self, request: AssetSearchVO) -> AssetSearchVO:
         try:
             result = await self._connection.send_command(
                 ActionName("search_polyhaven_assets"),
@@ -69,7 +69,8 @@ class PolyhavenAssetAdapter(AssetProviderPort):
                         tags=cast(TagList, data.get("categories", [])),
                     )
                 )
-            return AssetSearchResponseVO(
+            return AssetSearchVO(
+                query=request.query,
                 assets=[
                     AssetMetadataVO(
                         id=a.id,
@@ -110,7 +111,7 @@ class PolyhavenAssetAdapter(AssetProviderPort):
             logger.error("Polyhaven details error: %s", e)
             return None
 
-    async def download_asset(self, request: AssetDownloadRequestVO) -> AssetDownloadResponseVO:
+    async def download_asset(self, request: AssetDownloadVO) -> AssetDownloadVO:
         try:
             asset_type = "models"
             result = await self._connection.send_command(
@@ -118,7 +119,9 @@ class PolyhavenAssetAdapter(AssetProviderPort):
             )
             if not result.get("success"):
                 raise ProviderError(result.get("message", "Download failed"))
-            return AssetDownloadResponseVO(
+            return AssetDownloadVO(
+                asset_id=request.asset_id,
+                destination_path=request.destination_path,
                 success=SuccessFlag(True),
                 file_path=FilePath(str(result.get("path", ""))),
                 message=ErrorMessage("Download successful"),  # type: ignore[arg-type]

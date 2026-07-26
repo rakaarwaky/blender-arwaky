@@ -14,8 +14,7 @@ import logging
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.taxonomy_object_error_vo import MaterialAssignmentError
-from modules.shared.src.object.taxonomy_object_request_vo import SetMaterialRequestVO
-from modules.shared.src.object.taxonomy_object_result_vo import MaterialResultVO
+from modules.shared.src.object.taxonomy_object_vo import SetMaterialVO
 from modules.gateway.src.contract_code_execution_protocol import ICodeExecutionProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -34,7 +33,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    async def set_material(self, request: SetMaterialRequestVO) -> MaterialResultVO:
+    async def set_material(self, request: SetMaterialVO) -> SetMaterialVO:
         """Assign or create a material on an object.
 
         FR-OBJ-004: Creates material if it doesn't exist; assigns to first slot
@@ -47,10 +46,10 @@ class SetMaterialExecutor(SetMaterialProtocol):
 
         try:
             await self._executor.execute_blender_code(Prompt(code))
-            return MaterialResultVO(
-                success=True,  # type: ignore[arg-type]
+            return SetMaterialVO(
                 object_name=request.object_name,
                 material_name=request.material_name,
+                success=True,  # type: ignore[arg-type]
                 message="Material set successfully",
             )
         except Exception as e:
@@ -59,7 +58,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _generate_material_code(self, request: SetMaterialRequestVO) -> str:
+    def _generate_material_code(self, request: SetMaterialVO) -> str:
         """Generate Blender Python code for material assignment.
 
         Creates material if needed, validates object type, handles slot creation.
