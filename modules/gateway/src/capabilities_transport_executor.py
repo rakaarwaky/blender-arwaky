@@ -22,8 +22,8 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     TransportParseError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    TransportRequestVO,
-    TransportResponseVO,
+    TransportMessageVO,
+    TransportResultVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -45,7 +45,7 @@ class TransportExecutor(TransportProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def send_request(self, request: TransportRequestVO) -> TransportResponseVO:
+    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
         """Send command to Blender and receive correlated response.
 
         FR-GWY-003: Every request carries unique tracking ID. Every response
@@ -54,7 +54,7 @@ class TransportExecutor(TransportProtocol):
         """
         # Validate tracking ID
         if not request.tracking_id:
-            request = TransportRequestVO(
+            request = TransportMessageVO(
                 tracking_id=str(uuid.uuid4()),
                 operation_class=request.operation_class,
                 payload=request.payload,
@@ -100,7 +100,7 @@ class TransportExecutor(TransportProtocol):
             raise
         except Exception as e:
             logger.error("Transport error: %s", e)
-            return TransportResponseVO(
+            return TransportResultVO(
                 tracking_id=request.tracking_id,
                 status="error",
                 error=str(e),
@@ -108,7 +108,7 @@ class TransportExecutor(TransportProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _create_frame(self, request: TransportRequestVO) -> bytes:
+    def _create_frame(self, request: TransportMessageVO) -> bytes:
         """Create length-prefixed framed message."""
         message = json.dumps({
             "tracking_id": request.tracking_id,
@@ -142,7 +142,7 @@ class TransportExecutor(TransportProtocol):
 
         return data
 
-    def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportResponseVO:
+    def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportResultVO:
         """Parse JSON response and correlate tracking ID."""
         try:
             message = json.loads(data.decode("utf-8"))
@@ -156,7 +156,7 @@ class TransportExecutor(TransportProtocol):
                 expected_tracking_id, message.get("tracking_id"),
             )
 
-        return TransportResponseVO(
+        return TransportResultVO(
             tracking_id=message.get("tracking_id", ""),
             status=message.get("status", "error"),
             payload=(message.get("payload") or "").encode("hex") if message.get("payload") else None,

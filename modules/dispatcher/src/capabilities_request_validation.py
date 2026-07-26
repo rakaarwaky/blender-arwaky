@@ -12,7 +12,7 @@ import logging
 from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )
-from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionCommandVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -32,7 +32,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def validate_request(self, request: ActionRequestVO) -> ActionRequestVO:
+    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
         """Validate an action request against the catalog.
 
         FR-DSP-003: Unknown action produces error; invalid params produce field-level detail.
@@ -45,7 +45,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
         self._validate_parameters(request, metadata)
 
-        validated = ActionRequestVO(
+        validated = ActionCommandVO(
             action_name=request.action_name,
             parameters=request.parameters,
             execution_mode=request.execution_mode,
@@ -74,7 +74,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _validate_parameters(self, request: ActionRequestVO, metadata: any) -> None:
+    def _validate_parameters(self, request: ActionCommandVO, metadata: any) -> None:
         """Validate parameters against registered schema."""
         schema = getattr(metadata, "parameter_schema", {})
 

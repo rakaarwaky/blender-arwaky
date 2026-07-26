@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import ObjectName, Prompt
-from .taxonomy_scene_request_vo import CleanupRequestVO, InspectionRequestVO
+from .taxonomy_scene_request_vo import SceneCleanupVO, SceneInspectionVO
 
 
 class SceneInspectionPort(ABC):
@@ -23,7 +23,7 @@ class SceneInspectionPort(ABC):
     """
 
     @abstractmethod
-    async def get_scene_info(self, request: InspectionRequestVO) -> InspectionRequestVO:
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
         """Get detailed information about the current Blender scene.
 
         FR-SCN-001: Supports detail level, hidden objects filter, object type filter.
@@ -39,7 +39,7 @@ class SceneInspectionPort(ABC):
         pass
 
     @abstractmethod
-    async def cleanup_scene(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Remove objects from scene based on preservation policy.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).

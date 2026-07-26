@@ -10,12 +10,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from .taxonomy_scene_request_vo import (
-    CleanupRequestVO,
-    CleanupSceneRequestVO,
-    CleanupSceneResponseVO,
-    InspectionRequestVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
+    SceneCleanupVO,
+    SceneCleanupVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
+    SceneInspectionVO,
+    SceneInspectionVO,
 )
 
 
@@ -29,8 +29,8 @@ class SceneOperateProtocol(ABC):
 
     @abstractmethod
     async def cleanup_scene(
-        self, request: CleanupRequestVO
-    ) -> CleanupRequestVO:
+        self, request: SceneCleanupVO
+    ) -> SceneCleanupVO:
         """Remove objects from scene based on preservation policy.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).
@@ -42,8 +42,8 @@ class SceneOperateProtocol(ABC):
 
     @abstractmethod
     async def get_scene_info(
-        self, request: InspectionRequestVO
-    ) -> InspectionRequestVO:
+        self, request: SceneInspectionVO
+    ) -> SceneInspectionVO:
         """Retrieve current scene metadata and object tree.
 
         FR-SCN-001: Supports detail level, hidden objects filter, object type filter.

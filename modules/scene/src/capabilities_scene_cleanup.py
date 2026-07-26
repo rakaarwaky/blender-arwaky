@@ -15,7 +15,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
 )
 from modules.shared.src.scene.contract_scene_cleanup_protocol import SceneCleanupProtocol
-from modules.shared.src.scene.taxonomy_scene_request_vo import CleanupSceneRequestVO
+from modules.shared.src.scene.taxonomy_scene_request_vo import SceneCleanupVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,7 +31,7 @@ class SceneCleanupExecutor(SceneCleanupProtocol):
         """
         self._code_executor = code_executor
 
-    async def cleanup_scene_objects(self, request: CleanupSceneRequestVO) -> dict:
+    async def cleanup_scene_objects(self, request: SceneCleanupVO) -> dict:
         """Execute cleanup of unwanted scene objects.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).

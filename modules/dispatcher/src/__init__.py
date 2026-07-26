@@ -1,7 +1,7 @@
 """Dispatcher feature module — AES implementation.
 
 Layers:
-  - Taxonomy (shared/src/dispatcher/) → VOs: ActionMetadataVO, ActionRequestVO,
+  - Taxonomy (shared/src/dispatcher/) → VOs: ActionMetadataVO, ActionCommandVO,
     ValidationResultVO, DiscoveryResultVO, UnifiedResultEnvelopeVO
   - Contract (shared/src/dispatcher/) → 6 individual protocols
   - Capabilities (6 executors)        → One per FR operation

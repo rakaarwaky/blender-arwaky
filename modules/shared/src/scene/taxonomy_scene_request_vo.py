@@ -4,9 +4,9 @@ Each VO merges request (input) and response (output) into a single frozen datacl
 Caller sets input fields; callee sets output fields. No split Request/Response classes.
 
 Enhanced VOs per FRD:
-- CleanupRequestVO: cleanup with preservation policy, dry-run, child/dependent handling → success/message
-- InspectionRequestVO: inspection with detail level, hidden objects filter → scene state summary/message
-- SceneStateSummaryVO: comprehensive scene state (used as output in InspectionRequestVO)
+- SceneCleanupVO: cleanup with preservation policy, dry-run, child/dependent handling → success/message
+- SceneInspectionVO: inspection with detail level, hidden objects filter → scene state summary/message
+- SceneStateSummaryVO: comprehensive scene state (used as output in SceneInspectionVO)
 
 Supports legacy aliases for backward compatibility.
 """
@@ -36,7 +36,7 @@ from ..common.taxonomy_core_vo import (
 
 
 @dataclass(frozen=True)
-class CleanupRequestVO:
+class SceneCleanupVO:
     """Scene cleanup — input and output in one VO.
 
     Input: mode, preservation_list, dry_run, confirmation, child_handling_policy,
@@ -66,7 +66,7 @@ class CleanupRequestVO:
 
 
 @dataclass(frozen=True)
-class InspectionRequestVO:
+class SceneInspectionVO:
     """Scene inspection — input and output in one VO.
 
     Input: detail_level, include_hidden_objects, object_type_filter, correlation_id.
@@ -192,40 +192,4 @@ class SceneStateSummaryVO:
     message: str = ""
 
 
-# ─── Legacy Aliases (backward compatibility) ──────────────────
 
-# Merge CleanupRequestVO as the unified cleanup VO
-CleanupSceneVO = CleanupRequestVO
-CleanupSceneRequestVO = CleanupSceneVO
-CleanupSceneResponseVO = CleanupSceneVO
-
-# Merge InspectionRequestVO as the unified inspection VO
-GetSceneInfoVO = InspectionRequestVO
-GetSceneInfoRequestVO = GetSceneInfoVO
-GetSceneInfoResponseVO = GetSceneInfoVO
-
-# Setup Environment unified VO (defined in taxonomy_scene_vo)
-from .taxonomy_scene_vo import SetupEnvironmentVO
-SetupEnvironmentRequestVO = SetupEnvironmentVO
-SetupEnvironmentResponseVO = SetupEnvironmentVO
-
-__all__ = [
-    # Unified VOs (merged request + response)
-    "CleanupRequestVO",
-    "InspectionRequestVO",
-    # Scene State Summary VOs
-    "CameraInfoVO",
-    "LightInfoVO",
-    "CollectionSummaryVO",
-    "ProtectedObjectSummaryVO",
-    "SceneStateSummaryVO",
-    # Legacy aliases (point to unified VOs)
-    "CleanupSceneVO",
-    "CleanupSceneRequestVO",
-    "CleanupSceneResponseVO",
-    "GetSceneInfoVO",
-    "GetSceneInfoRequestVO",
-    "GetSceneInfoResponseVO",
-    "SetupEnvironmentRequestVO",
-    "SetupEnvironmentResponseVO",
-]

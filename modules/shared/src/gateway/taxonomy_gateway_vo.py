@@ -37,7 +37,7 @@ class TransportType(str, Enum):
 # ============================================================
 
 @dataclass(frozen=True)
-class ConnectionRequestVO:
+class ConnectionConfigVO:
     """Unified connection request — input and output in one VO."""
 
     host: str = "localhost"
@@ -81,7 +81,7 @@ class ConnectionStatusVO:
 # ============================================================
 
 @dataclass(frozen=True)
-class TransportRequestVO:
+class TransportMessageVO:
     """Unified transport request — input and output in one VO."""
 
     operation_class: str = ""
@@ -91,7 +91,7 @@ class TransportRequestVO:
 
 
 @dataclass(frozen=True)
-class TransportResponseVO:
+class TransportResultVO:
     """Unified transport response — input and output in one VO."""
 
     tracking_id: str = ""
@@ -141,7 +141,7 @@ class QueueStatusVO:
 # ============================================================
 
 @dataclass(frozen=True)
-class CodeExecutionRequestVO:
+class CodeExecutionVO:
     """Unified code execution request — input and output in one VO."""
 
     code: str = ""

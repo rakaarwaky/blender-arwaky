@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import TransportRequestVO, TransportResponseVO
+from .taxonomy_gateway_vo import TransportMessageVO, TransportResultVO
 
 
 class TransportProtocol(ABC):
     """Protocol interface for framed request/response transport with tracking."""
 
     @abstractmethod
-    def send_request(self, request: TransportRequestVO) -> TransportResponseVO:
+    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
         """Send command to Blender and receive correlated response.
 
         FR-GWY-003: Every request carries unique tracking ID. Every response

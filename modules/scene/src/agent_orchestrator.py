@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING
 from modules.shared.src.scene.contract_scene_inspection import SceneInspectionPort
 from modules.shared.src.scene.contract_scene_operate_protocol import SceneOperateProtocol
 from modules.shared.src.scene.taxonomy_scene_request_vo import (
-    CleanupRequestVO,
-    InspectionRequestVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
 )
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class SceneOrchestrator:
         self._executor = executor
         self._inspector = inspector
 
-    async def get_scene_info(self, request: InspectionRequestVO) -> InspectionRequestVO:
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
         """Retrieve current scene metadata and object tree.
 
         FR-SCN-001: Supports detail level, hidden objects filter, object type filter.
@@ -48,7 +48,7 @@ class SceneOrchestrator:
         """
         return await self._executor.get_scene_info(request)
 
-    async def cleanup_scene(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute cleanup of scene objects based on preservation policy.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).
@@ -58,7 +58,7 @@ class SceneOrchestrator:
         """
         return await self._executor.cleanup_scene(request)
 
-    async def get_scene_info_via_inspector(self, request: InspectionRequestVO) -> InspectionRequestVO:
+    async def get_scene_info_via_inspector(self, request: SceneInspectionVO) -> SceneInspectionVO:
         """Retrieve scene info via inspection port (fallback path).
 
         FR-SCN-001: Supports detail level, hidden objects filter.
@@ -67,7 +67,7 @@ class SceneOrchestrator:
             return await self._inspector.get_scene_info(request)
         raise RuntimeError("No inspector available")
 
-    async def cleanup_scene_via_inspector(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def cleanup_scene_via_inspector(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute cleanup via inspection port (fallback path).
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).

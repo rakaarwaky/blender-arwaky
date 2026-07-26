@@ -18,9 +18,9 @@ from modules.shared.src.scene.contract_scene_inspection import SceneInspectionPo
 from modules.shared.src.scene.taxonomy_scene_error_vo import ConnectionError
 from modules.shared.src.scene.taxonomy_scene_request_vo import (
     CameraInfoVO,
-    CleanupRequestVO,
+    SceneCleanupVO,
     CollectionSummaryVO,
-    InspectionRequestVO,
+    SceneInspectionVO,
     LightInfoVO,
     ObjectType,
     SceneStateSummaryVO,
@@ -47,7 +47,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
         self._command_sender = command_sender
         self._code_executor = code_executor
 
-    async def get_scene_info(self, request: InspectionRequestVO) -> InspectionRequestVO:
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
         """Get detailed information about the current Blender scene.
 
         FR-SCN-001: Supports detail level, hidden objects filter, object type filter.
@@ -61,7 +61,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             # Parse the result into SceneStateSummaryVO
             scene_summary = self._parse_scene_info(result)
 
-            return InspectionRequestVO(
+            return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
                 object_type_filter=request.object_type_filter,
@@ -72,7 +72,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             )
         except Exception as e:
             logger.error("get_scene_info failed: %s", e)
-            return InspectionRequestVO(
+            return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
                 object_type_filter=request.object_type_filter,
@@ -91,7 +91,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             logger.error("Error getting object info from Blender: %s", e)
             return Prompt(f"Error getting object info: {e}")
 
-    async def cleanup_scene(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Remove objects from scene based on preservation policy.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).
@@ -106,7 +106,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             # Parse the result
             data = self._parse_cleanup_result(result, request.dry_run)
 
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=request.dry_run,
@@ -126,7 +126,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             )
         except Exception as e:
             logger.error("Cleanup failed: %s", e)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=request.dry_run,
@@ -141,7 +141,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
 
     # ─── Helpers ────────────────────────────────────────────────
 
-    def _build_inspection_code(self, request: InspectionRequestVO) -> str:
+    def _build_inspection_code(self, request: SceneInspectionVO) -> str:
         """Build Blender Python code for scene inspection."""
         lines = [
             "import bpy",
@@ -284,7 +284,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
                 hidden_object_count=ObjectCount(0),
             )
 
-    def _build_cleanup_code(self, request: CleanupRequestVO) -> str:
+    def _build_cleanup_code(self, request: SceneCleanupVO) -> str:
         """Build cleanup code with preservation policy."""
         mode = str(request.mode).lower()
 

@@ -12,17 +12,17 @@ from .taxonomy_gateway_error import (
     TransportParseError,
 )
 from .taxonomy_gateway_vo import (
-    CodeExecutionRequestVO,
+    CodeExecutionVO,
     CodeExecutionResultVO,
     ConnectionState,
-    ConnectionRequestVO,
+    ConnectionConfigVO,
     ConnectionResultVO,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationResultVO,
     SceneOperationVO,
-    TransportRequestVO,
-    TransportResponseVO,
+    TransportMessageVO,
+    TransportResultVO,
     TransportType,
 )
 
@@ -40,14 +40,14 @@ __all__ = [
     # VOs
     "ConnectionState",
     "TransportType",
-    "ConnectionRequestVO",
+    "ConnectionConfigVO",
     "ConnectionResultVO",
     "ConnectionStatusVO",
-    "TransportRequestVO",
-    "TransportResponseVO",
+    "TransportMessageVO",
+    "TransportResultVO",
     "SceneOperationVO",
     "SceneOperationResultVO",
     "QueueStatusVO",
-    "CodeExecutionRequestVO",
+    "CodeExecutionVO",
     "CodeExecutionResultVO",
 ]

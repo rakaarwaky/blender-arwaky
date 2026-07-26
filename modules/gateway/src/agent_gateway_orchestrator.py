@@ -22,15 +22,15 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
     CodeExecutionProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionRequestVO,
+    CodeExecutionVO,
     CodeExecutionResultVO,
     ConnectionResultVO,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationResultVO,
     SceneOperationVO,
-    TransportRequestVO,
-    TransportResponseVO,
+    TransportMessageVO,
+    TransportResultVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -90,7 +90,7 @@ class GatewayOrchestrator:
         """FR-GWY-002: Attempt reconnection."""
         return self._maintenance.attempt_reconnect()
 
-    def send_request(self, request: TransportRequestVO) -> TransportResponseVO:
+    def send_request(self, request: TransportMessageVO) -> TransportResultVO:
         """FR-GWY-003: Send transport request and receive response."""
         logger.debug("Sending transport request: %s", request.tracking_id)
         return self._transport.send_request(request)
@@ -104,7 +104,7 @@ class GatewayOrchestrator:
         """FR-GWY-004: Get queue status."""
         return self._scene_queue.get_queue_status()
 
-    def execute_code(self, request: CodeExecutionRequestVO) -> CodeExecutionResultVO:
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionResultVO:
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
         return self._code_executor.execute_code(request)

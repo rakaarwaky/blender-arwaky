@@ -248,7 +248,7 @@ from .dispatcher.contract_request_validation_protocol import RequestValidationPr
 from .dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-from .dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from .dispatcher.taxonomy_action_request_vo import ActionCommandVO
 from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -293,17 +293,17 @@ from .gateway.taxonomy_gateway_error import (
     TransportParseError,
 )
 from .gateway.taxonomy_gateway_vo import (
-    CodeExecutionRequestVO,
+    CodeExecutionVO,
     CodeExecutionResultVO,
     ConnectionState,
-    ConnectionRequestVO,
+    ConnectionConfigVO,
     ConnectionResultVO,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationResultVO,
     SceneOperationVO,
-    TransportRequestVO,
-    TransportResponseVO,
+    TransportMessageVO,
+    TransportResultVO,
     TransportType,
 )
 
@@ -377,12 +377,12 @@ from .scene.taxonomy_scene_info_vo import (
     SceneInfo,
 )
 from .scene.taxonomy_scene_request_vo import (
-    CleanupSceneRequestVO,
-    CleanupSceneResponseVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
-    SetupEnvironmentRequestVO,
-    SetupEnvironmentResponseVO,
+    SceneCleanupVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
+    SceneInspectionVO,
+    SetupEnvironmentVO,
+    SetupEnvironmentVO,
 )
 from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
 
@@ -678,7 +678,7 @@ __all__ = [
     "SyncDispatchProtocol",
     # Dispatcher domain — Value Objects
     "ActionMetadataVO",
-    "ActionRequestVO",
+    "ActionCommandVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
     # Launcher domain — Protocols
@@ -721,14 +721,14 @@ __all__ = [
     # Gateway domain — Value Objects & Enums
     "ConnectionState",
     "TransportType",
-    "ConnectionRequestVO",
+    "ConnectionConfigVO",
     "ConnectionResultVO",
     "ConnectionStatusVO",
-    "TransportRequestVO",
-    "TransportResponseVO",
+    "TransportMessageVO",
+    "TransportResultVO",
     "SceneOperationVO",
     "SceneOperationResultVO",
     "QueueStatusVO",
-    "CodeExecutionRequestVO",
+    "CodeExecutionVO",
     "CodeExecutionResultVO",
 ]

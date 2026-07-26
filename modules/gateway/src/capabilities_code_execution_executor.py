@@ -19,7 +19,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     TimeoutError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionRequestVO,
+    CodeExecutionVO,
     CodeExecutionResultVO,
 )
 
@@ -41,7 +41,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def execute_code(self, request: CodeExecutionRequestVO) -> CodeExecutionResultVO:
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionResultVO:
         """Execute raw Python code in Blender with security validation.
 
         FR-GWY-005: Validates code via security policy feature before transport.
@@ -95,7 +95,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _validate_code(self, request: CodeExecutionRequestVO) -> None:
+    def _validate_code(self, request: CodeExecutionVO) -> None:
         """Validate code via security policy feature.
 
         FR-GWY-005: Gateway must never perform its own code validation policy decisions.

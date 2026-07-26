@@ -14,7 +14,7 @@ from typing import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
 from modules.shared.src.scene.contract_scene_inspect_protocol import SceneInspectProtocol
-from modules.shared.src.scene.taxonomy_scene_vo import GetSceneInfoVO
+from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -24,7 +24,7 @@ class SceneInspector(SceneInspectProtocol):
 
     FR-SCN-001: The scene-state source is injected (a real deployment reads it
     from Blender via the server module). The capability only projects the state
-    into a GetSceneInfoVO; it performs no mutations.
+    into a SceneInspectionVO; it performs no mutations.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -38,19 +38,19 @@ class SceneInspector(SceneInspectProtocol):
         self,
         detail_level: str = "standard",
         include_hidden: bool = False,
-    ) -> GetSceneInfoVO:
+    ) -> SceneInspectionVO:
         """Return a structured, read-only scene overview.
 
-        FR-SCN-001: Projects the injected scene state into a GetSceneInfoVO.
+        FR-SCN-001: Projects the injected scene state into a SceneInspectionVO.
         `include_hidden` controls whether hidden objects are counted.
         """
         try:
             raw = self._state_source()
             summary = self._summarize(raw, detail_level, include_hidden)
-            return GetSceneInfoVO(success=SuccessFlag(True), scene_info=summary)
+            return SceneInspectionVO(success=SuccessFlag(True), scene_info=summary)
         except Exception as e:
             logger.error("Scene inspection failed: %s", e)
-            return GetSceneInfoVO(
+            return SceneInspectionVO(
                 success=SuccessFlag(False),
                 message=Prompt(f"inspection failed: {e}"),
             )

@@ -1,7 +1,7 @@
 """Dispatcher domain — taxonomy Value Objects and contract protocols.
 
 Shared layer (shared/src/dispatcher/):
-  - Taxonomy VOs: ActionMetadataVO, ActionRequestVO, DiscoveryResultVO,
+  - Taxonomy VOs: ActionMetadataVO, ActionCommandVO, DiscoveryResultVO,
     UnifiedResultEnvelopeVO
   - Contracts: 6 individual protocol ABCs
 
@@ -10,13 +10,13 @@ Agent layer (DispatcherOrchestrator) implements Aggregate facade.
 """
 
 from .taxonomy_action_metadata_vo import ActionMetadataVO
-from .taxonomy_action_request_vo import ActionRequestVO
+from .taxonomy_action_request_vo import ActionCommandVO
 from .taxonomy_discovery_result_vo import DiscoveryResultVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 __all__ = [
     "ActionMetadataVO",
-    "ActionRequestVO",
+    "ActionCommandVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
 ]

@@ -12,7 +12,7 @@ def unwrap_annotation(annotation: Any) -> Any | None:
     """Unwrap Optional/Annotated/Union type hints to get the underlying type.
 
     Handles:
-    - Plain types (e.g. GetScreenshotRequestVO) → returns the type
+    - Plain types (e.g. ScreenshotCaptureVO) → returns the type
     - Optional[X] / Union[X, None] → returns X
     - Annotated[X, metadata] → returns X
 

@@ -13,7 +13,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class ActionRequestVO:
+class ActionCommandVO:
     """Action request — merged input and output in one frozen VO.
 
     Input (set by caller):

@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import SuccessFlag
-from .taxonomy_scene_vo import GetSceneInfoVO
+from .taxonomy_scene_vo import SceneInspectionVO
 
 
 class SceneInspectProtocol(ABC):
@@ -24,7 +24,7 @@ class SceneInspectProtocol(ABC):
         self,
         detail_level: str = "standard",
         include_hidden: bool = False,
-    ) -> GetSceneInfoVO:
+    ) -> SceneInspectionVO:
         """Return a structured scene overview.
 
         FR-SCN-001: Read-only. Never mutates scene state. `detail_level`

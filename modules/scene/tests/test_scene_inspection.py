@@ -19,8 +19,8 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.scene.src.capabilities_scene_operate_executor import SceneOperateExecutor
 from modules.shared.src.scene.taxonomy_scene_request_vo import (
-    CleanupRequestVO,
-    InspectionRequestVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
     SceneStateSummaryVO,
 )
 
@@ -80,10 +80,10 @@ async def test_fr_scn_001_returns_scene_state_summary():
     mock = MockCodeExecutor()
     executor = SceneOperateExecutor(mock)
 
-    request = InspectionRequestVO()
+    request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
-    assert isinstance(result, InspectionRequestVO)
+    assert isinstance(result, SceneInspectionVO)
     assert result.success == SuccessFlag(True)
     assert result.scene_state_summary is not None
     summary = result.scene_state_summary
@@ -100,7 +100,7 @@ async def test_fr_scn_001_handles_detail_level():
     mock = MockCodeExecutor()
     executor = SceneOperateExecutor(mock)
 
-    request = InspectionRequestVO(detail_level="detailed")
+    request = SceneInspectionVO(detail_level="detailed")
     result = await executor.get_scene_info(request)
 
     assert result.success == SuccessFlag(True)
@@ -134,7 +134,7 @@ async def test_fr_scn_001_handles_empty_scene():
             })
 
     executor = SceneOperateExecutor(EmptyExecutor())
-    request = InspectionRequestVO()
+    request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
     assert result.success == SuccessFlag(True)
@@ -151,14 +151,14 @@ async def test_fr_scn_002_cleanup_with_preservation():
     mock = MockCodeExecutor()
     executor = SceneOperateExecutor(mock)
 
-    request = CleanupRequestVO(
+    request = SceneCleanupVO(
         mode=CleanupMode("all"),
         preservation_list=("camera", "light"),
         confirmation=True,
     )
     result = await executor.cleanup_scene(request)
 
-    assert isinstance(result, CleanupRequestVO)
+    assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(True)
     assert result.removed_count == ObjectCount(2)
     assert result.preserved_count == ObjectCount(2)
@@ -172,13 +172,13 @@ async def test_fr_scn_002_dry_run_does_not_mutate():
     mock = MockCodeExecutor()
     executor = SceneOperateExecutor(mock)
 
-    request = CleanupRequestVO(
+    request = SceneCleanupVO(
         mode=CleanupMode("all"),
         dry_run=True,
     )
     result = await executor.cleanup_scene(request)
 
-    assert isinstance(result, CleanupRequestVO)
+    assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(True)
     assert result.dry_run == True
     # Dry-run returns preview counts (what WOULD be removed), not actual removal
@@ -192,14 +192,14 @@ async def test_fr_scn_002_confirmation_required():
     mock = MockCodeExecutor()
     executor = SceneOperateExecutor(mock)
 
-    request = CleanupRequestVO(
+    request = SceneCleanupVO(
         mode=CleanupMode("all"),
         dry_run=False,
         confirmation=False,
     )
     result = await executor.cleanup_scene(request)
 
-    assert isinstance(result, CleanupRequestVO)
+    assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(False)
     assert "Confirmation error" in str(result.message)
 
@@ -211,10 +211,10 @@ async def test_fr_scn_002_validation_error():
     executor = SceneOperateExecutor(mock)
 
     # Invalid mode
-    request = CleanupRequestVO(mode=CleanupMode("invalid_mode"))
+    request = SceneCleanupVO(mode=CleanupMode("invalid_mode"))
     result = await executor.cleanup_scene(request)
 
-    assert isinstance(result, CleanupRequestVO)
+    assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(False)
     assert "Validation error" in str(result.message)
 
@@ -226,9 +226,9 @@ async def test_fr_scn_002_cleanup_modes():
     executor = SceneOperateExecutor(mock)
 
     for mode in ["all", "objects", "meshes"]:
-        request = CleanupRequestVO(mode=CleanupMode(mode), confirmation=True)
+        request = SceneCleanupVO(mode=CleanupMode(mode), confirmation=True)
         result = await executor.cleanup_scene(request)
-        assert isinstance(result, CleanupRequestVO)
+        assert isinstance(result, SceneCleanupVO)
         assert result.success == SuccessFlag(True)
 
 
@@ -239,12 +239,12 @@ async def test_fr_scn_002_child_handling_policy():
     executor = SceneOperateExecutor(mock)
 
     # Valid policy
-    request = CleanupRequestVO(child_handling_policy="detach", confirmation=True)
+    request = SceneCleanupVO(child_handling_policy="detach", confirmation=True)
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(True)
 
     # Invalid policy
-    request = CleanupRequestVO(child_handling_policy="invalid")
+    request = SceneCleanupVO(child_handling_policy="invalid")
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(False)
 
@@ -256,12 +256,12 @@ async def test_fr_scn_002_dependent_handling_policy():
     executor = SceneOperateExecutor(mock)
 
     # Valid policy
-    request = CleanupRequestVO(dependent_handling_policy="reject", confirmation=True)
+    request = SceneCleanupVO(dependent_handling_policy="reject", confirmation=True)
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(True)
 
     # Invalid policy
-    request = CleanupRequestVO(dependent_handling_policy="invalid")
+    request = SceneCleanupVO(dependent_handling_policy="invalid")
     result = await executor.cleanup_scene(request)
     assert result.success == SuccessFlag(False)
 
@@ -297,7 +297,7 @@ async def test_fr_scn_001_missing_active_camera():
             return json.dumps(data)
 
     executor = SceneOperateExecutor(NoCameraExecutor())
-    request = InspectionRequestVO()
+    request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
     assert result.success == SuccessFlag(True)
@@ -322,10 +322,10 @@ async def test_fr_scn_002_cleanup_partial_failure():
             })
 
     executor = SceneOperateExecutor(PartialFailureExecutor())
-    request = CleanupRequestVO(mode=CleanupMode("all"), confirmation=True)
+    request = SceneCleanupVO(mode=CleanupMode("all"), confirmation=True)
     result = await executor.cleanup_scene(request)
 
-    assert isinstance(result, CleanupRequestVO)
+    assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(True)
     assert result.removed_count == ObjectCount(1)
     assert result.skipped_count == ObjectCount(1)

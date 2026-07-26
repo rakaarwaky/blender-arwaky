@@ -17,7 +17,7 @@ from ..common.taxonomy_core_vo import (
 
 
 @dataclass(frozen=True)
-class CleanupSceneVO:
+class SceneCleanupVO:
     """Scene cleanup — input and output in one VO.
 
     Input: mode.
@@ -32,7 +32,7 @@ class CleanupSceneVO:
 
 
 @dataclass(frozen=True)
-class GetSceneInfoVO:
+class SceneInspectionVO:
     """Scene info retrieval — input and output in one VO.
 
     Input: (none).

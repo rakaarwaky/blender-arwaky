@@ -35,9 +35,9 @@ from modules.shared.src.scene.taxonomy_scene_event_vo import (
 )
 from modules.shared.src.scene.taxonomy_scene_request_vo import (
     CameraInfoVO,
-    CleanupRequestVO,
+    SceneCleanupVO,
     CollectionSummaryVO,
-    InspectionRequestVO,
+    SceneInspectionVO,
     ObjectType,
     SceneStateSummaryVO,
 )
@@ -61,7 +61,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
         """
         self._code_executor = code_executor
 
-    async def cleanup_scene(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute cleanup of scene objects based on preservation policy.
 
         FR-SCN-002: Supports preservation modes (keep cameras, lights, both, remove all).
@@ -73,7 +73,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
 
         # Validation
         if not self._validate_request(request):
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=request.dry_run,
@@ -88,7 +88,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
 
         # Confirmation check for destructive operations
         if not request.dry_run and not request.confirmation:
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=False,
@@ -110,7 +110,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             return result
         except Exception as e:
             logger.error("Cleanup failed: %s", e)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=request.dry_run,
@@ -123,7 +123,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
                 message=Prompt(f"Cleanup failed: {e}"),
             )
 
-    async def get_scene_info(self, request: InspectionRequestVO) -> InspectionRequestVO:
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
         """Retrieve current scene metadata and object tree.
 
         FR-SCN-001: Supports detail level, hidden objects filter, object type filter.
@@ -138,7 +138,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             # Parse the result into SceneStateSummaryVO
             scene_summary = self._parse_scene_info(result)
 
-            return InspectionRequestVO(
+            return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
                 object_type_filter=request.object_type_filter,
@@ -149,7 +149,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             )
         except Exception as e:
             logger.error("get_scene_info failed: %s", e)
-            return InspectionRequestVO(
+            return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
                 object_type_filter=request.object_type_filter,
@@ -161,7 +161,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
 
     # ─── Helpers ────────────────────────────────────────────────
 
-    def _validate_request(self, request: CleanupRequestVO) -> bool:
+    def _validate_request(self, request: SceneCleanupVO) -> bool:
         """Validate cleanup request parameters."""
         valid_modes = {"all", "objects", "meshes"}
         if str(request.mode).lower() not in valid_modes:
@@ -174,7 +174,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             return False
         return True
 
-    def _build_inspection_code(self, request: InspectionRequestVO) -> str:
+    def _build_inspection_code(self, request: SceneInspectionVO) -> str:
         """Build Blender Python code for scene inspection."""
         lines = [
             "import bpy",
@@ -317,7 +317,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
                 hidden_object_count=ObjectCount(0),
             )
 
-    async def _execute_dry_run(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def _execute_dry_run(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute dry-run cleanup preview without modifying scene."""
         logger.info("Dry-run cleanup (mode=%s)...", request.mode)
 
@@ -327,7 +327,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
         try:
             result = await self._execute_code(code)
             data = self._parse_cleanup_result(result, dry_run=True)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=True,
@@ -347,7 +347,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             )
         except Exception as e:
             logger.error("Dry-run failed: %s", e)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=True,
@@ -360,7 +360,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
                 message=Prompt(f"Dry-run failed: {e}"),
             )
 
-    async def _execute_cleanup(self, request: CleanupRequestVO) -> CleanupRequestVO:
+    async def _execute_cleanup(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute actual cleanup with preservation policy."""
         logger.info("Actual cleanup (mode=%s)...", request.mode)
 
@@ -369,7 +369,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
         try:
             result = await self._execute_code(code)
             data = self._parse_cleanup_result(result, dry_run=False)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=False,
@@ -389,7 +389,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
             )
         except Exception as e:
             logger.error("Actual cleanup failed: %s", e)
-            return CleanupRequestVO(
+            return SceneCleanupVO(
                 mode=request.mode,
                 preservation_list=request.preservation_list,
                 dry_run=False,
@@ -402,7 +402,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
                 message=Prompt(f"Actual cleanup failed: {e}"),
             )
 
-    def _build_dry_run_code(self, request: CleanupRequestVO) -> str:
+    def _build_dry_run_code(self, request: SceneCleanupVO) -> str:
         """Build dry-run code to count removable objects without deleting."""
         mode = str(request.mode).lower()
         preservation = list(request.preservation_list) if request.preservation_list else ["camera", "light"]
@@ -468,7 +468,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
         code = "\n".join(lines) + "\nprint(result)"
         return code
 
-    def _build_cleanup_code(self, request: CleanupRequestVO) -> str:
+    def _build_cleanup_code(self, request: SceneCleanupVO) -> str:
         """Build actual cleanup code with preservation policy."""
         mode = str(request.mode).lower()
 

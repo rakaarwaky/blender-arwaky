@@ -5,12 +5,12 @@ from .contract_scene_inspection import SceneInspectionPort
 from .contract_scene_operate_protocol import SceneOperateProtocol
 from .taxonomy_scene_info_vo import SceneInfo
 from .taxonomy_scene_request_vo import (
-    CleanupRequestVO,
-    CleanupSceneRequestVO,
-    CleanupSceneResponseVO,
-    InspectionRequestVO,
-    GetSceneInfoRequestVO,
-    GetSceneInfoResponseVO,
+    SceneCleanupVO,
+    SceneCleanupVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
+    SceneInspectionVO,
+    SceneInspectionVO,
 )
 
 # Unified VOs (merged request + response — no split classes)
@@ -47,8 +47,8 @@ __all__ = [
     "SceneCleanupProtocol",
     "SceneOperateProtocol",
     # Unified VOs (merged request + response — no split classes)
-    "CleanupRequestVO",
-    "InspectionRequestVO",
+    "SceneCleanupVO",
+    "SceneInspectionVO",
     # Scene State Summary VOs
     "CameraInfoVO",
     "LightInfoVO",
@@ -56,12 +56,12 @@ __all__ = [
     "ProtectedObjectSummaryVO",
     "SceneStateSummaryVO",
     # Legacy aliases (point to unified VOs)
-    "CleanupSceneVO",
-    "CleanupSceneRequestVO",
-    "CleanupSceneResponseVO",
-    "GetSceneInfoVO",
-    "GetSceneInfoRequestVO",
-    "GetSceneInfoResponseVO",
+    "SceneCleanupVO",
+    "SceneCleanupVO",
+    "SceneCleanupVO",
+    "SceneInspectionVO",
+    "SceneInspectionVO",
+    "SceneInspectionVO",
     "SceneInfo",
     # Error VOs
     "SceneStateError",

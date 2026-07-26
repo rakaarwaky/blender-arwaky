@@ -18,7 +18,7 @@ from modules.shared.src.dispatcher.contract_catalog_registration_protocol import
 from modules.shared.src.dispatcher.contract_request_validation_protocol import RequestValidationProtocol
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
-from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -80,7 +80,7 @@ class DispatcherOrchestrator:
             detail_level=detail_level,
         )
 
-    def validate_request(self, request: ActionRequestVO) -> ActionRequestVO:
+    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
         """Validate an action request against the catalog.
 
         FR-DSP-003: Delegates to RequestValidationProtocol.
@@ -91,7 +91,7 @@ class DispatcherOrchestrator:
             raise RuntimeError("RequestValidationProtocol not configured")
         return self._validation.validate_request(request)
 
-    def dispatch_sync(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
+    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Dispatch a validated action synchronously to its owning feature.
 
         FR-DSP-004: Delegates to SyncDispatchProtocol.
@@ -101,7 +101,7 @@ class DispatcherOrchestrator:
             raise RuntimeError("SyncDispatchProtocol not configured")
         return self._dispatch.dispatch_sync(request)
 
-    def submit_background(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
+    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Submit an action for background execution via job feature.
 
         FR-DSP-005: Delegates to BackgroundSubmitProtocol.
@@ -134,7 +134,7 @@ class DispatcherOrchestrator:
         This is the main facade method — validates, dispatches, and normalizes
         in a single call for consumers who don't need intermediate results.
         """
-        request = ActionRequestVO(action_name=action_name, parameters=parameters)
+        request = ActionCommandVO(action_name=action_name, parameters=parameters)
 
         try:
             validated = self.validate_request(request)

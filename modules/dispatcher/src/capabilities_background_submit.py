@@ -13,7 +13,7 @@ from typing import Any
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
 )
-from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionRequestVO
+from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -40,7 +40,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
-    def submit_background(self, request: ActionRequestVO) -> UnifiedResultEnvelopeVO:
+    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Submit an action for background execution via job feature.
 
         FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
