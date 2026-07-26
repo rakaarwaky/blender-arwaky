@@ -48,7 +48,7 @@ def test_policy_mode_constants():
 def test_env_names_and_reserved():
     assert ENV_PREFIX_PRODUCT == "BLENDERMCP_"
     assert WORKSPACE_ROOT_ENV == "BLENDERMCP_ROOT"
-    assert "BLENDERMCPCONFIGPATH" in RESERVED_ENV_KEYS
+    assert "BLENDERMCP_CONFIG_PATH" in RESERVED_ENV_KEYS
     assert EVENT_RING_BUFFER_SIZE == 50
 
 

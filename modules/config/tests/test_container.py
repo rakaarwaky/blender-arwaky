@@ -8,12 +8,12 @@ import tempfile
 import pytest
 
 from modules.config.src.root_config_container import ConfigContainer
-from modules.shared.src.config.taxonomy_config_constant import CONFIG_V2_FLAG_ENV
+from modules.shared.src.config.taxonomy_config_constant import STRICT_MODE_FLAG_ENV
 
 
 @pytest.mark.unit
 def test_zero_arg_build_loads_defaults(monkeypatch):
-    monkeypatch.delenv(CONFIG_V2_FLAG_ENV, raising=False)
+    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     # chdir to a temp dir with no config.yaml
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
@@ -25,7 +25,7 @@ def test_zero_arg_build_loads_defaults(monkeypatch):
 
 @pytest.mark.unit
 def test_metadata_populated_after_load(monkeypatch):
-    monkeypatch.delenv(CONFIG_V2_FLAG_ENV, raising=False)
+    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -37,7 +37,7 @@ def test_metadata_populated_after_load(monkeypatch):
 
 @pytest.mark.unit
 def test_recent_events_populated_after_load(monkeypatch):
-    monkeypatch.delenv(CONFIG_V2_FLAG_ENV, raising=False)
+    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -47,7 +47,7 @@ def test_recent_events_populated_after_load(monkeypatch):
 
 @pytest.mark.unit
 def test_metadata_source_ends_with_config_yaml(monkeypatch):
-    monkeypatch.delenv(CONFIG_V2_FLAG_ENV, raising=False)
+    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -57,7 +57,7 @@ def test_metadata_source_ends_with_config_yaml(monkeypatch):
 
 @pytest.mark.unit
 def test_flag_from_env_enables_schema_errors(monkeypatch):
-    monkeypatch.setenv(CONFIG_V2_FLAG_ENV, "true")
+    monkeypatch.setenv(STRICT_MODE_FLAG_ENV, "on")
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     with open(cfg, "w") as f:
@@ -72,8 +72,8 @@ def test_flag_from_env_enables_schema_errors(monkeypatch):
 
 @pytest.mark.unit
 def test_explicit_false_beats_env_true(monkeypatch):
-    monkeypatch.setenv(CONFIG_V2_FLAG_ENV, "true")
-    agg = ConfigContainer(config_v2_enabled=False).build()
+    monkeypatch.setenv(STRICT_MODE_FLAG_ENV, "on")
+    agg = ConfigContainer(strict_mode_enabled=False).build()
     # flag OFF → no schema validation; bad port does not raise
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")

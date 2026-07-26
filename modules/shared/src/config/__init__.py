@@ -13,7 +13,7 @@ from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 # ─── Taxonomy: Constants ───────────────────────────────────────
 from .taxonomy_config_constant import (
     CONFIG_PATH_ENV,
-    CONFIG_V2_FLAG_ENV,
+    STRICT_MODE_FLAG_ENV,
     DEFAULT_CONFIG_FILENAME,
     DEFAULT_POLICY_MODE,
     DEFAULT_SETTINGS,
@@ -78,7 +78,7 @@ __all__ = [
     "MAX_CONFIG_SIZE_BYTES",
     "ENV_PREFIX_PRODUCT",
     "CONFIG_PATH_ENV",
-    "CONFIG_V2_FLAG_ENV",
+    "STRICT_MODE_FLAG_ENV",
     "WORKSPACE_ROOT_ENV",
     "DEFAULT_CONFIG_FILENAME",
     "RESERVED_ENV_KEYS",

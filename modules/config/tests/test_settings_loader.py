@@ -59,7 +59,7 @@ def test_runtime_override_wins(monkeypatch):
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(config_v2_enabled=True)
+    loader = SettingsLoaderCapability(strict_mode_enabled=True)
     snap = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     assert snap.get("blender.port") == 7777
 
@@ -118,7 +118,7 @@ def test_oversized_v2_on_strict_raises(monkeypatch):
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n")
-    loader = SettingsLoaderCapability(policy_mode="strict", config_v2_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=True)
     with pytest.raises(ConfigLoadError):
         loader.load_settings(ConfigPath(cfg))
 
@@ -128,7 +128,7 @@ def test_oversized_v2_on_permissive_skips():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n")
-    loader = SettingsLoaderCapability(policy_mode="permissive", config_v2_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="permissive", strict_mode_enabled=True)
     snap = loader.load_settings(ConfigPath(cfg))
     assert snap.get("blender.port") == 9876
 
@@ -139,7 +139,7 @@ def test_oversized_v2_off_parses():
     cfg = os.path.join(d, "config.yaml")
     big = "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n"
     _write(cfg, big)
-    loader = SettingsLoaderCapability(policy_mode="strict", config_v2_enabled=False)
+    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=False)
     snap = loader.load_settings(ConfigPath(cfg))
     assert snap.get("x")  # value present (flag regression)
 
@@ -149,7 +149,7 @@ def test_schema_v2_on_strict_error():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: oops\n")
-    loader = SettingsLoaderCapability(policy_mode="strict", config_v2_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=True)
     with pytest.raises(ConfigValidationError):
         loader.load_settings(ConfigPath(cfg))
 
@@ -159,7 +159,7 @@ def test_schema_v2_on_permissive_warning_and_event():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: oops\n")
-    loader = SettingsLoaderCapability(policy_mode="permissive", config_v2_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="permissive", strict_mode_enabled=True)
     loader.load_settings(ConfigPath(cfg))
     ev = loader.emit_validation_warning_event()
     assert ev is not None
@@ -170,7 +170,7 @@ def test_overrides_caller_scoped_not_cached(monkeypatch):
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(config_v2_enabled=True)
+    loader = SettingsLoaderCapability(strict_mode_enabled=True)
     snap1 = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     assert snap1.get("blender.port") == 7777
     snap2 = loader.load_settings(ConfigPath(cfg))  # no overrides
@@ -182,7 +182,7 @@ def test_overrides_v2_off_ignored_with_warning():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(config_v2_enabled=False)
+    loader = SettingsLoaderCapability(strict_mode_enabled=False)
     snap = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     md = loader.get_last_metadata()
     assert snap.get("blender.port") == 5555
@@ -192,7 +192,7 @@ def test_overrides_v2_off_ignored_with_warning():
 @pytest.mark.unit
 def test_reserved_keys_not_applied(monkeypatch):
     loader = SettingsLoaderCapability()
-    monkeypatch.setenv("BLENDERMCPCONFIGPATH", "/x")  # reserved
+    monkeypatch.setenv("BLENDERMCP_CONFIG_PATH", "/x")  # reserved
     snap = loader.load_settings()
     assert "config_path" not in snap.get("") if isinstance(snap.get(""), dict) else True
 
