@@ -78,13 +78,13 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         policy_mode: str = DEFAULT_POLICY_MODE,
         defaults: Mapping[str, Any] | None = None,
         schema: Mapping[str, Any] | None = None,
-        config_v2_enabled: bool = False,
+        strict_mode_enabled: bool = False,
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
         self._defaults = dict(defaults) if defaults is not None else copy.deepcopy(DEFAULT_SETTINGS)
         self._schema = dict(schema) if schema is not None else copy.deepcopy(SETTINGS_SCHEMA)
-        self._config_v2_enabled = config_v2_enabled
+        self._strict_mode_enabled = strict_mode_enabled
         self._lock = threading.Lock()
         # cached state
         self._cached: SettingsSnapshot | None = None
@@ -111,7 +111,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._last_metadata = metadata
 
             # Runtime overrides are caller-scoped — never cached (A5).
-            if overrides is not None and self._config_v2_enabled:
+            if overrides is not None and self._strict_mode_enabled:
                 structured: dict[str, Any] = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
@@ -119,14 +119,14 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 final = deep_merge_dicts(self._cached_data, structured)
                 return SettingsSnapshot(_data=final)
 
-            if overrides is not None and not self._config_v2_enabled:
+            if overrides is not None and not self._strict_mode_enabled:
                 self._last_metadata = ConfigMetadata(
                     source=self._last_metadata.source,
                     exists=self._last_metadata.exists,
                     overrides=self._last_metadata.overrides,
                     parse_warnings=(
                         *self._last_metadata.parse_warnings,
-                        ParseWarning("runtime overrides ignored; BLENDERMCP_CONFIG_V2 off"),
+                        ParseWarning("runtime overrides ignored; strict mode off"),
                     ),
                     validation_warnings=self._last_metadata.validation_warnings,
                 )
@@ -216,8 +216,8 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 ParseWarning(f"settings file not found: {resolved}; using defaults")
             )
         else:
-            # Size limit (flag-gated)
-            if self._config_v2_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
+            # Size limit (strict-mode gated)
+            if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
                     raise ConfigLoadError(
                         f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes"
@@ -247,9 +247,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS
         )
 
-        # Schema (flag-gated)
+        # Schema (strict-mode gated)
         validation_warnings: list[ValidationWarning] = []
-        if self._config_v2_enabled:
+        if self._strict_mode_enabled:
             errors, warnings = validate_settings_schema(merged, self._schema)
             if errors and self._policy_mode == POLICY_MODE_STRICT:
                 raise ConfigValidationError("; ".join(errors))

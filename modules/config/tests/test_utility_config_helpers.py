@@ -44,11 +44,11 @@ def test_apply_env_overrides_basic():
     environ = {
         "BLENDERMCP_BLENDER.PORT": "9999",
         "BLENDERMCP_SERVER.TRANSPORT": "ws",
-        "BLENDERMCPCONFIGPATH": "/x",  # reserved, skipped
+        "BLENDERMCP_CONFIG_PATH": "/x",  # reserved, skipped
         "BLENDER_MCP_OLD": "1",  # legacy, not matched
     }
     result, count = apply_env_overrides(
-        config, environ, "BLENDERMCP_", ("BLENDERMCPCONFIGPATH",)
+        config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",)
     )
     assert result["blender"]["port"] == 9999
     assert result["server"]["transport"] == "ws"
@@ -221,17 +221,17 @@ def test_set_nested_value_creates_intermediates():
 
 @pytest.mark.unit
 def test_resolve_default_config_path_explicit(monkeypatch):
-    monkeypatch.delenv("BLENDERMCPCONFIGPATH", raising=False)
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
     assert resolve_default_config_path("/tmp/my.yaml") == "/tmp/my.yaml"
 
 
 @pytest.mark.unit
 def test_resolve_default_config_path_env(monkeypatch):
-    monkeypatch.setenv("BLENDERMCPCONFIGPATH", "/env/config.yaml")
+    monkeypatch.setenv("BLENDERMCP_CONFIG_PATH", "/env/config.yaml")
     assert resolve_default_config_path(None) == "/env/config.yaml"
 
 
 @pytest.mark.unit
 def test_resolve_default_config_path_cwd(monkeypatch):
-    monkeypatch.delenv("BLENDERMCPCONFIGPATH", raising=False)
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
     assert resolve_default_config_path(None).endswith("config.yaml")

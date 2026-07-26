@@ -84,14 +84,13 @@ Config is the only feature that loads settings. No other feature reads config fi
     - otherwise values remain text
   - Environment values are scalar-only (Q7): list-like or mapping-like values are NOT parsed and remain strings
   - Environment overrides use product-specific prefix and deterministic nested key convention
-  - Legacy environment prefix may be accepted as fallback for backward compatibility
-  - Legacy environment prefix BLENDER_MCP_ was removed in v1.7.0 (BREAKING). Only the BLENDERMCP_ prefix is recognized.
+  - Legacy environment prefix BLENDER_MCP_ was removed in v1.7.0 (BREAKING). Only the BLENDERMCP_ prefix is recognized. Legacy variables are ignored.
   - Settings snapshot must be immutable after successful load
   - Settings snapshot must be cached after first successful load
   - Reload must replace snapshot atomically under synchronization
   - Failed load must not expose partial settings state
   - Failed reload must retain previous valid snapshot unless strict mode requires failure propagation
-  - Settings source size must be limited to prevent excessive memory usage: limit is 1 MiB (MAX_CONFIG_SIZE_BYTES); in strict mode an oversized source raises ConfigLoadError, in permissive mode it warns and skips the file source (flag-gated behind BLENDERMCP_CONFIG_V2)
+  - Settings source size must be limited to prevent excessive memory usage: limit is 1 MiB (MAX_CONFIG_SIZE_BYTES); in strict mode an oversized source raises ConfigLoadError, in permissive mode it warns and skips the file source (flag-gated behind BLENDERMCP_STRICT)
   - Secret values present in settings must never be echoed into metadata, logs, or diagnostics
 - **Edge Cases**: Missing settings file, malformed settings content, permission denied, empty settings file, duplicate mapping keys, unsupported tags, oversized settings file, non-UTF-8 encoding, environment override conflict, legacy environment fallback, schema unavailable, secret values in settings, symlinked settings location, settings location pointing to directory instead of file
 - **Error Handling**: Configuration error for missing, unreadable, or malformed settings source in strict mode; validation error for schema violation; load error for oversized or unsafe settings content; warning-level fallback behavior in permissive mode
@@ -112,7 +111,7 @@ Features request settings through config. Config returns immutable values or dee
   - Numeric path segments may access list positions when current node is a list
   - Out-of-range list position returns default
   - Escaped separator may resolve literal dotted key when supported
-  - `\.` resolves a literal dotted key when BLENDERMCP_CONFIG_V2 is enabled
+  - `\.` resolves a literal dotted key when BLENDERMCP_STRICT is enabled
   - Retrieval must be thread-safe and lock-free after initialization where possible
   - Retrieval must not trigger file or environment reads per request
   - Expected type mismatch returns default in permissive mode
@@ -246,7 +245,7 @@ Event payloads must avoid:
 | Workspace directory         | Project root directory used for file-based operations          | Resolved through deterministic workspace strategies   |
 | Sensitive key list          | List of key names and patterns treated as secret for redaction | Common token, key, password, and credential patterns  |
 | Environment override prefix | Product-specific prefix recognized for environment overrides   | Product prefix with nested key convention             |
-| Legacy environment fallback | Whether legacy environment prefix is accepted                  | Enabled for backward compatibility                    |
+| Legacy environment fallback | Whether legacy BLENDER_MCP_ prefix is accepted                 | Disabled (v1.7.0 BREAKING change)                     |
 | Policy mode                 | Strict or permissive behavior for parse and schema issues      | Strict                                                |
 | Maximum settings size       | Maximum allowed settings source size                           | Conservative size limit                               |
 | Default values source       | Built-in defaults applied when no other source provides value  | Feature-defined safe defaults                         |
@@ -254,7 +253,7 @@ Event payloads must avoid:
 ## QA Checklist
 
 - [ ]  Settings load from file, environment, and defaults with correct precedence
-- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_CONFIG_V2=on`; ignored with warning when off)
+- [ ]  Runtime override takes precedence over environment, file, and defaults (requires `BLENDERMCP_STRICT=on`; ignored with warning when off)
 - [ ]  Default settings source resolves to `<cwd>/config.yaml` when no explicit path and no `BLENDERMCP_CONFIG_PATH` is set
 - [ ]  Environment override takes precedence over file and defaults
 - [ ]  File values take precedence over built-in defaults
@@ -266,7 +265,7 @@ Event payloads must avoid:
 - [ ]  Unsafe settings content is rejected without object instantiation
 - [ ]  Oversized settings source raises load error
 - [ ]  Environment values convert to boolean, integer, float, null, list, and mapping types correctly
-- [ ]  Legacy environment prefix fallback works when enabled
+- [ ]  Legacy BLENDER_MCP_ prefix variables are ignored (v1.7.0 BREAKING)
 - [ ]  Immutable snapshot returned on retrieve
 - [ ]  Retrieved structured values are deep-copied or immutable
 - [ ]  Missing key returns provided default
@@ -288,7 +287,7 @@ Event payloads must avoid:
 - [ ]  Runtime overrides are caller-scoped and not cached (A5)
 - [ ]  32-thread first access performs exactly one load (Q19)
 - [ ]  Built-in defaults tier is complete; settings file is optional override-only (Q6)
-- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_CONFIG_V2
+- [ ]  Schema validation, 1 MiB size limit, `\.` escaping, strict ConfigTypeError gated behind BLENDERMCP_STRICT
 - [ ]  Asset and render derive root locations from workspace resolution instead of own rules
 - [ ]  Settings metadata reports source, override count, and warnings
 - [ ]  Settings metadata does not leak secret values

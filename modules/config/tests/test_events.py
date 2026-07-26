@@ -17,7 +17,7 @@ from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER
 
 def _orchestrator(permissive=False):
     mode = "permissive" if permissive else "strict"
-    loader = SettingsLoaderCapability(policy_mode=mode, config_v2_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode=mode, strict_mode_enabled=True)
     return ConfigOrchestrator(
         loader=loader,
         retriever=SettingsRetrieverCapability(policy_mode=mode),

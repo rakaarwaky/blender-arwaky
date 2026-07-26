@@ -1,68 +1,33 @@
-"""Scene domain — taxonomy types and contracts.
+"""Scene domain shared taxonomy constants."""
 
-Unified VOs (merged request + response — no split classes). No legacy Request/Response aliases.
-"""
-
-from .contract_scene_cleanup_protocol import SceneCleanupProtocol
-from .contract_scene_inspection import SceneInspectionPort
-from .contract_scene_operate_protocol import SceneOperateProtocol
-from .taxonomy_scene_command_vo import (
-    CameraInfoVO,
-    CollectionSummaryVO,
-    LightInfoVO,
-    ProtectedObjectSummaryVO,
-    SceneCleanupVO,
-    SceneInspectionVO,
-    SceneStateSummaryVO,
+from .taxonomy_scene_constant import (
+    CLEANUP_CONFIRMATION_REQUIRED,
+    CLEANUP_TIMEOUT_SECONDS,
+    DEFAULT_CHILD_HANDLING_POLICY,
+    DEFAULT_DEPENDENT_HANDLING_POLICY,
+    DEFAULT_DRY_RUN_MODE,
+    DEFAULT_INCLUDE_HIDDEN_OBJECTS,
+    DEFAULT_PRESERVATION_LIST,
+    INSPECTION_TIMEOUT_SECONDS,
+    MAX_INSPECTION_DETAIL_LIMIT,
+    PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA,
+    PROTECTED_OBJECT_POLICY_LIGHTS,
+    PROTECTED_OBJECT_POLICY_PROTECTED,
+    PROTECTED_OBJECT_POLICY_SOLE_CAMERA,
 )
-
-# Error VOs
-from .taxonomy_scene_error_vo import (
-    CleanupTimeoutError,
-    ConfirmationError,
-    ConnectionError,
-    DelegatedDeletionError,
-    ProtectionError,
-    SceneStateError,
-    ValidationError,
-)
-
-# Event VOs
-from .taxonomy_scene_event_vo import (
-    SceneCleanupCompletedEvent,
-    SceneCleanupDryRunCompletedEvent,
-    SceneCleanupFailedEvent,
-    SceneInspectionCompletedEvent,
-)
-from .taxonomy_scene_info_vo import SceneInfo
 
 __all__ = [
-    # Protocols
-    "SceneInspectionPort",
-    "SceneCleanupProtocol",
-    "SceneOperateProtocol",
-    # Unified VOs (merged request + response — no split classes)
-    "SceneCleanupVO",
-    "SceneInspectionVO",
-    # Scene State Summary VOs
-    "CameraInfoVO",
-    "LightInfoVO",
-    "CollectionSummaryVO",
-    "ProtectedObjectSummaryVO",
-    "SceneStateSummaryVO",
-    # Error VOs
-    "SceneStateError",
-    "ProtectionError",
-    "ValidationError",
-    "ConfirmationError",
-    "DelegatedDeletionError",
-    "CleanupTimeoutError",
-    "ConnectionError",
-    # Event VOs
-    "SceneInspectionCompletedEvent",
-    "SceneCleanupCompletedEvent",
-    "SceneCleanupDryRunCompletedEvent",
-    "SceneCleanupFailedEvent",
-    # Legacy
-    "SceneInfo",
+    "CLEANUP_CONFIRMATION_REQUIRED",
+    "CLEANUP_TIMEOUT_SECONDS",
+    "DEFAULT_CHILD_HANDLING_POLICY",
+    "DEFAULT_DEPENDENT_HANDLING_POLICY",
+    "DEFAULT_DRY_RUN_MODE",
+    "DEFAULT_INCLUDE_HIDDEN_OBJECTS",
+    "DEFAULT_PRESERVATION_LIST",
+    "INSPECTION_TIMEOUT_SECONDS",
+    "MAX_INSPECTION_DETAIL_LIMIT",
+    "PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA",
+    "PROTECTED_OBJECT_POLICY_LIGHTS",
+    "PROTECTED_OBJECT_POLICY_PROTECTED",
+    "PROTECTED_OBJECT_POLICY_SOLE_CAMERA",
 ]
