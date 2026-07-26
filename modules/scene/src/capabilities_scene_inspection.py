@@ -10,7 +10,7 @@ AES Capabilities layer — concrete implementation of SceneInspectProtocol.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
 from modules.shared.src.scene.contract_scene_inspect_protocol import SceneInspectProtocol

@@ -7,7 +7,6 @@ FR-GWY-005: Execute Raw Python Code
 - Does not manage background task lifecycle
 """
 
-import json
 import logging
 import time
 
@@ -19,8 +18,8 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     TimeoutError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionVO,
     CodeExecutionResultVO,
+    CodeExecutionVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")

@@ -15,16 +15,16 @@ import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ObjectCount, ObjectName, Prompt, SuccessFlag
 from modules.shared.src.scene.contract_scene_inspection import SceneInspectionPort
-from modules.shared.src.scene.taxonomy_scene_error_vo import ConnectionError
-from modules.shared.src.scene.taxonomy_scene_request_vo import (
+from modules.shared.src.scene.taxonomy_scene_command_vo import (
     CameraInfoVO,
-    SceneCleanupVO,
     CollectionSummaryVO,
-    SceneInspectionVO,
     LightInfoVO,
     ObjectType,
+    SceneCleanupVO,
+    SceneInspectionVO,
     SceneStateSummaryVO,
 )
+from modules.shared.src.scene.taxonomy_scene_error_vo import ConnectionError
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -325,17 +325,7 @@ class SceneInspectionAdapter(SceneInspectionPort):
             ])
 
         # Delete removable objects
-        if mode == "all":
-            lines.extend([
-                "",
-                "# Remove non-preserved objects",
-                "for obj in list(scene.objects):",
-                "    if obj.type not in ('CAMERA', 'LIGHT'):",
-                "        bpy.data.objects.remove(obj, do_unlink=True)",
-                "        removed_count += 1",
-                "        removed_refs.append(obj.name)",
-            ])
-        elif mode == "objects":
+        if mode == "all" or mode == "objects":
             lines.extend([
                 "",
                 "# Remove non-preserved objects",

@@ -14,8 +14,8 @@ from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    ConnectionStatusVO,
     ConnectionState,
+    ConnectionStatusVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")

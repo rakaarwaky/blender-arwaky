@@ -15,7 +15,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
 )
 from modules.shared.src.scene.contract_scene_cleanup_protocol import SceneCleanupProtocol
-from modules.shared.src.scene.taxonomy_scene_request_vo import SceneCleanupVO
+from modules.shared.src.scene.taxonomy_scene_command_vo import SceneCleanupVO
 
 logger = logging.getLogger("BlenderMCPServer")
 

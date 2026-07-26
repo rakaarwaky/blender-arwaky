@@ -9,8 +9,8 @@ Capability layer lives in modules/dispatcher/src/.
 Agent layer (DispatcherOrchestrator) implements Aggregate facade.
 """
 
+from .taxonomy_action_command_vo import ActionCommandVO
 from .taxonomy_action_metadata_vo import ActionMetadataVO
-from .taxonomy_action_request_vo import ActionCommandVO
 from .taxonomy_discovery_result_vo import DiscoveryResultVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_action_request_vo import ActionCommandVO
+from .taxonomy_action_command_vo import ActionCommandVO
 
 
 class RequestValidationProtocol(ABC):

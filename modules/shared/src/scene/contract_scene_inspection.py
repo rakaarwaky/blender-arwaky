@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import ObjectName, Prompt
-from .taxonomy_scene_request_vo import SceneCleanupVO, SceneInspectionVO
+from .taxonomy_scene_command_vo import SceneCleanupVO, SceneInspectionVO
 
 
 class SceneInspectionPort(ABC):

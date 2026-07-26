@@ -9,12 +9,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_scene_request_vo import (
+from .taxonomy_scene_command_vo import (
     SceneCleanupVO,
-    SceneCleanupVO,
-    SceneCleanupVO,
-    SceneInspectionVO,
-    SceneInspectionVO,
     SceneInspectionVO,
 )
 

@@ -14,7 +14,7 @@ from typing import Any
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
 )
-from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")

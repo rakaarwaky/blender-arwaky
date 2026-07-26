@@ -37,13 +37,11 @@ from .taxonomy_asset_vo import (
 )
 
 __all__ = [
-    # Constants
     "ASSET_TYPE_HDRIS",
     "ASSET_TYPE_MODELS",
     "ASSET_TYPE_TEXTURES",
     "PROVIDER_POLYHAVEN",
     "PROVIDER_SKETCHFAB",
-    # VOs
     "AssetMetadata",
     "AssetMetadataItem",
     "AssetMetadataVO",
@@ -55,19 +53,15 @@ __all__ = [
     "AssetImportBlenderVO",
     "ImportGlbVO",
     "ExportModelVO",
-    # Library/Marketplace VOs
     "LibraryAssetMetadata",
     "LibrarySearchResponse",
     "LibraryDownloadResult",
     "MarketplaceDownloadResult",
-    # Factories
     "create_asset_id",
     "create_provider_name",
-    # Contracts — Ports
     "AssetProviderPort",
     "PolyhavenApiPort",
     "SketchfabApiPort",
-    # Contracts — Protocols
     "AssetSearchProtocol",
     "AssetDownloadProtocol",
     "AssetExtractProtocol",

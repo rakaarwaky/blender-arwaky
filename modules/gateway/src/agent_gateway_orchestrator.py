@@ -6,24 +6,24 @@ scene queue, and code execution via individual protocol delegation.
 
 import logging
 
+from modules.shared.src.gateway.contract_code_execution_protocol import (
+    CodeExecutionProtocol,
+)
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
-from modules.shared.src.gateway.contract_transport_protocol import (
-    TransportProtocol,
-)
 from modules.shared.src.gateway.contract_scene_queue_protocol import (
     SceneQueueProtocol,
 )
-from modules.shared.src.gateway.contract_code_execution_protocol import (
-    CodeExecutionProtocol,
+from modules.shared.src.gateway.contract_transport_protocol import (
+    TransportProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionVO,
     CodeExecutionResultVO,
+    CodeExecutionVO,
     ConnectionResultVO,
     ConnectionStatusVO,
     QueueStatusVO,

@@ -14,12 +14,10 @@ from .taxonomy_render_vo import (
 )
 
 __all__ = [
-    # Protocols
     "CameraConfigProtocol",
     "HdriConfigProtocol",
     "RenderOperateProtocol",
     "ViewportCapturePort",
-    # VOs
     "CameraConfigVO",
     "CameraSetupVO",
     "GetScreenshotVO",

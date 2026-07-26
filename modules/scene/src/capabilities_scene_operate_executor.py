@@ -24,21 +24,12 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
 )
 from modules.shared.src.scene.contract_scene_operate_protocol import SceneOperateProtocol
-from modules.shared.src.scene.taxonomy_scene_error_vo import (
-    ConfirmationError,
-    ProtectionError,
-    ValidationError,
-)
-from modules.shared.src.scene.taxonomy_scene_event_vo import (
-    SceneCleanupCompletedEvent,
-    SceneInspectionCompletedEvent,
-)
-from modules.shared.src.scene.taxonomy_scene_request_vo import (
+from modules.shared.src.scene.taxonomy_scene_command_vo import (
     CameraInfoVO,
-    SceneCleanupVO,
     CollectionSummaryVO,
-    SceneInspectionVO,
     ObjectType,
+    SceneCleanupVO,
+    SceneInspectionVO,
     SceneStateSummaryVO,
 )
 
@@ -505,17 +496,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
         ])
 
         # Delete removable objects
-        if mode == "all":
-            lines.extend([
-                "",
-                "# Remove non-preserved objects",
-                "for obj in list(scene.objects):",
-                "    if obj.type not in ('CAMERA', 'LIGHT'):",
-                "        bpy.data.objects.remove(obj, do_unlink=True)",
-                "        removed_count += 1",
-                "        removed_refs.append(obj.name)",
-            ])
-        elif mode == "objects":
+        if mode == "all" or mode == "objects":
             lines.extend([
                 "",
                 "# Remove non-preserved objects",

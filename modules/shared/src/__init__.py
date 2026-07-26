@@ -248,7 +248,7 @@ from .dispatcher.contract_request_validation_protocol import RequestValidationPr
 from .dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-from .dispatcher.taxonomy_action_request_vo import ActionCommandVO
+from .dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from .dispatcher.taxonomy_discovery_result_vo import DiscoveryResultVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -376,12 +376,11 @@ from .scene.taxonomy_scene_info_vo import (
     RENDER_ENGINE_EEVEE,
     SceneInfo,
 )
-from .scene.taxonomy_scene_request_vo import (
-    SceneCleanupVO,
+from .scene.taxonomy_scene_command_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
-    SceneInspectionVO,
-    SetupEnvironmentVO,
+)
+from .scene.taxonomy_scene_vo import (
     SetupEnvironmentVO,
 )
 from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
@@ -406,14 +405,12 @@ from .telemetry.taxonomy_event_constant import (
 from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 __all__ = [
-    # Domain folders
     "common",
     "scene",
     "object",
     "render",
     "job",
     "telemetry",
-    # Core Value Objects
     "UserId",
     "SceneId",
     "AssetId",
@@ -496,7 +493,6 @@ __all__ = [
     "BBoxIntegers",
     "Details",
     "BlenderObjectList",
-    # Rich Value Objects
     "Vector3D",
     "BoundingBox",
     "AssetMetadata",
@@ -505,7 +501,6 @@ __all__ = [
     "ImportedAsset",
     "SceneInfo",
     "ApplicationConfig",
-    # Merged VOs
     "PlaceAssetVO",
     "GetObjectInfoVO",
     "SetObjectTransformVO",
@@ -526,10 +521,8 @@ __all__ = [
     "HdriSetupVO",
     "CameraConfigVO",
     "HdriConfigVO",
-    # Entities
     "BlenderObject",
     "JobStatus",
-    # Errors
     "BlenderMCPError",
     "DomainError",
     "SceneValidationError",
@@ -541,10 +534,8 @@ __all__ = [
     "ExecutionError",
     "BlenderConnectionFailure",
     "InvalidCommandError",
-    # Events
     "EventType",
     "TelemetryEvent",
-    # Constants
     "ASSET_TYPE_HDRIS",
     "ASSET_TYPE_TEXTURES",
     "ASSET_TYPE_MODELS",
@@ -578,13 +569,11 @@ __all__ = [
     "EVENT_TYPE_PROMPT_SENT",
     "EVENT_TYPE_CONNECTION",
     "EVENT_TYPE_ERROR",
-    # Factories
     "create_asset_id",
     "create_object_id",
     "create_job_id",
     "create_provider_name",
     "create_progress",
-    # Contracts — Protocols
     "SceneOperateProtocol",
     "ObjectOperateProtocol",
     "PlaceAssetProtocol",
@@ -610,7 +599,6 @@ __all__ = [
     "AssetProviderMetadataProtocol",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
-    # Contracts — Ports
     "CommandCatalogPort",
     "SceneInspectionPort",
     "ViewportCapturePort",
@@ -621,46 +609,36 @@ __all__ = [
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
-    # MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
     "ServerBootstrapManagerAggregate",
     "ServerDiscoveryProtocol",
     "ServerExecuteProtocol",
     "ServerHealthProtocol",
     "ServerResponseProtocol",
-    # CLI domain — Protocols (command routing, render output, error display)
     "CliCommandProtocol",
     "CliRenderProtocol",
     "CliErrorProtocol",
-    # Telemetry domain — Protocols (recording, classification, session, enrichment)
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
     "TelemetrySessionProtocol",
-    # Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
     "HealthCompositionProtocol",
     "MetricsCollectionProtocol",
     "AuditEmissionProtocol",
     "LoggingPolicyProtocol",
     "DiagnosticsSnapshotProtocol",
-    # Contracts — Aggregates
-    # Config domain — Aggregates
     "IConfigAggregate",
-    # Config domain — Protocols
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
     "IWorkspaceResolverProtocol",
     "ISettingsMetadataProtocol",
     "IRedactionRulesProtocol",
-    # Config domain — Value Objects
     "SettingsSnapshot",
     "WorkspacePath",
     "RedactionRule",
-    # Config domain — Events
     "SettingsLoadedEvent",
     "SettingsReloadEvent",
     "WorkspaceResolvedEvent",
     "SettingsValidationWarningEvent",
-    # Config domain — Constants
     "SENSITIVE_KEY_PATTERNS",
     "PROJECT_MARKERS",
     "MAX_CONFIG_SIZE_BYTES",
@@ -669,26 +647,22 @@ __all__ = [
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",
     "DEFAULT_POLICY_MODE",
-    # Dispatcher domain — Protocols
     "ActionDiscoveryProtocol",
     "BackgroundSubmitProtocol",
     "CatalogRegistrationProtocol",
     "RequestValidationProtocol",
     "ResultNormalizationProtocol",
     "SyncDispatchProtocol",
-    # Dispatcher domain — Value Objects
     "ActionMetadataVO",
     "ActionCommandVO",
     "DiscoveryResultVO",
     "UnifiedResultEnvelopeVO",
-    # Launcher domain — Protocols
     "LaunchProtocol",
     "LauncherOperateAggregate",
     "LocateRegisterProtocol",
     "PersistStateProtocol",
     "RuntimeStatusProtocol",
     "ShutdownProtocol",
-    # Launcher domain — Value Objects & Enums
     "ExecutableReferenceVO",
     "LauncherConfigVO",
     "LaunchResultVO",
@@ -702,13 +676,11 @@ __all__ = [
     "StatusCheckResultVO",
     "StatePersistenceResultVO",
     "VersionCompatibility",
-    # Gateway domain — Protocols
     "ConnectionProtocol",
     "ConnectionMaintenanceProtocol",
     "TransportProtocol",
     "SceneQueueProtocol",
     "CodeExecutionProtocol",
-    # Gateway domain — Errors
     "GatewayError",
     "ConnectionError",
     "TimeoutError",
@@ -718,7 +690,6 @@ __all__ = [
     "SecurityViolationError",
     "TransportParseError",
     "PayloadLimitError",
-    # Gateway domain — Value Objects & Enums
     "ConnectionState",
     "TransportType",
     "ConnectionConfigVO",

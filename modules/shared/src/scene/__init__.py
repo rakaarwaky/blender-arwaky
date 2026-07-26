@@ -1,24 +1,18 @@
-"""Scene domain — taxonomy types and contracts."""
+"""Scene domain — taxonomy types and contracts.
+
+Unified VOs (merged request + response — no split classes). No legacy Request/Response aliases.
+"""
 
 from .contract_scene_cleanup_protocol import SceneCleanupProtocol
 from .contract_scene_inspection import SceneInspectionPort
 from .contract_scene_operate_protocol import SceneOperateProtocol
-from .taxonomy_scene_info_vo import SceneInfo
-from .taxonomy_scene_request_vo import (
-    SceneCleanupVO,
-    SceneCleanupVO,
-    SceneCleanupVO,
-    SceneInspectionVO,
-    SceneInspectionVO,
-    SceneInspectionVO,
-)
-
-# Unified VOs (merged request + response — no split classes)
-from .taxonomy_scene_request_vo import (
+from .taxonomy_scene_command_vo import (
     CameraInfoVO,
     CollectionSummaryVO,
     LightInfoVO,
     ProtectedObjectSummaryVO,
+    SceneCleanupVO,
+    SceneInspectionVO,
     SceneStateSummaryVO,
 )
 
@@ -40,6 +34,7 @@ from .taxonomy_scene_event_vo import (
     SceneCleanupFailedEvent,
     SceneInspectionCompletedEvent,
 )
+from .taxonomy_scene_info_vo import SceneInfo
 
 __all__ = [
     # Protocols
@@ -55,14 +50,6 @@ __all__ = [
     "CollectionSummaryVO",
     "ProtectedObjectSummaryVO",
     "SceneStateSummaryVO",
-    # Legacy aliases (point to unified VOs)
-    "SceneCleanupVO",
-    "SceneCleanupVO",
-    "SceneCleanupVO",
-    "SceneInspectionVO",
-    "SceneInspectionVO",
-    "SceneInspectionVO",
-    "SceneInfo",
     # Error VOs
     "SceneStateError",
     "ProtectionError",
@@ -76,4 +63,6 @@ __all__ = [
     "SceneCleanupCompletedEvent",
     "SceneCleanupDryRunCompletedEvent",
     "SceneCleanupFailedEvent",
+    # Legacy
+    "SceneInfo",
 ]

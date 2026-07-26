@@ -60,23 +60,19 @@ from .taxonomy_config_vo import (
 from .utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
-    # Contracts — Protocols
     "IConfigAggregate",
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
     "IWorkspaceResolverProtocol",
     "ISettingsMetadataProtocol",
     "IRedactionRulesProtocol",
-    # Taxonomy — Value Objects
     "SettingsSnapshot",
     "WorkspacePath",
     "RedactionRule",
-    # Taxonomy — Events
     "SettingsLoadedEvent",
     "SettingsReloadEvent",
     "WorkspaceResolvedEvent",
     "SettingsValidationWarningEvent",
-    # Taxonomy — Constants
     "SENSITIVE_KEY_PATTERNS",
     "PROJECT_MARKERS",
     "MAX_CONFIG_SIZE_BYTES",
@@ -93,10 +89,8 @@ __all__ = [
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",
     "DEFAULT_POLICY_MODE",
-    # Utility
     "parse_env_value",
     "search_project_root",
-    # Taxonomy — Errors
     "ConfigError",
     "ConfigLoadError",
     "ConfigParseError",

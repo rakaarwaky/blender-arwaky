@@ -12,7 +12,7 @@ import logging
 from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )
-from modules.shared.src.dispatcher.taxonomy_action_request_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 
 logger = logging.getLogger("BlenderMCPServer")
 

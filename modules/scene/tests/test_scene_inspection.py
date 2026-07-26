@@ -11,19 +11,17 @@ from __future__ import annotations
 
 import pytest
 
+from modules.scene.src.capabilities_scene_operate_executor import SceneOperateExecutor
 from modules.shared.src.common.taxonomy_core_vo import (
     CleanupMode,
     ObjectCount,
     Prompt,
     SuccessFlag,
 )
-from modules.scene.src.capabilities_scene_operate_executor import SceneOperateExecutor
-from modules.shared.src.scene.taxonomy_scene_request_vo import (
+from modules.shared.src.scene.taxonomy_scene_command_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
-    SceneStateSummaryVO,
 )
-
 
 # ─── Mock Code Executor ──────────────────────────────────────
 

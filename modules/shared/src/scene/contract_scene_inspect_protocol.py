@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..common.taxonomy_core_vo import SuccessFlag
 from .taxonomy_scene_vo import SceneInspectionVO
 
 

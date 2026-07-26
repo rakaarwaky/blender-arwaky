@@ -15,18 +15,15 @@ from .taxonomy_job_state_constant import (
 from .taxonomy_job_status_entity import JobStatus
 
 __all__ = [
-    # Protocols
     "JobTrackerProtocol",
     "JobMonitorProtocol",
     "JobCancelProtocol",
     "JobCleanupProtocol",
-    # States
     "JOB_STATE_CANCELLED",
     "JOB_STATE_COMPLETED",
     "JOB_STATE_FAILED",
     "JOB_STATE_PENDING",
     "JOB_STATE_RUNNING",
     "JOB_STATE_TIMED_OUT",
-    # Entity
     "JobStatus",
 ]

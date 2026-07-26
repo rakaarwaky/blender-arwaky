@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_scene_request_vo import SceneCleanupVO
+from .taxonomy_scene_command_vo import SceneCleanupVO
 
 
 class SceneCleanupProtocol(ABC):

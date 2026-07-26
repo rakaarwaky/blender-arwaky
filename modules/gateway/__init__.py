@@ -10,11 +10,11 @@ Layers:
 """
 
 from .src.agent_gateway_orchestrator import GatewayOrchestrator
+from .src.capabilities_code_execution_executor import CodeExecutionExecutor
 from .src.capabilities_connection_executor import ConnectionExecutor
 from .src.capabilities_maintenance_executor import MaintenanceExecutor
-from .src.capabilities_transport_executor import TransportExecutor
 from .src.capabilities_scene_queue_executor import SceneQueueExecutor
-from .src.capabilities_code_execution_executor import CodeExecutionExecutor
+from .src.capabilities_transport_executor import TransportExecutor
 
 __all__ = [
     "GatewayOrchestrator",

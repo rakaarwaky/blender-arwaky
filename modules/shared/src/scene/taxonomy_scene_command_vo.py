@@ -14,23 +14,19 @@ Supports legacy aliases for backward compatibility.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from ..common.taxonomy_core_vo import (
-    BlenderObjectList,
     CleanupMode,
     CoordinateList,
     ObjectCount,
-    ObjectId,
     ObjectType,
     Prompt,
     ResolutionX,
     ResolutionY,
+    RotationVector,
     ScaleVector,
     SuccessFlag,
-    RotationVector,
 )
-
 
 # ─── Unified Operation VOs (merged request + response) ────────
 
@@ -190,6 +186,5 @@ class SceneStateSummaryVO:
 
     # Message
     message: str = ""
-
 
 

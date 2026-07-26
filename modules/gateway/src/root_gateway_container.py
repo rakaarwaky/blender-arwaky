@@ -4,11 +4,11 @@ Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
+from .capabilities_code_execution_executor import CodeExecutionExecutor
 from .capabilities_connection_executor import ConnectionExecutor
 from .capabilities_maintenance_executor import MaintenanceExecutor
-from .capabilities_transport_executor import TransportExecutor
 from .capabilities_scene_queue_executor import SceneQueueExecutor
-from .capabilities_code_execution_executor import CodeExecutionExecutor
+from .capabilities_transport_executor import TransportExecutor
 
 
 class GatewayContainer:

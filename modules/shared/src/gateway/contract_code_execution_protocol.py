@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import CodeExecutionVO, CodeExecutionResultVO
+from .taxonomy_gateway_vo import CodeExecutionResultVO, CodeExecutionVO
 
 
 class CodeExecutionProtocol(ABC):

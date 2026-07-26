@@ -285,4 +285,3 @@ class OperationState:
     failed: bool = False
     result: ExecutionResult | dict | str | None = None
     error: Exception | None = None
-

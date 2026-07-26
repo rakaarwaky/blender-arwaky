@@ -12,11 +12,11 @@ from .taxonomy_gateway_error import (
     TransportParseError,
 )
 from .taxonomy_gateway_vo import (
-    CodeExecutionVO,
     CodeExecutionResultVO,
-    ConnectionState,
+    CodeExecutionVO,
     ConnectionConfigVO,
     ConnectionResultVO,
+    ConnectionState,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationResultVO,
@@ -27,7 +27,6 @@ from .taxonomy_gateway_vo import (
 )
 
 __all__ = [
-    # Errors
     "GatewayError",
     "ConnectionError",
     "TimeoutError",
@@ -37,7 +36,6 @@ __all__ = [
     "SecurityViolationError",
     "TransportParseError",
     "PayloadLimitError",
-    # VOs
     "ConnectionState",
     "TransportType",
     "ConnectionConfigVO",
