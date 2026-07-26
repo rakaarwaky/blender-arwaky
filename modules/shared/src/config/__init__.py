@@ -10,21 +10,6 @@ from .contract_settings_metadata_protocol import ISettingsMetadataProtocol
 from .contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 
-# ─── Taxonomy: Value Objects ───────────────────────────────────
-from .taxonomy_config_vo import (
-    RedactionRule,
-    SettingsSnapshot,
-    WorkspacePath,
-)
-
-# ─── Taxonomy: Events ──────────────────────────────────────────
-from .taxonomy_config_event import (
-    SettingsLoadedEvent,
-    SettingsReloadEvent,
-    SettingsValidationWarningEvent,
-    WorkspaceResolvedEvent,
-)
-
 # ─── Taxonomy: Constants ───────────────────────────────────────
 from .taxonomy_config_constant import (
     CONFIG_PATH_ENV,
@@ -45,9 +30,6 @@ from .taxonomy_config_constant import (
     WORKSPACE_ROOT_ENV,
 )
 
-# ─── Utility ───────────────────────────────────────────────────
-from .utility_config_helpers import parse_env_value, search_project_root
-
 # ─── Taxonomy: Errors ──────────────────────────────────────────
 from .taxonomy_config_error import (
     ConfigError,
@@ -58,6 +40,24 @@ from .taxonomy_config_error import (
     ConfigTypeError,
     ConfigValidationError,
 )
+
+# ─── Taxonomy: Events ──────────────────────────────────────────
+from .taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
+)
+
+# ─── Taxonomy: Value Objects ───────────────────────────────────
+from .taxonomy_config_vo import (
+    RedactionRule,
+    SettingsSnapshot,
+    WorkspacePath,
+)
+
+# ─── Utility ───────────────────────────────────────────────────
+from .utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
     # Contracts — Protocols

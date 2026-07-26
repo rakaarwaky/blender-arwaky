@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.config.contract_settings_loader_protocol import ISettingsLoaderProtocol

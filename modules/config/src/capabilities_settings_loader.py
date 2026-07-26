@@ -14,8 +14,9 @@ import copy
 import os
 import threading
 import time
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ConfigMetadata,
@@ -152,7 +153,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         """Return metadata from the most recent successful load."""
         return self._last_metadata
 
-    def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:
+    def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:  # noqa: ARG002
         """Build a settings-loaded event from the most recent load metadata."""
         metadata = self._last_metadata
         return SettingsLoadedEvent(
@@ -163,7 +164,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             timestamp=Timestamp(time.time()),
         )
 
-    def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:
+    def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:  # noqa: ARG002
         """Build a settings-reload event from the most recent load metadata."""
         metadata = self._last_metadata
         return SettingsReloadEvent(

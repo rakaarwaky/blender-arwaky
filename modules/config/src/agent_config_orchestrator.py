@@ -10,12 +10,12 @@ since config has exactly 5 capabilities mapped 1:1 to FR-CFG-001..005.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections import deque
+from collections.abc import Mapping
 from dataclasses import asdict
-from typing import Any, Mapping
-
-import json
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate

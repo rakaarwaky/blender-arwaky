@@ -13,7 +13,7 @@ from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT
 from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
-from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot, _MISSING
+from modules.shared.src.config.taxonomy_config_vo import _MISSING, SettingsSnapshot
 from modules.shared.src.config.utility_config_helpers import parse_settings_path
 
 

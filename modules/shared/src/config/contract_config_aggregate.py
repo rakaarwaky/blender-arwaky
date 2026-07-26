@@ -10,7 +10,8 @@ Implemented by Agent layer (ConfigOrchestrator).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE

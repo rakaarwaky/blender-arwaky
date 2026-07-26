@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from ..common.taxonomy_core_vo import Details, ErrorString
 from ..common.taxonomy_domain_error import BlenderMCPError
 

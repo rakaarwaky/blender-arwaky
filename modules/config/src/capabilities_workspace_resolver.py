@@ -18,7 +18,6 @@ from modules.shared.src.config.taxonomy_config_constant import (
 from modules.shared.src.config.taxonomy_config_error import ConfigRootResolutionError
 from modules.shared.src.config.taxonomy_config_event import WorkspaceResolvedEvent
 from modules.shared.src.config.taxonomy_config_vo import WorkspacePath
-
 from modules.shared.src.config.utility_config_helpers import search_project_root
 
 

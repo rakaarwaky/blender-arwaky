@@ -9,15 +9,15 @@ from __future__ import annotations
 
 import copy
 import os
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import yaml
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.taxonomy_config_constant import (
     DEFAULT_CONFIG_FILENAME,
-    RESERVED_ENV_KEYS,
 )
 from modules.shared.src.config.taxonomy_config_error import ConfigParseError
 
