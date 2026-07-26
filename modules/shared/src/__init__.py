@@ -36,7 +36,6 @@ from .common.taxonomy_core_vo import (
     CapabilityRef,
     CleanupMode,
     ConfigPath,
-    ConfigValue,
     CoordinateList,
     CustomerUuid,
     Details,
@@ -316,6 +315,17 @@ from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
 from .mcp.contract_server_health_protocol import ServerHealthProtocol
 from .mcp.contract_server_response_protocol import ServerResponseProtocol
 
+# CLI domain — Protocols (command routing, render output, error display)
+from .cli.contract_cli_command_protocol import CliCommandProtocol
+from .cli.contract_cli_render_protocol import CliRenderProtocol
+from .cli.contract_cli_error_protocol import CliErrorProtocol
+
+# Telemetry domain — Protocols (recording, classification, session, enrichment)
+from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationProtocol
+from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
+from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
+from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
+
 __all__ = [
     # Domain folders
     "common",
@@ -523,6 +533,15 @@ __all__ = [
     "ServerExecuteProtocol",
     "ServerHealthProtocol",
     "ServerResponseProtocol",
+    # CLI domain — Protocols (command routing, render output, error display)
+    "CliCommandProtocol",
+    "CliRenderProtocol",
+    "CliErrorProtocol",
+    # Telemetry domain — Protocols (recording, classification, session, enrichment)
+    "TelemetryClassificationProtocol",
+    "TelemetryEnrichmentProtocol",
+    "TelemetryRecordingProtocol",
+    "TelemetrySessionProtocol",
     # Contracts — Aggregates
     # Config domain — Aggregates
     "IConfigAggregate",
