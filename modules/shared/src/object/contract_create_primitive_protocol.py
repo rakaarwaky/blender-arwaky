@@ -11,7 +11,10 @@ from .taxonomy_object_vo import CreatePrimitiveVO
 
 
 class CreatePrimitiveProtocol(ABC):
-    """Protocol interface for creating a basic geometric primitive."""
+    """Protocol interface for creating a basic geometric primitive.
+
+    FR-OBJ-002: Create Primitive
+    """
 
     @abstractmethod
     async def create_primitive(self, request: CreatePrimitiveVO) -> CreatePrimitiveVO:

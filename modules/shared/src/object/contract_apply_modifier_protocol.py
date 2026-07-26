@@ -11,7 +11,10 @@ from .taxonomy_object_vo import ApplyModifierVO
 
 
 class ApplyModifierProtocol(ABC):
-    """Protocol interface for adding, updating, removing, or applying a modifier."""
+    """Protocol interface for adding, updating, removing, or applying a modifier.
+
+    FR-OBJ-005: Manage Modifiers
+    """
 
     @abstractmethod
     async def apply_modifier(self, request: ApplyModifierVO) -> ApplyModifierVO:

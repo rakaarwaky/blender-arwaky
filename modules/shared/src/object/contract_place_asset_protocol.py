@@ -11,7 +11,10 @@ from .taxonomy_object_vo import PlaceAssetVO
 
 
 class PlaceAssetProtocol(ABC):
-    """Protocol interface for placing an asset or existing object in the scene."""
+    """Protocol interface for placing an asset or existing object in the scene.
+
+    FR-OBJ-001: Place Existing Object
+    """
 
     @abstractmethod
     async def place_asset(self, request: PlaceAssetVO) -> PlaceAssetVO:

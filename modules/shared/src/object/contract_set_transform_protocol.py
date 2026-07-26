@@ -11,7 +11,10 @@ from .taxonomy_object_vo import SetObjectTransformVO
 
 
 class SetObjectTransformProtocol(ABC):
-    """Protocol interface for modifying an object's transform."""
+    """Protocol interface for modifying an object's transform.
+
+    FR-OBJ-003: Set Transform
+    """
 
     @abstractmethod
     async def set_object_transform(self, request: SetObjectTransformVO) -> SetObjectTransformVO:

@@ -11,7 +11,10 @@ from .taxonomy_object_vo import GetObjectInfoVO
 
 
 class GetObjectInfoProtocol(ABC):
-    """Protocol interface for retrieving detailed object information."""
+    """Protocol interface for retrieving detailed object information.
+
+    FR-OBJ-007: Get Object Info
+    """
 
     @abstractmethod
     async def get_object_info(self, request: GetObjectInfoVO) -> GetObjectInfoVO:

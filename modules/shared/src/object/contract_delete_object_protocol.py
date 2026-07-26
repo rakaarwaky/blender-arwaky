@@ -11,7 +11,10 @@ from .taxonomy_object_vo import DeleteObjectVO
 
 
 class DeleteObjectProtocol(ABC):
-    """Protocol interface for removing an object from the scene."""
+    """Protocol interface for removing an object from the scene.
+
+    FR-OBJ-006: Delete Object
+    """
 
     @abstractmethod
     async def delete_object(self, request: DeleteObjectVO) -> DeleteObjectVO:

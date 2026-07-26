@@ -11,7 +11,10 @@ from .taxonomy_object_vo import SetMaterialVO
 
 
 class SetMaterialProtocol(ABC):
-    """Protocol interface for assigning or creating a material on an object."""
+    """Protocol interface for assigning or creating a material on an object.
+
+    FR-OBJ-004: Set Material
+    """
 
     @abstractmethod
     async def set_material(self, request: SetMaterialVO) -> SetMaterialVO:

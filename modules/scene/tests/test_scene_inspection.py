@@ -1,59 +1,329 @@
-"""TDD suite for FR-SCN-001 (Inspect Scene State).
+"""Enhanced TDD suite for FR-SCN-001 and FR-SCN-002.
 
-Exercises SceneInspector over an injected scene-state source. Verifies the
-operation is read-only and renders the required overview fields.
+Exercises SceneOperateExecutor over injected code execution. Verifies:
+- FR-SCN-001: Scene inspection with detail level, hidden objects filter
+- FR-SCN-002: Cleanup with preservation policy, dry-run, child/dependent handling
 
-RED → GREEN: targets SceneInspectProtocol + SceneInspector.
+Unified VO (merged request + response) — no split classes.
 """
 
 from __future__ import annotations
 
-from modules.scene.src.capabilities_scene_inspection import SceneInspector
-from modules.shared.src.common.taxonomy_core_vo import SuccessFlag
-from modules.shared.src.scene.taxonomy_scene_vo import GetSceneInfoVO
+import pytest
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    CleanupMode,
+    ObjectCount,
+    Prompt,
+    SuccessFlag,
+)
+from modules.scene.src.capabilities_scene_operate_executor import SceneOperateExecutor
+from modules.shared.src.scene.taxonomy_scene_request_vo import (
+    CleanupRequestVO,
+    InspectionRequestVO,
+    SceneStateSummaryVO,
+)
 
 
-def _sample_state() -> dict:
-    return {
-        "objects": [
-            {"name": "Cube", "type": "MESH", "visible": True},
-            {"name": "Cam", "type": "CAMERA", "visible": True},
-            {"name": "Lamp", "type": "LIGHT", "visible": True},
-            {"name": "HiddenSphere", "type": "MESH", "visible": False},
-        ],
-        "render_settings": {"resolution_x": 1920, "resolution_y": 1080},
-        "metadata": {"unit_scale": 1.0},
-    }
+# ─── Mock Code Executor ──────────────────────────────────────
 
 
-def test_fr_scn_001_returns_overview_fields():
-    cap = SceneInspector(state_source=_sample_state)
-    vo = cap.inspect_scene()
-    assert isinstance(vo, GetSceneInfoVO)
-    assert vo.success == SuccessFlag(True)
-    info = vo.scene_info
-    # object_count excludes hidden by default
-    assert info["object_count"] == 3
-    assert info["camera_list"] == ["Cam"]
-    assert info["light_list"] == ["Lamp"]
-    assert info["render_settings"]["resolution_x"] == 1920
-    assert info["metadata"]["unit_scale"] == 1.0
+class MockCodeExecutor:
+    """Mock code executor for testing scene operations."""
+
+    def __init__(self, inspection_result: dict | None = None, cleanup_result: dict | None = None) -> None:
+        self._inspection_result = inspection_result or {
+            "scene_name": "Scene",
+            "total_object_count": 4,
+            "visible_object_count": 3,
+            "hidden_object_count": 1,
+            "object_type_counts": {"MESH": 2, "CAMERA": 1, "LIGHT": 1},
+            "cameras": [{"name": "Cam", "type": "perspective"}],
+            "lights": [{"name": "Lamp", "light_type": "point"}],
+            "active_camera_name": "Cam",
+            "active_object_name": "Cube",
+            "render_engine": "CYCLES",
+            "resolution_x": 1920,
+            "resolution_y": 1080,
+            "frame_start": 1,
+            "frame_end": 250,
+            "unit_system": "METRIC",
+            "collections": [{"name": "Collection", "object_count": 4}],
+        }
+        self._cleanup_result = cleanup_result or {
+            "removed_count": 2,
+            "preserved_count": 2,
+            "skipped_count": 0,
+            "removed_refs": ["Cube", "Sphere"],
+            "preserved_refs": ["Cam", "Lamp"],
+            "skipped_refs": [],
+        }
+
+    async def __call__(self, code: Prompt) -> str:
+        """Return mock result based on whether code contains 'print(result)'."""
+        import json
+
+        if "removed_count" in code or "preserved_count" in code:
+            # Cleanup code
+            return json.dumps(self._cleanup_result)
+        else:
+            # Inspection code
+            return json.dumps(self._inspection_result)
 
 
-def test_fr_scn_001_include_hidden_toggles_count():
-    cap = SceneInspector(state_source=_sample_state)
-    vo = cap.inspect_scene(include_hidden=True)
-    assert vo.scene_info["object_count"] == 4
+# ─── FR-SCN-001: Inspect Scene State ─────────────────────────
 
 
-def test_fr_scn_001_full_detail_lists_objects():
-    cap = SceneInspector(state_source=_sample_state)
-    vo = cap.inspect_scene(detail_level="full", include_hidden=True)
-    assert len(vo.scene_info["objects"]) == 4
+@pytest.mark.asyncio
+async def test_fr_scn_001_returns_scene_state_summary():
+    """Test that scene inspection returns comprehensive state summary."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    request = InspectionRequestVO()
+    result = await executor.get_scene_info(request)
+
+    assert isinstance(result, InspectionRequestVO)
+    assert result.success == SuccessFlag(True)
+    assert result.scene_state_summary is not None
+    summary = result.scene_state_summary
+    assert summary.scene_name == "Scene"
+    assert summary.total_object_count == ObjectCount(4)
+    assert summary.visible_object_count == ObjectCount(3)
+    assert summary.hidden_object_count == ObjectCount(1)
+    assert summary.render_engine == "CYCLES"
 
 
-def test_fr_scn_001_failure_marks_unsuccessful():
-    cap = SceneInspector(state_source=lambda: (_ for _ in ()).throw(RuntimeError("boom")))
-    vo = cap.inspect_scene()
-    assert vo.success == SuccessFlag(False)
-    assert "boom" in str(vo.message)
+@pytest.mark.asyncio
+async def test_fr_scn_001_handles_detail_level():
+    """Test that inspection respects detail level setting."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    request = InspectionRequestVO(detail_level="detailed")
+    result = await executor.get_scene_info(request)
+
+    assert result.success == SuccessFlag(True)
+    assert result.detail_level == "detailed"
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_001_handles_empty_scene():
+    """Test that inspection handles empty scene gracefully."""
+    import json
+
+    class EmptyExecutor:
+        async def __call__(self, code: Prompt) -> str:
+            return json.dumps({
+                "scene_name": "EmptyScene",
+                "total_object_count": 0,
+                "visible_object_count": 0,
+                "hidden_object_count": 0,
+                "object_type_counts": {},
+                "cameras": [],
+                "lights": [],
+                "active_camera_name": "",
+                "active_object_name": "",
+                "render_engine": "CYCLES",
+                "resolution_x": 1920,
+                "resolution_y": 1080,
+                "frame_start": 1,
+                "frame_end": 250,
+                "unit_system": "METRIC",
+                "collections": [],
+            })
+
+    executor = SceneOperateExecutor(EmptyExecutor())
+    request = InspectionRequestVO()
+    result = await executor.get_scene_info(request)
+
+    assert result.success == SuccessFlag(True)
+    assert result.scene_state_summary is not None
+    assert result.scene_state_summary.total_object_count == ObjectCount(0)
+
+
+# ─── FR-SCN-002: Cleanup Scene Objects ──────────────────────
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_cleanup_with_preservation():
+    """Test that cleanup preserves cameras and lights by default."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    request = CleanupRequestVO(
+        mode=CleanupMode("all"),
+        preservation_list=("camera", "light"),
+    )
+    result = await executor.cleanup_scene(request)
+
+    assert isinstance(result, CleanupRequestVO)
+    assert result.success == SuccessFlag(True)
+    assert result.removed_count == ObjectCount(2)
+    assert result.preserved_count == ObjectCount(2)
+    assert "Cam" in result.preserved_object_references
+    assert "Lamp" in result.preserved_object_references
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_dry_run_does_not_mutate():
+    """Test that dry-run cleanup returns preview without modifying scene."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    request = CleanupRequestVO(
+        mode=CleanupMode("all"),
+        dry_run=True,
+    )
+    result = await executor.cleanup_scene(request)
+
+    assert isinstance(result, CleanupRequestVO)
+    assert result.success == SuccessFlag(True)
+    assert result.dry_run == True
+    assert result.removed_count == ObjectCount(0)  # dry-run doesn't actually remove
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_confirmation_required():
+    """Test that destructive cleanup requires confirmation."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    request = CleanupRequestVO(
+        mode=CleanupMode("all"),
+        dry_run=False,
+        confirmation=False,
+    )
+    result = await executor.cleanup_scene(request)
+
+    assert isinstance(result, CleanupRequestVO)
+    assert result.success == SuccessFlag(False)
+    assert "Confirmation error" in str(result.message)
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_validation_error():
+    """Test that invalid cleanup mode returns validation error."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    # Invalid mode
+    request = CleanupRequestVO(mode=CleanupMode("invalid_mode"))
+    result = await executor.cleanup_scene(request)
+
+    assert isinstance(result, CleanupRequestVO)
+    assert result.success == SuccessFlag(False)
+    assert "Validation error" in str(result.message)
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_cleanup_modes():
+    """Test different cleanup modes (all, objects, meshes)."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    for mode in ["all", "objects", "meshes"]:
+        request = CleanupRequestVO(mode=CleanupMode(mode))
+        result = await executor.cleanup_scene(request)
+        assert isinstance(result, CleanupRequestVO)
+        assert result.success == SuccessFlag(True)
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_child_handling_policy():
+    """Test that child handling policy is validated."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    # Valid policy
+    request = CleanupRequestVO(child_handling_policy="detach")
+    result = await executor.cleanup_scene(request)
+    assert result.success == SuccessFlag(True)
+
+    # Invalid policy
+    request = CleanupRequestVO(child_handling_policy="invalid")
+    result = await executor.cleanup_scene(request)
+    assert result.success == SuccessFlag(False)
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_dependent_handling_policy():
+    """Test that dependent handling policy is validated."""
+    mock = MockCodeExecutor()
+    executor = SceneOperateExecutor(mock)
+
+    # Valid policy
+    request = CleanupRequestVO(dependent_handling_policy="reject")
+    result = await executor.cleanup_scene(request)
+    assert result.success == SuccessFlag(True)
+
+    # Invalid policy
+    request = CleanupRequestVO(dependent_handling_policy="invalid")
+    result = await executor.cleanup_scene(request)
+    assert result.success == SuccessFlag(False)
+
+
+# ─── Edge Cases ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_001_missing_active_camera():
+    """Test that inspection handles missing active camera gracefully."""
+    import json
+
+    class NoCameraExecutor:
+        async def __call__(self, code: Prompt) -> str:
+            data = dict(MockCodeExecutor()._inspection_result) if hasattr(MockCodeExecutor(), '_inspection_result') else {
+                "scene_name": "Scene",
+                "total_object_count": 1,
+                "visible_object_count": 1,
+                "hidden_object_count": 0,
+                "object_type_counts": {"MESH": 1},
+                "cameras": [],
+                "lights": [],
+                "active_camera_name": "",
+                "active_object_name": "Cube",
+                "render_engine": "CYCLES",
+                "resolution_x": 1920,
+                "resolution_y": 1080,
+                "frame_start": 1,
+                "frame_end": 250,
+                "unit_system": "METRIC",
+                "collections": [],
+            }
+            return json.dumps(data)
+
+    executor = SceneOperateExecutor(NoCameraExecutor())
+    request = InspectionRequestVO()
+    result = await executor.get_scene_info(request)
+
+    assert result.success == SuccessFlag(True)
+    assert result.scene_state_summary is not None
+    assert result.scene_state_summary.active_camera_name == ""
+
+
+@pytest.mark.asyncio
+async def test_fr_scn_002_cleanup_partial_failure():
+    """Test that partial failure is reported clearly."""
+    import json
+
+    class PartialFailureExecutor:
+        async def __call__(self, code: Prompt) -> str:
+            return json.dumps({
+                "removed_count": 1,
+                "preserved_count": 2,
+                "skipped_count": 1,
+                "removed_refs": ["Cube"],
+                "preserved_refs": ["Cam", "Lamp"],
+                "skipped_refs": ["ProtectedSphere"],
+            })
+
+    executor = SceneOperateExecutor(PartialFailureExecutor())
+    request = CleanupRequestVO(mode=CleanupMode("all"))
+    result = await executor.cleanup_scene(request)
+
+    assert isinstance(result, CleanupRequestVO)
+    assert result.success == SuccessFlag(True)
+    assert result.removed_count == ObjectCount(1)
+    assert result.skipped_count == ObjectCount(1)
+    assert "ProtectedSphere" in result.skipped_object_references

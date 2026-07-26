@@ -6,7 +6,7 @@ Wires capabilities together per FR-JOB requirements.
 
 import logging
 
-from modules.shared.src.job.contract_job_status_entity import JobStatus
+from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
