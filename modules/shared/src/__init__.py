@@ -380,9 +380,6 @@ from .scene.taxonomy_scene_command_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
 )
-from .scene.taxonomy_scene_vo import (
-    SetupEnvironmentVO,
-)
 from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
 
 # Telemetry domain — Protocols (recording, classification, session, enrichment)

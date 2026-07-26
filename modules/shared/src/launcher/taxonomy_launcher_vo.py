@@ -167,30 +167,6 @@ class StatePersistenceOutcomeVO:
 
 
 # ============================================================
-# FR-LAU-005: Persist Runtime State
-# ============================================================
-
-@dataclass(frozen=True)
-class RuntimeStateVO:
-    """Persisted runtime state record."""
-
-    executable_path: str = ""
-    process_id: int | None = None
-    launch_timestamp: float = 0.0
-    bridge_endpoint: str | None = None
-    last_status: RuntimeState = RuntimeState.NOT_RUNNING
-
-
-@dataclass(frozen=True)
-class PersistenceOutcomeVO:
-    """Unified persistence result — input and output in one VO."""
-
-    success: bool = False
-    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
-    reconciled: bool = False
-
-
-# ============================================================
 # Launcher Configuration
 # ============================================================
 

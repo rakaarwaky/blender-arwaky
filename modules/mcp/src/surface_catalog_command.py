@@ -64,8 +64,3 @@ class CommandCatalogSurfaceHandler:
         return list_commands_tool
 
 
-# Module-level aliases for backward compatibility
-list_commands = CommandCatalogSurfaceHandler.list_commands
-filter_by_domain = CommandCatalogSurfaceHandler.filter_by_domain
-get_actions_by_capability = CommandCatalogSurfaceHandler.get_actions_by_capability
-register_command_catalog = CommandCatalogSurfaceHandler.register_command_catalog

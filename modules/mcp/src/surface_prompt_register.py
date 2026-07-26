@@ -76,5 +76,4 @@ def get_text_to_scene_orchestrator_prompt():
     return _get()
 
 
-asset_creation_strategy = PromptHandlerModule.asset_creation_strategy
 register_prompts = PromptHandlerModule.register_prompts
