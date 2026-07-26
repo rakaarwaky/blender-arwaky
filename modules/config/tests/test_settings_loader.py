@@ -136,12 +136,12 @@ def test_oversized_v2_on_permissive_skips():
 @pytest.mark.unit
 def test_oversized_v2_off_parses():
     d = tempfile.mkdtemp()
-    cfg = os.path if False else os.path.join(d, "config.yaml")
+    cfg = os.path.join(d, "config.yaml")
     big = "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n"
     _write(cfg, big)
     loader = SettingsLoaderCapability(policy_mode="strict", config_v2_enabled=False)
     snap = loader.load_settings(ConfigPath(cfg))
-    assert "x" in snap.get("x") or snap.get("x")  # value present (flag regression)
+    assert snap.get("x")  # value present (flag regression)
 
 
 @pytest.mark.unit
@@ -190,7 +190,7 @@ def test_overrides_v2_off_ignored_with_warning():
 
 
 @pytest.mark.unit
-def test_reserved_keys_not_applied():
+def test_reserved_keys_not_applied(monkeypatch):
     loader = SettingsLoaderCapability()
     monkeypatch.setenv("BLENDERMCPCONFIGPATH", "/x")  # reserved
     snap = loader.load_settings()

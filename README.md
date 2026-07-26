@@ -100,8 +100,9 @@ server:
 | Env Var | Description |
 |---------|-------------|
 | `BLENDERMCP_CONFIG_PATH` | Override config.yaml path |
-| `BLENDER_HOST` | Override Blender host |
-| `BLENDER_PORT` | Override Blender port |
+| `BLENDERMCP_BLENDER.HOST` | Override Blender host |
+| `BLENDERMCP_BLENDER.PORT` | Override Blender port |
+| `BLENDERMCP_CONFIG_V2` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
 
 ## Testing
 

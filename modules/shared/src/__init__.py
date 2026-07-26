@@ -6,12 +6,14 @@ Organized by domain:
 - render/: Render domain
 - job/: Job domain VOs
 - telemetry/: Telemetry domain
+- diagnostics/: Diagnostics observability protocols
 """
 
 from . import (
     asset,
     common,
     config,
+    diagnostics,
     job,
     object,
     render,
@@ -242,6 +244,8 @@ from .asset.taxonomy_asset_vo import (
     AssetDownloadCacheVO,
     AssetExtractArchiveVO,
     AssetImportBlenderVO,
+    AssetMetadataItem,
+    AssetMetadataVO,
     AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
@@ -309,7 +313,7 @@ from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
 from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
 
 # MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
-from .mcp.contract_server_bootstrap import ServerBootstrapManagerAggregate
+from modules.mcp.src.contract_server_bootstrap import ServerBootstrapManagerAggregate
 from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
 from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
 from .mcp.contract_server_health_protocol import ServerHealthProtocol
@@ -549,6 +553,12 @@ __all__ = [
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
     "TelemetrySessionProtocol",
+    # Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
+    "HealthCompositionProtocol",
+    "MetricsCollectionProtocol",
+    "AuditEmissionProtocol",
+    "LoggingPolicyProtocol",
+    "DiagnosticsSnapshotProtocol",
     # Contracts — Aggregates
     # Config domain — Aggregates
     "IConfigAggregate",

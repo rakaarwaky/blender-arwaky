@@ -67,19 +67,22 @@ Config is the only feature that loads settings. No other feature reads config fi
   - Arbitrary object instantiation from settings content is forbidden
   - Settings file must be UTF-8 encoded
   - Missing settings file is not fatal by default and falls back to environment and defaults
+  - Missing settings file is never fatal in any policy mode (Q6): a missing settings file falls back to environment and defaults without raising
   - Malformed settings content raises configuration error in strict mode
   - Malformed settings content logs warning and falls back safely in permissive mode
   - Schema violation raises validation error in strict mode
   - Schema violation logs warning and continues where safe in permissive mode
+  - Schema is a Python-native mapping (SETTINGS_SCHEMA); unknown keys produce warnings; type/required violations are errors.
   - Environment values are converted to typed values when safely detectable:
     - boolean-like values become boolean
     - integer-like values become integer
     - float-like values become float
     - null-like values become empty value
-    - list-like or mapping-like values may be parsed when safely detectable
     - otherwise values remain text
+  - Environment values are scalar-only (Q7): list-like or mapping-like values are NOT parsed and remain strings
   - Environment overrides use product-specific prefix and deterministic nested key convention
   - Legacy environment prefix may be accepted as fallback for backward compatibility
+  - Legacy environment prefix BLENDER_MCP_ was removed in v1.7.0 (BREAKING). Only the BLENDERMCP_ prefix is recognized.
   - Settings snapshot must be immutable after successful load
   - Settings snapshot must be cached after first successful load
   - Reload must replace snapshot atomically under synchronization
