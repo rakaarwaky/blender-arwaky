@@ -16,6 +16,7 @@ from modules.shared.src.server import (
     BlenderConnectionFailure,
     CommandResult,
     CommandTimeoutError,
+    ConnectionClosedError,
     ConnectionConfig,
     ConnectionStatus,
     ExecutionErrorDetail,
@@ -34,9 +35,6 @@ from modules.shared.src.server import (
 
 from modules.shared.src.server import (
     CONNECTION_STATE_CONNECTED,
-    CONNECTION_STATE_DISCONNECTED,
-    CONNECTION_STATE_FAILED,
-    CONNECTION_STATE_RECONNECTING,
 )
 
 logger = logging.getLogger("BlenderMCPServer")

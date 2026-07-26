@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..common.taxonomy_domain_error import ValidationError
+from .taxonomy_server_error import ValidationError
 from .taxonomy_server_vo import ServerCommandSpec
 
 # ─── Command Catalog ──────────────────────────────────────────────

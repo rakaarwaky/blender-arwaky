@@ -24,6 +24,7 @@ from modules.shared.src.server import (
     IBlenderConnectionProtocol,
     ICodeExecutionProtocol,
     IEventPublisher,
+    SecurityViolationError,
     TaskCancelled,
     TaskCompleted,
     TaskCreated,

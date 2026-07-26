@@ -16,6 +16,7 @@ from modules.shared.src.server import (
     IEventPublisher,
     IOperationQueueProtocol,
     OperationRejected,
+    OperationWaitTimeoutError,
     TooManyPendingOperationsError,
 )
 

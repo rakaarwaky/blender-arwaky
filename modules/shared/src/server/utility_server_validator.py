@@ -98,11 +98,13 @@ def validate_code_ast(code: str, policy: CodeSecurityPolicy | None = None) -> No
             details={"rule": "syntax_error", "line": e.lineno},
         ) from e
 
+    allowed_dirs = set(policy.allowed_directories) if policy else set()
+
     for node in ast.walk(tree):
-        _check_node(node)
+        _check_node(node, allowed_dirs)
 
 
-def _check_node(node: ast.AST) -> None:
+def _check_node(node: ast.AST, allowed_dirs: set[str]) -> None:
     """Check a single AST node for blocked patterns."""
     # Check imports
     if isinstance(node, ast.Import):
@@ -126,12 +128,16 @@ def _check_node(node: ast.AST) -> None:
     # Check function calls and attribute access
     elif isinstance(node, ast.Call):
         func = node.func
-        # Direct function call: eval(), exec(), etc.
-        if isinstance(func, ast.Name) and func.id in _BLOCKED_FUNCTIONS:
-            raise SecurityViolationError(
-                message=f"Blocked function call: {func.id}()",
-                details={"rule": "blocked_function_call", "function": func.id},
-            )
+        # Direct function call: eval(), exec(), open(), etc.
+        if isinstance(func, ast.Name):
+            if func.id in _BLOCKED_FUNCTIONS:
+                raise SecurityViolationError(
+                    message=f"Blocked function call: {func.id}()",
+                    details={"rule": "blocked_function_call", "function": func.id},
+                )
+            # Check open() with write mode — validate against allowed directories
+            if func.id == "open":
+                _check_file_write(node, allowed_dirs)
         # Attribute call: os.system(), getattr(...), etc.
         elif isinstance(func, ast.Attribute):
             if func.attr in _BLOCKED_FUNCTIONS:
@@ -139,9 +145,9 @@ def _check_node(node: ast.AST) -> None:
                     message=f"Blocked method call: .{func.attr}()",
                     details={"rule": "blocked_function_call", "function": func.attr},
                 )
-            # Check open() with write mode — validate against allowed directories
+            # Check .open() with write mode — validate against allowed directories
             if func.attr == "open":
-                _check_file_write(node)
+                _check_file_write(node, allowed_dirs)
 
     # Check attribute access (dunder methods, etc.)
     elif isinstance(node, ast.Attribute):
@@ -152,20 +158,18 @@ def _check_node(node: ast.AST) -> None:
             )
 
 
-def _check_file_write(call_node: ast.Call) -> None:
+def _check_file_write(call_node: ast.Call, allowed_dirs: set[str]) -> None:
     """Check open() calls for write mode against allowed directories.
 
     Read-only open is always allowed. Write operations must be inside
-    an allowed directory (literal path only).
+    an allowed directory (literal path only). Dynamic paths always rejected.
     """
+    import os
+
     mode_val = ""
     path_arg = None
 
     # Extract path and mode from open(path, mode) or open(path, mode=...)
-    if len(call_node.args) >= 2:
-        path_arg = call_node.args[1]  # Wait, open(path, mode) — args[0] is path, args[1] is mode
-        pass
-
     # Correct: open(path, mode) — args[0] is path
     if call_node.args:
         path_arg = call_node.args[0]
@@ -182,9 +186,19 @@ def _check_file_write(call_node: ast.Call) -> None:
     if any(m in mode_val for m in _WRITE_MODES):
         # If path is a string literal, check against allowed directories
         if isinstance(path_arg, ast.Constant) and isinstance(path_arg.value, str):
+            file_path = path_arg.value
+            normalized = os.path.normpath(os.path.abspath(file_path))
+
+            # Check if path is inside any allowed directory
+            for allowed_dir in allowed_dirs:
+                normalized_allowed = os.path.normpath(os.path.abspath(allowed_dir))
+                if normalized.startswith(normalized_allowed + os.sep) or normalized == normalized_allowed:
+                    return  # Path is inside allowed directory — permit
+
+            # Path not inside any allowed directory
             raise SecurityViolationError(
-                message=f"File write to '{path_arg.value}' — path must be inside allowed directory",
-                details={"rule": "file_write_outside_allowed_directory", "path": path_arg.value},
+                message=f"File write to '{file_path}' — path must be inside allowed directory",
+                details={"rule": "file_write_outside_allowed_directory", "path": file_path},
             )
         elif path_arg is not None:
             # Dynamic path — always reject

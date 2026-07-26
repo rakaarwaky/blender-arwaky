@@ -25,6 +25,7 @@ from modules.shared.src.server import (
     ConnectionEstablished,
     ConnectionLost,
     ConnectionState,
+    ConnectionStatus,
     DEFAULT_PROTOCOL_VERSION,
     HEARTBEAT_FAILURE_THRESHOLD,
     HEARTBEAT_INTERVAL_SECONDS,
@@ -34,6 +35,7 @@ from modules.shared.src.server import (
 )
 
 from modules.shared.src.server import (
+    CONNECTION_STATE_CLOSED,
     CONNECTION_STATE_CONNECTED,
     CONNECTION_STATE_DISCONNECTED,
     CONNECTION_STATE_FAILED,

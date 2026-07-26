@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from modules.shared.src.server import (
     CodeExecuted,
+    CodeExecutionFailed,
     CommandDispatched,
     CommandFailed,
     CommandTimedOut,

@@ -70,7 +70,6 @@ class ServerContainer:
         self._event_bus.subscribe(self._metrics)
 
         # 3. Build connection
-        from modules.shared.src.server import ConnectionConfig
         conn = self._build_connection(self._event_bus)
 
         # 4. Build operation queue
