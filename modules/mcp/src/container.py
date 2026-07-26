@@ -18,11 +18,10 @@ def get_container() -> Any:
 
 def _create_container() -> Any:
     """Create and wire the DI container."""
-    from modules.server.src.capabilities_blender_connection import BlenderConnectionFactory
-    from modules.config.src.contract_config import ConfigPort
     from modules.config.src.utility_config_loader import get_config
+    from modules.server.src.capabilities_blender_connection import BlenderConnection
 
     config = get_config
-    blender_factory = BlenderConnectionFactory(config=config)
+    blender_conn = BlenderConnection.create_from_config(config=config)
 
-    return {"blender_factory": blender_factory, "config": config}
+    return {"blender_connection": blender_conn, "config": config}

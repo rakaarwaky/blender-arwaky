@@ -1,8 +1,8 @@
-"""Capability: Code execution with AST-based validation and safety checks.
+"""Capability: Code execution with AST-based validation, safety checks, and async task management.
 
-Implements ICodeExecutionProtocol — handles Python code validation via
+Implements ICodeExecutionProtocol & ITaskManagerProtocol — handles Python code validation via
 AST analysis, socket-based execution forwarding, payload size enforcement,
-output truncation, and result formatting per FR-SRV-002.
+output truncation, result formatting, and async task lifecycle tracking per FR-SRV-002.
 """
 
 from __future__ import annotations
@@ -11,10 +11,11 @@ import ast
 import asyncio
 import logging
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ActionName, ErrorMessage, Prompt
-from modules.shared.src.common.taxonomy_domain_error import SecurityViolationError, ValidationError
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
 from modules.shared.src.server import (
     DEFAULT_TASK_RETENTION_SECONDS,
     MAX_CODE_PAYLOAD_BYTES,
@@ -22,7 +23,12 @@ from modules.shared.src.server import (
     ExecutionStatus,
     IBlenderConnectionProtocol,
     ICodeExecutionProtocol,
+    ITaskManagerProtocol,
+    SecurityViolationError,
+    TaskManagerConfig,
     TaskNotFoundError,
+    TaskState,
+    TaskStatus,
     check_payload_size,
 )
 
@@ -49,6 +55,15 @@ _BLOCKED_MODULES: set[str] = {
     "urllib",
 }
 
+@dataclass
+class TaskEntry:
+    """Internal mutable state for a tracked task."""
+
+    task_id: str
+    state: TaskState
+    result: ExecutionResult | None = None
+    created_at: float = field(default_factory=time.monotonic)
+    completed_at: float | None = None
 
 class CodeExecutionAdapter(ICodeExecutionProtocol):
     """Code execution with AST-based validation and socket forwarding."""
@@ -76,7 +91,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         check_payload_size(code_str, MAX_CODE_PAYLOAD_BYTES)
 
         # AST-based validation (FR-SRV-002 requirement)
-        _validate_code_ast(code_str)
+        self._validate_code_ast(code_str)
 
         # Audit log — record all code execution attempts
         logger.info(
@@ -120,7 +135,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
 
     async def submit_async_task(self, code: str, request_id: str) -> dict[str, Any]:
         """Submit long-running code for async execution. Returns task_id and status."""
-        _validate_code_ast(code)
+        self._validate_code_ast(code)
 
         task_id = f"task_{request_id}_{int(time.monotonic() * 1000) % 1000000:06d}"
         self._tasks[task_id] = {
@@ -135,32 +150,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         asyncio.ensure_future(self._run_async_task(task_id, code))
 
         return {"task_id": task_id, "status": "pending"}
-
-    async def _run_async_task(self, task_id: str, code: str) -> None:
-        """Execute async task in background."""
-        task = self._tasks.get(task_id)
-        if task:
-            task["state"] = "running"
-
-        try:
-            loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: self._connection_port.send_command(
-                    ActionName("execute_code"), {"code": code}
-                ),
-            )
-            task = self._tasks.get(task_id)
-            if task:
-                task["state"] = "success"
-                task["result"] = result
-                task["completed_at"] = time.monotonic()
-        except Exception as e:
-            task = self._tasks.get(task_id)
-            if task:
-                task["state"] = "error"
-                task["result"] = {"error": str(e)}
-                task["completed_at"] = time.monotonic()
 
     async def poll_task_result(self, task_id: str, request_id: str = "") -> ExecutionResult:
         """Poll async task status and final result."""
@@ -200,53 +189,163 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
     def __repr__(self) -> str:
         return "CodeExecutionAdapter()"
 
+    async def _run_async_task(self, task_id: str, code: str) -> None:
+        """Execute async task in background."""
+        task = self._tasks.get(task_id)
+        if task:
+            task["state"] = "running"
 
-def _validate_code_ast(code: str) -> None:
-    """AST-based static analysis for blocked Python constructs.
-
-    Implements FRD-SRV-002: code validated before sending using
-    AST-based static analysis, not only regex or simple string matching.
-
-    Raises SecurityViolationError if any blocked pattern is detected.
-    Server-side validation is a pre-filter only; Blender addon must
-    perform runtime enforcement as the final authority.
-    """
-    try:
-        tree = ast.parse(code)
-    except SyntaxError as e:
-        raise ValidationError(ErrorMessage(f"Invalid syntax in submitted code: {e}")) from e
-
-    for node in ast.walk(tree):
-        # Check attribute calls (e.g., os.system, subprocess.Popen)
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr in _BLOCKED_ATTRS
-        ):
-            raise SecurityViolationError(
-                ErrorMessage(f"Blocked construct detected: {node.func.attr}")
+        try:
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self._connection_port.send_command(
+                    ActionName("execute_code"), {"code": code}
+                ),
             )
+            task = self._tasks.get(task_id)
+            if task:
+                task["state"] = "success"
+                task["result"] = result
+                task["completed_at"] = time.monotonic()
+        except Exception as e:
+            task = self._tasks.get(task_id)
+            if task:
+                task["state"] = "error"
+                task["result"] = {"error": str(e)}
+                task["completed_at"] = time.monotonic()
 
-        # Check module imports
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name in _BLOCKED_MODULES:
-                        raise SecurityViolationError(
-                            ErrorMessage(f"Blocked module import: {alias.name}")
-                        )
-            elif isinstance(node, ast.ImportFrom) and node.module and node.module in _BLOCKED_MODULES:
+    @staticmethod
+    def _validate_code_ast(code: str) -> None:
+        """AST-based static analysis for blocked Python constructs.
+
+        Implements FRD-SRV-002: code validated before sending using
+        AST-based static analysis, not only regex or simple string matching.
+
+        Raises SecurityViolationError if any blocked pattern is detected.
+        Server-side validation is a pre-filter only; Blender addon must
+        perform runtime enforcement as the final authority.
+        """
+        try:
+            tree = ast.parse(code)
+        except SyntaxError as e:
+            raise ValidationError(ErrorMessage(f"Invalid syntax in submitted code: {e}")) from e
+
+        for node in ast.walk(tree):
+            # Check attribute calls (e.g., os.system, subprocess.Popen)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in _BLOCKED_ATTRS
+            ):
                 raise SecurityViolationError(
-                    ErrorMessage(f"Blocked module import: {node.module}")
+                    ErrorMessage(f"Blocked construct detected: {node.func.attr}")
                 )
 
-        # Check eval/exec/compile/__import__ calls
-        if isinstance(node.func, ast.Name) and node.func.id in (
-            "eval",
-            "exec",
-            "compile",
-            "__import__",
-        ):
-            raise SecurityViolationError(
-                ErrorMessage(f"Blocked function call: {node.func.id}")
+            # Check module imports
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name in _BLOCKED_MODULES:
+                            raise SecurityViolationError(
+                                ErrorMessage(f"Blocked module import: {alias.name}")
+                            )
+                elif isinstance(node, ast.ImportFrom) and node.module and node.module in _BLOCKED_MODULES:
+                    raise SecurityViolationError(
+                        ErrorMessage(f"Blocked module import: {node.module}")
+                    )
+
+            # Check eval/exec/compile/__import__ calls
+            if isinstance(node.func, ast.Name) and node.func.id in (
+                "eval",
+                "exec",
+                "compile",
+                "__import__",
+            ):
+                raise SecurityViolationError(
+                    ErrorMessage(f"Blocked function call: {node.func.id}")
+                )
+
+
+class TaskManager(ITaskManagerProtocol):
+    """In-memory store for async task lifecycle management."""
+
+    # ─── Block 1: Class Definition & Constructor ──────────────
+    def __init__(self, config: TaskManagerConfig | None = None) -> None:
+        self._config = config or TaskManagerConfig()
+        self._tasks: dict[str, TaskEntry] = {}
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
+    def create_task(self, request_id: str) -> str:
+        task_id = f"task_{request_id}_{int(time.monotonic() * 1000) % 1000000:06d}"
+        self._tasks[task_id] = TaskEntry(task_id=task_id, state="pending")
+        logger.info("Created task %s", task_id)
+        self._cleanup_expired()
+        return task_id
+
+    def get_task(self, task_id: str) -> TaskStatus:
+        entry = self._tasks.get(task_id)
+        if entry is None:
+            raise TaskNotFoundError(f"Task not found: {task_id}")
+        if entry.completed_at is not None:
+            elapsed = time.monotonic() - entry.completed_at
+            if elapsed > self._config.retention_seconds:
+                del self._tasks[task_id]
+                raise TaskNotFoundError(f"Task expired: {task_id}")
+        return TaskStatus(task_id=entry.task_id, state=entry.state, result=entry.result)
+
+    def mark_running(self, task_id: str) -> None:
+        entry = self._tasks.get(task_id)
+        if entry:
+            entry.state = "running"
+
+    def mark_completed(self, task_id: str, result: ExecutionResult) -> None:
+        entry = self._tasks.get(task_id)
+        if entry:
+            entry.state = "success"
+            entry.result = result
+            entry.completed_at = time.monotonic()
+
+    def mark_error(self, task_id: str, error: str) -> None:
+        entry = self._tasks.get(task_id)
+        if entry:
+            entry.state = "error"
+            entry.result = ExecutionResult(status="error", error={"type": "ExecutionError", "message": error})
+            entry.completed_at = time.monotonic()
+
+    def mark_timeout(self, task_id: str) -> None:
+        entry = self._tasks.get(task_id)
+        if entry:
+            entry.state = "timeout"
+            entry.result = ExecutionResult(
+                status="error", error={"type": "ExecutionTimeoutError", "message": "Timed out"}
             )
+            entry.completed_at = time.monotonic()
+
+    def cancel_task(self, task_id: str) -> bool:
+        entry = self._tasks.get(task_id)
+        if entry is None:
+            return False
+        if entry.state == "pending":
+            entry.state = "cancelled"
+            entry.completed_at = time.monotonic()
+            return True
+        return False
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ────────
+    def __repr__(self) -> str:
+        return f"TaskManager(retention={self._config.retention_seconds}s)"
+
+    def _cleanup_expired(self) -> None:
+        now = time.monotonic()
+        expired = [
+            tid
+            for tid, e in self._tasks.items()
+            if e.completed_at is not None and (now - e.completed_at) > self._config.retention_seconds
+        ]
+        for tid in expired:
+            del self._tasks[tid]
+            logger.info("Cleaned up expired task %s", tid)
+
+
+

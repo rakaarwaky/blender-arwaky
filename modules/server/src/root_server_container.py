@@ -80,13 +80,13 @@ class ServerContainer:
 
     def _build_queue(self) -> IExecutionQueueProtocol:
         """Build serialized execution queue."""
-        from .capabilities_server_queue import ExecutionQueue
+        from .capabilities_blender_command_adapter import ExecutionQueue
 
         return ExecutionQueue(config=self._queue_config)
 
     def _build_task_manager(self) -> ITaskManagerProtocol:
         """Build async task lifecycle manager."""
-        from .capabilities_server_task_manager import TaskManager
+        from .capabilities_code_execution_adapter import TaskManager
 
         return TaskManager(config=self._task_config)
 
