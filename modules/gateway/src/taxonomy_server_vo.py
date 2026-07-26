@@ -252,7 +252,7 @@ class ServerCommandSpec:
 
 
 # ============================================================
-# Connection Configuration (legacy alias — use ServerConfig)
+# Connection Configuration
 # ============================================================
 
 TransportType = str  # "socket" | "stdio"

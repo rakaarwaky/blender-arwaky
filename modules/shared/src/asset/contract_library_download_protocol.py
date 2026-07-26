@@ -14,24 +14,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     AssetTypeFilter,
 )
-
-
-class LibraryDownloadResult:
-    """Result from library download."""
-
-    def __init__(
-        self,
-        success: bool,
-        file_path: str | None = None,
-        cached: bool = False,
-        message: str = "",
-        error: str | None = None,
-    ) -> None:
-        self.success = success
-        self.file_path = file_path
-        self.cached = cached
-        self.message = message
-        self.error = error
+from .taxonomy_asset_vo import AssetDownloadCacheVO
 
 
 class LibraryDownloadProtocol(ABC):
@@ -44,7 +27,7 @@ class LibraryDownloadProtocol(ABC):
         asset_type: AssetTypeFilter,
         resolution: str | None = None,
         overwrite_policy: str = "reject",
-    ) -> LibraryDownloadResult:
+    ) -> AssetDownloadCacheVO:
         """Download a specific HDRI or texture to local cache.
 
         FR-AST-004: Downloads to strictly allowed cache directory.

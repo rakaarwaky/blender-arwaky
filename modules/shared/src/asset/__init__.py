@@ -6,9 +6,9 @@ from .contract_asset_import_protocol import AssetImportProtocol
 from .contract_asset_provider import AssetProviderPort
 from .contract_asset_search_protocol import AssetSearchProtocol
 from .contract_import_export_protocol import ImportExportProtocol
-from .contract_library_download_protocol import LibraryDownloadProtocol, LibraryDownloadResult
+from .contract_library_download_protocol import LibraryDownloadProtocol
 from .contract_library_search_protocol import LibrarySearchProtocol
-from .contract_marketplace_download_protocol import MarketplaceDownloadProtocol, MarketplaceDownloadResult
+from .contract_marketplace_download_protocol import MarketplaceDownloadProtocol
 from .contract_marketplace_search_protocol import MarketplaceSearchProtocol
 from .contract_polyhaven_api import PolyhavenApiPort
 from .contract_sketchfab_api import SketchfabApiPort
@@ -53,8 +53,6 @@ __all__ = [
     "AssetImportBlenderVO",
     "ImportGlbVO",
     "ExportModelVO",
-    "LibraryDownloadResult",
-    "MarketplaceDownloadResult",
     "create_asset_id",
     "create_provider_name",
     "AssetProviderPort",

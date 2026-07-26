@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .contract_library_search_protocol import LibraryAssetMetadata
+from .taxonomy_asset_vo import AssetSearchVO
 
 
 class MarketplaceSearchProtocol(ABC):
@@ -23,7 +23,7 @@ class MarketplaceSearchProtocol(ABC):
         categories: list[str] | None = None,
         downloadable_only: bool = True,
         page_token: str | None = None,
-    ) -> list[LibraryAssetMetadata]:
+    ) -> AssetSearchVO:
         """Search online model marketplaces for downloadable models.
 
         FR-AST-005: Filters out non-downloadable models by default.

@@ -170,7 +170,6 @@ from .common.taxonomy_domain_error import (
     BlenderConnectionFailure,
     BlenderMCPError,
     ConnectionError,
-    ConnectionFailure,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -315,7 +314,6 @@ from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from .object.contract_delete_object_protocol import DeleteObjectProtocol
 from .object.contract_get_object_info_protocol import GetObjectInfoProtocol
-from .object.contract_object_operate_protocol import ObjectOperateProtocol
 from .object.contract_place_asset_protocol import PlaceAssetProtocol
 from .object.contract_set_material_protocol import SetMaterialProtocol
 from .object.contract_set_transform_protocol import SetObjectTransformProtocol
@@ -526,7 +524,6 @@ __all__ = [
     "AssetNotFoundError",
     "ValidationError",
     "ConnectionError",
-    "ConnectionFailure",
     "ProviderError",
     "ExecutionError",
     "BlenderConnectionFailure",
@@ -572,7 +569,6 @@ __all__ = [
     "create_provider_name",
     "create_progress",
     "SceneOperateProtocol",
-    "ObjectOperateProtocol",
     "PlaceAssetProtocol",
     "CreatePrimitiveProtocol",
     "SetObjectTransformProtocol",

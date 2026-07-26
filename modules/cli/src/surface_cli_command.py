@@ -47,6 +47,7 @@ class CliCommandHandler:
         return container
 
     @classmethod
+    def get_orchestrator(cls) -> "CoreAgentOrchestrator":
         """Lazy-load CoreAgentOrchestrator from DI container."""
         if cls._orchestrator is None:
             container = cls._get_container()
@@ -134,7 +135,3 @@ class CliCommandHandler:
                 print(result if isinstance(result, str) else json.dumps(result, indent=2, default=str))
 
         return ExitCode(0)
-
-
-# Module-level alias for backward compatibility
-main = CliCommandHandler.main
