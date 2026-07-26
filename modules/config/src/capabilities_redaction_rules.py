@@ -21,12 +21,22 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
     """FR-CFG-005: Provide redaction rules.
 
     Rules contain key patterns only, never secret values.
-    Consuming features retrieve rules here — must not hard-code their own lists.
+
+    Substring matching semantics are intentional (PM Q14): a pattern such as
+    ``auth`` also matches ``author`` — an accepted false positive. Matching is
+    case-insensitive substring, so broad patterns catch variants.
+
+    Redaction is full-only (PM Q15): ``full_redact`` is always True; partial
+    masking of values is not supported. The placeholder is constant.
+
+    Extension is via composition-root injection only (PM Q16): additional
+    patterns are supplied through ``extra_patterns`` at construction time,
+    never read from settings at runtime.
     """
 
     def __init__(self, extra_patterns: tuple[str, ...] = ()) -> None:
         self._rule = RedactionRule(
-            key_patterns=SENSITIVE_KEY_PATTERNS + extra_patterns,
+            key_patterns=SENSITIVE_KEY_PATTERNS + tuple(extra_patterns),
             placeholder=REDACTION_PLACEHOLDER,
             full_redact=True,
         )

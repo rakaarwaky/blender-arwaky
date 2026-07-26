@@ -4,13 +4,18 @@ Coordinates configuration loading, retrieval, workspace resolution,
 metadata, and redaction through IConfigAggregate.
 
 Orchestration only — delegates all business logic to capabilities
-via protocol interfaces.
+via protocol interfaces. Owns the bounded event ring buffer (T-09)
+since config has exactly 5 capabilities mapped 1:1 to FR-CFG-001..005.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections import deque
+from dataclasses import asdict
+from typing import Any, Mapping
+
+import json
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
@@ -19,6 +24,7 @@ from modules.shared.src.config.contract_settings_loader_protocol import ISetting
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
+from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
 from modules.shared.src.config.taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -46,21 +52,31 @@ class ConfigOrchestrator(IConfigAggregate):
         self._metadata_provider = metadata_provider
         self._redaction_rules = redaction_rules
         self._snapshot: SettingsSnapshot | None = None
+        self._event_buffer: deque[dict[str, Any]] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
 # ─── Block 2: Aggregate Method Implementation ─────────────
 
-    def load(self, path: ConfigPath | None = None) -> SettingsSnapshot:
-        """Load settings and cache snapshot."""
-        self._snapshot = self._loader.load_settings(path)
+    def load(
+        self,
+        path: ConfigPath | None = None,
+        overrides: Mapping[str, Any] | None = None,
+    ) -> SettingsSnapshot:
+        """Load settings, record events, cache snapshot."""
+        self._snapshot = self._loader.load_settings(path, overrides)
+        self._record_event(self._loader.emit_loaded_event(self._snapshot))
+        validation_ev = self._loader.emit_validation_warning_event()
+        if validation_ev is not None:
+            self._record_event(validation_ev)
         return self._snapshot
 
     def reload(self, path: ConfigPath | None = None) -> SettingsSnapshot:
-        """Atomically replace cached snapshot."""
+        """Atomically replace cached snapshot, record reload event."""
         self._snapshot = self._loader.reload_settings(path)
+        self._record_event(self._loader.emit_reload_event(self._snapshot))
         return self._snapshot
 
     def get_snapshot(self) -> SettingsSnapshot:
-        """Return cached snapshot, lazy-loading if needed."""
+        """Return cached snapshot, lazy-loading if needed (now safe — loader locked)."""
         if self._snapshot is None:
             self._snapshot = self._loader.load_settings()
         return self._snapshot
@@ -90,12 +106,19 @@ class ConfigOrchestrator(IConfigAggregate):
         return self._retriever.get_float(self.get_snapshot(), path, default)
 
     def resolve_workspace(self) -> WorkspacePath:
-        """Delegate workspace resolution."""
-        return self._workspace_resolver.resolve()
+        """Resolve and record workspace resolution event."""
+        ws = self._workspace_resolver.resolve()
+        self._record_event(self._workspace_resolver.emit_resolved_event(ws))
+        return ws
 
     def get_metadata(self) -> ConfigMetadata | None:
-        """Delegate metadata retrieval."""
+        """Delegate metadata retrieval (reflects latest load)."""
         return self._metadata_provider.get_metadata()
+
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+        """Return the most recent config domain events, oldest → newest."""
+        items = list(self._event_buffer)
+        return tuple(items[-limit:])
 
     def get_redaction_rule(self) -> RedactionRule:
         """Delegate redaction rule retrieval."""
@@ -105,7 +128,15 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+# ─── Block 3: Event Recording ─────────────────────────────
+
+    def _record_event(self, event: Any) -> None:
+        """Serialize and store a domain event into the bounded ring buffer."""
+        payload = asdict(event)
+        self._event_buffer.append(payload)
+        logger.info("config_event %s", json.dumps(payload, default=str))
+
+# ─── Dunder ────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"
