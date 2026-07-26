@@ -308,12 +308,6 @@ from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 
 # Protocols (inbound behavior interfaces — Capabilities implement these)
-from .server import (
-    IBlenderCommandProtocol,
-    IBlenderConnectionProtocol,
-    ICodeExecutionProtocol,
-    IBlenderServerAggregate,
-)
 from .common.contract_command_catalog import CommandCatalogPort
 from .scene.contract_scene_inspection import SceneInspectionPort
 from .render.contract_viewport_capture import ViewportCapturePort
@@ -492,12 +486,6 @@ __all__ = [
     "AssetSearchProtocol",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
-    # Protocols — Server domain (inbound behavior)
-    "IBlenderCommandProtocol",
-    "IBlenderConnectionProtocol",
-    "ICodeExecutionProtocol",
-    # Aggregates — Server domain (facade for Surface)
-    "IBlenderServerAggregate",
     # Contracts — Ports
     "CommandCatalogPort",
     "SceneInspectionPort",
@@ -510,4 +498,32 @@ __all__ = [
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
     # Contracts — Aggregates
+    # Config domain — Aggregates
+    "IConfigAggregate",
+    # Config domain — Protocols
+    "ISettingsLoaderProtocol",
+    "ISettingsRetrieverProtocol",
+    "IWorkspaceResolverProtocol",
+    "ISettingsMetadataProtocol",
+    "IRedactionRulesProtocol",
+    # Config domain — Value Objects
+    "SettingsSnapshot",
+    "WorkspacePath",
+    "RedactionRule",
+    "SensitiveKeyPattern",
+    # Config domain — Events
+    "SettingsLoadedEvent",
+    "SettingsReloadEvent",
+    "WorkspaceResolvedEvent",
+    "SettingsValidationWarningEvent",
+    # Config domain — Constants
+    "SENSITIVE_KEY_PATTERNS",
+    "PROJECT_MARKERS",
+    "MAX_CONFIG_SIZE_BYTES",
+    "ENV_PREFIX_PRODUCT",
+    "ENV_PREFIX_LEGACY",
+    "REDACTION_PLACEHOLDER",
+    "POLICY_MODE_STRICT",
+    "POLICY_MODE_PERMISSIVE",
+    "DEFAULT_POLICY_MODE",
 ]
