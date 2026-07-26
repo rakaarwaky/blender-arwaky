@@ -8,7 +8,6 @@ FR-AST-003: Search External Asset Libraries
 
 import logging
 
-from modules.shared.src.asset import LibrarySearchResponse
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
     ErrorMessage,
@@ -16,6 +15,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SearchQuery,
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
+from modules.shared.src.asset.taxonomy_asset_vo import AssetSearchVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -32,10 +32,11 @@ class LibrarySearchCapability:
         asset_type: AssetTypeFilter,
         categories: list[str] | None = None,
         page_token: str | None = None,
-    ) -> LibrarySearchResponse:
+    ) -> AssetSearchVO:
         """Search dedicated asset libraries for environment/surface assets.
 
         FR-AST-003: Strictly read-only, no downloads triggered.
+        Returns unified VO with normalized list of preview/license metadata.
         """
         all_results: list = []
         warnings: list[str] = []
@@ -44,8 +45,6 @@ class LibrarySearchCapability:
             try:
                 # Search through each provider's search_assets method
                 if hasattr(provider, "search_assets"):
-                    from modules.shared.src.asset.taxonomy_asset_vo import AssetSearchVO
-
                     request = AssetSearchVO(
                         query=query,
                     )
@@ -56,9 +55,9 @@ class LibrarySearchCapability:
                 warnings.append(f"Provider {provider_name} error: {e}")
                 logger.warning("Library search warning for %s: %s", provider_name, e)
 
-        return LibrarySearchResponse(
+        return AssetSearchVO(
+            query=query,
             assets=all_results,
             total=len(all_results),
             next_token=NextPageToken("") if page_token else None,
-            warnings=[ErrorMessage(w) for w in warnings] if warnings else None,
         )

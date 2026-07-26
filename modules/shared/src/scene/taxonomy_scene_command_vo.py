@@ -8,7 +8,7 @@ Enhanced VOs per FRD:
 - SceneInspectionVO: inspection with detail level, hidden objects filter → scene state summary/message
 - SceneStateSummaryVO: comprehensive scene state (used as output in SceneInspectionVO)
 
-Supports legacy aliases for backward compatibility.
+Each VO is immutable and self-contained; no separate Request/Response classes.
 """
 
 from __future__ import annotations
