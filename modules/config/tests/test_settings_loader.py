@@ -210,7 +210,7 @@ def test_event_counts_real_env_overrides(monkeypatch):
     monkeypatch.setenv("BLENDERMCP_SERVER.TRANSPORT", "ws")
     loader = SettingsLoaderCapability()
     snap = loader.load_settings()
-    ev = loader.emit_loaded_event(snap)
+    ev = loader.emit_loaded_event()
     md = loader.get_last_metadata()
     assert ev.override_count == int(md.overrides)
     assert ev.override_count >= 1

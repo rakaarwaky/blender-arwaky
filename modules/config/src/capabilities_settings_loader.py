@@ -131,7 +131,6 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     validation_warnings=self._last_metadata.validation_warnings,
                 )
 
-            assert self._cached is not None  # noqa: B101
             return self._cached
 
     def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:

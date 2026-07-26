@@ -63,7 +63,7 @@ class ConfigOrchestrator(IConfigAggregate):
     ) -> SettingsSnapshot:
         """Load settings, record events, cache snapshot."""
         self._snapshot = self._loader.load_settings(path, overrides)
-        self._record_event(self._loader.emit_loaded_event(self._snapshot))
+        self._record_event(self._loader.emit_loaded_event())
         validation_ev = self._loader.emit_validation_warning_event()
         if validation_ev is not None:
             self._record_event(validation_ev)
@@ -72,7 +72,7 @@ class ConfigOrchestrator(IConfigAggregate):
     def reload(self, path: ConfigPath | None = None) -> SettingsSnapshot:
         """Atomically replace cached snapshot, record reload event."""
         self._snapshot = self._loader.reload_settings(path)
-        self._record_event(self._loader.emit_reload_event(self._snapshot))
+        self._record_event(self._loader.emit_reload_event())
         return self._snapshot
 
     def get_snapshot(self) -> SettingsSnapshot:

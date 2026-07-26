@@ -13,6 +13,8 @@ Architecture:
 - Contract: IConfigAggregate facade + 5 protocols
 """
 
+from modules.shared.src.config.utility_config_helpers import parse_env_value, search_project_root
+
 from .src.agent_config_orchestrator import ConfigOrchestrator
 from .src.capabilities_redaction_rules import RedactionRulesCapability
 from .src.capabilities_settings_loader import SettingsLoaderCapability
@@ -20,7 +22,6 @@ from .src.capabilities_settings_metadata import SettingsMetadataCapability
 from .src.capabilities_settings_retriever import SettingsRetrieverCapability
 from .src.capabilities_workspace_resolver import WorkspaceResolverCapability
 from .src.root_config_container import ConfigContainer
-from modules.shared.src.config.utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
     "ConfigOrchestrator",
