@@ -4,32 +4,61 @@ Implements ISettingsLoaderProtocol — handles loading, validating, and
 reloading application settings with deterministic precedence rules.
 
 Business logic only: YAML parsing, precedence merging, environment
-override application, typed conversion, size limits.
+override application, schema validation, typed conversion, size limits,
+runtime overrides, thread-safe single-load caching.
 """
 
 from __future__ import annotations
 
 import copy
 import os
-from typing import Any
+import threading
+from typing import Any, Mapping
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath, Timestamp
+from modules.shared.src.common.taxonomy_core_vo import (
+    ConfigMetadata,
+    ConfigPath,
+    OverrideCount,
+    ParseWarning,
+    SourceLocation,
+    Timestamp,
+    ValidationWarning,
+)
 from modules.shared.src.config.contract_settings_loader_protocol import ISettingsLoaderProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
-    ENV_PREFIX_LEGACY,
+    DEFAULT_POLICY_MODE,
+    DEFAULT_SETTINGS,
     ENV_PREFIX_PRODUCT,
+    EVENT_RING_BUFFER_SIZE,
+    MAX_CONFIG_SIZE_BYTES,
     POLICY_MODE_PERMISSIVE,
     POLICY_MODE_STRICT,
+    RESERVED_ENV_KEYS,
+    SETTINGS_SCHEMA,
 )
 from modules.shared.src.config.taxonomy_config_error import (
     ConfigLoadError,
     ConfigParseError,
+    ConfigPathError,
     ConfigValidationError,
 )
-from modules.shared.src.config.taxonomy_config_event import SettingsLoadedEvent, SettingsReloadEvent
+from modules.shared.src.config.taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+)
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
+from modules.shared.src.config.utility_config_helpers import (
+    apply_env_overrides,
+    deep_merge_dicts,
+    load_yaml_safe,
+    parse_settings_path,
+    resolve_default_config_path,
+    set_nested_value,
+    validate_settings_schema,
+)
 
-from modules.shared.src.config.utility_config_helpers import parse_env_value
+ConfigFileLoader = Any  # Callable[[ConfigPath], dict[str, Any]]
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -37,104 +66,203 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
     """FR-CFG-001: Load and apply settings.
 
     Responsible for: YAML safe parsing, environment override application
-    with typed conversion, precedence merging, size limits, immutable
-    snapshot creation, and policy-mode error handling.
+    with typed conversion, precedence merging, schema validation, size
+    limits, runtime overrides, immutable snapshot creation, policy-mode
+    error handling, and thread-safe single-load caching.
     """
 
     def __init__(
         self,
-        config_file_loader: Any = None,
-        policy_mode: str = POLICY_MODE_STRICT,
+        config_file_loader: ConfigFileLoader | None = None,
+        policy_mode: str = DEFAULT_POLICY_MODE,
+        defaults: Mapping[str, Any] | None = None,
+        schema: Mapping[str, Any] | None = None,
+        config_v2_enabled: bool = False,
     ) -> None:
-        self._file_loader = config_file_loader
+        self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
+        self._defaults = dict(defaults) if defaults is not None else copy.deepcopy(DEFAULT_SETTINGS)
+        self._schema = dict(schema) if schema is not None else copy.deepcopy(SETTINGS_SCHEMA)
+        self._config_v2_enabled = config_v2_enabled
+        self._lock = threading.Lock()
+        # cached state
         self._cached: SettingsSnapshot | None = None
+        self._cached_data: dict[str, Any] | None = None
+        self._last_metadata: ConfigMetadata = ConfigMetadata()
 
 # ─── Block 2: Protocol Method Implementation ──────────────
 
-    def load_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
-        """Load settings from sources, apply precedence, return immutable snapshot."""
-        file_data = self._load_file(path)
-        merged = self._apply_env_overrides(file_data)
-        self._cached = SettingsSnapshot(_data=merged)
-        return self._cached
+    def load_settings(
+        self,
+        path: ConfigPath | None = None,
+        overrides: Mapping[str, Any] | None = None,
+    ) -> SettingsSnapshot:
+        """Load settings from sources, apply precedence, validate, return immutable snapshot."""
+        with self._lock:
+            # Single-load guarantee (Q19): identical cached snapshot returned.
+            if overrides is None and path is None and self._cached is not None:
+                return self._cached
+
+            if path is not None or self._cached is None:
+                merged, filedata, metadata = self._build_core(path)
+                self._cached_data = filedata
+                self._cached = SettingsSnapshot(_data=merged)
+                self._last_metadata = metadata
+
+            # Runtime overrides are caller-scoped — never cached (A5).
+            if overrides is not None and self._config_v2_enabled:
+                structured: dict[str, Any] = {}
+                for dotted_key, value in overrides.items():
+                    segments = tuple(dotted_key.split("."))
+                    set_nested_value(structured, segments, value)
+                final = deep_merge_dicts(self._cached_data, structured)
+                return SettingsSnapshot(_data=final)
+
+            if overrides is not None and not self._config_v2_enabled:
+                # Flag OFF: overrides ignored, parse warning logged.
+                self._last_metadata = ConfigMetadata(
+                    source=self._last_metadata.source,
+                    exists=self._last_metadata.exists,
+                    overrides=self._last_metadata.overrides,
+                    parse_warnings=(
+                        *self._last_metadata.parse_warnings,
+                        ParseWarning("runtime overrides ignored; BLENDERMCP_CONFIG_V2 off"),
+                    ),
+                    validation_warnings=self._last_metadata.validation_warnings,
+                )
+
+            assert self._cached is not None
+            return self._cached
 
     def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
         """Atomically replace cached snapshot. Retains previous on failure (permissive)."""
-        previous = self._cached
-        try:
-            self._cached = None
-            return self.load_settings(path)
-        except Exception:
-            if self._policy_mode == POLICY_MODE_PERMISSIVE and previous is not None:
-                self._cached = previous
-                return previous
-            raise
+        with self._lock:
+            try:
+                merged, filedata, metadata = self._build_core(path)
+                # build-then-swap = atomic; never set cache to None before build
+                self._cached_data = filedata
+                self._cached = SettingsSnapshot(_data=merged)
+                self._last_metadata = metadata
+                return self._cached
+            except Exception:
+                if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
+                    return self._cached
+                raise
+
+    def get_last_metadata(self) -> ConfigMetadata:
+        """Return metadata from the most recent successful load."""
+        return self._last_metadata
 
     def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:
-        """Build settings-loaded event from snapshot."""
+        """Build a settings-loaded event from the most recent load metadata."""
+        metadata = self._last_metadata
         return SettingsLoadedEvent(
-            source_summary="loaded",
-            override_count=0,
-            warning_count=0,
+            source_summary=str(metadata.source) if metadata.source is not None else "",
+            override_count=int(metadata.overrides),
+            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
             policy_mode=self._policy_mode,
-            timestamp=Timestamp(0.0),
+            timestamp=Timestamp(time.time()),
         )
 
     def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:
-        """Build settings-reload event from snapshot."""
+        """Build a settings-reload event from the most recent load metadata."""
+        metadata = self._last_metadata
         return SettingsReloadEvent(
-            source_summary="reloaded",
-            override_count=0,
-            warning_count=0,
+            source_summary=str(metadata.source) if metadata.source is not None else "",
+            override_count=int(metadata.overrides),
+            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
             policy_mode=self._policy_mode,
-            timestamp=Timestamp(0.0),
+            timestamp=Timestamp(time.time()),
         )
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+    def emit_validation_warning_event(self) -> SettingsValidationWarningEvent | None:
+        """Return warning event iff permissive mode and validation warnings exist."""
+        if self._policy_mode != POLICY_MODE_PERMISSIVE:
+            return None
+        metadata = self._last_metadata
+        if not metadata.validation_warnings:
+            return None
+        return SettingsValidationWarningEvent(
+            source_summary=str(metadata.source) if metadata.source is not None else "",
+            override_count=int(metadata.overrides),
+            warning_count=len(metadata.validation_warnings),
+            policy_mode=self._policy_mode,
+            timestamp=Timestamp(time.time()),
+        )
 
-    def _load_file(self, path: ConfigPath | None) -> dict[str, Any]:
-        """Load and parse YAML from file path."""
-        if self._file_loader is None:
-            return {}
+# ─── Block 3: Core Build ───────────────────────────────────
 
-        try:
-            result = self._file_loader(path)
-            if isinstance(result, dict):
-                return result
-            return {}
-        except Exception as exc:
+    def _build_core(
+        self, path: ConfigPath | None
+    ) -> tuple[dict[str, Any], dict[str, Any], ConfigMetadata]:
+        """Build merged settings + raw file data + metadata.
+
+        Returns (merged, filedata, metadata). ``filedata`` is what gets cached
+        (used as base for caller-scoped runtime overrides).
+        """
+        resolved = resolve_default_config_path(path)
+        p = Path_resolved(resolved)
+
+        parse_warnings: list[ParseWarning] = []
+        file_data: dict[str, Any] = {}
+
+        # Directory path
+        if p.is_dir():
             if self._policy_mode == POLICY_MODE_STRICT:
-                if isinstance(exc, (ConfigParseError, ConfigLoadError, ConfigValidationError)):
-                    raise
-                raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-            return {}
-
-    def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Apply environment variable overrides with typed scalar conversion."""
-        if not isinstance(config, dict):
-            return config
-
-        result = copy.deepcopy(config)
-
-        for key, value in os.environ.items():
-            if key.startswith(ENV_PREFIX_PRODUCT) or key.startswith(ENV_PREFIX_LEGACY):
-                prefix = (
-                    ENV_PREFIX_PRODUCT if key.startswith(ENV_PREFIX_PRODUCT) else ENV_PREFIX_LEGACY
+                raise ConfigPathError(f"{resolved} is a directory")
+            parse_warnings.append(ParseWarning(f"{resolved} is a directory; using defaults"))
+        elif not p.is_file():
+            # Missing file: never fatal in any mode (Q6).
+            parse_warnings.append(
+                ParseWarning(f"settings file not found: {resolved}; using defaults")
+            )
+        else:
+            # Size limit (flag-gated)
+            if self._config_v2_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
+                if self._policy_mode == POLICY_MODE_STRICT:
+                    raise ConfigLoadError(
+                        f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes"
+                    )
+                parse_warnings.append(
+                    ParseWarning(f"settings file too large: {resolved}; skipped")
                 )
-                env_key = key[len(prefix):].lower()
-                parsed = parse_env_value(value)
+            else:
+                try:
+                    file_data = self._file_loader(ConfigPath(str(p)))
+                except (ConfigParseError, ConfigLoadError, ConfigValidationError):
+                    if self._policy_mode == POLICY_MODE_STRICT:
+                        raise
+                    parse_warnings.append(ParseWarning(f"failed to parse {resolved}; using defaults"))
+                    file_data = {}
+                except Exception as exc:
+                    if self._policy_mode == POLICY_MODE_STRICT:
+                        raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
+                    parse_warnings.append(ParseWarning(f"failed to load {resolved}; using defaults"))
+                    file_data = {}
 
-                if "." in env_key:
-                    keys = env_key.split(".")
-                    node = result
-                    for k in keys[:-1]:
-                        if k not in node or not isinstance(node[k], dict):
-                            break
-                        node = node[k]
-                    if keys[-1] in node:
-                        node[keys[-1]] = parsed
-                else:
-                    result[env_key] = parsed
+        # Merge precedence: defaults < file < env
+        merged = deep_merge_dicts(dict(self._defaults), file_data)
+        merged, env_count = apply_env_overrides(
+            merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS
+        )
 
-        return result
+        # Schema (flag-gated)
+        validation_warnings: list[ValidationWarning] = []
+        if self._config_v2_enabled:
+            errors, warnings = validate_settings_schema(merged, self._schema)
+            if errors and self._policy_mode == POLICY_MODE_STRICT:
+                raise ConfigValidationError("; ".join(errors))
+            validation_warnings.extend(warnings)
+            validation_warnings.extend(errors)
+
+        metadata = ConfigMetadata(
+            source=SourceLocation(str(resolved)),
+            exists=p.is_file(),
+            overrides=OverrideCount(env_count),
+            parse_warnings=tuple(parse_warnings),
+            validation_warnings=tuple(validation_warnings),
+        )
+        return merged, file_data, metadata
+
+
+from pathlib import Path as Path_resolved  # noqa: E402

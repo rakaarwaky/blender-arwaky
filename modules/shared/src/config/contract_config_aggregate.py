@@ -10,9 +10,10 @@ Implemented by Agent layer (ConfigOrchestrator).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Mapping
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
+from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
 from .taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
 
 
@@ -25,7 +26,11 @@ class IConfigAggregate(ABC):
     # ─── Lifecycle ──────────────────────────────────────────────
 
     @abstractmethod
-    def load(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+    def load(
+        self,
+        path: ConfigPath | None = None,
+        overrides: Mapping[str, Any] | None = None,
+    ) -> SettingsSnapshot:
         """Load settings and return immutable snapshot."""
         ...
 
@@ -83,6 +88,13 @@ class IConfigAggregate(ABC):
     @abstractmethod
     def get_metadata(self) -> ConfigMetadata | None:
         """Return settings loading metadata (secrets excluded)."""
+        ...
+
+    # ─── Events (T-09) ─────────────────────────────────────────
+
+    @abstractmethod
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+        """Return recent config domain events, oldest → newest."""
         ...
 
     # ─── Redaction (FR-CFG-005) ────────────────────────────────

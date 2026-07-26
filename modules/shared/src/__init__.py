@@ -258,7 +258,6 @@ from .config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 # Config domain — Value Objects
 from .config.taxonomy_config_vo import (
     RedactionRule,
-    SensitiveKeyPattern,
     SettingsSnapshot,
     WorkspacePath,
 )
@@ -274,7 +273,6 @@ from .config.taxonomy_config_event import (
 # Config domain — Constants
 from .config.taxonomy_config_constant import (
     DEFAULT_POLICY_MODE,
-    ENV_PREFIX_LEGACY,
     ENV_PREFIX_PRODUCT,
     MAX_CONFIG_SIZE_BYTES,
     POLICY_MODE_PERMISSIVE,
@@ -380,7 +378,6 @@ __all__ = [
     "FilePath",
     "DirectoryPath",
     "ConfigPath",
-    "ConfigValue",
     "CustomerUuid",
     "SessionId",
     "Timestamp",
@@ -514,7 +511,6 @@ __all__ = [
     "SettingsSnapshot",
     "WorkspacePath",
     "RedactionRule",
-    "SensitiveKeyPattern",
     # Config domain — Events
     "SettingsLoadedEvent",
     "SettingsReloadEvent",
@@ -525,7 +521,6 @@ __all__ = [
     "PROJECT_MARKERS",
     "MAX_CONFIG_SIZE_BYTES",
     "ENV_PREFIX_PRODUCT",
-    "ENV_PREFIX_LEGACY",
     "REDACTION_PLACEHOLDER",
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",

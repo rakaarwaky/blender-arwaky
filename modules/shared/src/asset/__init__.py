@@ -17,9 +17,11 @@ from .taxonomy_asset_data_vo import (
 
 from .taxonomy_asset_vo import (
     AssetDownloadVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
     AssetMetadataItem,
     AssetMetadataVO,
-    AssetSearchVO,
+    AssetDownloadCacheVO,
     ExportModelVO,
     ImportGlbVO,
 )

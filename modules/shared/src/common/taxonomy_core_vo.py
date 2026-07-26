@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any, NewType
 from uuid import UUID
 
@@ -113,7 +114,6 @@ DirectoryPath = NewType("DirectoryPath", str)
 
 # Config types (no raw primitives in contracts)
 ConfigPath = NewType("ConfigPath", str)
-ConfigValue = str | int | bool | dict[str, str | int | bool | None] | None
 
 # Additional VOs for AES006 compliance
 CustomerUuid = NewType("CustomerUuid", str)
@@ -156,51 +156,33 @@ ValidationWarning = NewType("ValidationWarning", str)
 OverrideCount = NewType("OverrideCount", int)
 
 
+@dataclass(frozen=True)
 class ConfigMetadata:
-    """Immutable metadata about configuration loading (FR-CFG-001, FR-CFG-005)."""
+    """Immutable metadata about configuration loading (FR-CFG-001, FR-CFG-005).
 
-    __slots__ = ("_source", "_exists", "_overrides", "_parse_warnings", "_validation_warnings")
+    Frozen (hashable). Carries structural counts + source path only —
+    never raw settings values or secrets.
+    """
 
-    def __init__(
-        self,
-        source: SourceLocation | None = None,
-        exists: bool = False,
-        overrides: OverrideCount = 0,
-        parse_warnings: list[ParseWarning] | None = None,
-        validation_warnings: list[ValidationWarning] | None = None,
-    ) -> None:
-        self._source = source
-        self._exists = exists
-        self._overrides = overrides
-        self._parse_warnings = list(parse_warnings) if parse_warnings else []
-        self._validation_warnings = list(validation_warnings) if validation_warnings else []
+    source: SourceLocation | None = None
+    exists: bool = False
+    overrides: OverrideCount = 0
+    parse_warnings: tuple[ParseWarning, ...] = field(default_factory=tuple)
+    validation_warnings: tuple[ValidationWarning, ...] = field(default_factory=tuple)
 
-    @property
-    def source(self) -> SourceLocation:
-        return self._source
-
-    @property
-    def exists(self) -> bool:
-        return self._exists
-
-    @property
-    def overrides(self) -> OverrideCount:
-        return self._overrides
-
-    @property
-    def parse_warnings(self) -> list[ParseWarning]:
-        return list(self._parse_warnings)
-
-    @property
-    def validation_warnings(self) -> list[ValidationWarning]:
-        return list(self._validation_warnings)
+    def __post_init__(self) -> None:
+        # Normalize list inputs to immutable tuples.
+        if isinstance(self.parse_warnings, list):
+            object.__setattr__(self, "parse_warnings", tuple(self.parse_warnings))
+        if isinstance(self.validation_warnings, list):
+            object.__setattr__(self, "validation_warnings", tuple(self.validation_warnings))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize metadata for diagnostics (secrets excluded)."""
         return {
-            "source": self._source,
-            "exists": self._exists,
-            "overrides": self._overrides,
-            "parse_warnings": self._parse_warnings,
-            "validation_warnings": self._validation_warnings,
+            "source": self.source,
+            "exists": self.exists,
+            "overrides": self.overrides,
+            "parse_warnings": list(self.parse_warnings),
+            "validation_warnings": list(self.validation_warnings),
         }

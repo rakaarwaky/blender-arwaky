@@ -13,7 +13,6 @@ from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 # ─── Taxonomy: Value Objects ───────────────────────────────────
 from .taxonomy_config_vo import (
     RedactionRule,
-    SensitiveKeyPattern,
     SettingsSnapshot,
     WorkspacePath,
 )
@@ -28,15 +27,22 @@ from .taxonomy_config_event import (
 
 # ─── Taxonomy: Constants ───────────────────────────────────────
 from .taxonomy_config_constant import (
+    CONFIG_PATH_ENV,
+    CONFIG_V2_FLAG_ENV,
+    DEFAULT_CONFIG_FILENAME,
     DEFAULT_POLICY_MODE,
-    ENV_PREFIX_LEGACY,
+    DEFAULT_SETTINGS,
     ENV_PREFIX_PRODUCT,
+    EVENT_RING_BUFFER_SIZE,
     MAX_CONFIG_SIZE_BYTES,
     POLICY_MODE_PERMISSIVE,
     POLICY_MODE_STRICT,
     PROJECT_MARKERS,
     REDACTION_PLACEHOLDER,
+    RESERVED_ENV_KEYS,
     SENSITIVE_KEY_PATTERNS,
+    SETTINGS_SCHEMA,
+    WORKSPACE_ROOT_ENV,
 )
 
 # ─── Utility ───────────────────────────────────────────────────
@@ -48,11 +54,13 @@ from .taxonomy_config_error import (
     ConfigLoadError,
     ConfigParseError,
     ConfigPathError,
-    ConfigProviderError,
     ConfigRootResolutionError,
     ConfigTypeError,
     ConfigValidationError,
 )
+
+# ─── Taxonomy: Event Sink Protocol ────────────────────────────
+from .contract_config_event_sink_protocol import IConfigEventSinkProtocol
 
 __all__ = [
     # Contracts — Protocols
@@ -62,11 +70,11 @@ __all__ = [
     "IWorkspaceResolverProtocol",
     "ISettingsMetadataProtocol",
     "IRedactionRulesProtocol",
+    "IConfigEventSinkProtocol",
     # Taxonomy — Value Objects
     "SettingsSnapshot",
     "WorkspacePath",
     "RedactionRule",
-    "SensitiveKeyPattern",
     # Taxonomy — Events
     "SettingsLoadedEvent",
     "SettingsReloadEvent",
@@ -77,7 +85,14 @@ __all__ = [
     "PROJECT_MARKERS",
     "MAX_CONFIG_SIZE_BYTES",
     "ENV_PREFIX_PRODUCT",
-    "ENV_PREFIX_LEGACY",
+    "CONFIG_PATH_ENV",
+    "CONFIG_V2_FLAG_ENV",
+    "WORKSPACE_ROOT_ENV",
+    "DEFAULT_CONFIG_FILENAME",
+    "RESERVED_ENV_KEYS",
+    "EVENT_RING_BUFFER_SIZE",
+    "DEFAULT_SETTINGS",
+    "SETTINGS_SCHEMA",
     "REDACTION_PLACEHOLDER",
     "POLICY_MODE_STRICT",
     "POLICY_MODE_PERMISSIVE",
@@ -90,7 +105,6 @@ __all__ = [
     "ConfigLoadError",
     "ConfigParseError",
     "ConfigPathError",
-    "ConfigProviderError",
     "ConfigRootResolutionError",
     "ConfigTypeError",
     "ConfigValidationError",

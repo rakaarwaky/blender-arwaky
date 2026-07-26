@@ -7,9 +7,14 @@ and reloading application settings.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any, Mapping
 
-from ..common.taxonomy_core_vo import ConfigPath
-from .taxonomy_config_event import SettingsLoadedEvent, SettingsReloadEvent
+from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
+from .taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+)
 from .taxonomy_config_vo import SettingsSnapshot
 
 
@@ -17,13 +22,22 @@ class ISettingsLoaderProtocol(ABC):
     """Protocol for loading and applying settings (FR-CFG-001)."""
 
     @abstractmethod
-    def load_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+    def load_settings(
+        self,
+        path: ConfigPath | None = None,
+        overrides: Mapping[str, Any] | None = None,
+    ) -> SettingsSnapshot:
         """Load settings from all sources, apply precedence, validate, return immutable snapshot."""
         ...
 
     @abstractmethod
     def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
         """Atomically replace cached snapshot. Retains previous valid snapshot on failure (permissive)."""
+        ...
+
+    @abstractmethod
+    def get_last_metadata(self) -> ConfigMetadata:
+        """Return metadata from the most recent successful load."""
         ...
 
     @abstractmethod
@@ -34,4 +48,9 @@ class ISettingsLoaderProtocol(ABC):
     @abstractmethod
     def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:
         """Build a settings-reload event payload for the given snapshot."""
+        ...
+
+    @abstractmethod
+    def emit_validation_warning_event(self) -> SettingsValidationWarningEvent | None:
+        """Return warning event when permissive-mode warnings exist, else None."""
         ...

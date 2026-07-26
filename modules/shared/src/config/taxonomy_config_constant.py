@@ -6,6 +6,8 @@ No classes, no functions — only ALL_CAPS declarations.
 
 from __future__ import annotations
 
+from typing import Any
+
 # ─── Sensitive Key Patterns (FR-CFG-005) ──────────────────────
 
 SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
@@ -25,32 +27,80 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
     "connection_string",
 )
 
-# ─── Project Markers (FR-CFG-003) ─────────────────────────────
+# ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
+
+CONFIG_PATH_ENV: str = "BLENDERMCPCONFIGPATH"
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"      # replaces both legacy+product root lookup
+CONFIG_V2_FLAG_ENV: str = "BLENDERMCPCONFIG_V2"
+DEFAULT_CONFIG_FILENAME: str = "config.yaml"
+
+# Environment keys that are control signals, never settings overrides.
+RESERVED_ENV_KEYS: tuple[str, ...] = (
+    "BLENDERMCPCONFIGPATH",
+    "BLENDERMCP_ROOT",
+    "BLENDERMCPCONFIG_V2",
+)
+
+# ─── Event Sink (FR-CFG-001 / T-09) ──────────────────────────
+
+EVENT_RING_BUFFER_SIZE: int = 50
+
+# ─── Project Markers (FR-CFG-003) ────────────────────────────
+# Manifest markers precede version-control metadata per FR-CFG-003.
 
 PROJECT_MARKERS: tuple[str, ...] = (
     "config.yaml",
     "config.yml",
-    ".git",
     "pyproject.toml",
     "setup.py",
     "setup.cfg",
     "requirements.txt",
+    ".git",
 )
 
-# ─── Limits (FR-CFG-001) ──────────────────────────────────────
+# ─── Compile-Time Defaults (FR-CFG-001, Q4) ──────────────────
 
-MAX_CONFIG_SIZE_BYTES: int = 1024 * 1024  # 1 MB
+DEFAULT_SETTINGS: dict[str, Any] = {
+    "blender": {"executable_path": "blender", "host": "localhost", "port": 9876},
+    "server": {"transport": "stdio", "log_dir": "log"},
+}
 
-# ─── Environment Prefixes (FR-CFG-001) ────────────────────────
+# ─── Settings Schema (FR-CFG-001, Q3) ───────────────────────
+# Python-native schema: node = {"type", "required", "children"}.
 
-ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"
-ENV_PREFIX_LEGACY: str = "BLENDER_MCP_"
+SETTINGS_SCHEMA: dict[str, Any] = {
+    "blender": {
+        "type": "dict",
+        "required": False,
+        "children": {
+            "executable_path": {"type": "str", "required": False},
+            "host": {"type": "str", "required": False},
+            "port": {"type": "int", "required": False},
+        },
+    },
+    "server": {
+        "type": "dict",
+        "required": False,
+        "children": {
+            "transport": {"type": "str", "required": False},
+            "log_dir": {"type": "str", "required": False},
+        },
+    },
+}
+
+# ─── Limits (FR-CFG-001) ─────────────────────────────────────
+
+MAX_CONFIG_SIZE_BYTES: int = 1024 * 1024  # 1 MiB
+
+# ─── Environment Override Prefix (FR-CFG-001) ───────────────
+
+ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"  # legacy BLENDER_MCP_ prefix removed (v1.7.0 BREAKING)
 
 # ─── Redaction Placeholder (FR-CFG-005) ──────────────────────
 
 REDACTION_PLACEHOLDER: str = "***REDACTED***"
 
-# ─── Policy Modes (FR-CFG-001) ────────────────────────────────
+# ─── Policy Modes (FR-CFG-001) ───────────────────────────────
 
 POLICY_MODE_STRICT: str = "strict"
 POLICY_MODE_PERMISSIVE: str = "permissive"

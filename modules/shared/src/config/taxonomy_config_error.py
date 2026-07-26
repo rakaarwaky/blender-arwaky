@@ -57,10 +57,3 @@ class ConfigRootResolutionError(ConfigError):
 
     def __init__(self, message: ErrorString | None = None) -> None:
         super().__init__(message or ErrorString("Configuration root resolution error"))
-
-
-class ConfigProviderError(ConfigError):
-    """Raised when a configuration provider is not registered or invalid."""
-
-    def __init__(self, message: ErrorString | None = None) -> None:
-        super().__init__(message or ErrorString("Configuration provider error"))

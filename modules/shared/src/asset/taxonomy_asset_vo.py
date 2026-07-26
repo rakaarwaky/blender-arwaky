@@ -15,6 +15,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     ErrorMessage,
     FilePath,
+    MaxSize,
     ObjectName,
     ProviderName,
     SearchQuery,
@@ -100,3 +101,78 @@ class ExportModelVO:
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""
+
+
+@dataclass(frozen=True)
+class AssetDownloadCacheVO:
+    """Asset download to cache — input and output in one VO.
+
+    FR-AST-002: Download file to cache with integrity verification.
+    Input: provider, asset_id, asset_type, cache_dir, resolution, overwrite_policy.
+    Output: success, file_path, file_size, cached, integrity_ok, message.
+    """
+
+    # Input
+    provider: ProviderName
+    asset_id: AssetId
+    asset_type: AssetType
+    cache_dir: FilePath
+    resolution: str | None = None
+    overwrite_policy: str = "reuse"
+    max_size: MaxSize | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    file_path: FilePath | None = None
+    file_size: int = 0
+    cached: bool = False
+    integrity_ok: bool = True
+    message: str = ""
+    error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class AssetExtractArchiveVO:
+    """Archive extraction — input and output in one VO.
+
+    FR-AST-003: Extract downloaded archive under security supervision.
+    Input: artifact_path, destination, max_entries, max_extracted_size, allow_symlinks.
+    Output: success, extracted_files, rejected_entries, message.
+    """
+
+    # Input
+    artifact_path: FilePath
+    destination: FilePath
+    max_entries: int = 1000
+    max_extracted_size: int = 1073741824
+    allow_symlinks: bool = False
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    extracted_files: tuple[FilePath, ...] = field(default_factory=tuple)
+    rejected_entries: tuple[str, ...] = field(default_factory=tuple)
+    message: str = ""
+    error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class AssetImportBlenderVO:
+    """Import asset into Blender — input and output in one VO.
+
+    FR-AST-004: Import locally available asset file into Blender.
+    Input: file_path, asset_type, target_collection, scale_normalization, duplicate_policy.
+    Output: success, object_names, asset_name, license_summary, message.
+    """
+
+    # Input
+    file_path: FilePath
+    asset_type: AssetType
+    target_collection: str | None = None
+    scale_normalization: bool = False
+    duplicate_policy: str = "rename"
+    format_hint: str | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    object_names: tuple[ObjectName, ...] = field(default_factory=tuple)
+    asset_name: AssetName | None = None
+    license_summary: str | None = None
+    message: str = ""
+    error: ErrorMessage | None = None
