@@ -292,6 +292,9 @@ from .config.taxonomy_config_constant import (
 from .scene.contract_scene_operate_protocol import SceneOperateProtocol
 from .object.contract_object_operate_protocol import ObjectOperateProtocol
 from .render.contract_render_operate_protocol import RenderOperateProtocol
+from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
+from .render.contract_camera_config_protocol import CameraConfigProtocol
+from .render.contract_hdri_config_protocol import HdriConfigProtocol
 from .asset.contract_asset_search_protocol import AssetSearchProtocol
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol
 from .asset.contract_asset_extract_protocol import AssetExtractProtocol
@@ -521,6 +524,9 @@ __all__ = [
     "SceneOperateProtocol",
     "ObjectOperateProtocol",
     "RenderOperateProtocol",
+    "ViewportCaptureProtocol",
+    "CameraConfigProtocol",
+    "HdriConfigProtocol",
     "ImportExportProtocol",
     "AssetSearchProtocol",
     "AssetDownloadProtocol",

@@ -11,7 +11,6 @@ import re
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
 
-
 _DEFAULT_PATTERNS: tuple[str, ...] = (
     r"(?i)(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*\S+",
     r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*",
@@ -50,7 +49,7 @@ class SensitiveRedactor(RedactSensitiveProtocol):
             all_keys = self._key_names + request.key_names
             for key in all_keys:
                 pattern = rf"(?i)({re.escape(key)})\s*[=:]\s*\S+"
-                text, count = re.subn(pattern, rf"\1=[REDACTED]", text)
+                text, count = re.subn(pattern, r"\1=[REDACTED]", text)
                 redacted_count += count
 
             if len(text) > 10_000:

@@ -6,6 +6,7 @@ Implements EmitAuditProtocol.
 
 from __future__ import annotations
 
+import contextlib
 import time
 import uuid
 from typing import Protocol
@@ -44,10 +45,8 @@ class AuditEmitter(EmitAuditProtocol):
         )
 
         if self._sink:
-            try:
+            with contextlib.suppress(Exception):
                 self._sink.deliver(emitted)
-            except Exception:
-                pass
 
         return emitted
 

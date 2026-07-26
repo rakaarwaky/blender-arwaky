@@ -1,132 +1,189 @@
-"""Capability: HDRI configuration executor.
+"""Capability: HDRI lighting configuration (FR-RND-004).
 
-Implements HdriConfigProtocol — handles HDRI environment lighting setup,
-strength/rotation configuration, and world environment management through
-the server module's code execution capability.
+Implements HdriConfigProtocol for configuring HDRI environment lighting.
+Never downloads HDRI itself — uses asset feature to get HDRI file.
 """
 
 from __future__ import annotations
 
-import json
 import logging
+from typing import Any
+
+from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class HdriConfigExecutor:
-    """Business logic for HDRI environment lighting configuration."""
+class HdriConfigCapability(HdriConfigProtocol):
+    """HDRI lighting configuration capability.
 
-    def __init__(self, code_executor: object) -> None:
-        """Initialize with a code executor from the server module.
+    FR-RND-004: Applies HDRI-based environment lighting using locally available
+    HDRI file acquired through asset feature. Resolves strength (0-10), rotation,
+    overwrite policy, and background visibility. Never downloads HDRI itself.
+    """
+
+    def __init__(
+        self,
+        gateway_client: Any | None = None,
+        security_validator: Any | None = None,
+        asset_feature: Any | None = None,
+        config_getter: Any | None = None,
+    ) -> None:
+        """Initialize with dependencies.
 
         Args:
-            code_executor: A callable or server capability that executes Python code.
+            gateway_client: Gateway feature for Blender command transport.
+            security_validator: Security policy for path validation.
+            asset_feature: Asset feature for HDRI file acquisition.
+            config_getter: Config feature for settings and policies.
         """
-        self._code_executor = code_executor
+        self.gateway_client = gateway_client
+        self.security_validator = security_validator
+        self.asset_feature = asset_feature
+        self.config_getter = config_getter
 
-    async def configure_hdri(self, request: dict) -> dict:
+    async def configure_hdri(
+        self,
+        hdri_file_path: FilePath,
+        strength: float = 1.0,
+        rotation: float = 0.0,
+        background_visible: bool = True,
+        overwrite_policy: str = "replace",
+    ) -> dict[str, Any]:
         """Set up HDRI-based environment lighting.
 
-        FR-RND-004: Applies environment lighting from locally available HDRI asset.
-        Resolves strength (0.0-10.0), rotation, and overwrite policy.
-        Returns resolved environment reference and applied settings.
+        FR-RND-004: HDRI file must be locally available (acquired via asset feature).
+        Local file validated through security policy. Strength in valid range (0-10).
+        Rotation normalized. Existing environment follows overwrite policy.
+        Environment applies to scene world; world created if missing (when allowed).
+        Background visibility controls HDRI appearance vs lighting-only contribution.
 
         Args:
-            request: HDRI setup parameters including path, strength, rotation,
-                visibility, and overwrite policy.
+            hdri_file_path: Path to local HDRI file (from asset feature).
+            strength: Environment strength (0.0-10.0 range).
+            rotation: HDRI rotation in degrees.
+            background_visible: Whether HDRI appears as visible background.
+            overwrite_policy: replace/update/reject for existing environment.
 
         Returns:
-            Dictionary with environment reference and applied settings.
+            Dict with success, environment_reference, strength, rotation,
+            and message.
         """
-        hdri_path = request.get("hdri_path", "")
-        strength = request.get("strength", 1.0)
-        rotation = request.get("rotation", 0.0)
-        is_visible = request.get("is_visible", True)
-        overwrite_policy = request.get("overwrite_policy", "replace")
-
-        logger.info(
-            "Configuring HDRI: path=%s, strength=%.2f, rotation=%.2f, visible=%s, policy=%s",
-            hdri_path,
-            strength,
-            rotation,
-            is_visible,
-            overwrite_policy,
-        )
-
-        safe_path = json.dumps(hdri_path)
-        safe_strength = str(float(strength))
-        safe_rotation = str(float(rotation))
-        safe_visible = "True" if is_visible else "False"
-
-        code = (
-            "import bpy\n"
-            f"hdri_path = {safe_path}\n"
-            f"strength = {safe_strength}\n"
-            f"rotation = {safe_rotation}\n"
-            f"display_viewport = {safe_visible}\n"
-            # Create world if needed
-            "world = bpy.context.scene.world\n"
-            "if world is None:\n"
-            "    world = bpy.data.worlds.new('World')\n"
-            "    bpy.context.scene.world = world\n"
-            "world.use_nodes = True\n"
-            # Check if environment node exists
-            "env_node = None\n"
-            "for node in world.node_tree.nodes:\n"
-            "    if node.type == 'ENVIRONMENT_TEXTURE':\n"
-            "        env_node = node\n"
-            "        break\n"
-            # Handle overwrite policy
-            "if env_node is not None and hdri_path:\n"
-            f"    if '{overwrite_policy}' == 'replace':\n"
-            "        world.node_tree.nodes.remove(env_node)\n"
-            "        env_node = None\n"
-            f"    elif '{overwrite_policy}' == 'reject':\n"
-            "        raise Exception('Environment already exists, reject policy active')\n"
-            # Create new environment texture node
-            "if not env_node:\n"
-            "    tex_node = world.node_tree.nodes.new(type='ShaderNodeTexEnvironment')\n"
-            f"    tex_node.image = bpy.data.images.load(hdri_path)\n"
-            "    ht_node = world.node_tree.nodes.new(type='ShaderNodeHoldTile')\n"
-            "    world.node_tree.links.new(tex_node.outputs['Color'], ht_node.inputs['Image'])\n"
-            "    bsdf_node = world.node_tree.nodes['World BSDF']\n"
-            "    world.node_tree.links.new(ht_node.outputs['Result'], bsdf_node.inputs['Surface'])\n"
-            # Set up strength and rotation
-            "if env_node:\n"
-            f"    strength_node = world.node_tree.nodes.new(type='ShaderNodeValToTriple')\n"
-            f"    strength_node.inputs[0].default_value = {safe_strength}\n"
-            "    world.node_tree.links.new(strength_node.outputs['Z'], bsdf_node.inputs['Strength'])\n"
-        )
-
-        try:
-            await self._execute_code(code)
-            result = {
-                "environment_ref": hdri_path,
-                "applied_strength": float(strength),
-                "message": f"HDRI environment '{hdri_path}' configured successfully",
+        # Validate strength range
+        if strength < 0.0 or strength > 10.0:
+            return {
+                "success": False,
+                "environment_reference": None,
+                "strength": strength,
+                "rotation": rotation,
+                "message": f"HDRI strength {strength} out of range (0.0-10.0)",
+                "error": "invalid_parameter",
             }
-            logger.info("HDRI configured successfully: %s", hdri_path)
-            return result
+
+        # Normalize rotation to [0, 360)
+        rotation = rotation % 360.0
+
+        # Validate HDRI file path through security policy
+        if self.security_validator:
+            try:
+                await self.security_validator.validate_path(hdri_file_path, "read")
+            except Exception as e:
+                logger.warning("HDRI path validation failed: %s", e)
+                return {
+                    "success": False,
+                    "environment_reference": None,
+                    "strength": strength,
+                    "rotation": rotation,
+                    "message": f"HDRI path validation failed: {e}",
+                    "error": "security_violation",
+                }
+
+        # Check if HDRI file exists locally
+        import os
+        if not os.path.exists(hdri_file_path):
+            # Try to acquire through asset feature
+            if self.asset_feature:
+                try:
+                    logger.info("HDRI file not found, attempting acquisition via asset feature")
+                    download_result = await self.asset_feature.download_to_cache(
+                        provider="polyhaven",  # Default provider
+                        asset_id=hdri_file_path,  # Use path as ID for lookup
+                        asset_type="hdri",
+                        cache_dir=FilePath(""),
+                    )
+                    if not download_result.get("success"):
+                        return {
+                            "success": False,
+                            "environment_reference": None,
+                            "strength": strength,
+                            "rotation": rotation,
+                            "message": f"HDRI acquisition failed: {download_result.get('message', 'unknown error')}",
+                            "error": "asset_not_found",
+                        }
+                    hdri_file_path = FilePath(download_result.get("file_path", ""))
+                except Exception as e:
+                    logger.error("HDRI acquisition failed: %s", e)
+                    return {
+                        "success": False,
+                        "environment_reference": None,
+                        "strength": strength,
+                        "rotation": rotation,
+                        "message": f"HDRI acquisition failed: {e}",
+                        "error": "asset_not_found",
+                    }
+
+            # Still not found after attempt
+            if not os.path.exists(hdri_file_path):
+                return {
+                    "success": False,
+                    "environment_reference": None,
+                    "strength": strength,
+                    "rotation": rotation,
+                    "message": f"HDRI file not found: {hdri_file_path}",
+                    "error": "asset_not_found",
+                }
+
+        # Build HDRI configuration command
+        hdri_command = self._build_hdri_command(
+            hdri_file_path, strength, rotation, background_visible, overwrite_policy
+        )
+
+        # Execute through gateway
+        try:
+            result = await self.gateway_client.execute_command(hdri_command)
+            return {
+                "success": True,
+                "environment_reference": result.get("environment_name"),
+                "strength": strength,
+                "rotation": rotation,
+                "message": f"HDRI lighting configured with {hdri_file_path}",
+            }
         except Exception as e:
             logger.error("HDRI configuration failed: %s", e)
             return {
-                "environment_ref": hdri_path,
-                "applied_strength": 0.0,
+                "success": False,
+                "environment_reference": None,
+                "strength": strength,
+                "rotation": rotation,
                 "message": f"HDRI configuration failed: {e}",
+                "error": str(e),
             }
 
-    async def _execute_code(self, code: str) -> None:
-        """Execute Python code through the server module's code execution capability.
-
-        Args:
-            code: Python code string to execute in Blender.
-
-        Raises:
-            RuntimeError: If code execution fails.
-        """
-        if callable(self._code_executor):
-            result = await self._code_executor(code)
-            if isinstance(result, str):
-                logger.info("HDRI config code execution: %s", result[:200])
-        else:
-            raise RuntimeError(f"Unexpected code_executor type: {type(self._code_executor)}")
+    def _build_hdri_command(
+        self,
+        hdri_path: str,
+        strength: float,
+        rotation: float,
+        background_visible: bool,
+        overwrite_policy: str,
+    ) -> dict[str, Any]:
+        """Build HDRI config command for gateway transport."""
+        return {
+            "type": "hdri_configure",
+            "hdri_path": hdri_path,
+            "strength": strength,
+            "rotation": rotation,
+            "background_visible": background_visible,
+            "overwrite_policy": overwrite_policy,
+        }

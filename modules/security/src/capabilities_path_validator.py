@@ -11,7 +11,6 @@ from typing import Protocol
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
-    AccessMode,
     PathValidationVO,
     SecurityPolicyVO,
 )
@@ -94,7 +93,7 @@ class PathValidator(ValidatePathProtocol):
                     audit_metadata={"rule": "symlink_resolution_failed"},
                 )
 
-        if not self._is_within_allowed_dirs(normalized, request.access_mode):
+        if not self._is_within_allowed_dirs(normalized):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
@@ -115,7 +114,7 @@ class PathValidator(ValidatePathProtocol):
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _is_within_allowed_dirs(self, normalized_path: str, access_mode: AccessMode) -> bool:
+    def _is_within_allowed_dirs(self, normalized_path: str) -> bool:
         if not self._policy.allowed_directories:
             return True
         for allowed_dir in self._policy.allowed_directories:

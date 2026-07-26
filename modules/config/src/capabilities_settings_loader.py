@@ -131,7 +131,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     validation_warnings=self._last_metadata.validation_warnings,
                 )
 
-            assert self._cached is not None
+            assert self._cached is not None  # noqa: B101
             return self._cached
 
     def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
@@ -153,7 +153,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         """Return metadata from the most recent successful load."""
         return self._last_metadata
 
-    def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:  # noqa: ARG002
+    def emit_loaded_event(self) -> SettingsLoadedEvent:
         """Build a settings-loaded event from the most recent load metadata."""
         metadata = self._last_metadata
         return SettingsLoadedEvent(
@@ -164,7 +164,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             timestamp=Timestamp(time.time()),
         )
 
-    def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:  # noqa: ARG002
+    def emit_reload_event(self) -> SettingsReloadEvent:
         """Build a settings-reload event from the most recent load metadata."""
         metadata = self._last_metadata
         return SettingsReloadEvent(

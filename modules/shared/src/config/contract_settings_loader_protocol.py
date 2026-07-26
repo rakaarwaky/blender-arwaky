@@ -42,13 +42,13 @@ class ISettingsLoaderProtocol(ABC):
         ...
 
     @abstractmethod
-    def emit_loaded_event(self, snapshot: SettingsSnapshot) -> SettingsLoadedEvent:
-        """Build a settings-loaded event payload for the given snapshot."""
+    def emit_loaded_event(self) -> SettingsLoadedEvent:
+        """Build a settings-loaded event payload from the most recent load metadata."""
         ...
 
     @abstractmethod
-    def emit_reload_event(self, snapshot: SettingsSnapshot) -> SettingsReloadEvent:
-        """Build a settings-reload event payload for the given snapshot."""
+    def emit_reload_event(self) -> SettingsReloadEvent:
+        """Build a settings-reload event payload from the most recent load metadata."""
         ...
 
     @abstractmethod
