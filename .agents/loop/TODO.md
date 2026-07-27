@@ -9,4 +9,5 @@ Next concrete actions (filled by the loop):
 - [X]  Check structural compliance: one-FR-one-capability-one-protocol rules
 - [X]  REMEDIATE: Remove duplicate capability files in asset module (4 removed)
 - [X]  REMEDIATE: Remove orphan capability files with no FR traceability (2 removed)
-- [ ]  Verify imports don't reference removed files
+- [X]  Verify imports don't reference removed files — 1 broken import at modules/object/src/root_object_container.py:76 (gracefully handled by try/except ImportError, no runtime crash)
+- [ ]  Remediate remaining structural violations in other modules (Render: capabilities_screenshot_capture.py orphaned + any remaining orphans)

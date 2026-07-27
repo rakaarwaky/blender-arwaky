@@ -69,6 +69,51 @@ File placement:
 - All Taxonomy Contract and Utility files must be under modules/shared/.
 - All Capabilities Agent files must be under modules/<feature_name>/.
 
+LINTER INTEGRATION
+==================
+
+Use lint-arwaky-cli to analyze the Python workspace.
+
+Full analysis, discovering modules and running all linters:
+
+```
+lint-arwaky-cli scan|check
+```
+
+<path></path>
+
+Targeted analysis, running one linter independently:
+
+```
+lint-arwaky-cli <quality|import|naming|role|orphan|external>
+```
+
+<path></path>
+
+Common flags:
+
+```
+--format
+```
+
+<FORMAT></format>
+    --filter <CODE></code>
+    -o, --output-dir <DIR></dir>
+
+<dir></dir>
+
+
+    --member <NAME></name>
+
+Meaning:
+
+- <path></path> defaults to current directory.
+- --format choices: text, json, sarif, junit.
+- --filter filters violations by AES rule ID, example: AES201.
+- -o, --output-dir saves report files.
+- --member targets a single workspace member by module name and is valid only for orphan.
+- external uses ruff.
+
 QUALITY PRIORITIES
 ==================
 
@@ -110,7 +155,7 @@ WORK CYCLE
 
 ---
 
-Inspect Governing Inputs, relevant code, tests, and Loop State Files to locate gaps from Quality Priorities.
+Inspect Governing Inputs, relevant code, tests, existing linter reports, and Loop State Files to locate gaps from Quality Priorities.
 
 2. Select
 
@@ -140,7 +185,8 @@ Run relevant:
 - integration tests,
 - CLI tests,
 - module-specific tests,
-- lint/type checks,
+- Linter Integration,
+- type checks,
 - build/check commands,
 - Blender background execution checks.
 
@@ -173,11 +219,7 @@ Begin the next cycle immediately.
 STRUCTURAL VIOLATION POLICY
 ===========================
 
-Any deviation from Mandatory Code Structure is a violation, including:
-
-- orphan files,
-- unclear ownership,
-- inconsistent naming.
+Any deviation from Mandatory Code Structure is a violation.
 
 Remediation:
 
@@ -208,6 +250,7 @@ SCOPE CHECK:
 STRUCTURE CHECK:
 CHANGE:
 TESTS:
+LINT:
 RESULT:
 RISKS:
 NEXT:
