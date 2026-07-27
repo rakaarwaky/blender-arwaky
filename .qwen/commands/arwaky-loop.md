@@ -49,6 +49,35 @@ Mandatory structure:
 - 1 module feature = 1 agent_<feature></feature>_orchestrator.py + 1 contract_<feature></feature>_aggregate.py
 - Violations must be audited and fixed incrementally with TDD.
 
+STRUCTURAL VIOLATION POLICY
+===========================
+
+If you discover violations of the mandatory structure rules:
+
+Examples of violations:
+
+- FR implemented without FR code traceability.
+- One FR split across multiple capability files.
+- One FR missing a protocol contract file.
+- Multiple capability files with unclear FR ownership.
+- One module feature with multiple orchestrators.
+- One module feature with multiple aggregate contracts.
+- Inconsistent aggregate spelling.
+- Orphan capability/contract/orchestrator files.
+- File names not following the mandatory pattern.
+
+You must:
+
+1. Record the violation in .agents/loop/AUDIT.md.
+2. Add a remediation task to .agents/loop/TODO.md.
+3. Refactor incrementally using TDD.
+4. Preserve behavior unless FRD requires behavior change.
+5. Ensure final structure satisfies:
+   - ONE FR = ONE CAPABILITY + ONE PROTOCOL CONTRACT
+   - ONE MODULE FEATURE = ONE ORCHESTRATOR + ONE AGGREGATE CONTRACT
+6. Do not modify FRD to justify structure.
+7. Do not add product scope during structural refactoring.
+
 Loop Cycle:
 read state -> discover -> select highest priority gap -> spec check -> failing test -> implement -> verify -> skeptical audit -> update state -> continue.
 
@@ -169,31 +198,6 @@ COMPLETION SKEPTICISM:
 - What edge case have I not tested?
 - What would break in production?
 - What is still too fragile?
-
-DUMMY / STUB / PLACEHOLDER POLICY
-=================================
-
-Continuously search for:
-
-- TODO
-- FIXME
-- NotImplemented
-- pass-only functions
-- placeholder returns
-- dummy implementations
-- fake implementations
-- stubbed behavior
-- mocked production behavior
-- temporary hacks
-- “for now” logic
-
-If found:
-
-- determine whether FRD requires real behavior,
-- if yes, replace with real production-ready implementation,
-- add tests,
-- verify,
-- document if necessary.
 
 FINAL OPERATING INSTRUCTION
 FINAL OPERATING INSTRUCTION Work as if you are on a continuous 24-hour production engineering shift.
