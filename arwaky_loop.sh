@@ -2,41 +2,42 @@
 set -euo pipefail
 
 ROOT="/home/raka/mcp-arwaky/blender-arwaky"
-STOPFILE="$ROOT/.agents/loop/STOP"
-LOGDIR="$ROOT/.agents/loop"
-RUNLOG="$LOGDIR/run.log"
-WRAPPERLOG="$LOGDIR/wrapper.log"
+LOOPDIR="$ROOT/.agents/loop"
+STOPFILE="$LOOPDIR/STOP"
+PROMPT_FILE="$LOOPDIR/arwaky-loop-prompt.txt"
+RUNLOG="$LOOPDIR/run.log"
+WRAPPERLOG="$LOOPDIR/wrapper.log"
+LOCKFILE="$LOOPDIR/arwaky_loop.lock"
+PIDFILE="$LOOPDIR/arwaky_loop.pid"
 
-mkdir -p "$LOGDIR"
+mkdir -p "$LOOPDIR"
+
+# Prevent multiple wrapper instances
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+  echo "[$(date)] Another arwaky_loop.sh is already running" >> "$WRAPPERLOG"
+  exit 1
+fi
+
+echo $$ > "$PIDFILE"
 
 cd "$ROOT"
 
 export QWEN_CODE_UNATTENDED_RETRY=1
 export QWEN_CODE_CRON_MAX_AGE_DAYS=0
 
-PROMPT='
-Continue the Blender Arwaky autonomous engineering loop.
+if [[ ! -f "$PROMPT_FILE" ]]; then
+  echo "[$(date)] ERROR: prompt file not found: $PROMPT_FILE" >> "$WRAPPERLOG"
+  exit 1
+fi
 
-Project root:
-/home/raka/mcp-arwaky/blender-arwaky/
+PROMPT="$(cat "$PROMPT_FILE")"
 
-Rules:
-- Never modify FRD.
-- Never add scope.
-- Always align with FRD and ARCHITECTURE.md.
-- Use Spec-Driven Development, Skill-Driven Development, and Test-Driven Development.
-- Production-ready only.
-- Replace dummy/stub/placeholder/TODO code with real tested implementation when required by FRD.
-- Never trust completion.
-- If no obvious implementation work remains, do regression, security, performance, architecture, documentation, and production-readiness audits.
-- Update .agents/loop/STATE.md, TODO.md, DONE.md, QUESTIONS.md, ASSUMPTIONS.md, AUDIT.md, HEARTBEAT.md.
-- If .agents/loop/STOP exists, print ARWAKY LOOP STOPPED BY USER and do nothing else.
-- Otherwise, pick the next highest-priority FRD-aligned production-readiness gap and work on it.
-- Do not ask for permission to continue.
-- End this run with a short heartbeat and NEXT_ACTION.
-'
+echo "[$(date)] arwaky_loop.sh started" >> "$WRAPPERLOG"
 
 while [[ ! -f "$STOPFILE" ]]; do
+  START_TS=$(date +%s)
+
   echo "[$(date)] Starting qwen headless loop" >> "$WRAPPERLOG"
 
   qwen --continue \
@@ -45,8 +46,19 @@ while [[ ! -f "$STOPFILE" ]]; do
     --output-format stream-json \
     >> "$RUNLOG" 2>&1 || true
 
-  echo "[$(date)] qwen exited, restarting in 10s" >> "$WRAPPERLOG"
-  sleep 10
+  END_TS=$(date +%s)
+  DURATION=$((END_TS - START_TS))
+
+  echo "[$(date)] qwen exited after ${DURATION}s" >> "$WRAPPERLOG"
+
+  # If qwen exits too fast, avoid crash-loop spam
+  if [[ "$DURATION" -lt 30 ]]; then
+    echo "[$(date)] qwen exited too fast, sleeping 60s" >> "$WRAPPERLOG"
+    sleep 60
+  else
+    sleep 10
+  fi
 done
 
 echo "[$(date)] STOP file detected, wrapper exiting" >> "$WRAPPERLOG"
+rm -f "$PIDFILE"

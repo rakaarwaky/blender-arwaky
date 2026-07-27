@@ -103,7 +103,13 @@ Common flags:
 <dir></dir>
 
 
-    --member <NAME></name>
+<dir></dir>
+
+```
+--member
+```
+
+<NAME></name>
 
 Meaning:
 
@@ -254,4 +260,3 @@ LINT:
 RESULT:
 RISKS:
 NEXT:
-STATUS: CONTINUE
