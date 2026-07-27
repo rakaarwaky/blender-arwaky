@@ -7,6 +7,7 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
+import inspect
 import pathlib
 
 import pytest
@@ -74,32 +75,35 @@ def _make_metadata(name: str, asset_id: str = "001", provider: str = "polyhaven"
 # ─── Tests ──────────────────────────────────────────────────────────────────
 
 
-def test_orchestrator_search_delegates_to_collector():
+@pytest.mark.asyncio
+async def test_orchestrator_search_delegates_to_collector():
     """Test that orchestrator search delegates to the collector."""
     metadata = _make_metadata("Cube HDRI")
     collector = MockSearchCollector(search_result=[metadata])
     orch = AssetOrchestrator(collector)
 
-    result = orch.search(SearchQuery(text="cube"))
+    result = await orch.search(SearchQuery("cube"))
 
     assert len(result) == 1
     assert result[0].name == "Cube HDRI"
     assert len(collector._search_calls) == 1
 
 
-def test_orchestrator_search_with_provider_filter():
+@pytest.mark.asyncio
+async def test_orchestrator_search_with_provider_filter():
     """Test that orchestrator passes provider filter to collector."""
     collector = MockSearchCollector(search_result=[])
     orch = AssetOrchestrator(collector)
 
-    orch.search(SearchQuery(text="test"), providers=StringList([ProviderName("polyhaven")]))
+    await orch.search(SearchQuery("test"), providers=StringList([ProviderName("polyhaven")]))
 
     assert len(collector._search_calls) == 1
     query, providers = collector._search_calls[0]
     assert providers is not None
 
 
-def test_orchestrator_fetch_and_import():
+@pytest.mark.asyncio
+async def test_orchestrator_fetch_and_import():
     """Test that orchestrator delegates fetch-and-import to collector."""
     imported = ImportedAsset(
         id=AssetId("hdri_001"),
@@ -109,42 +113,46 @@ def test_orchestrator_fetch_and_import():
     collector = MockSearchCollector(fetch_result=imported)
     orch = AssetOrchestrator(collector)
 
-    result = orch.fetch_and_import(ProviderName("polyhaven"), AssetId("hdri_001"))
+    result = await orch.fetch_and_import(ProviderName("polyhaven"), AssetId("hdri_001"))
 
     assert result.id == "hdri_001"
     assert len(collector._fetch_calls) == 1
 
 
-def test_orchestrator_fetch_raises_on_missing():
+@pytest.mark.asyncio
+async def test_orchestrator_fetch_raises_on_missing():
     """Test that orchestrator propagates collector errors."""
     collector = MockSearchCollector(fetch_result=None)
     orch = AssetOrchestrator(collector)
 
     with pytest.raises(ValueError, match="No fetch result"):
-        orch.fetch_and_import(ProviderName("polyhaven"), AssetId("bad"))
+        await orch.fetch_and_import(ProviderName("polyhaven"), AssetId("bad"))
 
 
-def test_orchestrator_empty_search():
+@pytest.mark.asyncio
+async def test_orchestrator_empty_search():
     """Test that orchestrator returns empty list when no results."""
     collector = MockSearchCollector(search_result=[])
     orch = AssetOrchestrator(collector)
 
-    result = orch.search(SearchQuery(text="nothing"))
+    result = await orch.search(SearchQuery("nothing"))
     assert result == []
 
 
-def test_orchestrator_multiple_searches():
+@pytest.mark.asyncio
+async def test_orchestrator_multiple_searches():
     """Test that orchestrator tracks multiple search calls."""
     collector = MockSearchCollector(search_result=[_make_metadata("A"), _make_metadata("B")])
     orch = AssetOrchestrator(collector)
 
-    orch.search(SearchQuery(text="a"))
-    orch.search(SearchQuery(text="b"))
+    await orch.search(SearchQuery("a"))
+    await orch.search(SearchQuery("b"))
 
     assert len(collector._search_calls) == 2
 
 
-def test_orchestrator_preserves_metadata_fields():
+@pytest.mark.asyncio
+async def test_orchestrator_preserves_metadata_fields():
     """Test that orchestrator preserves all metadata fields from collector."""
     metadata = AssetMetadata(
         id="test_001",
@@ -157,7 +165,7 @@ def test_orchestrator_preserves_metadata_fields():
     collector = MockSearchCollector(search_result=[metadata])
     orch = AssetOrchestrator(collector)
 
-    result = orch.search(SearchQuery(text="test"))
+    result = await orch.search(SearchQuery("test"))
 
     assert len(result) == 1
     assert result[0].id == "test_001"
@@ -168,7 +176,8 @@ def test_orchestrator_preserves_metadata_fields():
     assert result[0].tags == ["nature", "outdoor"]
 
 
-def test_orchestrator_fetch_and_import_calls_collector_once():
+@pytest.mark.asyncio
+async def test_orchestrator_fetch_and_import_calls_collector_once():
     """Test that fetch-and-import makes exactly one collector call."""
     imported = ImportedAsset(
         id=AssetId("test"),
@@ -178,7 +187,7 @@ def test_orchestrator_fetch_and_import_calls_collector_once():
     collector = MockSearchCollector(fetch_result=imported)
     orch = AssetOrchestrator(collector)
 
-    orch.fetch_and_import(ProviderName("polyhaven"), AssetId("test"))
+    await orch.fetch_and_import(ProviderName("polyhaven"), AssetId("test"))
 
     assert len(collector._fetch_calls) == 1
 
@@ -191,6 +200,5 @@ def test_orchestrator_no_direct_blender_access():
     """
     # If the orchestrator had direct Blender calls, this test would fail
     # Current implementation only delegates — verify no Blender import in source
-    import inspect
     source = inspect.getsource(AssetOrchestrator)
     assert "bpy" not in source.lower() or "import" not in source.split("import")[0]

@@ -73,9 +73,12 @@ def capability_with_security(cache_dir: str) -> AssetDownloadCapability:
 # ─── FR-AST-002: Download Asset to Cache ───────────────────────────────────
 
 
-def test_fr_ast_002_download_to_cache_creates_path(capability_with_security: AssetDownloadCapability, cache_dir: str):
+@pytest.mark.asyncio
+async def test_fr_ast_002_download_to_cache_creates_path(
+    capability_with_security: AssetDownloadCapability, cache_dir: str
+):
     """Test that download creates a cache path and returns success."""
-    result = capability_with_security.download_to_cache(
+    result = await capability_with_security.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -88,17 +91,21 @@ def test_fr_ast_002_download_to_cache_creates_path(capability_with_security: Ass
     assert result["integrity_ok"] is True
 
 
-def test_fr_ast_002_cache_reuse_reuse_policy(capability_with_security: AssetDownloadCapability, cache_dir: str):
+@pytest.mark.asyncio
+async def test_fr_ast_002_cache_reuse_reuse_policy(capability_with_security: AssetDownloadCapability, cache_dir: str):
     """Test that valid cached artifact is reused without network access."""
-    # Pre-populate cache
     os.makedirs(cache_dir, exist_ok=True)
     cap = capability_with_security
-    # Set a cached path manually
-    test_path = os.path.join(cache_dir, "test.cache")
-    with open(test_path, "w") as f:
+
+    # Compute the actual cache path the capability would use
+    cache_key = f"polyhaven:hdri_001:default"
+    expected_path = cap._get_cache_path(cache_key)
+
+    # Pre-populate cache at the correct path
+    with open(expected_path, "w") as f:
         f.write("cached content")
 
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -111,7 +118,8 @@ def test_fr_ast_002_cache_reuse_reuse_policy(capability_with_security: AssetDown
     assert "Cached artifact served" in result["message"]
 
 
-def test_fr_ast_002_cache_unique_variant(capability_with_security: AssetDownloadCapability, cache_dir: str):
+@pytest.mark.asyncio
+async def test_fr_ast_002_cache_unique_variant(capability_with_security: AssetDownloadCapability, cache_dir: str):
     """Test that unique variant policy creates a new cache entry."""
     os.makedirs(cache_dir, exist_ok=True)
     cap = capability_with_security
@@ -121,7 +129,7 @@ def test_fr_ast_002_cache_unique_variant(capability_with_security: AssetDownload
     with open(test_path, "w") as f:
         f.write("old content")
 
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -133,12 +141,13 @@ def test_fr_ast_002_cache_unique_variant(capability_with_security: AssetDownload
     assert result["cached"] is False
 
 
-def test_fr_ast_002_security_validation_failure():
+@pytest.mark.asyncio
+async def test_fr_ast_002_security_validation_failure():
     """Test that download fails when security validation rejects the path."""
     sec = MockSecurityValidator(validate=False)
     cap = AssetDownloadCapability(security_validator=sec)
 
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -151,10 +160,11 @@ def test_fr_ast_002_security_validation_failure():
     assert "validation failed" in result["message"].lower()
 
 
-def test_fr_ast_002_max_size_exceeded(capability_with_security: AssetDownloadCapability, cache_dir: str):
+@pytest.mark.asyncio
+async def test_fr_ast_002_max_size_exceeded(capability_with_security: AssetDownloadCapability, cache_dir: str):
     """Test that download fails when estimated size exceeds max size."""
     cap = capability_with_security
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -166,12 +176,13 @@ def test_fr_ast_002_max_size_exceeded(capability_with_security: AssetDownloadCap
     assert "exceeds max size" in result["message"].lower()
 
 
-def test_fr_ast_002_background_download_returns_task_ref(
+@pytest.mark.asyncio
+async def test_fr_ast_002_background_download_returns_task_ref(
     capability_with_security: AssetDownloadCapability, cache_dir: str
 ):
     """Test that background download submits job and returns task reference."""
     cap = capability_with_security
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -184,11 +195,12 @@ def test_fr_ast_002_background_download_returns_task_ref(
     assert "Background download submitted" in result["message"]
 
 
-def test_fr_ast_002_provider_error_returns_error():
+@pytest.mark.asyncio
+async def test_fr_ast_002_provider_error_returns_error():
     """Test that provider errors are caught and reported."""
     cap = AssetDownloadCapability()
 
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -244,10 +256,11 @@ def test_fr_ast_002_unique_cache_path_differs():
     assert path_uniq != path_det
 
 
-def test_fr_ast_002_download_does_not_import():
+@pytest.mark.asyncio
+async def test_fr_ast_002_download_does_not_import():
     """Test that download operation does not trigger import (separate concern)."""
     cap = AssetDownloadCapability()
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),
@@ -258,10 +271,11 @@ def test_fr_ast_002_download_does_not_import():
     assert "object_names" not in result
 
 
-def test_fr_ast_002_credentials_not_logged():
+@pytest.mark.asyncio
+async def test_fr_ast_002_credentials_not_logged():
     """Test that provider credentials are never echoed in results."""
     cap = AssetDownloadCapability()
-    result = cap.download_to_cache(
+    result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
         asset_id=AssetId("hdri_001"),
         asset_type=AssetType("hdri"),

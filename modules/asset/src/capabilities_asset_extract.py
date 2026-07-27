@@ -96,11 +96,17 @@ class AssetExtractCapability(AssetExtractProtocol):
         try:
             # Determine archive type and extract
             path = Path(artifact_path)
-            if path.suffix in (".zip", ".ZIP"):
+            name_lower = path.name.lower()
+            suffix = path.suffix.lower()
+            if suffix in (".zip", ".ZIP"):
                 extracted_files, rejected_entries = await self._extract_zip(
                     artifact_path, destination, max_entries, max_extracted_size, allow_symlinks
                 )
-            elif path.suffix in (".tar", ".tar.gz", ".tgz", ".TAR", ".TAR.GZ", ".TGZ"):
+            elif suffix == ".gz" and (name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz")):
+                extracted_files, rejected_entries = await self._extract_tar(
+                    artifact_path, destination, max_entries, max_extracted_size, allow_symlinks
+                )
+            elif suffix in (".tar", ".TAR"):
                 extracted_files, rejected_entries = await self._extract_tar(
                     artifact_path, destination, max_entries, max_extracted_size, allow_symlinks
                 )
@@ -160,7 +166,7 @@ class AssetExtractCapability(AssetExtractProtocol):
                     # Check entry size
                     try:
                         info = zf.getinfo(entry)
-                        entry_size = info.file_size if hasattr(info, 'file_size') else info.compress_size
+                        entry_size = info.file_size if hasattr(info, "file_size") else info.compress_size
                     except KeyError:
                         entry_size = 0
 
@@ -209,7 +215,7 @@ class AssetExtractCapability(AssetExtractProtocol):
                         continue
 
                     # Reject symlinks/hardlinks if not allowed
-                    if not allow_symlinks and member.issym() or member.isln():
+                    if not allow_symlinks and (member.issym() or member.islnk()):
                         rejected.append(f"link_rejected: {member.name}")
                         continue
 

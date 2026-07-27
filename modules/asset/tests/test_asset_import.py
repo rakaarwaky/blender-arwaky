@@ -52,19 +52,23 @@ def _create_test_file(tmp_path: pathlib.Path, name: str = "test.glb", content: b
 @pytest.fixture
 def gateway_with_success() -> MockGatewayClient:
     """Gateway client that returns success."""
-    return MockGatewayClient(execute_result={
-        "object_names": ["ImportedModel"],
-        "asset_name": "test_asset",
-        "license_summary": "CC-BY 4.0",
-    })
+    return MockGatewayClient(
+        execute_result={
+            "object_names": ["ImportedModel"],
+            "asset_name": "test_asset",
+            "license_summary": "CC-BY 4.0",
+        }
+    )
 
 
 @pytest.fixture
 def gateway_with_failure() -> MockGatewayClient:
     """Gateway client that raises on execute."""
     gw = MockGatewayClient()
+
     async def fail(command: dict) -> dict:
         raise Exception("Blender import failed")
+
     gw.execute_command = fail
     return gw
 
@@ -72,12 +76,13 @@ def gateway_with_failure() -> MockGatewayClient:
 # ─── FR-AST-004: Import Asset into Blender ─────────────────────────────────
 
 
-def test_fr_ast_004_import_success(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_import_success(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that successful import returns object references."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
     )
@@ -88,11 +93,12 @@ def test_fr_ast_004_import_success(gateway_with_success: MockGatewayClient, tmp_
     assert result["asset_name"] == "test_asset"
 
 
-def test_fr_ast_004_import_missing_file():
+@pytest.mark.asyncio
+async def test_fr_ast_004_import_missing_file():
     """Test that import fails when local file is missing with download guidance."""
     cap = AssetImportCapability()
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath("/nonexistent/file.glb"),
         asset_type=AssetType("model"),
     )
@@ -102,12 +108,13 @@ def test_fr_ast_004_import_missing_file():
     assert "download operation" in result["message"].lower()
 
 
-def test_fr_ast_004_import_empty_file(tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_import_empty_file(tmp_path: pathlib.Path):
     """Test that import fails when file is empty."""
     cap = AssetImportCapability()
     empty_file = _create_test_file(tmp_path, "empty.glb", content=b"")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(empty_file),
         asset_type=AssetType("model"),
     )
@@ -116,12 +123,13 @@ def test_fr_ast_004_import_empty_file(tmp_path: pathlib.Path):
     assert result.get("error") == "empty_file"
 
 
-def test_fr_ast_004_unsupported_format(tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_unsupported_format(tmp_path: pathlib.Path):
     """Test that unsupported format returns validation error."""
     cap = AssetImportCapability()
     file_path = _create_test_file(tmp_path, "weird.xyz", b"data")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
     )
@@ -131,12 +139,13 @@ def test_fr_ast_004_unsupported_format(tmp_path: pathlib.Path):
     assert result.get("error") == "unsupported_format"
 
 
-def test_fr_ast_004_blender_import_failure(gateway_with_failure: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_blender_import_failure(gateway_with_failure: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that Blender-side import failure is distinguished from download failure."""
     cap = AssetImportCapability(gateway_client=gateway_with_failure)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
     )
@@ -147,12 +156,13 @@ def test_fr_ast_004_blender_import_failure(gateway_with_failure: MockGatewayClie
     assert "download" not in result.get("message", "").lower() or "blender" in result.get("message", "").lower()
 
 
-def test_fr_ast_004_target_collection(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_target_collection(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that target collection is passed through import command."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         target_collection="MyCollection",
@@ -163,12 +173,13 @@ def test_fr_ast_004_target_collection(gateway_with_success: MockGatewayClient, t
     assert gateway_with_success._calls[0].get("target_collection") == "MyCollection"
 
 
-def test_fr_ast_004_scale_normalization(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_scale_normalization(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that scale normalization policy is applied."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         scale_normalization=True,
@@ -178,12 +189,13 @@ def test_fr_ast_004_scale_normalization(gateway_with_success: MockGatewayClient,
     assert gateway_with_success._calls[0].get("scale_normalization") is True
 
 
-def test_fr_ast_004_duplicate_policy(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_duplicate_policy(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that duplicate handling policy is passed through."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         duplicate_policy="reject",
@@ -193,12 +205,13 @@ def test_fr_ast_004_duplicate_policy(gateway_with_success: MockGatewayClient, tm
     assert gateway_with_success._calls[0].get("duplicate_policy") == "reject"
 
 
-def test_fr_ast_004_format_hint(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_format_hint(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that format hint overrides default format detection."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.custom", b"data")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         format_hint="glTF",
@@ -208,12 +221,13 @@ def test_fr_ast_004_format_hint(gateway_with_success: MockGatewayClient, tmp_pat
     assert result["success"] is True
 
 
-def test_fr_ast_004_license_preserved(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_license_preserved(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that license and attribution metadata are preserved."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
     )
@@ -222,7 +236,8 @@ def test_fr_ast_004_license_preserved(gateway_with_success: MockGatewayClient, t
     assert result.get("license_summary") == "CC-BY 4.0"
 
 
-def test_fr_ast_004_import_handoff_boundary():
+@pytest.mark.asyncio
+async def test_fr_ast_004_import_handoff_boundary():
     """Test that import capability ends at object reference handoff.
 
     FR-AST-004: After import, object manipulation is responsibility of
@@ -231,7 +246,7 @@ def test_fr_ast_004_import_handoff_boundary():
     cap = AssetImportCapability()
 
     # Even without gateway, result structure should not include manipulation keys
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath("/nonexistent.glb"),
         asset_type=AssetType("model"),
     )
@@ -259,12 +274,13 @@ def test_fr_ast_004_supported_formats():
         assert cap._is_supported_format(f"/tmp/hdr{ext}", AssetType("hdri"), None) is True
 
 
-def test_fr_ast_004_import_command_structure(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
+@pytest.mark.asyncio
+async def test_fr_ast_004_import_command_structure(gateway_with_success: MockGatewayClient, tmp_path: pathlib.Path):
     """Test that the import command built for gateway has correct structure."""
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = cap.import_asset(
+    result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         duplicate_policy="replace",

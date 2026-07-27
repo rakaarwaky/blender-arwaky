@@ -26,17 +26,26 @@ from modules.shared.src.common.taxonomy_domain_error import ProviderError
 class MockProviderPort(AssetProviderPort):
     """Mock provider port for testing."""
 
-    def __init__(self, assets: list | None = None, error: Exception | None = None) -> None:
+    def __init__(self, assets: list | None = None, error: Exception | None = None) -> None:  # noqa: A003
         self._assets = assets or []
         self._error = error
 
-    async def search_assets(self, request: object) -> object:
+    async def search_assets(self, request: object) -> object:  # noqa: ARG001
         if self._error:
             raise self._error
         result = type("SearchResult", (), {"assets": self._assets})()
         return result
 
-    async def download_asset(self, request: object) -> object:
+    async def get_asset_details(self, asset_id: object) -> object:  # noqa: ARG001
+        """Return mock asset details or None."""
+        if self._error:
+            raise self._error
+        for asset in self._assets:
+            if str(getattr(asset, "id", "")) == str(asset_id):
+                return asset
+        return None
+
+    async def download_asset(self, request: object) -> object:  # noqa: ARG001
         raise NotImplementedError("Not used in search tests")
 
 
@@ -62,7 +71,7 @@ def _make_asset(id: str, name: str, type: str, provider: str, tags: list[str] | 
 
 def _make_query(text: str = "cube") -> SearchQuery:
     """Create a default search query."""
-    return SearchQuery(text=text)
+    return SearchQuery(text)
 
 
 @pytest.fixture
