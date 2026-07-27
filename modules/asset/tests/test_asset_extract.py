@@ -19,6 +19,9 @@ import pytest
 from modules.asset.src.capabilities_asset_extract import AssetExtractCapability
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
+from modules.shared.src.security.contract_extract_archive_protocol import (
+    ExtractArchiveProtocol,
+)
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
@@ -28,7 +31,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
 # ─── Mock Security Supervisor ───────────────────────────────────────────────
 
 
-class MockSecuritySupervisor:
+class MockSecuritySupervisor(ExtractArchiveProtocol):
     """Mock security policy supervisor for extraction.
 
     Mirrors the real ArchiveGuard enforcement so tests exercise the
@@ -224,7 +227,7 @@ async def test_fr_ast_003_unsupported_format(capability_with_security: AssetExtr
 @pytest.mark.asyncio
 async def test_fr_ast_003_invalid_zip_raises_validation_error():
     """Test that corrupted ZIP returns error with validation details."""
-    cap = AssetExtractCapability()
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
     # Create invalid zip
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
         f.write(b"not a valid zip")
@@ -245,7 +248,7 @@ async def test_fr_ast_003_invalid_zip_raises_validation_error():
 @pytest.mark.asyncio
 async def test_fr_ast_003_entry_count_limit(tmp_path: pathlib.Path):
     """Test that extraction respects max_entries limit."""
-    cap = AssetExtractCapability()
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
 
     # Create ZIP with many entries
     files = {f"file{i}.txt": f"data {i}" for i in range(10)}
@@ -267,7 +270,7 @@ async def test_fr_ast_003_entry_count_limit(tmp_path: pathlib.Path):
 @pytest.mark.asyncio
 async def test_fr_ast_003_symlink_rejection(tmp_path: pathlib.Path):
     """Test that symbolic link entries are rejected when not allowed."""
-    cap = AssetExtractCapability()
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
 
     # Create ZIP with symlink-like entry name
     files = {"data.txt": "real", "link.txt": "symlink target", "../escape.txt": "bad"}
@@ -288,7 +291,7 @@ async def test_fr_ast_003_symlink_rejection(tmp_path: pathlib.Path):
 @pytest.mark.asyncio
 async def test_fr_ast_003_size_limit_rejection(tmp_path: pathlib.Path):
     """Test that entries exceeding max size are rejected."""
-    cap = AssetExtractCapability()
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
 
     # Create ZIP with large content
     files = {"big.txt": "x" * 5000}
@@ -325,11 +328,13 @@ async def test_fr_ast_003_security_delegation(tmp_path: pathlib.Path):
         allow_symlinks=True,
     )
 
-    # Verify security was called
+    # Verify security was called with the ArchiveExtractionVO contract
     assert len(sec._calls) == 1
-    call = sec._calls[0]
-    assert call["max_entries"] == 500
-    assert call["allow_symlinks"] is True
+    request = sec._calls[0]
+    assert isinstance(request, ArchiveExtractionVO)
+    assert request.options.max_entry_count == 500
+    assert request.options.max_total_size == 536870912
+    assert request.options.allow_symbolic_links is True
 
 
 @pytest.mark.asyncio
@@ -365,11 +370,11 @@ def test_fr_ast_003_no_local_traversal_protection():
     """Test that extraction capability does NOT implement path traversal protection itself.
 
     FR-AST-003: All archive safety decisions are delegated to security policy.
-    The capability should only have _is_safe_path for informational reporting,
-    not as the primary enforcement mechanism.
+    The capability must not contain local traversal/symlink enforcement helpers.
     """
     cap = AssetExtractCapability()
-    # The capability has _is_safe_path but it's secondary to security supervisor
-    # Primary enforcement is through security_supervisor.validate_extraction()
-    assert hasattr(cap, "_is_safe_path")  # informational helper exists
+    # Asset feature must not implement its own traversal protection.
+    assert not hasattr(cap, "_is_safe_path")
+    assert not hasattr(cap, "_is_symlink_entry")
+    # Safety is delegated to the security supervisor (fail-closed when absent).
     assert cap.security_supervisor is None  # no supervisor by default

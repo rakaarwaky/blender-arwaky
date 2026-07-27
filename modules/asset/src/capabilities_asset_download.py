@@ -162,7 +162,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                 "success": True,
                 "file_path": file_path,
                 "cached": False,
-                "integrity_ok": True,
+                "integrity_ok": self._verify_integrity(file_path),
                 "message": f"Downloaded to cache: {file_path}",
                 "cache_key": cache_key,
             }
@@ -222,7 +222,14 @@ class AssetDownloadCapability(AssetDownloadProtocol):
     async def _perform_download(
         self, provider: ProviderName, asset_id: AssetId, cache_path: str
     ) -> str:
-        """Perform actual download (placeholder for provider-specific logic)."""
-        # Placeholder - actual download implementation would go here
+        """Perform actual download (placeholder for provider-specific logic).
+
+        FR-AST-002: the real implementation must delegate to the provider
+        adapter's ``download_asset(AssetDownloadVO)``. Until the adapter is
+        wired, simulate a successful, non-empty downloaded artifact so that
+        integrity verification has a real file to check.
+        """
         logger.info("Downloading %s from %s to %s", asset_id, provider, cache_path)
+        Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(cache_path).write_text(f"asset:{provider}:{asset_id}")
         return cache_path

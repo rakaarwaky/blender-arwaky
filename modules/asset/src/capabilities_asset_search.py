@@ -13,6 +13,7 @@ from typing import Any
 
 from modules.shared.src.asset.contract_asset_provider import AssetProviderPort
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
+from modules.shared.src.asset.taxonomy_asset_vo import AssetSearchVO
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
     NextPageToken,
@@ -81,9 +82,7 @@ class AssetSearchCapability(AssetSearchProtocol):
         # Search all providers concurrently
         async def search_provider(name: str, port: AssetProviderPort) -> tuple[str, list[dict[str, Any]], str | None]:
             try:
-                result = await port.search_assets(
-                    type("Obj", (), {"query": query})()
-                )
+                result = await port.search_assets(AssetSearchVO(query=query))
                 # Normalize results
                 normalized = []
                 for item in getattr(result, "assets", []):
