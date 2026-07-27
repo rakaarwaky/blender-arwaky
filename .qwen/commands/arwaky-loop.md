@@ -45,9 +45,8 @@ Rules:
 Mandatory structure:
 
 - 1 FR = 1 capabilities_<concern></concern>_.py + 1 contract_<concern></concern>_protocol.py
+- if capabilites more than FR findway to merger or cleanup
 - 1 module feature = 1 agent_<feature></feature>_orchestrator.py + 1 contract_<feature></feature>_aggregate.py
-- If repo uses `agregate`, keep it consistent.
-- No duplicate orchestrators or aggregate contracts.
 - Violations must be audited and fixed incrementally with TDD.
 
 Loop Cycle:
