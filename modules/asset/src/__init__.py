@@ -1,12 +1,14 @@
 """Asset feature module — AES implementation.
 
 Layers:
-  - Taxonomy (shared/src/asset/)    → VOs for import/export, search, download, extract
-  - Contract (shared/src/asset/)   → ImportExportProtocol, AssetSearchProtocol,
-                                      AssetDownloadProtocol, AssetExtractProtocol,
-                                      AssetImportProtocol
-  - Capabilities                   → SearchCollector, ImportExportExecutor,
-                                      DownloadExecutor, ExtractExecutor, ImportExecutor
+  - Taxonomy (shared/src/asset/)    → VOs for search, download, extract, import
+  - Contract (shared/src/asset/)   → AssetSearchProtocol, AssetDownloadProtocol,
+                                      AssetExtractProtocol, AssetImportProtocol,
+                                      AssetProviderMetadataProtocol, AssetProviderPort
+  - Capabilities                   → SearchCapability, DownloadCapability,
+                                      ExtractCapability, ImportCapability,
+                                      ProviderMetadataCapability
+  - Adapters                       → PolyhavenAssetAdapter, SketchfabAssetAdapter
   - Agent                          → AssetOrchestrator
   - Root                           → AssetContainer (DI wiring)
 

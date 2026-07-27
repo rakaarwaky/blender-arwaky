@@ -1,7 +1,7 @@
 """Root layer: Dependency injection container for the asset feature.
 
-Wires asset capabilities (search collector, import/export executor,
-provider adapters) to the agent orchestrator and bootstraps the system.
+Wires asset capabilities (search, download, extract, import, metadata) and
+provider adapters to the agent orchestrator and bootstraps the system.
 Provides a single entry point to obtain a fully configured AssetOrchestrator.
 """
 
@@ -48,7 +48,7 @@ class AssetContainer:
                 return self._orchestrator
 
             from .agent_orchestrator import AssetOrchestrator
-            from .capabilities_asset_search_collector import AssetSearchCollector
+            from .capabilities_asset_search import AssetSearchCapability
             from .capabilities_polyhaven_adapter import PolyhavenAssetAdapter
             from .capabilities_sketchfab_adapter import SketchfabAssetAdapter
 
@@ -58,8 +58,8 @@ class AssetContainer:
                 "Sketchfab": SketchfabAssetAdapter(self._command_sender),
             }
 
-            collector = AssetSearchCollector(providers)
-            self._orchestrator = AssetOrchestrator(collector=collector)
+            search = AssetSearchCapability(providers)
+            self._orchestrator = AssetOrchestrator(collector=search)
 
         logger.info("Asset container fully wired")
         return self._orchestrator
