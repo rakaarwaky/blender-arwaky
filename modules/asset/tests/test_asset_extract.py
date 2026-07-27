@@ -19,37 +19,82 @@ import pytest
 from modules.asset.src.capabilities_asset_extract import AssetExtractCapability
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
+from modules.shared.src.security.taxonomy_security_vo import (
+    ArchiveExtractionVO,
+    RejectedEntryVO,
+)
 
 
 # ─── Mock Security Supervisor ───────────────────────────────────────────────
 
 
 class MockSecuritySupervisor:
-    """Mock security policy supervisor for extraction."""
+    """Mock security policy supervisor for extraction.
+
+    Mirrors the real ArchiveGuard enforcement so tests exercise the
+    delegated safety decisions end-to-end (FR-AST-003: asset feature
+    delegates archive safety to the security feature).
+    """
 
     def __init__(self, reject: bool = False) -> None:
         self.reject = reject
-        self._calls: list[dict] = []
+        self._calls: list[ArchiveExtractionVO] = []
 
-    async def validate_extraction(
-        self,
-        artifact_path: str,
-        destination: str,
-        max_entries: int,
-        max_size: int,
-        allow_symlinks: bool,
-    ) -> None:
-        self._calls.append(
-            {
-                "artifact_path": artifact_path,
-                "destination": destination,
-                "max_entries": max_entries,
-                "max_size": max_size,
-                "allow_symlinks": allow_symlinks,
-            }
-        )
+    async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
+        self._calls.append(request)
         if self.reject:
             raise Exception("security denied extraction")
+
+        import os as _os
+
+        dest = _os.path.normpath(_os.path.abspath(request.destination_directory))
+        rejected: list[RejectedEntryVO] = []
+        allowed_set: set[str] = set()
+
+        for entry in request.entries:
+            if entry.is_symbolic_link and not request.options.allow_symbolic_links:
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="symbolic link not allowed"))
+                continue
+            if entry.is_hard_link and not request.options.allow_hard_links:
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="hard link not allowed"))
+                continue
+            if entry.uncompressed_size > request.options.max_entry_size:
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="entry exceeds max size"))
+                continue
+            if _os.path.isabs(entry.entry_path):
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="absolute path not allowed"))
+                continue
+            parts = entry.entry_path.replace("\\", "/").split("/")
+            if ".." in parts:
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="path traversal"))
+                continue
+            allowed_set.add(entry.entry_path)
+
+        if len(allowed_set) > request.options.max_entry_count:
+            for name in list(allowed_set)[request.options.max_entry_count :]:
+                rejected.append(RejectedEntryVO(entry_path=name, reason="exceeds max entry count"))
+
+        total_size = sum(e.uncompressed_size for e in request.entries if e.entry_path in allowed_set)
+        if total_size > request.options.max_total_size:
+            return ArchiveExtractionVO(
+                destination_directory=request.destination_directory,
+                entries=request.entries,
+                options=request.options,
+                allowed=False,
+                safe_destination=dest,
+                rejected_entries=tuple(rejected),
+                warnings=(f"Total size {total_size} exceeds {request.options.max_total_size}",),
+            )
+
+        return ArchiveExtractionVO(
+            destination_directory=request.destination_directory,
+            entries=request.entries,
+            options=request.options,
+            allowed=len(rejected) == 0,
+            safe_destination=dest,
+            rejected_entries=tuple(rejected),
+            warnings=(),
+        )
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
@@ -117,7 +162,7 @@ async def test_fr_ast_003_extract_zip(capability_with_security: AssetExtractCapa
 @pytest.mark.asyncio
 async def test_fr_ast_003_extract_tar(tmp_path: pathlib.Path):
     """Test that TAR archive is extracted successfully."""
-    cap = AssetExtractCapability(security_supervisor=None)
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
     dest = str(tmp_path / "dest")
     os.makedirs(dest, exist_ok=True)
     archive = _make_tar(tmp_path, "test.tar.gz", {"data.txt": "hello"})
