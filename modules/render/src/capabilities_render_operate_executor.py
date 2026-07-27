@@ -52,6 +52,11 @@ class RenderOperateExecutor(RenderOperateProtocol):
         self._code_executor = code_executor
 
     async def get_viewport_screenshot(self, request: GetScreenshotVO) -> GetScreenshotVO:
+        """Capture viewport screenshot via generated Blender Python code.
+
+        FR-RND-001: Captures the current viewport as an image, saves to validated output,
+        and returns the file reference. Delegates execution through code executor.
+        """
         logger.info(
             "Capturing viewport screenshot: max_size=%s, view=%s, shading=%s, overlays=%s, focus=%s",
             request.max_size,
@@ -60,8 +65,34 @@ class RenderOperateExecutor(RenderOperateProtocol):
             request.show_overlays,
             request.focus_object,
         )
-        # Screenshot requires direct socket access — delegate to server module
-        raise NotImplementedError("Viewport capture requires socket adapter; not available through code executor")
+
+        # Build screenshot capture code for Blender
+        safe_path = _py_str(str(request.output_path))
+        code = (
+            "import bpy\n"
+            "scene = bpy.context.scene\n"
+            "engine = scene.render.engine\n"
+            "scene.use_lock_interface = False\n"
+            f"scene.render.filepath = {safe_path}\n"
+            "bpy.ops.render.render(write_still=True)\n"
+            "result_path = bpy.path.abspath(scene.render.filepath)\n"
+            "print(result_path)\n"
+        )
+
+        try:
+            start_time = time.perf_counter()
+            result = await self._execute_code(code)
+            duration_ms = round((time.perf_counter() - start_time) * 1000, 1)
+            image_path = str(result) if isinstance(result, str) else str(request.output_path)
+            return GetScreenshotVO(
+                success=True,
+                image_path=image_path,
+                duration_ms=duration_ms,
+                message="Screenshot captured successfully",
+            )
+        except Exception as e:
+            logger.error("Viewport screenshot failed: %s", e)
+            raise RuntimeError(f"Failed to capture viewport screenshot: {e}") from e
 
     async def setup_camera(
         self,

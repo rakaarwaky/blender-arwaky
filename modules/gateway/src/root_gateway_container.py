@@ -3,13 +3,15 @@
 Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
+from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
+
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution_executor import CodeExecutionExecutor
 from .capabilities_connection_executor import ConnectionExecutor
 from .capabilities_maintenance_executor import MaintenanceExecutor
 from .capabilities_scene_queue_executor import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
-from .root_security_container import create_security_policy
+from modules.security.src.capabilities_code_validator import CodeValidator
 
 
 class GatewayContainer:
@@ -23,7 +25,7 @@ class GatewayContainer:
 
     def __init__(self) -> None:
         # Create security policy (dependency of CodeExecutionExecutor)
-        self._security_policy = create_security_policy()
+        self._security_policy = CodeValidator(policy=SecurityPolicyVO())
 
         # Create transport (dependency of ConnectionExecutor + CodeExecutionExecutor)
         self._transport = TransportExecutor(max_payload_bytes=10_485_760)
