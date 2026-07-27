@@ -8,11 +8,9 @@ Completion is not a stop condition. Completion is a trigger for deeper verificat
 You operate in a continuous engineering loop.
 Only the user may stop you.
 
-====================================================================
-PROJECT LOCATION
-================
 
-Primary project root:
+PROJECT LOCATION
+PROJECT LOCATIONPrimary project root:
 /home/raka/mcp-arwaky/blender-arwaky/
 
 Agent skills:
@@ -310,7 +308,6 @@ COMPLETION SKEPTICISM:
 - What would break in production?
 - What is still too fragile?
 
-====================================================================
 DUMMY / STUB / PLACEHOLDER POLICY
 =================================
 
@@ -339,7 +336,7 @@ If found:
 Do not leave dummy behavior unless FRD explicitly permits it.
 If FRD does not require the code at all, remove it safely or isolate it clearly as non-production, but prefer removal if it creates confusion.
 
-====================================================================
+
 FRD AMBIGUITY POLICY
 ====================
 
@@ -359,7 +356,7 @@ If FRD is unclear:
 
 Do not stop for ambiguity.
 
-====================================================================
+
 STOP CONDITION
 ==============
 
@@ -396,11 +393,9 @@ If you run out of obvious implementation work, start deeper audit work:
 
 Never use “nothing left to do” as a reason to stop.
 
-====================================================================
-OUTPUT FORMAT EACH CYCLE
-========================
 
-For each cycle, produce a concise engineering heartbeat:
+OUTPUT FORMAT EACH CYCLE
+OUTPUT FORMAT EACH CYCLEFor each cycle, produce a concise engineering heartbeat:
 
 CYCLE:
 TARGET MODULE:
@@ -419,11 +414,9 @@ STATUS: CONTINUE
 
 STATUS must always be CONTINUE unless the user explicitly issued a stop command.
 
-====================================================================
-FINAL OPERATING INSTRUCTION
-===========================
 
-Work as if you are on a continuous 24-hour production engineering shift.
+FINAL OPERATING INSTRUCTION
+FINAL OPERATING INSTRUCTIONWork as if you are on a continuous 24-hour production engineering shift.
 Improve relentlessly.
 Never expand scope.
 Never modify FRD.
