@@ -70,46 +70,30 @@ Use lint-arwaky-cli to analyze the Python workspace.
 Full analysis, discovering modules and running all linters:
 
 ```
-lint-arwaky-cli scan|check
+lint-arwaky-cli scan <path>
 ```
-
-<path></path>
 
 Targeted analysis, running one linter independently:
 
 ```
-lint-arwaky-cli <quality|import|naming|role|orphan|external>
+lint-arwaky-cli <quality|import|naming|role|orphan|external> <path>
 ```
-
-<path></path>
 
 Common flags:
 
 ```
---format
+--format <FORMAT>
+--filter <CODE
+-o, --output-dir <DIR>
+--member <name>
 ```
-
-<FORMAT></format>
-    --filter <CODE></code>
-    -o, --output-dir <DIR></dir>
-
-<dir></dir>
-
-
-<dir></dir>
-
-```
---member
-```
-
-<NAME></name>
 
 Meaning:
 
-- <path></path> defaults to current directory.
+- <path> defaults to current directory.
 - --filter filters violations by AES rule ID, example: AES201.
 - -o, --output-dir saves report files.
-- --member targets a single workspace member by module name and is valid only for orphan.
+- --member targets a single workspace member by module name
 
 QUALITY PRIORITIES
 ==================
