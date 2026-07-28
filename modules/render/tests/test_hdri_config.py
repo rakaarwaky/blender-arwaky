@@ -105,13 +105,14 @@ def hdri_capability() -> HdriConfigCapability:
 @pytest.mark.asyncio
 async def test_fr_rnd_004_configure_hdri_success(hdri_capability: HdriConfigCapability) -> None:
     """Test HDRI configuration with valid parameters returns success."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test_hdri.exr",
-        strength=1.0,
-        rotation=0.0,
-        background_visible=True,
-        overwrite_policy="replace",
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test_hdri.exr",
+            strength=1.0,
+            rotation=0.0,
+            background_visible=True,
+            overwrite_policy="replace",
+        )
     assert result["success"] is True
     assert result["strength"] == 1.0
     assert result["rotation"] == 0.0
@@ -150,31 +151,34 @@ async def test_fr_rnd_004_strength_out_of_range_too_high(
 @pytest.mark.asyncio
 async def test_fr_rnd_004_strength_at_boundary_zero(hdri_capability: HdriConfigCapability) -> None:
     """Test HDRI strength at lower boundary (0.0) — valid."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=0.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=0.0,
+        )
     assert result["success"] is True
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_004_strength_at_boundary_ten(hdri_capability: HdriConfigCapability) -> None:
     """Test HDRI strength at upper boundary (10.0) — valid."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=10.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=10.0,
+        )
     assert result["success"] is True
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_004_rotation_normalized(hdri_capability: HdriConfigCapability) -> None:
     """Test HDRI rotation normalized to [0, 360)."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-        rotation=360.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+            rotation=360.0,
+        )
     assert result["success"] is True
     assert result["rotation"] == 0.0
 
@@ -182,11 +186,12 @@ async def test_fr_rnd_004_rotation_normalized(hdri_capability: HdriConfigCapabil
 @pytest.mark.asyncio
 async def test_fr_rnd_004_rotation_normalized_negative(hdri_capability: HdriConfigCapability) -> None:
     """Test negative rotation normalized."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-        rotation=-90.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+            rotation=-90.0,
+        )
     assert result["success"] is True
     assert result["rotation"] == 270.0
 
@@ -199,10 +204,11 @@ async def test_fr_rnd_004_security_validation_failure(
     sec = MockSecurityValidator(validate=False)
     hdri_capability.security_validator = sec
 
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+        )
     assert result["success"] is False
     assert result["error"] == "security_violation"
 
@@ -252,11 +258,12 @@ async def test_fr_rnd_004_background_visible_false(
     hdri_capability: HdriConfigCapability,
 ) -> None:
     """Test HDRI background visibility set to False (lighting only)."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-        background_visible=False,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+            background_visible=False,
+        )
     assert result["success"] is True
     cmd = hdri_capability.gateway_client._commands[0]
     assert cmd["background_visible"] is False
@@ -267,11 +274,12 @@ async def test_fr_rnd_004_overwrite_policy_reject(
     hdri_capability: HdriConfigCapability,
 ) -> None:
     """Test overwrite policy set to reject."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-        overwrite_policy="reject",
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+            overwrite_policy="reject",
+        )
     assert result["success"] is True
     cmd = hdri_capability.gateway_client._commands[0]
     assert cmd["overwrite_policy"] == "reject"
@@ -286,10 +294,11 @@ async def test_fr_rnd_004_gateway_execution_error(
     gw.execute_command = AsyncMock(side_effect=RuntimeError("gateway error"))
     hdri_capability.gateway_client = gw
 
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+        )
     assert result["success"] is False
     assert "gateway error" in result["message"]
 
@@ -299,7 +308,8 @@ async def test_fr_rnd_004_default_strength_is_one(
     hdri_capability: HdriConfigCapability,
 ) -> None:
     """Test default strength of 1.0."""
-    await hdri_capability.configure_hdri(hdri_file_path="/tmp/test.exr")
+    with patch.object(os.path, "exists", return_value=True):
+        await hdri_capability.configure_hdri(hdri_file_path="/tmp/test.exr")
     assert hdri_capability.gateway_client._commands[0]["strength"] == 1.0
 
 
@@ -308,7 +318,8 @@ async def test_fr_rnd_004_default_rotation_is_zero(
     hdri_capability: HdriConfigCapability,
 ) -> None:
     """Test default rotation of 0.0."""
-    await hdri_capability.configure_hdri(hdri_file_path="/tmp/test.exr")
+    with patch.object(os.path, "exists", return_value=True):
+        await hdri_capability.configure_hdri(hdri_file_path="/tmp/test.exr")
     assert hdri_capability.gateway_client._commands[0]["rotation"] == 0.0
 
 
@@ -332,10 +343,11 @@ async def test_fr_rnd_004_no_gateway_no_security_validator(
 @pytest.mark.asyncio
 async def test_hdri_strength_float_precision(hdri_capability: HdriConfigCapability) -> None:
     """Test strength with float precision."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=0.75,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=0.75,
+        )
     assert result["success"] is True
     assert result["strength"] == 0.75
 
@@ -343,11 +355,12 @@ async def test_hdri_strength_float_precision(hdri_capability: HdriConfigCapabili
 @pytest.mark.asyncio
 async def test_hdri_rotation_large_value_normalized(hdri_capability: HdriConfigCapability) -> None:
     """Test rotation > 360 normalized."""
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/test.exr",
-        strength=1.0,
-        rotation=720.0,
-    )
+    with patch.object(os.path, "exists", return_value=True):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/test.exr",
+            strength=1.0,
+            rotation=720.0,
+        )
     assert result["success"] is True
     assert result["rotation"] == 0.0
 
