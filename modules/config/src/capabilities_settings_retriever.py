@@ -7,7 +7,8 @@ and escaped-separator path support.
 
 from __future__ import annotations
 
-from typing import Any
+
+from modules.shared.src.config.taxonomy_config_vo import SettingsValue
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
@@ -36,8 +37,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         self,
         snapshot: SettingsSnapshot,
         path: str,
-        default: Any = None,
-    ) -> Any:
+        default: SettingsValue = None,
+    ) -> SettingsValue:
         """Retrieve value by dot-separated path. Returns deep copy."""
         segments = parse_settings_path(path, self._escape_enabled)
         return snapshot.get_segments(segments, default)
@@ -70,10 +71,10 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         snapshot: SettingsSnapshot,
         path: str,
         expected: type,
-        default: Any,
+        default: SettingsValue,
         exclude_bool: bool = False,
         coerce_int: bool = False,
-    ) -> Any:
+    ) -> SettingsValue:
         segments = parse_settings_path(path, self._escape_enabled)
         raw = snapshot.get_segments(segments, _MISSING)
         if raw is _MISSING:

@@ -16,7 +16,14 @@ import threading
 import time
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+
+from modules.shared.src.config.taxonomy_config_vo import (
+    ConfigFileLoader,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSchema,
+    SettingsValue,
+)
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ConfigMetadata,
@@ -59,7 +66,6 @@ from modules.shared.src.config.utility_config_helpers import (
     validate_settings_schema,
 )
 
-ConfigFileLoader = Any  # Callable[[ConfigPath], dict[str, Any]]
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -76,8 +82,8 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self,
         config_file_loader: ConfigFileLoader | None = None,
         policy_mode: str = DEFAULT_POLICY_MODE,
-        defaults: Mapping[str, Any] | None = None,
-        schema: Mapping[str, Any] | None = None,
+        defaults: SettingsOverrides | None = None,
+        schema: SettingsSchema | None = None,
         strict_mode_enabled: bool = False,
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
@@ -88,7 +94,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self._lock = threading.Lock()
         # cached state
         self._cached: SettingsSnapshot | None = None
-        self._cached_data: dict[str, Any] | None = None
+        self._cached_data: SettingsData | None = None
         self._last_metadata: ConfigMetadata = ConfigMetadata()
 
 # ─── Block 2: Protocol Method Implementation ──────────────
@@ -96,7 +102,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
     def load_settings(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings from sources, apply precedence, validate, return immutable snapshot."""
         with self._lock:
@@ -112,7 +118,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
 
             # Runtime overrides are caller-scoped — never cached (A5).
             if overrides is not None and self._strict_mode_enabled:
-                structured: dict[str, Any] = {}
+                structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
@@ -193,7 +199,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
 
     def _build_core(
         self, path: ConfigPath | None
-    ) -> tuple[dict[str, Any], dict[str, Any], ConfigMetadata]:
+    ) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
         """Build merged settings + raw file data + metadata.
 
         Returns (merged, filedata, metadata). ``filedata`` is what gets cached
@@ -203,7 +209,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         p = Path(str(resolved))
 
         parse_warnings: list[ParseWarning] = []
-        file_data: dict[str, Any] = {}
+        file_data: SettingsData = {}
 
         # Directory path
         if p.is_dir():

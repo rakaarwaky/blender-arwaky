@@ -7,7 +7,8 @@ about settings loading without leaking secrets.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+
+from modules.shared.src.config.taxonomy_config_vo import EventPayload
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
@@ -35,7 +36,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
             return ConfigMetadata()
         return self._metadata_supplier()
 
-    def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
+    def to_safe_dict(self, metadata: ConfigMetadata) -> EventPayload:
         """Serialize metadata for diagnostics output (secrets excluded)."""
         return metadata.to_dict()
 

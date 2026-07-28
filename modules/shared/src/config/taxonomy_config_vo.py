@@ -4,13 +4,47 @@ Immutable domain types for configuration management:
 - SettingsSnapshot: merged, immutable settings container
 - WorkspacePath: resolved project workspace directory
 - RedactionRule: pattern-based sensitive value masking rule
+
+Domain type aliases (replaces all `Any` usages in capabilities/agent):
+- SettingsValue: recursive YAML-parsed value type
+- SettingsData: top-level parsed YAML dict
+- SettingsOverrides: caller-supplied dot-path key=value overrides
+- SettingsSchema: validation schema shape
+- EventPayload: JSON-safe serialized domain event dict
+- ConfigFileLoader: callable signature for YAML file loaders
 """
 
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+
+from ..common.taxonomy_core_vo import ConfigPath
+
+# ─── Domain Type Aliases ──────────────────────────────────────────────────────
+# These replace every `Any` usage across capabilities and agent layers.
+# Defined here so all layers import from taxonomy, not from typing.
+
+# Recursive YAML value — any primitive or nested container YAML can produce.
+# Use this wherever raw YAML data flows through the system.
+SettingsValue = str | int | float | bool | None | list["SettingsValue"] | dict[str, "SettingsValue"]
+
+# Top-level settings dict — what a YAML loader returns after parsing.
+SettingsData = dict[str, SettingsValue]
+
+# Caller-supplied overrides — dot-path keys mapping to setting values.
+SettingsOverrides = Mapping[str, SettingsValue]
+
+# Validation schema shape — mirrors the structure of SettingsData.
+SettingsSchema = dict[str, SettingsValue]
+
+# JSON-safe event payload — emitted to the event ring buffer.
+# Values are restricted to JSON primitives; no nested containers.
+EventPayload = dict[str, str | int | float | bool | None]
+
+# YAML file loader callable — receives a config path, returns parsed data.
+ConfigFileLoader = Callable[[ConfigPath], SettingsData]
 
 _MISSING = object()  # module-private sentinel for "no value"
 
@@ -23,18 +57,18 @@ class SettingsSnapshot:
     Supports deep traversal via get()/get_segments() without exposing internals.
     """
 
-    _data: dict[str, Any] = field(repr=False, default_factory=dict)
+    _data: SettingsData = field(repr=False, default_factory=dict)
 
     # ─── Segment traversal (T-04) ───────────────────────────────
     # These operate on pre-split segment tuples so the retriever can pass
     # escape-aware segments. get()/has() delegate to them.
 
-    def get_segments(self, segments: tuple[str, ...], default: Any = None) -> Any:
+    def get_segments(self, segments: tuple[str, ...], default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by pre-split segment tuple. Returns deep copy."""
         if not segments:
             return copy.deepcopy(self._data)
 
-        value: Any = self._data
+        value: SettingsValue = self._data
         for segment in segments:
             if isinstance(value, dict) and segment in value:
                 value = value[segment]
@@ -59,7 +93,7 @@ class SettingsSnapshot:
         if not segments:
             return True
 
-        value: Any = self._data
+        value: SettingsValue = self._data
         for segment in segments:
             if isinstance(value, dict) and segment in value:
                 value = value[segment]
@@ -81,7 +115,7 @@ class SettingsSnapshot:
 
     # ─── Dot-path delegation (T-04) ─────────────────────────────
 
-    def get(self, path: str, default: Any = None) -> Any:
+    def get(self, path: str, default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path. Returns deep copy."""
         return self.get_segments(tuple(path.split(".")) if path else (), default)
 
@@ -89,7 +123,7 @@ class SettingsSnapshot:
         """Check if a dot-separated path exists in the snapshot."""
         return self.has_segments(tuple(path.split(".")) if path else ())
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> SettingsData:
         """Return deep copy of raw settings dict."""
         return copy.deepcopy(self._data)
 
