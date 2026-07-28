@@ -146,13 +146,9 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
     def _get_env_blender_version(self) -> str | None:
         """Get Blender version from environment variables."""
         try:
-            env_var = "BLENDER_VERSION"
-            version = sys.modules.get("os", {}).get("environ", {}).get(env_var)
-            if not version:
-                import os as _os
+            import os
 
-                version = _os.environ.get(env_var)
-            return version
+            return os.environ.get("BLENDER_VERSION")
         except Exception:
             return None
 

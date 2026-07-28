@@ -193,6 +193,7 @@ class TransportExecutor(TransportProtocol):
     def _receive_response(self, _timeout_seconds: float) -> bytes:
         if not self._socket:
             raise TimeoutError("No socket connection")
+        # Header is only 4 bytes — simple concatenation is fine here
         header = b""
         while len(header) < 4:
             chunk = self._socket.recv(4 - len(header))
@@ -200,13 +201,14 @@ class TransportExecutor(TransportProtocol):
                 raise TimeoutError("Connection closed during header read")
             header += chunk
         length = int.from_bytes(header, "big")
-        data = b""
+        # Use bytearray to avoid O(n²) memory copies on large payloads
+        data = bytearray()
         while len(data) < length:
             chunk = self._socket.recv(length - len(data))
             if not chunk:
                 raise TimeoutError("Connection closed during payload read")
-            data += chunk
-        return data
+            data.extend(chunk)
+        return bytes(data)
 
     def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportOutcomeVO:
         try:

@@ -10,6 +10,7 @@ FR-DSP-006: Normalize Operation Result
 
 import json
 import logging
+import sys
 from typing import Any
 
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
@@ -61,10 +62,15 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             # Process and sanitize data payload
             if data is not None:
                 data = self._sanitize_data(data)
-                try:
-                    data_size = len(json.dumps(data, default=str))
-                except TypeError:
-                    data_size = 0
+                # Fast size approximation — only serialize if close to threshold
+                approx_size = sys.getsizeof(data)
+                if approx_size < self._max_size * 0.5:
+                    data_size = approx_size
+                else:
+                    try:
+                        data_size = len(json.dumps(data, default=str))
+                    except TypeError:
+                        data_size = approx_size
                 if data_size > self._max_size:
                     truncated = True
                     data = {"_truncated": True, "_size_exceeded": self._max_size}
@@ -106,22 +112,45 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
 
         FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
         Non-serializable values converted to safe textual representation.
+
+        Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
         """
-        # Redact common sensitive patterns
-        if isinstance(data, dict):
-            redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
-            sanitized = {}
-            for key, value in data.items():
-                key_lower = key.lower()
-                if any(pattern in key_lower for pattern in redacted_keys):
-                    sanitized[key] = "***REDACTED***"
-                elif isinstance(value, dict):
-                    sanitized[key] = self._sanitize_data(value)
-                elif isinstance(value, str) and len(value) > 1000:
-                    sanitized[key] = f"{value[:500]}...[truncated]"
-                else:
-                    sanitized[key] = value
-            return sanitized
+        redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
+        MAX_DEPTH = 50
+
+        # Iterative sanitization using a queue of (result_dict_ref, key_or_None, value_to_process)
+        result: dict[str, Any] | None = None
+        queue: list[tuple[dict[str, Any] | None, str | None, Any]] = [(None, None, data)]
+        depth = 0
+
+        while queue and depth < MAX_DEPTH:
+            depth += 1
+            parent_ref, key, value = queue.pop(0)
+
+            if isinstance(value, dict):
+                new_dict: dict[str, Any] = {}
+                # Attach new_dict to its parent
+                if key is not None and parent_ref is not None:
+                    parent_ref[key] = new_dict
+                elif result is None:
+                    # Root dict — this IS the result
+                    result = new_dict
+                for k, v in value.items():
+                    k_lower = k.lower()
+                    if any(pattern in k_lower for pattern in redacted_keys):
+                        new_dict[k] = "***REDACTED***"
+                    elif isinstance(v, dict):
+                        queue.append((new_dict, k, v))
+                    elif isinstance(v, str) and len(v) > 1000:
+                        new_dict[k] = f"{v[:500]}...[truncated]"
+                    else:
+                        new_dict[k] = v
+
+        if result is None:
+            # Not a dict — fall through to non-dict handling below
+            pass
+        else:
+            return result
 
         # Non-dict data — convert to string safely
         try:

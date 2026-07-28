@@ -110,30 +110,25 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         - overwrite existing object when explicitly allowed
         """
         if request.name:
-            # Check if name already exists
+            # Batch-check all potential names in a single Blender code execution
+            base_name = str(request.name)
+            # Build set comprehension string for generated code:
+            # existing = {(safe_name + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
+            safe_name = CreatePrimitiveExecutor._safe_str(base_name)
             check_code = (
                 "import bpy\n"
-                f"name_exists = {CreatePrimitiveExecutor._safe_str(str(request.name))} in bpy.data.objects.keys()\n"
-                "result = name_exists\n"
+                f"existing = {{({safe_name} + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
+                "result = existing\n"
             )
             try:
-                name_exists = await self._executor.execute_blender_code(Prompt(check_code))
-                if name_exists:
-                    # Auto-suffix policy: generate unique name
-                    base_name = str(request.name)
-                    for suffix in range(1, 100):
+                existing_set = await self._executor.execute_blender_code(Prompt(check_code))
+                # Find first non-existing name
+                for suffix in range(1, 100):
+                    if not existing_set.get(suffix, False):
                         unique_name = f"{base_name}.{suffix}"
-                        unique_check = (
-                            "import bpy\n"
-                            f"name_exists = {CreatePrimitiveExecutor._safe_str(unique_name)} in bpy.data.objects.keys()\n"
-                            "result = name_exists\n"
-                        )
-                        exists = await self._executor.execute_blender_code(Prompt(unique_check))
-                        if not exists:
-                            logger.info("Generated unique name: %s", unique_name)
-                            return unique_name
-                    raise ValueError("Could not generate unique name")
-                return str(request.name)
+                        logger.info("Generated unique name: %s", unique_name)
+                        return unique_name
+                raise ValueError("Could not generate unique name")
             except Exception:
                 # If check fails, use auto-generated name
                 return f"Primitive_{id(request)}"

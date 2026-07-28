@@ -4,6 +4,7 @@ Coordinates job state tracking, monitoring, cancellation, and cleanup.
 Wires capabilities together per FR-JOB requirements.
 """
 
+import copy
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -90,8 +91,6 @@ class JobOrchestrator(IJobAggregate):
 
     def get_task_status(self, job_id: JobId) -> JobStatus | None:
         """Retrieve current state snapshot of a task (read-only)."""
-        import copy
-
         status = self._jobs.get(str(job_id))
         if status is None:
             return None

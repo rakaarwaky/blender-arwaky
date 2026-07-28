@@ -33,6 +33,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     def __init__(self, execute_action: Any = None) -> None:
         self._execute = execute_action
+        self._pool = ThreadPoolExecutor(max_workers=1)
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -48,24 +49,16 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
         try:
             params = dict(request.parameters)
-            applied_timeout = (
-                request.timeout_override
-                or request.resolved_metadata.get("default_timeout")
-                or 0.0
-            )
+            applied_timeout = request.timeout_override or request.resolved_metadata.get("default_timeout") or 0.0
 
             if self._execute is not None:
                 if applied_timeout and applied_timeout > 0:
                     # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
-                    with ThreadPoolExecutor(max_workers=1) as pool:
-                        future = pool.submit(self._execute.execute_action, action_name, params)
-                        try:
-                            result = future.result(timeout=applied_timeout)
-                        except FuturesTimeoutError:
-                            future.cancel()
-                            raise TimeoutError(
-                                f"Action '{action_name}' exceeded timeout {applied_timeout}s"
-                            ) from None
+                    future = self._pool.submit(self._execute.execute_action, action_name, params)
+                    try:
+                        result = future.result(timeout=applied_timeout)
+                    except FuturesTimeoutError:
+                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
                 else:
                     result = self._execute.execute_action(action_name, params)
             else:

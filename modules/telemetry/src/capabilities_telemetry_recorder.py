@@ -9,6 +9,7 @@ FR-TLM-001: Record Anonymous Usage Event
 from __future__ import annotations
 
 import logging
+from collections import deque
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -77,7 +78,7 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
         self._session_protocol = session_protocol
         self._classification_protocol = classification_protocol
         self._buffer_capacity = buffer_capacity
-        self._buffer: list[dict[str, Any]] = []
+        self._buffer: deque[dict[str, Any]] = deque(maxlen=buffer_capacity)
 
     async def record_event(
         self,
@@ -111,14 +112,10 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
             return {"recorded": False, "reason": "action_not_in_allowlist"}
 
         # Classify event
-        classified = await self._classification_protocol.classify_event(
-            action_type, feature_area
-        )
+        classified = await self._classification_protocol.classify_event(action_type, feature_area)
 
         # Get session ID
-        session_id = await self._session_protocol.get_session_id(
-            consent_active=consent_active
-        )
+        session_id = await self._session_protocol.get_session_id(consent_active=consent_active)
 
         # Build anonymous record (PII-free)
         record: dict[str, Any] = {
@@ -131,10 +128,8 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
             "duration_bucket": duration_bucket,
         }
 
-        # Buffer with backpressure (drop oldest if full)
+        # Buffer with backpressure — deque(maxlen=...) auto-trims in O(1)
         self._buffer.append(record)
-        if len(self._buffer) > self._buffer_capacity:
-            self._buffer = self._buffer[-self._buffer_capacity:]
 
         return {
             "recorded": True,
@@ -146,4 +141,5 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
     def _current_timestamp(self) -> float:
         """Return current Unix timestamp."""
         import time
+
         return time.time()

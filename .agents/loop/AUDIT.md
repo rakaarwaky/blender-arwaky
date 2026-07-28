@@ -1,5 +1,13 @@
 # ARWAKY LOOP AUDIT
 
+## Cycle 44 Audit Record
+
+- FR-SEC-004 spaced-quoted-secret redaction (closes cycle-43 known edge limitation).
+- ROOT CAUSE of the original leak: the key alternation `(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)` was capture group 2, so the value branch's `\2` backreference in the quoted-value alternative `(["'])(?:\\.|[^"'])*\2` pointed at the KEY NAME instead of the value quote. The quoted branch could therefore never match, and JSON/`"key": "value"` forms silently fell through to the unquoted alternative `[^"'\s,]+` (which stops at whitespace) -- leaking `"secret"` for spaced values. This same collision also briefly broke the cycle-43 JSON tests on first attempt; they were restored once the key group was made non-capturing `(?:...)`.
+- FIX: shared `_KV_VALUE = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'`; key group non-capturing in `_DEFAULT_PATTERNS`, the `key_names` loop, and `AuditEmitter._SENSITIVE_PATTERNS`. The audit emitter's pattern is a local mirror (no capability->capability dependency) kept in sync.
+- VERIFICATION: standalone regex probe confirmed `"password": "my secret"` -> `[REDACTED]` and `"password": "hunter2"` -> `[REDACTED]`; full suite 451 passed; ruff clean; lint-arwaky quality = 0 on both changed files.
+- GREP PROOF: no other file in the repo carries the stale value pattern; only the 2 fixed files reference the secret-key set, both now consistent.
+
 ## Cycle 28 Audit Record
 
 - ARG001/ARG002/ARG005 sweep completed across 20+ files
