@@ -1,10 +1,9 @@
 """Scene domain shared taxonomy constants and contracts."""
 
-from .contract_scene_aggregate import (
-    SceneCleanupProtocol,
-    SceneInspectionPort,
-    SceneOperateProtocol,
-)
+from .contract_scene_aggregate import ISceneAggregate
+from .contract_scene_cleanup_protocol import SceneCleanupProtocol
+from .contract_scene_inspection import SceneInspectionPort
+from .contract_scene_operate_protocol import SceneOperateProtocol
 from .taxonomy_scene_constant import (
     CLEANUP_CONFIRMATION_REQUIRED,
     CLEANUP_TIMEOUT_SECONDS,
@@ -25,7 +24,7 @@ __all__ = [
     "SceneCleanupProtocol",
     "SceneInspectionPort",
     "SceneOperateProtocol",
-
+    "ISceneAggregate",
     "CLEANUP_CONFIRMATION_REQUIRED",
     "CLEANUP_TIMEOUT_SECONDS",
     "DEFAULT_CHILD_HANDLING_POLICY",

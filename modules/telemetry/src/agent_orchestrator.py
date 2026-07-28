@@ -12,6 +12,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
     ToolName,
 )
+from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
 from modules.shared.src.telemetry.contract_telemetry_classification import (
     TelemetryClassificationPort,
 )
@@ -62,9 +63,7 @@ class TelemetryOrchestrator:
     ) -> None:
         """Record an action execution event (FR-TLM-001, FR-TLM-002)."""
         # Classify the event
-        event_type = self._classifier.classify_event(
-            tool_name=ToolName(action_name)
-        )
+        event_type = self._classifier.classify_event(tool_name=ToolName(action_name))
         # Record with metrics
         self._recorder.record_event(
             event_type=event_type,

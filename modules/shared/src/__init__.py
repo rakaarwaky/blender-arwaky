@@ -212,6 +212,7 @@ from .config.taxonomy_config_vo import (
     WorkspacePath,
 )
 from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
+from .diagnostics.contract_diagnostics_aggregate import IDiagnosticsAggregate
 from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
 
 # Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
@@ -613,6 +614,7 @@ __all__ = [
     "AuditEmissionProtocol",
     "LoggingPolicyProtocol",
     "DiagnosticsSnapshotProtocol",
+    "IDiagnosticsAggregate",
     "IConfigAggregate",
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
