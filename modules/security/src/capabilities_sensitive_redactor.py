@@ -61,7 +61,7 @@ class SensitiveRedactor(RedactSensitiveProtocol):
                 # Quoted-key aware (mirrors _DEFAULT_PATTERNS) so custom key names
                 # also match JSON/`"key": "value"` forms — FR-SEC-004 nested/structured.
                 # Value half reuses _KV_VALUE so spaced quoted values are consumed whole.
-                pattern = rf'(?i)(["\']?)({re.escape(key)})\1\s*[:=]\s*' + _KV_VALUE
+                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + _KV_VALUE
                 text, count = re.subn(pattern, "[REDACTED]", text)
                 redacted_count += count
 
