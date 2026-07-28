@@ -23,18 +23,18 @@
 
 ## Recommended Execution Order
 
-1. **shared** — Universal foundation.
-2. **config** (8/10) — Consumed across all modules.
-3. **job** (9/10) — Highest readiness with 95 unit tests.
-4. **diagnostics** (8/10) — 111 tests across 5 suites.
-5. **security** (9/10) — Core dependency for domain modules; 238 tests.
-6. **gateway** (8/10) — Network transport foundation.
-7. **launcher** (7/10) — Process host manager.
-8. **telemetry** (7/10) — Observability pipeline.
-9. **asset** (9/10) — Content provider integration; 78 tests.
-10. **dispatcher** (8/10) — Action routing gateway; 59 tests.
-11. **object** (8/10) — Blender entity management; 29 tests.
-12. **scene** (9/10) — Scene graph operations; 28 tests.
-13. **cli** (7/10) — Terminal interface surface; 9 tests.
-14. **mcp** (6/10) — AI surface interface; 13 tests in 2 files.
-15. **render** (7/10) — Fixed (Cycle 63): 36 tests pass; full suite 886 green.
+1. **shared**
+2. **config** (8/10)
+3. **job** (9/10)
+4. **diagnostics** (8/10)
+5. **security** (9/10)
+6. **gateway** (8/10)
+7. **launcher** (7/10)
+8. **telemetry** (7/10)
+9. **asset** (9/10)
+10. **dispatcher** (8/10)
+11. **object** (8/10)
+12. **scene** (9/10)
+13. **cli** (7/10)
+14. **mcp** (6/10)
+15. **render** (7/10)
