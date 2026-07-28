@@ -3,7 +3,7 @@
 ## Current Priorities
 
 1. **Launcher/Object modules test coverage** — critically undertested (1 test each), next after security completed.
-2. **Known implementation bug**: `capabilities_code_validator.py` line 93 — `ast.walk(tree)` raises UnboundLocalError when `strict_mode=False` and code has syntax error; test skips this case.
+2. ~~**Known implementation bug**~~ **RESOLVED (Cycle 62)**: `capabilities_code_validator.py` non-strict SyntaxError UnboundLocalError fixed (FR-SEC-003); previously-skipped test now passes — security suite 238/238.
 3. **Bulk remediation deferred** pending user decision: AES502 orphan deletion (58 contract orphans), AES304 surgical widening (431 bypass comments).
 
 ## Module Dependency Graph
@@ -88,6 +88,7 @@ shared (taxonomy + contract) — foundation
 | 🔴**#1#1** | **mcp**                          | 0 tests across 10 surfaces; orchestrator routing mismatch in`list_commands`/`read_skill_context`; sync/async`execute_command`mismatch. |
 | 🟡**#1#1** | **security / launcher / object** | Full capability coverage, but critically undertested (1 test file each).                                                               |
 | 🟡**#2#2** | **render**                       | FR-RND-001 lacks dedicated standalone capability file.                                                                                 |
+| 🔴**#1#1** | **shared/scene (sibling in-flight)** | Repo-wide import break: untracked `contract_scene_protocol.py` imports non-existent `taxonomy_scene_vo`; aggregate imports stale protocol names. Breaks entire `modules.shared.src` chain — full suite cannot run until sibling completes. Leave untouched (out of scope, in-flight). |
 
 ## Completed Cycles Summary
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 
-from modules.shared.src.common.contract_code_execution_protocol import (
+from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
 from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag

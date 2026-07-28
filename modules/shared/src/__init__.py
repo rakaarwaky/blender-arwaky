@@ -329,34 +329,25 @@ from .object.taxonomy_object_vo import (
     SetMaterialVO,
     SetObjectTransformVO,
 )
-from .render.contract_camera_config_protocol import CameraConfigProtocol
-from .render.contract_hdri_config_protocol import HdriConfigProtocol
-from .render.contract_render_operate_protocol import RenderOperateProtocol
-from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
+from .render.contract_render_protocol import (
+    IRenderCameraConfigProtocol,
+    IRenderHdriConfigProtocol,
+    IRenderSceneImageProtocol,
+    IRenderViewportCaptureProtocol,
+)
 
 # === Render domain exports ===
 from .render.taxonomy_render_vo import (
     CameraConfigVO,
-    CameraSetupVO,
-    GetScreenshotVO,
     HdriConfigVO,
-    HdriSetupVO,
-    RenderVO,
+    RenderSceneVO,
+    ViewportCaptureVO,
 )
-from .scene.contract_scene_inspection import SceneInspectionPort
-
 # Protocols (business behavior contracts)
-from .scene.contract_scene_operate_protocol import SceneOperateProtocol
-from .scene.taxonomy_scene_command_vo import (
+from .scene.contract_scene_protocol import ISceneCleanupProtocol, ISceneInspectionProtocol
+from .scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
-)
-
-# === Scene domain exports ===
-from .scene.taxonomy_scene_info_vo import (
-    RENDER_ENGINE_CYCLES,
-    RENDER_ENGINE_EEVEE,
-    SceneInfo,
 )
 from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
 

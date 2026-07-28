@@ -5,6 +5,7 @@ Key architectural assumptions, corrections, and linter behavior decisions mainta
 ## Architecture & Workflows
 
 * **Concurrency & Commits** : Multiple agents edit the repository concurrently. Local changes must be verified against the combined working tree without forcing auto-commits.
+* **Scene Import Blocker (Cycle 62)** : A concurrent sibling agent's in-flight scene refactor (untracked contract_scene_protocol.py, modified contract_scene_aggregate.py) currently breaks the modules.shared.src import chain by importing a non-existent taxonomy_scene_vo. Treated as transient sibling work; the loop verifies its own changes via an isolated harness (or by temporarily neutering scene/__init__.py and restoring via git checkout) rather than modifying the sibling's files.
 * **Gateway Orchestration** : `GatewayOrchestrator` must NOT inherit `IBlenderServerAggregate` (a server-level aggregate); it remains a synchronous feature orchestrator for `FR-GWY-001..005`.
 * **CLI & MCP Agent Layers** : The legacy agent/capability layers for CLI and MCP were verified dead and removed (Cycles 25, 26, 28). Runtime traffic routes directly via surface handlers (`surface_*`) and the DI container (`core_agent_orchestrator`).
 * **Reconnect Hardening (FR-GWY-002)** : `MaintenanceExecutor.attempt_reconnect` delegates to `ConnectionExecutor.establish_connection` to reach `FAILED` state upon retry exhaustion (Cycle 36).

@@ -1,107 +1,65 @@
 """Agent: Render feature orchestrator.
 
-Coordinates viewport capture, image rendering, camera setup, and HDRI
-configuration through the render capability protocols.
+Coordinates render capabilities through contracts only.
+
+Agent layer:
+- orchestration only
+- zero I/O
+- zero business logic
+- zero domain computation
+- depends only on contracts and taxonomy
 """
 
 from __future__ import annotations
 
-import logging
-from typing import Any
-
-from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
-from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
-from modules.shared.src.render.contract_render_aggregate import (
-    ICameraConfigAggregate,
-    IHdriConfigAggregate,
-    IRenderOperateAggregate,
-    IViewportCaptureAggregate,
+from modules.shared.src.render.contract_render_aggregate import IRenderAggregate
+from modules.shared.src.render.contract_render_protocol import (
+    IRenderCameraConfigProtocol,
+    IRenderHdriConfigProtocol,
+    IRenderSceneImageProtocol,
+    IRenderViewportCaptureProtocol,
 )
-from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
 from modules.shared.src.render.taxonomy_render_vo import (
-    GetScreenshotVO,
-    RenderVO,
+    CameraConfigVO,
+    HdriConfigVO,
+    RenderSceneVO,
+    ViewportCaptureVO,
 )
 
-logger = logging.getLogger("BlenderMCPServer")
 
+class RenderOrchestrator(IRenderAggregate):
+    """Orchestrates render capabilities."""
 
-class RenderOrchestrator(
-    IRenderOperateAggregate,
-    ICameraConfigAggregate,
-    IHdriConfigAggregate,
-    IViewportCaptureAggregate,
-):
-    """Orchestrates render operations via capability protocols."""
-
+    # ─── Block 1: definition + constructor ─────────────────────
     def __init__(
         self,
-        executor: RenderOperateProtocol,
-        camera_config: CameraConfigProtocol | None = None,
-        hdri_config: HdriConfigProtocol | None = None,
+        viewport_capture: IRenderViewportCaptureProtocol,
+        scene_image: IRenderSceneImageProtocol,
+        camera_config: IRenderCameraConfigProtocol,
+        hdri_config: IRenderHdriConfigProtocol,
     ) -> None:
-        self._executor = executor
+        self._viewport_capture = viewport_capture
+        self._scene_image = scene_image
         self._camera_config = camera_config
         self._hdri_config = hdri_config
 
-    async def get_screenshot(self, request: GetScreenshotVO) -> GetScreenshotVO:
-        return await self._executor.get_viewport_screenshot(request)
+    # ─── Block 2: aggregate methods only ──────────────────────
+    async def capture_viewport(self, request: ViewportCaptureVO) -> ViewportCaptureVO:
+        """FR-RND-001: delegate to viewport capture capability."""
+        return await self._viewport_capture.capture_viewport(request)
 
-    async def render(self, request: RenderVO) -> RenderVO:
-        return await self._executor.render(request)
+    async def render_scene(self, request: RenderSceneVO) -> RenderSceneVO:
+        """FR-RND-002: delegate to scene render capability."""
+        return await self._scene_image.render_scene(request)
 
-    # ─── Camera Configuration (FR-RND-003) ──────────────────────────────
+    async def configure_camera(self, request: CameraConfigVO) -> CameraConfigVO:
+        """FR-RND-003: delegate to camera configuration capability."""
+        return await self._camera_config.configure_camera(request)
 
-    async def configure_camera(
-        self,
-        camera_id: str | None = None,
-        lens: float | None = None,
-        framing_target: str | None = None,
-        set_active: bool = False,
-        depth_of_field: dict[str, Any] | None = None,
-        create_if_missing: bool = True,
-    ) -> dict[str, Any]:
-        """FR-RND-003: Configure camera optical and selection behavior.
+    async def configure_hdri(self, request: HdriConfigVO) -> HdriConfigVO:
+        """FR-RND-004: delegate to HDRI configuration capability."""
+        return await self._hdri_config.configure_hdri(request)
 
-        Delegates to CameraConfigCapability when available.
-        """
-        if self._camera_config is None:
-            return {
-                "success": False,
-                "message": "CameraConfigCapability not available",
-            }
-        return await self._camera_config.configure_camera(
-            camera_id=camera_id,
-            lens=lens,
-            framing_target=framing_target,
-            set_active=set_active,
-            depth_of_field=depth_of_field,
-            create_if_missing=create_if_missing,
-        )
-
-    # ─── HDRI Configuration (FR-RND-004) ────────────────────────────────
-
-    async def configure_hdri(
-        self,
-        hdri_file_path: str,
-        strength: float = 1.0,
-        rotation: float = 0.0,
-        background_visible: bool = True,
-        overwrite_policy: str = "replace",
-    ) -> dict[str, Any]:
-        """FR-RND-004: Set up HDRI-based environment lighting.
-
-        Delegates to HdriConfigCapability when available.
-        """
-        if self._hdri_config is None:
-            return {
-                "success": False,
-                "message": "HdriConfigCapability not available",
-            }
-        return await self._hdri_config.configure_hdri(
-            hdri_file_path=hdri_file_path,
-            strength=strength,
-            rotation=rotation,
-            background_visible=background_visible,
-            overwrite_policy=overwrite_policy,
-        )
+    # ─── Block 3: dunders / factories / helpers ───────────────
+    def __repr__(self) -> str:
+        return "RenderOrchestrator()"

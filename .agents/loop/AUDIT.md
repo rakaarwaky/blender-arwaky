@@ -2,6 +2,16 @@
 
 Recent Cycle Audit Records
 
+Cycle 62 — CodeValidator Non-Strict SyntaxError Crash (FR-SEC-003)
+
+Issue: In CodeValidator.validate_code, when ast.parse raised SyntaxError and strict_mode was False, the except branch appended a syntax_error violation but did not return. Control fell through to `for node in ast.walk(tree)` where `tree` was never bound (the parse failed), raising UnboundLocalError: cannot access local variable 'tree' where it is not associated with a value. This crashed every non-strict validation of unparseable code; the test masked it via pytest.skip.
+
+Fix: In the non-strict SyntaxError branch, return a CodeValidationVO with the syntax_error violation (allowed=False) instead of falling through. An unparseable tree cannot be walked, so walking is skipped.
+
+Verification: isolated import harness + full security suite — 238 passed, 0 regressions. ruff clean; lint-arwaky quality 0 on source.
+
+Blocker (not fixed this cycle): The full project test suite cannot run because a concurrent sibling agent's in-flight scene refactor (untracked contract_scene_protocol.py; modified contract_scene_aggregate.py) imports a non-existent taxonomy_scene_vo module and uses protocol class names (ISceneInspectionProtocol/ISceneCleanupProtocol) that no longer match the aggregate's import (SceneInspectionProtocol/SceneCleanupProtocol). This breaks the modules.shared.src import chain for all consumers. Left untouched: out of scope and actively edited by a sibling; fixing risks conflicting with the sibling's completion. Recorded in QUESTIONS.md/TODO.md as an OPEN blocker.
+
 Cycle 54 — FR-GWY-002 Reconnect Attempt-Counter Fix
 
 Issue: MaintenanceExecutor shared an un-reset _reconnect_attempts counter across all reconnect sessions, causing premature exhaustion logs and inflated attempt counts on second-drop reconnects.

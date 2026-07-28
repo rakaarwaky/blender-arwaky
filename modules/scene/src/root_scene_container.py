@@ -8,7 +8,7 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING
 
-from modules.shared.src.common.contract_code_execution_protocol import (
+from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
 
