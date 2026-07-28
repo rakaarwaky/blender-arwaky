@@ -166,7 +166,6 @@ class CodeExecutionOutcomeVO:
 # Connection State & Status
 # ============================================================
 
-ConnectionState = str  # "disconnected" | "connecting" | "connected" | "reconnecting" | "failed" | "closed"
 
 
 @dataclass(frozen=True)
@@ -408,8 +407,6 @@ class ServerCommandSpec:
 # ============================================================
 # Connection Configuration
 # ============================================================
-
-TransportType = str  # "socket" | "stdio"
 
 
 @dataclass(frozen=True)
