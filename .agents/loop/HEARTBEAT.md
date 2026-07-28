@@ -51,3 +51,4 @@
 | **86**  | **AES505 Agent Export Analysis**          | Confirmed all 7 agent exports are correct; violations are false positives (empty entry_points config). |
 | **87**  | **Diagnostics Orchestrator + AES504 Fix** | Created `agent_diagnostics_orchestrator.py`, exported gateway utility. Total: 638→634 (-4).           |
 | **88**  | **AES501 Taxonomy Export Fix**          | Added JobEvent export to shared/src/job/__init__.py. Total: 634→633 (-1).                             |
+| **89**  | **AES402 Contract Naming Analysis**   | Investigated all contract files for primitive type violations. In progress.                          |
