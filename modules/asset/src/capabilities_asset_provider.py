@@ -10,8 +10,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.shared.src.asset.contract_asset_provider_metadata_protocol import (
-    AssetProviderMetadataProtocol,
+from modules.shared.src.asset.contract_asset_provider_protocol import (
+    AssetProviderProtocol,
 )
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
@@ -21,7 +21,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class AssetProviderMetadataCapability(AssetProviderMetadataProtocol):
+class AssetProviderMetadataCapability(AssetProviderProtocol):
     """Provider metadata normalization capability.
 
     FR-AST-005: Normalized metadata includes name, provider, type,
@@ -189,8 +189,16 @@ class AssetProviderMetadataCapability(AssetProviderMetadataProtocol):
     def _extract_extra_fields(self, data: dict[str, Any]) -> dict[str, Any]:
         """Extract provider-specific extra fields without breaking common shape."""
         reserved_keys = {
-            "name", "provider", "id", "type", "categories",
-            "thumbnail_url", "license_summary", "download_available",
-            "attribution", "extra_fields", "normalized_at",
+            "name",
+            "provider",
+            "id",
+            "type",
+            "categories",
+            "thumbnail_url",
+            "license_summary",
+            "download_available",
+            "attribution",
+            "extra_fields",
+            "normalized_at",
         }
         return {k: v for k, v in data.items() if k not in reserved_keys}

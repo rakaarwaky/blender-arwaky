@@ -18,7 +18,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 
 
-class AssetProviderMetadataProtocol(ABC):
+class AssetProviderProtocol(ABC):
     """Protocol for normalizing provider asset metadata.
 
     FR-AST-005: Normalized metadata includes name, provider, type,

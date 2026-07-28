@@ -4,11 +4,10 @@ Layers:
   - Taxonomy (shared/src/asset/)    → VOs for search, download, extract, import
   - Contract (shared/src/asset/)   → AssetSearchProtocol, AssetDownloadProtocol,
                                       AssetExtractProtocol, AssetImportProtocol,
-                                      AssetProviderMetadataProtocol, AssetProviderPort
+                                      AssetProviderMetadataProtocol
   - Capabilities                   → SearchCapability, DownloadCapability,
                                       ExtractCapability, ImportCapability,
                                       ProviderMetadataCapability
-  - Adapters                       → PolyhavenAssetAdapter, SketchfabAssetAdapter
   - Agent                          → AssetOrchestrator
   - Root                           → AssetContainer (DI wiring)
 

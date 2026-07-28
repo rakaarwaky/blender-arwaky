@@ -1,5 +1,7 @@
-"""Gateway domain — Error types for transport, connection, and execution failures.
+"""Taxonomy error types for gateway and server domains.
 
+Gateway errors (lines 8-56): simple exceptions for transport/connection failures.
+Server errors (lines 57+): MCP-serializable errors with code/message/details.
 All errors use explicit typed classes — no bare strings.
 """
 
@@ -22,16 +24,8 @@ class ProtocolVersionMismatchError(GatewayError):
     """Protocol version incompatible between application and Blender bridge."""
 
 
-class AuthenticationError(GatewayError):
-    """Transport authentication failed."""
-
-
 class ChannelConflictError(GatewayError):
     """Queue conflict, queue depth limit reached, or serialization contention."""
-
-
-class SecurityViolationError(GatewayError):
-    """Code validation failed, delegated through security policy feature."""
 
 
 class TransportParseError(GatewayError):
@@ -40,6 +34,7 @@ class TransportParseError(GatewayError):
 
 class PayloadLimitError(GatewayError):
     """Request or response exceeded configured payload size."""
+
 
 class ServerError(Exception):
     """Base error for all server-domain exceptions.
@@ -87,7 +82,11 @@ class CommandTimeoutError(ServerError):
     """Raised when a command response exceeds the configured timeout."""
 
     def __init__(self, action: str = "", timeout_ms: float = 5_000.0, details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("command_timeout", f"Command '{action}' timed out after {timeout_ms}ms", {"action": action, "timeout_ms": timeout_ms})
+        super().__init__(
+            "command_timeout",
+            f"Command '{action}' timed out after {timeout_ms}ms",
+            {"action": action, "timeout_ms": timeout_ms},
+        )
 
 
 # ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
@@ -176,7 +175,9 @@ class BlenderConnectionExhausted(ServerError):
     """Raised after all reconnect attempts have been exhausted."""
 
     def __init__(self, attempts: int = 3, details: dict | None = None) -> None:  # noqa: ANN004
-        super().__init__("connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts})
+        super().__init__(
+            "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
+        )
 
 
 class BlenderConnectionFailure(ServerError):
@@ -192,7 +193,9 @@ class BlenderConnectionFailure(ServerError):
 class ValidationError(ServerError):
     """Raised for unknown commands, invalid parameters, or syntax errors."""
 
-    def __init__(self, message: str = "Validation error", code: str = "validation_error", details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(
+        self, message: str = "Validation error", code: str = "validation_error", details: dict | None = None
+    ) -> None:  # noqa: ANN004
         super().__init__(code, message, details)
 
 

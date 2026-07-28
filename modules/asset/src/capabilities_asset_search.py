@@ -1,9 +1,3 @@
-"""Capability: Multi-provider asset search (FR-AST-001).
-
-Implements AssetSearchProtocol for unified search across enabled providers.
-Returns normalized, aggregated results with pagination and warnings.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -11,9 +5,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.shared.src.asset.contract_asset_provider import AssetProviderPort
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
-from modules.shared.src.asset.taxonomy_asset_vo import AssetSearchVO
+from modules.shared.src.asset.utility.utility_polyhaven import polyhaven_search
+from modules.shared.src.asset.utility.utility_sketchfab import sketchfab_search
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
     NextPageToken,
@@ -25,22 +19,12 @@ from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
 logger = logging.getLogger("BlenderMCPServer")
 
+PROVIDER_NAMES = ["Polyhaven", "Sketchfab"]
+
 
 class AssetSearchCapability(AssetSearchProtocol):
-    """Unified multi-provider asset search capability.
-
-    FR-AST-001: Single search operation regardless of provider count.
-    Each enabled provider queried independently; failures logged and skipped.
-    Partial results returned when at least one provider succeeds.
-    """
-
-    def __init__(self, providers: dict[str, AssetProviderPort]) -> None:
-        """Initialize with registered provider ports.
-
-        Args:
-            providers: Dict of provider name to AssetProviderPort implementation.
-        """
-        self.providers = providers
+    def __init__(self, connection: object) -> None:
+        self._connection = connection
 
     async def search_all(
         self,
@@ -50,70 +34,49 @@ class AssetSearchCapability(AssetSearchProtocol):
         limit: ResultLimit | None = None,
         page_token: NextPageToken | None = None,
     ) -> dict[str, Any]:
-        """Search across all enabled providers with unified response.
+        target = providers if providers else PROVIDER_NAMES
 
-        FR-AST-001: Each enabled provider queried independently with its own
-        timeout. Provider failure must not block other providers; failures
-        are logged and skipped. All results normalized into common asset
-        metadata shape before aggregation.
+        async def search_one(name: str) -> tuple[str, list[dict[str, Any]], str | None]:
+            try:
+                if name == "Polyhaven":
+                    vo = await polyhaven_search(self._connection, query)
+                elif name == "Sketchfab":
+                    vo = await sketchfab_search(self._connection, query)
+                else:
+                    return name, [], "unknown provider"
+                normalized = [
+                    {
+                        "id": str(a.id),
+                        "name": str(a.name),
+                        "type": str(a.type),
+                        "provider": str(a.provider),
+                        "thumbnail_url": str(a.thumbnail_url) if a.thumbnail_url else None,
+                        "tags": list(a.tags),
+                    }
+                    for a in vo.assets
+                ]
+                return name, normalized, None
+            except ProviderError as e:
+                logger.warning("Provider %s search failed: %s", name, e)
+                return name, [], str(e)
+            except Exception as e:
+                logger.error("Provider %s search error: %s", name, e)
+                return name, [], str(e)
 
-        Args:
-            query: Text search query.
-            providers: Optional provider filter; None means all enabled.
-            asset_type_filter: Optional asset type filter.
-            limit: Optional result limit per provider.
-            page_token: Optional pagination cursor.
+        tasks = [search_one(str(p)) for p in target]
+        results = await asyncio.gather(*tasks)
 
-        Returns:
-            Dict with assets list, provider_status, pagination, and warnings.
-        """
         assets: list[dict[str, Any]] = []
         provider_status: dict[str, str] = {}
         warnings: list[str] = []
 
-        # Determine which providers to search
-        target_providers = self.providers
-        if providers:
-            target_providers = {
-                name: port for name, port in self.providers.items()
-                if ProviderName(name) in providers
-            }
-
-        # Search all providers concurrently
-        async def search_provider(name: str, port: AssetProviderPort) -> tuple[str, list[dict[str, Any]], str | None]:
-            try:
-                result = await port.search_assets(AssetSearchVO(query=query))
-                # Normalize results
-                normalized = []
-                for item in getattr(result, "assets", []):
-                    normalized.append({
-                        "id": str(getattr(item, "id", "")),
-                        "name": str(getattr(item, "name", "")),
-                        "type": str(getattr(item, "type", "")),
-                        "provider": name,
-                        "thumbnail_url": str(getattr(item, "thumbnail_url", None)),
-                        "tags": list(getattr(item, "tags", [])),
-                    })
-                return name, normalized, None
-            except ProviderError as e:
-                logger.warning("Provider %s search failed: %s", name, e)
-                warnings.append(f"Provider {name} failed: {e}")
-                return name, [], str(e)
-            except Exception as e:
-                logger.error("Provider %s search error: %s", name, e)
-                warnings.append(f"Provider {name} error: {e}")
-                return name, [], str(e)
-
-        # Run providers concurrently
-        tasks = [search_provider(name, port) for name, port in target_providers.items()]
-        results = await asyncio.gather(*tasks)
-
-        for name, assets_list, error in results:
+        for name, items, error in results:
             if error:
                 provider_status[name] = "error"
-            elif assets_list:
+                warnings.append(f"Provider {name} failed: {error}")
+            elif items:
                 provider_status[name] = "success"
-                assets.extend(assets_list)
+                assets.extend(items)
             else:
                 provider_status[name] = "empty"
 

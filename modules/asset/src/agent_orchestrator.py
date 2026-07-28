@@ -1,22 +1,12 @@
 """Agent: Asset feature orchestrator.
 
 Coordinates multi-provider asset search, download, and import.
-Delegates to AssetSearchProtocol and AssetProviderPort contracts.
 """
 
 import logging
 
-from modules.shared.src.asset import (
-    AssetMetadata,
-    AssetSearchProtocol,
-    ImportedAsset,
-)
-from modules.shared.src.common.taxonomy_core_vo import (
-    AssetId,
-    ProviderName,
-    SearchQuery,
-    StringList,
-)
+from modules.shared.src.asset import AssetMetadata, AssetSearchProtocol, ImportedAsset
+from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, SearchQuery, StringList
 
 logger = logging.getLogger("BlenderMCPServer")
 
