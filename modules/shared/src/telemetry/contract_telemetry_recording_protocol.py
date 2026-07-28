@@ -9,7 +9,8 @@ FR-TLM-001: Record Anonymous Usage Event
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import ActionName, SuccessFlag
 
 
 class TelemetryRecordingProtocol(ABC):
@@ -18,12 +19,12 @@ class TelemetryRecordingProtocol(ABC):
     @abstractmethod
     async def record_event(
         self,
-        action_type: str,
+        action_type: ActionName,
         feature_area: str,
         outcome_category: str,
         consent_active: bool = True,
         duration_bucket: float | None = None,
-    ) -> dict[str, Any]:
+    ) -> SuccessFlag:
         """Capture a single anonymous usage record.
 
         FR-TLM-001: Nothing recorded unless consent is active.

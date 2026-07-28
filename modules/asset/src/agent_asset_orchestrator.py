@@ -15,7 +15,7 @@ from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtrac
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.asset.contract_asset_provider_protocol import AssetProviderProtocol
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
-from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata, ImportedAsset
+from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
 from modules.shared.src.asset.taxonomy_asset_vo import (
     AssetDownloadCacheVO,
     AssetExtractArchiveVO,

@@ -20,7 +20,7 @@ class CliLifecycleProtocol(ABC):
     """Protocol for managing Blender application lifecycle."""
 
     @abstractmethod
-    async def locate_and_register(self, path: str | None = None) -> dict:
+    async def locate_and_register(self, path: str | None = None, source_tool: ToolName | None = None) -> dict:
         """Locate Blender executable and register it persistently.
 
         FR-CLI-001: Auto-detects from standard paths if no path provided.

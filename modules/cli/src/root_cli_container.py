@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from .agent_orchestrator import CliOrchestrator
+from .agent_cli_orchestrator import CliOrchestrator
 from .capabilities_cli_lifecycle import CliLifecycleManager
 
 logger = logging.getLogger("BlenderMCPServer")

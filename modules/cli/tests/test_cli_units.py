@@ -15,7 +15,6 @@ plan/report.
 import os
 import struct
 import sys
-
 from unittest import mock
 
 import pytest
@@ -24,9 +23,9 @@ SRC = os.path.join(os.path.dirname(__file__), "..", "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
+import surface_cli_blender_manager as bm_mod  # noqa: E402
 import surface_cli_registry as registry_mod  # noqa: E402
 import surface_cli_socket_client as socket_mod  # noqa: E402
-import surface_cli_blender_manager as bm_mod  # noqa: E402
 
 
 # ── Registry ────────────────────────────────────────────────────────────────
@@ -79,7 +78,7 @@ def test_registry_assert_no_active(tmp_path):
 # ── Socket framing ───────────────────────────────────────────────────────────
 def test_socket_receive_response_framed():
     client = socket_mod.BlenderSocketClient(port=9876)
-    payload = '{"type": "ok", "result": {"x": 1}}'.encode("utf-8")
+    payload = b'{"type": "ok", "result": {"x": 1}}'
     header = struct.pack("!I", len(payload))
     fake = mock.Mock()
     fake.recv = mock.Mock(side_effect=[header, payload])

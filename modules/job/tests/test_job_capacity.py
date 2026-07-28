@@ -7,8 +7,6 @@ RED → GREEN: targets the committed JobCapacityProtocol + JobCapacityEnforcer.
 
 from __future__ import annotations
 
-import pytest
-
 from modules.job.src.capabilities_job_capacity import CapacityError, JobCapacityEnforcer
 from modules.shared.src.common.taxonomy_core_vo import JobId
 

@@ -3,6 +3,7 @@
 Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
+from modules.security.src.capabilities_code_validator import CodeValidator
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
@@ -11,7 +12,6 @@ from .capabilities_connection import ConnectionExecutor
 from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport import TransportExecutor
-from modules.security.src.capabilities_code_validator import CodeValidator
 
 
 class GatewayContainer:

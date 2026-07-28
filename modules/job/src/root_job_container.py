@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 
-from .agent_orchestrator import JobOrchestrator
+from .agent_job_orchestrator import JobOrchestrator
 
 logger = logging.getLogger("BlenderMCPServer")
 

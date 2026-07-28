@@ -13,7 +13,6 @@ import pytest
 
 from modules.render.src.capabilities_camera_config import CameraConfigCapability
 
-
 # ─── Mocks ──────────────────────────────────────────────────────────────────
 
 

@@ -9,15 +9,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from modules.shared.src.common.taxonomy_core_vo import Host, PortNumber
+
 # ============================================================
 # Connection Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ConnectionEstablished:
     """Connection successfully established to Blender."""
-    host: str
-    port: int
+
+    host: Host
+    port: PortNumber
     transport_type: str = "socket"
     request_id: str | None = None
 
@@ -25,6 +29,7 @@ class ConnectionEstablished:
 @dataclass(frozen=True)
 class ConnectionLost:
     """Connection lost or closed."""
+
     reason: str  # "timeout" | "closed" | "error"
     request_id: str | None = None
 
@@ -32,6 +37,7 @@ class ConnectionLost:
 @dataclass(frozen=True)
 class ConnectionStateChanged:
     """Connection state changed."""
+
     old_state: str
     new_state: str
     reason: str | None = None
@@ -41,6 +47,7 @@ class ConnectionStateChanged:
 @dataclass(frozen=True)
 class ConnectionReconnectAttempted:
     """Reconnect attempt made."""
+
     attempt: int
     delay_seconds: float
     request_id: str | None = None
@@ -49,6 +56,7 @@ class ConnectionReconnectAttempted:
 @dataclass(frozen=True)
 class ConnectionReconnectFailed:
     """All reconnect attempts have failed."""
+
     attempts: int
     error_type: str
     message: str
@@ -59,9 +67,11 @@ class ConnectionReconnectFailed:
 # Code Execution Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CodeExecuted:
     """Code execution completed successfully."""
+
     request_id: str
     execution_time_ms: float
     truncated: bool = False
@@ -70,6 +80,7 @@ class CodeExecuted:
 @dataclass(frozen=True)
 class CodeExecutionFailed:
     """Code execution failed with error."""
+
     request_id: str
     error_type: str
     message: str
@@ -79,9 +90,11 @@ class CodeExecutionFailed:
 # Security Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class SecurityViolationDetected:
     """Security policy violation detected in user code."""
+
     request_id: str | None
     rule: str
     code_fingerprint: str
@@ -91,9 +104,11 @@ class SecurityViolationDetected:
 # Task Lifecycle Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class TaskCreated:
     """New async task created."""
+
     task_id: str
     request_id: str
 
@@ -101,12 +116,14 @@ class TaskCreated:
 @dataclass(frozen=True)
 class TaskStarted:
     """Task transitioned to running state."""
+
     task_id: str
 
 
 @dataclass(frozen=True)
 class TaskCompleted:
     """Task completed successfully."""
+
     task_id: str
     execution_time_ms: float
 
@@ -114,6 +131,7 @@ class TaskCompleted:
 @dataclass(frozen=True)
 class TaskFailed:
     """Task failed with error."""
+
     task_id: str
     error_type: str
     message: str
@@ -122,12 +140,14 @@ class TaskFailed:
 @dataclass(frozen=True)
 class TaskTimedOut:
     """Task exceeded timeout threshold."""
+
     task_id: str
 
 
 @dataclass(frozen=True)
 class TaskCancelled:
     """Task was cancelled by caller."""
+
     task_id: str
 
 
@@ -135,9 +155,11 @@ class TaskCancelled:
 # Command Dispatch Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CommandDispatched:
     """Command dispatched to Blender addon."""
+
     action: str
     execution_time_ms: float
     request_id: str | None = None
@@ -146,6 +168,7 @@ class CommandDispatched:
 @dataclass(frozen=True)
 class CommandFailed:
     """Command failed with error."""
+
     action: str
     request_id: str | None
     error_type: str
@@ -155,6 +178,7 @@ class CommandFailed:
 @dataclass(frozen=True)
 class CommandTimedOut:
     """Command exceeded timeout threshold."""
+
     action: str
     timeout_ms: float
     request_id: str | None = None
@@ -164,9 +188,11 @@ class CommandTimedOut:
 # Queue Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ItemEnqueued:
     """Item added to execution queue."""
+
     request_id: str
     queue_depth: int
 
@@ -174,6 +200,7 @@ class ItemEnqueued:
 @dataclass(frozen=True)
 class ItemDequeued:
     """Item removed from execution queue."""
+
     request_id: str
 
 
@@ -181,9 +208,11 @@ class ItemDequeued:
 # Operation Events
 # ============================================================
 
+
 @dataclass(frozen=True)
 class OperationRejected:
     """Operation rejected by queue or connection state."""
+
     request_id: str | None
     reason: str
 

@@ -23,10 +23,14 @@ from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
 from modules.shared.src.gateway.contract_code_execution_protocol import (
+    CodeExecutionProtocol,
     ICodeExecutionProtocol,
 )
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
+)
+from modules.shared.src.gateway.contract_transport_protocol import (
+    TransportProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_constant import (
     DEFAULT_EXECUTION_TIMEOUT_MS,
@@ -36,6 +40,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     ExecutionTimeoutError,
     SecurityViolationError,
     TaskNotFoundError,
+    TimeoutError,
     ValidationError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
@@ -46,6 +51,8 @@ from modules.shared.src.gateway.taxonomy_gateway_event import (
     TaskFailed,
 )
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
+    CodeExecutionOutcomeVO,
+    CodeExecutionVO,
     CodeSecurityPolicy,
     ExecutionErrorDetail,
     ExecutionResult,
@@ -53,26 +60,13 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TaskManagerConfig,
     TaskState,
     TaskStatus,
+    TransportMessageVO,
+    TransportOutcomeVO,
 )
 from modules.shared.src.gateway.utility.utility_validator import (
     check_payload_size,
     code_fingerprint,
     validate_code_ast,
-)
-from modules.shared.src.gateway.contract_code_execution_protocol import (
-    CodeExecutionProtocol,
-)
-from modules.shared.src.gateway.contract_transport_protocol import (
-    TransportProtocol,
-)
-from modules.shared.src.gateway.taxonomy_gateway_error import (
-    TimeoutError,
-)
-from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    CodeExecutionOutcomeVO,
-    CodeExecutionVO,
-    TransportMessageVO,
-    TransportOutcomeVO,
 )
 from modules.shared.src.security.contract_validate_code_protocol import (
     ValidateCodeProtocol,

@@ -25,36 +25,30 @@ from modules.diagnostics.src.contract_audit_emission_protocol import (
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
 )
+from modules.shared.src.gateway.contract_transport_protocol import (
+    IBlenderCommandProtocol,
+    TransportProtocol,
+)
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     CommandTimeoutError,
+    PayloadLimitError,
     ProviderError,
+    TimeoutError,
+    TransportParseError,
     ValidationError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
     CommandDispatched,
 )
-from modules.shared.src.gateway.contract_transport_protocol import (
-    IBlenderCommandProtocol,
-)
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CommandResult,
+    TransportMessageVO,
+    TransportOutcomeVO,
 )
 from modules.shared.src.gateway.utility.utility_schema import (
     effective_command_timeout_ms,
     get_command_spec,
     validate_command_args,
-)
-from modules.shared.src.gateway.contract_transport_protocol import (
-    TransportProtocol,
-)
-from modules.shared.src.gateway.taxonomy_gateway_error import (
-    PayloadLimitError,
-    TimeoutError,
-    TransportParseError,
-)
-from modules.shared.src.gateway.taxonomy_gateway_vo import (
-    TransportMessageVO,
-    TransportOutcomeVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -86,7 +80,6 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         request_id: str | None = None,
     ) -> CommandResult:
         get_command_spec(action)
-        from modules.shared.src.gateway.utility.utility_schema import validate_command_args
         try:
             validate_command_args(action, params)
         except ValidationError:

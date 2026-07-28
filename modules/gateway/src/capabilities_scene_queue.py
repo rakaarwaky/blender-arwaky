@@ -23,9 +23,12 @@ from modules.diagnostics.src.contract_audit_emission_protocol import (
 )
 from modules.shared.src.gateway.contract_scene_queue_protocol import (
     IOperationQueueProtocol,
+    SceneQueueProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
+    ChannelConflictError,
     OperationWaitTimeoutError,
+    TimeoutError,
     TooManyPendingOperationsError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
@@ -36,15 +39,6 @@ from modules.shared.src.gateway.taxonomy_gateway_event import (
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     ExecutionResult,
     QueuedOperation,
-)
-from modules.shared.src.gateway.contract_scene_queue_protocol import (
-    SceneQueueProtocol,
-)
-from modules.shared.src.gateway.taxonomy_gateway_error import (
-    ChannelConflictError,
-    TimeoutError,
-)
-from modules.shared.src.gateway.taxonomy_gateway_vo import (
     QueueStatusVO,
     SceneOperationOutcomeVO,
     SceneOperationVO,

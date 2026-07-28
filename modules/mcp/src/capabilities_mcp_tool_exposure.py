@@ -11,7 +11,7 @@ AES Capabilities layer — concrete implementation of McpToolExposureProtocol.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.mcp.contract_mcp_tool_exposure_protocol import McpToolExposureProtocol

@@ -25,11 +25,11 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ResultUrl,
 )
 from modules.shared.src.job.contract_job_tracker_protocol import JobTrackerProtocol
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 from modules.shared.src.job.taxonomy_job_state_constant import (
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
 )
+from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 from .taxonomy_job_error import JobNotFoundError, JobStateError, JobValidationError
 from .utility_job_sanitizer import sanitize_error_detail

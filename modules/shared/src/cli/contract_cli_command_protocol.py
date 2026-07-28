@@ -20,7 +20,7 @@ class CliCommandProtocol(ABC):
     @abstractmethod
     async def parse_and_route(
         self,
-        command: str,
+        command: ActionName,
         args: list[str] | None = None,
         flags: dict[str, Any] | None = None,
     ) -> dict[str, Any]:

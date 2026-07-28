@@ -90,7 +90,7 @@ class ObjectOrchestrator(IObjectOperateAggregate):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
     @property
-    def object_operate_capability(self) -> ObjectOperateAggregate:
+    def object_operate_capability(self) -> IObjectOperateAggregate:
         return self
 
     @property

@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-
 
 class McpToolExposureProtocol(ABC):
     """Protocol for rendering the dispatcher catalog as MCP tool schemas."""

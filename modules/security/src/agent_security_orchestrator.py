@@ -75,7 +75,7 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
     @property
-    def security_operate_capability(self) -> SecurityOperateAggregate:
+    def security_operate_capability(self) -> ISecurityOperateAggregate:
         """Expose self as the security operate aggregate facade for dispatch."""
         return self
 

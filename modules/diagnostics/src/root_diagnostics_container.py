@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import logging
 
-from .capabilities_health_composition import DiagnosticsCapability
 from .capabilities_audit_emission import InMemoryEventBus
+from .capabilities_health_composition import DiagnosticsCapability
 
 logger = logging.getLogger("BlenderMCPServer")
 

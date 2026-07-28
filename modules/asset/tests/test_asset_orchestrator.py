@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import pytest
 from typing import Any
 
-from modules.asset.src.agent_orchestrator import AssetOrchestrator
+import pytest
+
+from modules.asset.src.agent_asset_orchestrator import AssetOrchestrator
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
-from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
-from modules.shared.src.asset.taxonomy_asset_vo import AssetDownloadCacheVO, AssetExtractArchiveVO, AssetImportBlenderVO
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetId,
-    AssetType,
-    FilePath,
     ProviderName,
     SearchQuery,
 )

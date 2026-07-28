@@ -7,8 +7,11 @@ and enrichment across all capability layers.
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
     DurationMs,
     ErrorMessage,
+    ErrorString,
+    SessionId,
     SuccessFlag,
     ToolName,
 )
@@ -29,7 +32,7 @@ from modules.shared.src.telemetry.contract_telemetry_session_management import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class TelemetryOrchestrator:
+class TelemetryOrchestrator(ITelemetryAggregate):
     """Orchestrates telemetry operations across capability layers.
 
     Coordinates recording, classification, session management, and enrichment.
@@ -57,9 +60,9 @@ class TelemetryOrchestrator:
 
     def record_action_execution(
         self,
-        action_name: str,
-        success: bool,
-        duration_ms: float,
+        action_name: ActionName,
+        success: SuccessFlag,
+        duration_ms: DurationMs,
     ) -> None:
         """Record an action execution event (FR-TLM-001, FR-TLM-002)."""
         # Classify the event
@@ -67,23 +70,22 @@ class TelemetryOrchestrator:
         # Record with metrics
         self._recorder.record_event(
             event_type=event_type,
-            success=SuccessFlag(success),
-            duration_ms=DurationMs(duration_ms),
+            success=success,
+            duration_ms=duration_ms,
         )
         logger.debug("Action execution event recorded: %s", action_name)
 
-    def record_system_error(self, error_category: str, context: str) -> None:
+    def record_system_error(self, error_category: ErrorString, context: ErrorMessage) -> None:
         """Record a system error event (FR-TLM-001, FR-TLM-002)."""
         # Classify the event
-        event_type = self._classifier.classify_event(error_message=ErrorMessage(context))
+        event_type = self._classifier.classify_event(error_message=context)
         # Record with error details
         self._recorder.record_event(event_type=event_type)
         logger.debug("System error event recorded: %s", error_category)
 
-    def get_session_id(self) -> str:
+    def get_session_id(self) -> SessionId:
         """Get the current session identifier (FR-TLM-003)."""
-        session_id = self._session_manager.get_session_id()
-        return str(session_id)
+        return self._session_manager.get_session_id()
 
     def initialize_session(self) -> None:
         """Initialize a new session (FR-TLM-003)."""

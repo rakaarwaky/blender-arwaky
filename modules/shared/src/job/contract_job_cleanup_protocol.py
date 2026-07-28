@@ -10,12 +10,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import MaxTasksCount
+
 
 class JobCleanupProtocol(ABC):
     """Protocol for automatic cleanup of expired task records."""
 
     @abstractmethod
-    def cleanup_expired_tasks(self, retention_minutes: int = 10) -> dict[str, int]:
+    def cleanup_expired_tasks(self, retention_minutes: int = 10) -> dict[str, MaxTasksCount]:
         """Remove old, finished task records based on retention policy.
 
         FR-JOB-004: Only removes tasks in terminal states (Completed, Failed, Cancelled).

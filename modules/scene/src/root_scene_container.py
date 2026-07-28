@@ -13,7 +13,7 @@ import threading
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .agent_orchestrator import SceneOrchestrator
+    from .agent_scene_orchestrator import SceneOrchestrator
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -52,7 +52,7 @@ class SceneContainer:
             if self._orchestrator is not None:
                 return self._orchestrator
 
-            from .agent_orchestrator import SceneOrchestrator
+            from .agent_scene_orchestrator import SceneOrchestrator
             from .capabilities_scene_operate_executor import SceneOperateExecutor
 
             executor = SceneOperateExecutor(self._code_executor)

@@ -13,7 +13,6 @@ from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 # ─── Taxonomy: Constants ───────────────────────────────────────
 from .taxonomy_config_constant import (
     CONFIG_PATH_ENV,
-    STRICT_MODE_FLAG_ENV,
     DEFAULT_CONFIG_FILENAME,
     DEFAULT_POLICY_MODE,
     DEFAULT_SETTINGS,
@@ -27,6 +26,7 @@ from .taxonomy_config_constant import (
     RESERVED_ENV_KEYS,
     SENSITIVE_KEY_PATTERNS,
     SETTINGS_SCHEMA,
+    STRICT_MODE_FLAG_ENV,
     WORKSPACE_ROOT_ENV,
 )
 

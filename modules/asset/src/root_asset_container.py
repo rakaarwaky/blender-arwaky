@@ -11,7 +11,7 @@ import threading
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .agent_orchestrator import AssetOrchestrator
+    from .agent_asset_orchestrator import AssetOrchestrator
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -32,7 +32,7 @@ class AssetContainer:
             if self._orchestrator is not None:
                 return self._orchestrator
 
-            from .agent_orchestrator import AssetOrchestrator
+            from .agent_asset_orchestrator import AssetOrchestrator
             from .capabilities_asset_download import AssetDownloadCapability
             from .capabilities_asset_extract import AssetExtractCapability
             from .capabilities_asset_import import AssetImportCapability

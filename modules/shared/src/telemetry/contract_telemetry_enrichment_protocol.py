@@ -11,6 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import Details, PlatformName, VersionString
+
 
 class TelemetryEnrichmentProtocol(ABC):
     """Protocol for enriching telemetry events with environment metadata."""
@@ -19,7 +21,9 @@ class TelemetryEnrichmentProtocol(ABC):
     async def enrich_event(
         self,
         event: dict[str, Any],
-    ) -> dict[str, Any]:
+        platform: PlatformName | None = None,
+        version: VersionString | None = None,
+    ) -> Details:
         """Attach coarse environment context to event.
 
         FR-TLM-004: Permitted fields are OS family, runtime version,
@@ -35,7 +39,7 @@ class TelemetryEnrichmentProtocol(ABC):
         pass
 
     @abstractmethod
-    async def get_environment_metadata(self) -> dict[str, Any]:
+    async def get_environment_metadata(self) -> Details:
         """Return current environment snapshot for batch envelope.
 
         Returns:

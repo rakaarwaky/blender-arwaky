@@ -6,14 +6,12 @@ Coordinates MCP server lifecycle, tool registration, and AI agent communication.
 import logging
 from typing import Any
 
-from modules.shared.src.mcp.contract_discovery_protocol import ServerDiscoveryProtocol
-from modules.shared.src.mcp.contract_execute_protocol import ServerExecuteProtocol
-from modules.shared.src.mcp.contract_health_protocol import ServerHealthProtocol
+from modules.shared.src.mcp.contract_mcp_aggregate import IMcpAggregate
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class McpOrchestrator:
+class McpOrchestrator(IMcpAggregate):
     """Orchestrates MCP server operations."""
 
     def __init__(self, server: Any):

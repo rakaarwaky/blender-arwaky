@@ -8,13 +8,11 @@ Run via pytest from repo root.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from modules.render.src.capabilities_hdri_config import HdriConfigCapability
-
 
 # ─── Mocks ──────────────────────────────────────────────────────────────────
 

@@ -9,9 +9,8 @@ FR-DIA-003: Emit Audit Events
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ToolName
+from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class AuditEmissionProtocol(ABC):
@@ -25,7 +24,8 @@ class AuditEmissionProtocol(ABC):
         source_feature: str,
         operation_type: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+        source_tool: ToolName | None = None,
+    ) -> Details:
         """Produce immutable audit record for security-relevant activity.
 
         FR-DIA-003: Auditable activity includes security violations,

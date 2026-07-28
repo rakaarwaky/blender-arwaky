@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from .agent_orchestrator import DispatcherOrchestrator
+from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor

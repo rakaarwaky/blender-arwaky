@@ -25,12 +25,12 @@ from . import (
     scene,
     telemetry,
 )
+from .asset.contract_asset_aggregate import IAssetAggregate
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol
 from .asset.contract_asset_extract_protocol import AssetExtractProtocol
 from .asset.contract_asset_import_protocol import AssetImportProtocol
 from .asset.contract_asset_provider_protocol import AssetProviderProtocol
 from .asset.contract_asset_search_protocol import AssetSearchProtocol
-from .asset.contract_asset_aggregate import IAssetAggregate
 
 # === Asset domain exports ===
 from .asset.taxonomy_asset_constant import (
@@ -166,7 +166,6 @@ from .common.taxonomy_domain_error import (
     AssetNotFoundError,
     BlenderConnectionFailure,
     BlenderMCPError,
-    ConnectionError,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -219,23 +218,6 @@ from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnaps
 from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
 from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
 from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
-from .job.contract_job_cancel_protocol import JobCancelProtocol
-from .job.contract_job_cleanup_protocol import JobCleanupProtocol
-from .job.contract_job_monitor_protocol import JobMonitorProtocol
-from .job.contract_job_tracker_protocol import JobTrackerProtocol
-
-# === Job domain exports ===
-from .job.taxonomy_job_state_constant import (
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
-)
-from .job.taxonomy_job_status_entity import (
-    JobStatus,
-    create_job_id,
-    create_progress,
-)
 
 # === Dispatcher domain exports ===
 from .dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
@@ -244,33 +226,10 @@ from .dispatcher.contract_catalog_registration_protocol import CatalogRegistrati
 from .dispatcher.contract_request_validation_protocol import RequestValidationProtocol
 from .dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
-from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-# === Launcher domain exports ===
-from .launcher.contract_launch_protocol import LaunchProtocol
-from .launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
-from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
-from .launcher.contract_persist_state_protocol import PersistStateProtocol
-from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
-from .launcher.contract_shutdown_protocol import ShutdownProtocol
-from .launcher.taxonomy_launcher_vo import (
-    ExecutableReferenceVO,
-    LauncherConfigVO,
-    LaunchOutcomeVO,
-    PersistenceOutcomeVO,
-    RegistrationOutcomeVO,
-    RegistrationSource,
-    RuntimeState,
-    RuntimeStateVO,
-    RuntimeStatusVO,
-    ShutdownOutcomeVO,
-    StatusCheckOutcomeVO,
-    StatePersistenceOutcomeVO,
-    VersionCompatibility,
-)
 
 # === Gateway domain exports ===
 from .gateway.contract_code_execution_protocol import CodeExecutionProtocol
@@ -290,11 +249,11 @@ from .gateway.taxonomy_gateway_error import (
     TransportParseError,
 )
 from .gateway.taxonomy_gateway_vo import (
-    CodeExecutionVO,
     CodeExecutionOutcomeVO,
-    ConnectionState,
+    CodeExecutionVO,
     ConnectionConfigVO,
     ConnectionOutcomeVO,
+    ConnectionState,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationOutcomeVO,
@@ -303,7 +262,46 @@ from .gateway.taxonomy_gateway_vo import (
     TransportOutcomeVO,
     TransportType,
 )
+from .job.contract_job_cancel_protocol import JobCancelProtocol
+from .job.contract_job_cleanup_protocol import JobCleanupProtocol
+from .job.contract_job_monitor_protocol import JobMonitorProtocol
+from .job.contract_job_tracker_protocol import JobTrackerProtocol
 
+# === Job domain exports ===
+from .job.taxonomy_job_state_constant import (
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+)
+from .job.taxonomy_job_status_entity import (
+    JobStatus,
+    create_job_id,
+    create_progress,
+)
+
+# === Launcher domain exports ===
+from .launcher.contract_launch_protocol import LaunchProtocol
+from .launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from .launcher.contract_persist_state_protocol import PersistStateProtocol
+from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+from .launcher.contract_shutdown_protocol import ShutdownProtocol
+from .launcher.taxonomy_launcher_vo import (
+    ExecutableReferenceVO,
+    LauncherConfigVO,
+    LaunchOutcomeVO,
+    PersistenceOutcomeVO,
+    RegistrationOutcomeVO,
+    RegistrationSource,
+    RuntimeState,
+    RuntimeStateVO,
+    RuntimeStatusVO,
+    ShutdownOutcomeVO,
+    StatePersistenceOutcomeVO,
+    StatusCheckOutcomeVO,
+    VersionCompatibility,
+)
 from .mcp.contract_discovery_protocol import ServerDiscoveryProtocol
 from .mcp.contract_execute_protocol import ServerExecuteProtocol
 from .mcp.contract_health_protocol import ServerHealthProtocol
@@ -365,16 +363,16 @@ from .scene.contract_scene_inspection import SceneInspectionPort
 
 # Protocols (business behavior contracts)
 from .scene.contract_scene_operate_protocol import SceneOperateProtocol
+from .scene.taxonomy_scene_command_vo import (
+    SceneCleanupVO,
+    SceneInspectionVO,
+)
 
 # === Scene domain exports ===
 from .scene.taxonomy_scene_info_vo import (
     RENDER_ENGINE_CYCLES,
     RENDER_ENGINE_EEVEE,
     SceneInfo,
-)
-from .scene.taxonomy_scene_command_vo import (
-    SceneCleanupVO,
-    SceneInspectionVO,
 )
 from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
 
@@ -398,11 +396,16 @@ from .telemetry.taxonomy_event_constant import (
 from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
 
 __all__ = [
+    "asset",
     "common",
-    "scene",
+    "config",
+    "diagnostics",
+    "dispatcher",
+    "job",
+    "launcher",
     "object",
     "render",
-    "job",
+    "scene",
     "telemetry",
     "UserId",
     "SceneId",
@@ -521,7 +524,6 @@ __all__ = [
     "SceneValidationError",
     "AssetNotFoundError",
     "ValidationError",
-    "ConnectionError",
     "ProviderError",
     "ExecutionError",
     "BlenderConnectionFailure",
@@ -549,6 +551,7 @@ __all__ = [
     "OBJECT_TYPE_LATTICE",
     "OBJECT_TYPE_GPENCIL",
     "OBJECT_TYPE_VOLUME",
+    "OBJECT_TYPE_POINTCLOUD",
     "ALLOWED_OBJECT_TYPES",
     "COMMAND_CATALOG",
     "CommandCatalog",
@@ -567,6 +570,8 @@ __all__ = [
     "create_provider_name",
     "create_progress",
     "SceneOperateProtocol",
+    "SceneCleanupVO",
+    "SceneInspectionVO",
     "PlaceAssetProtocol",
     "CreatePrimitiveProtocol",
     "SetObjectTransformProtocol",

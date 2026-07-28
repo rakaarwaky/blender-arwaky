@@ -11,7 +11,7 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .agent_orchestrator import RenderOrchestrator
+    from .agent_render_orchestrator import RenderOrchestrator
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -61,7 +61,7 @@ class RenderContainer:
             if self._orchestrator is not None:
                 return self._orchestrator
 
-            from .agent_orchestrator import RenderOrchestrator
+            from .agent_render_orchestrator import RenderOrchestrator
             from .capabilities_camera_config import CameraConfigCapability
             from .capabilities_hdri_config import HdriConfigCapability
             from .capabilities_render_operate_executor import RenderOperateExecutor

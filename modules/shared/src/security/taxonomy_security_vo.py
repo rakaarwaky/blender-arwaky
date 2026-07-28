@@ -9,13 +9,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from enum import Enum
+from typing import Any, NewType
 
 # ============================================================
 # Access Mode
 # ============================================================
 
+
 class AccessMode(str, Enum):
     """File access mode for path validation."""
+
     READ = "read"
     WRITE = "write"
     CREATE = "create"
@@ -27,6 +30,7 @@ class AccessMode(str, Enum):
 # Path Validation (FR-SEC-001)
 # ============================================================
 
+
 @dataclass(frozen=True)
 class PathValidationVO:
     """Unified path validation — input and output in one VO.
@@ -34,6 +38,7 @@ class PathValidationVO:
     Caller sets target_path, access_mode, base_directory, operation_context.
     Callee sets allowed, canonical_path, denial_reason, audit_metadata.
     """
+
     # Input
     target_path: str = ""
     access_mode: AccessMode = AccessMode.READ
@@ -50,9 +55,11 @@ class PathValidationVO:
 # Archive Extraction (FR-SEC-002)
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ArchiveEntryVO:
     """Metadata for a single archive entry."""
+
     entry_path: str
     is_directory: bool = False
     is_symbolic_link: bool = False
@@ -64,6 +71,7 @@ class ArchiveEntryVO:
 @dataclass(frozen=True)
 class ArchiveExtractionOptionsVO:
     """Options controlling archive extraction safety."""
+
     max_depth: int = 5
     max_total_size: int = 104_857_600  # 100 MB
     max_entry_size: int = 10_485_760  # 10 MB
@@ -75,6 +83,7 @@ class ArchiveExtractionOptionsVO:
 @dataclass(frozen=True)
 class RejectedEntryVO:
     """A rejected archive entry with reason."""
+
     entry_path: str
     reason: str
 
@@ -86,6 +95,7 @@ class ArchiveExtractionVO:
     Caller sets destination_directory, entries, options.
     Callee sets allowed, safe_destination, rejected_entries, warnings, audit_metadata.
     """
+
     # Input
     destination_directory: str = ""
     entries: tuple[ArchiveEntryVO, ...] = dc_field(default_factory=tuple)
@@ -102,9 +112,11 @@ class ArchiveExtractionVO:
 # Code Validation (FR-SEC-003)
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CodeViolationVO:
     """A single code validation violation."""
+
     category: str
     description: str
     location_hint: str | None = None
@@ -117,6 +129,7 @@ class CodeValidationVO:
     Caller sets code_text, max_code_size, strict_mode, execution_context.
     Callee sets allowed, violations, redacted_metadata, audit_metadata.
     """
+
     # Input
     code_text: str = ""
     max_code_size: int = 1_048_576  # 1 MB
@@ -133,8 +146,10 @@ class CodeValidationVO:
 # Redaction (FR-SEC-004)
 # ============================================================
 
+
 class SensitivityLevel(str, Enum):
     """Sensitivity level for redaction."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -148,6 +163,7 @@ class RedactionVO:
     Caller sets text, sensitivity_level, patterns, key_names.
     Callee sets redacted_text, redacted_count, failed, failure_reason.
     """
+
     # Input
     text: str = ""
     sensitivity_level: SensitivityLevel = SensitivityLevel.HIGH
@@ -164,8 +180,10 @@ class RedactionVO:
 # Audit Events (FR-SEC-005)
 # ============================================================
 
+
 class AuditSeverity(str, Enum):
     """Audit event severity level."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -174,6 +192,7 @@ class AuditSeverity(str, Enum):
 
 class ViolationCategory(str, Enum):
     """Security violation category."""
+
     PATH_TRAVERSAL = "path_traversal"
     UNAUTHORIZED_ACCESS = "unauthorized_access"
     UNSAFE_ARCHIVE_ENTRY = "unsafe_archive_entry"
@@ -190,6 +209,7 @@ class SecurityAuditEventVO:
     Caller sets violation_category, operation_type, source_feature, severity, etc.
     Callee sets event_id, timestamp, policy_mode.
     """
+
     # Input (context)
     violation_category: ViolationCategory = ViolationCategory.PATH_TRAVERSAL
     operation_type: str = ""
@@ -208,9 +228,11 @@ class SecurityAuditEventVO:
 # Security Policy Config
 # ============================================================
 
+
 @dataclass(frozen=True)
 class SecurityPolicyVO:
     """Security policy configuration."""
+
     allowed_directories: tuple[str, ...] = ()
     archive_max_depth: int = 5
     archive_max_total_size: int = 104_857_600
@@ -222,3 +244,18 @@ class SecurityPolicyVO:
     redaction_patterns: tuple[str, ...] = dc_field(default_factory=tuple)
     redaction_debug_mode: bool = False
     security_policy_mode: str = "strict"
+
+
+# ============================================================
+# Error Domain Types
+# ============================================================
+
+ErrorCategory = NewType("ErrorCategory", str)
+FilePath = NewType("FilePath", str)
+FileSize = NewType("FileSize", int)
+
+# ============================================================
+# Metadata Type
+# ============================================================
+
+MetadataMap = dict[str, Any]

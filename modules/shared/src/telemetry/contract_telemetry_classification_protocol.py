@@ -11,6 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import ActionName
+
 
 class TelemetryClassificationProtocol(ABC):
     """Protocol for classifying telemetry events into fixed taxonomy."""
@@ -18,7 +20,7 @@ class TelemetryClassificationProtocol(ABC):
     @abstractmethod
     async def classify_event(
         self,
-        action_type: str,
+        action_type: ActionName,
         feature_area: str | None = None,
     ) -> dict[str, Any]:
         """Assign event to fixed taxonomy (feature area, operation type, outcome).

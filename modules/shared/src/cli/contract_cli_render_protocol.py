@@ -23,6 +23,7 @@ class CliRenderProtocol(ABC):
         result: dict[str, Any],
         format: str = "text",
         interactive: bool = True,
+        source_tool: ToolName | None = None,
     ) -> str:
         """Render aggregate results for human reading or machine consumption.
 

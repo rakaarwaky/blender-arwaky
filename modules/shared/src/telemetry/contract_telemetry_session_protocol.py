@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import SessionId
+
 
 class TelemetrySessionProtocol(ABC):
     """Protocol for managing anonymous telemetry sessions."""
@@ -19,7 +21,7 @@ class TelemetrySessionProtocol(ABC):
         self,
         force_new: bool = False,
         consent_active: bool = True,
-    ) -> str:
+    ) -> SessionId:
         """Get current session ID or generate fresh one.
 
         FR-TLM-003: Session ID generated from collision-resistant random source.
@@ -36,7 +38,7 @@ class TelemetrySessionProtocol(ABC):
         pass
 
     @abstractmethod
-    async def rotate_session(self) -> str:
+    async def rotate_session(self) -> SessionId:
         """Rotate session, producing fresh identifier with no linkage.
 
         Returns:

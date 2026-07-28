@@ -11,7 +11,7 @@ Surface layer is intentionally absent — MCP/CLI command handlers live in
 their respective feature modules (modules/mcp, modules/cli).
 """
 
-from .agent_orchestrator import DispatcherOrchestrator
+from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor

@@ -12,7 +12,7 @@ AES Capabilities layer — concrete implementation of JobCapacityProtocol.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import JobId
 from modules.shared.src.job.contract_job_capacity_protocol import JobCapacityProtocol

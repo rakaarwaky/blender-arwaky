@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata, ImportedAsset
+from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
 from modules.shared.src.asset.taxonomy_asset_vo import (
     AssetDownloadCacheVO,
     AssetExtractArchiveVO,

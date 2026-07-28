@@ -11,7 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ToolName
+from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class LoggingPolicyProtocol(ABC):
@@ -25,7 +25,8 @@ class LoggingPolicyProtocol(ABC):
         message: str,
         fields: dict[str, Any] | None = None,
         tracking_id: str | None = None,
-    ) -> dict[str, Any]:
+        source_tool: ToolName | None = None,
+    ) -> Details:
         """Write sanitized structured log entry.
 
         FR-DIA-004: All features log through diagnostics policy.

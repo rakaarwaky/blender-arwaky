@@ -78,7 +78,7 @@ class SecurityContainer:
         logger.info("Security feature module wired successfully (5 capabilities)")
 
     @property
-    def aggregate(self) -> SecurityOperateAggregate:
+    def aggregate(self) -> ISecurityOperateAggregate:
         """Return the assembled SecurityOperateAggregate facade.
 
         Must call wire() first, or this property will raise RuntimeError.
@@ -92,7 +92,7 @@ class SecurityContainer:
 
 def create_security_feature(
     policy: SecurityPolicyVO | None = None,
-) -> SecurityOperateAggregate:
+) -> ISecurityOperateAggregate:
     """Factory function to create and wire the security feature module.
 
     Convenience function for top-level entry points that need the aggregate.

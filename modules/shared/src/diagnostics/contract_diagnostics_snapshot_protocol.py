@@ -9,9 +9,8 @@ FR-DIA-005: Provide Diagnostics Snapshot
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ToolName
+from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class DiagnosticsSnapshotProtocol(ABC):
@@ -22,7 +21,8 @@ class DiagnosticsSnapshotProtocol(ABC):
         self,
         detail_level: str = "summary",
         section_filter: list[str] | None = None,
-    ) -> dict[str, Any]:
+        source_tool: ToolName | None = None,
+    ) -> Details:
         """Serve one canonical diagnostics snapshot.
 
         FR-DIA-005: CLI and MCP consume snapshots; they must never probe

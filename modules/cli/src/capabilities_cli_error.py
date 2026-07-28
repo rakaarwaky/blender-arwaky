@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.cli.contract_cli_error_protocol import CliErrorProtocol
 
 

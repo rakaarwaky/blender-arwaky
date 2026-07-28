@@ -19,8 +19,7 @@ class IJobAggregate(ABC):
         self,
         operation_type: str,
         metadata: dict[str, Any] | None = None,
-    ) -> tuple[JobId, JobStatus]:
-        ...
+    ) -> tuple[JobId, JobStatus]: ...
 
     @abstractmethod
     def update_progress(
@@ -28,8 +27,7 @@ class IJobAggregate(ABC):
         job_id: JobId,
         progress: float,
         message: str = "",
-    ) -> JobStatus:
-        ...
+    ) -> JobStatus: ...
 
     @abstractmethod
     def finalize_task_success(
@@ -37,8 +35,7 @@ class IJobAggregate(ABC):
         job_id: JobId,
         result_url: ResultUrl | None = None,
         summary: str = "",
-    ) -> JobStatus:
-        ...
+    ) -> JobStatus: ...
 
     @abstractmethod
     def finalize_task_failure(
@@ -46,21 +43,17 @@ class IJobAggregate(ABC):
         job_id: JobId,
         error_message: ErrorString,
         error_category: str = "",
-    ) -> JobStatus:
-        ...
+    ) -> JobStatus: ...
 
     @abstractmethod
-    def get_task_status(self, job_id: JobId) -> JobStatus | None:
-        ...
+    def get_task_status(self, job_id: JobId) -> JobStatus | None: ...
 
     @abstractmethod
     def cancel_task(
         self,
         job_id: JobId,
         reason: ErrorString = "",
-    ) -> tuple[bool, str]:
-        ...
+    ) -> tuple[bool, str]: ...
 
     @abstractmethod
-    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, int]:
-        ...
+    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, Any]: ...

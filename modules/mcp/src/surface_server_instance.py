@@ -19,10 +19,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
-
 from modules.mcp.src.bootstrap import (
     record_startup,
 )
+
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 
 logger = logging.getLogger("BlenderMCPServer")

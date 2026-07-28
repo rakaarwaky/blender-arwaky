@@ -25,7 +25,11 @@ from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
 from modules.shared.src.gateway.contract_connection_protocol import (
+    ConnectionProtocol,
     IBlenderConnectionProtocol,
+)
+from modules.shared.src.gateway.contract_transport_protocol import (
+    TransportProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_constant import (
     CONNECTION_STATE_CLOSED,
@@ -43,6 +47,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     BlenderConnectionFailure,
     ConnectionClosedError,
     ConnectionConfigError,
+    ProtocolVersionMismatchError,
     VersionMismatchError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
@@ -52,23 +57,11 @@ from modules.shared.src.gateway.taxonomy_gateway_event import (
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CommandResult,
     ConnectionConfig,
-    ConnectionStatus,
-)
-from modules.shared.src.gateway.contract_connection_protocol import (
-    ConnectionProtocol,
-)
-from modules.shared.src.gateway.contract_transport_protocol import (
-    TransportProtocol,
-)
-from modules.shared.src.gateway.taxonomy_gateway_error import (
-    ProtocolVersionMismatchError,
-)
-from modules.shared.src.gateway.taxonomy_gateway_vo import (
     ConnectionConfigVO,
     ConnectionOutcomeVO,
     ConnectionState,
+    ConnectionStatus,
     TransportMessageVO,
-    TransportType,
 )
 
 logger = logging.getLogger("BlenderMCPServer")

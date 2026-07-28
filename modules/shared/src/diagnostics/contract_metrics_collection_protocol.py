@@ -9,9 +9,8 @@ FR-DIA-002: Collect Operational Metrics
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ToolName
+from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class MetricsCollectionProtocol(ABC):
@@ -28,8 +27,9 @@ class MetricsCollectionProtocol(ABC):
         security_violations: int = 0,
         tasks_created: int = 0,
         tasks_failed: int = 0,
+        source_tool: ToolName | None = None,
         tasks_completed: int = 0,
-    ) -> dict[str, Any]:
+    ) -> Details:
         """Pull operational metrics from features and return snapshot.
 
         FR-DIA-002: Collection is pull-based at configured interval.

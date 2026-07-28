@@ -12,7 +12,6 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
-from modules.shared.src.gateway.contract_gateway_aggregate import IBlenderServerAggregate
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )

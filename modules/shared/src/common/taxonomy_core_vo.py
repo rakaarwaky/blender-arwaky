@@ -64,6 +64,7 @@ ThumbnailUrl = NewType("ThumbnailUrl", str)
 MaxSize = NewType("MaxSize", int)
 IterationCount = NewType("IterationCount", int)
 PortNumber = NewType("PortNumber", int)
+Host = NewType("Host", str)
 SampleCount = NewType("SampleCount", int)
 ResolutionX = NewType("ResolutionX", int)
 ResolutionY = NewType("ResolutionY", int)
@@ -136,6 +137,9 @@ RequestId = NewType("RequestId", str)
 QueueWaitMs = NewType("QueueWaitMs", float)
 ProtocolVersion = NewType("ProtocolVersion", str)
 AuthToken = NewType("AuthToken", str)
+
+# Job retention types
+MaxTasksCount = NewType("MaxTasksCount", int)
 
 # Details type alias (used in error handling)
 Details = dict[str, Any]

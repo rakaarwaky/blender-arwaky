@@ -10,7 +10,6 @@ FR-CLI-003: Display Errors
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 
@@ -21,10 +20,10 @@ class CliErrorProtocol(ABC):
     @abstractmethod
     async def display_error(
         self,
-        error: dict[str, Any],
+        error: ErrorString,
         verbose: bool = False,
         format: str = "text",
-    ) -> str:
+    ) -> ErrorString:
         """Present failures as categorized, human-actionable guidance.
 
         FR-CLI-003: Every displayed error shows its category and includes

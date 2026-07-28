@@ -9,9 +9,8 @@ FR-DIA-001: Compose System Health
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ToolName
+from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class HealthCompositionProtocol(ABC):
@@ -24,7 +23,8 @@ class HealthCompositionProtocol(ABC):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-    ) -> dict[str, Any]:
+        source_tool: ToolName | None = None,
+    ) -> Details:
         """Aggregate subsystem states into one composed health view.
 
         FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
