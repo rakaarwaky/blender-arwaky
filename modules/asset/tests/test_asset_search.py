@@ -16,7 +16,7 @@ class MockConnection:
         self.fail_polyhaven: Exception | None = None
         self.fail_sketchfab: Exception | None = None
 
-    async def send_command(self, action: str, params: dict | None = None) -> dict:
+    async def send_command(self, action: str, _params: dict | None = None) -> dict:
         if action == "search_polyhaven_assets":
             if self.fail_polyhaven:
                 raise self.fail_polyhaven
@@ -118,12 +118,14 @@ async def test_fr_ast_001_search_all_failures(connection_with_failures: MockConn
 
 def test_fr_ast_001_search_empty_providers():
     class EmptyMock:
-        async def send_command(self, action: str, params: dict | None = None) -> dict:
+        async def send_command(self, _action: str, _params: dict | None = None) -> dict:
             return {}
 
     capability = AssetSearchCapability(EmptyMock())
-    result = asyncio.get_event_loop_policy().new_event_loop().run_until_complete(
-        capability.search_all(_make_query(), providers=[])
+    result = (
+        asyncio.get_event_loop_policy()
+        .new_event_loop()
+        .run_until_complete(capability.search_all(_make_query(), providers=[]))
     )
 
     assert result["total"] == 0
@@ -149,12 +151,14 @@ async def test_fr_ast_001_search_concurrent_execution(healthy_connection: MockCo
 
 def test_fr_ast_001_search_pagination_included():
     class EmptyMock:
-        async def send_command(self, action: str, params: dict | None = None) -> dict:
+        async def send_command(self, _action: str, _params: dict | None = None) -> dict:
             return {}
 
     capability = AssetSearchCapability(EmptyMock())
-    result = asyncio.get_event_loop_policy().new_event_loop().run_until_complete(
-        capability.search_all(_make_query(), providers=[])
+    result = (
+        asyncio.get_event_loop_policy()
+        .new_event_loop()
+        .run_until_complete(capability.search_all(_make_query(), providers=[]))
     )
 
     assert "total" in result

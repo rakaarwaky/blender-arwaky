@@ -124,7 +124,7 @@ class SetTransformExecutor(SetObjectTransformProtocol):
             if not isinstance(val, (int, float)):
                 raise ValueError(f"Scale component {i} is not numeric: {val}")
             if val == 0:
-                logger.warning("Zero scale detected at component %d", i)
+                raise ValueError(f"Scale component {i} is zero — non-zero scale is required")
 
     @staticmethod
     def _safe_str(v: str) -> str:

@@ -12,11 +12,10 @@ Structure:
 import logging
 from typing import Any
 
-from modules.shared.src.dispatcher.contract_aggregate import IDispatcherAggregate
-
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
 from modules.shared.src.dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
 from modules.shared.src.dispatcher.contract_catalog_registration_protocol import CatalogRegistrationProtocol
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
 from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )

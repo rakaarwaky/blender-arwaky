@@ -1,4 +1,10 @@
-"""Agent: Security feature orchestrator.
+"""Security feature orchestrator implementing SecurityOperateAggregate.
+
+FR-SEC-001: Validate File Path Access — validate_path() checks path safety and access rules
+FR-SEC-002: Safely Extract Archive — extract_archive() delegates to security extraction policy
+FR-SEC-003: Validate Untrusted Code — validate_code() inspects code for unsafe patterns
+FR-SEC-004: Redact Sensitive Values — redact() removes secrets/tokens/credentials from output
+FR-SEC-005: Emit Security Audit Events — emit_audit() records security events for diagnostics
 
 Coordinates security flows via the SecurityOperateAggregate contract.
 Orchestration only — no business logic, depends on individual capability protocols.

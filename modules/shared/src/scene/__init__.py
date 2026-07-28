@@ -1,7 +1,6 @@
 """Scene domain shared taxonomy constants and contracts."""
 
 from .contract_scene_aggregate import ISceneAggregate
-from .contract_scene_cleanup_protocol import SceneCleanupProtocol
 from .contract_scene_inspection import SceneInspectionPort
 from .contract_scene_operate_protocol import SceneOperateProtocol
 from .taxonomy_scene_constant import (
@@ -21,7 +20,6 @@ from .taxonomy_scene_constant import (
 )
 
 __all__ = [
-    "SceneCleanupProtocol",
     "SceneInspectionPort",
     "SceneOperateProtocol",
     "ISceneAggregate",

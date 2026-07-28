@@ -9,7 +9,7 @@ from abc import ABC
 from modules.shared.src.common.taxonomy_core_vo import FilePath, ObjectName
 
 
-class ServerBootstrapManagerAggregate(ABC):
+class ServerBootstrapManagerAggregate(ABC):  # noqa: B024
     """Interface for ServerBootstrapManager."""
 
     _contract_name: ObjectName = ObjectName("ServerBootstrapManagerAggregate")

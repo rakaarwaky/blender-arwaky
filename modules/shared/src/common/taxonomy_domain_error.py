@@ -87,7 +87,7 @@ class ExecutionError(DomainError):
         super().__init__(message or ErrorString("Execution failed"))
 
 
-class BlenderConnectionFailure(ConnectionError):
+class BlenderConnectionFailure(ConnectionError):  # noqa: N818
     """Raised when the specific socket connection to the Blender instance is lost."""
 
     def __init__(self, message: ErrorString | None = None) -> None:

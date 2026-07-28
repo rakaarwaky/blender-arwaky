@@ -111,25 +111,27 @@ async def test_fr_scn_001_handles_empty_scene():
     import json
 
     class EmptyExecutor:
-        async def __call__(self, code: Prompt) -> str:
-            return json.dumps({
-                "scene_name": "EmptyScene",
-                "total_object_count": 0,
-                "visible_object_count": 0,
-                "hidden_object_count": 0,
-                "object_type_counts": {},
-                "cameras": [],
-                "lights": [],
-                "active_camera_name": "",
-                "active_object_name": "",
-                "render_engine": "CYCLES",
-                "resolution_x": 1920,
-                "resolution_y": 1080,
-                "frame_start": 1,
-                "frame_end": 250,
-                "unit_system": "METRIC",
-                "collections": [],
-            })
+        async def __call__(self, _code: Prompt) -> str:
+            return json.dumps(
+                {
+                    "scene_name": "EmptyScene",
+                    "total_object_count": 0,
+                    "visible_object_count": 0,
+                    "hidden_object_count": 0,
+                    "object_type_counts": {},
+                    "cameras": [],
+                    "lights": [],
+                    "active_camera_name": "",
+                    "active_object_name": "",
+                    "render_engine": "CYCLES",
+                    "resolution_x": 1920,
+                    "resolution_y": 1080,
+                    "frame_start": 1,
+                    "frame_end": 250,
+                    "unit_system": "METRIC",
+                    "collections": [],
+                }
+            )
 
     executor = SceneOperateExecutor(EmptyExecutor())
     request = SceneInspectionVO()
@@ -178,7 +180,7 @@ async def test_fr_scn_002_dry_run_does_not_mutate():
 
     assert isinstance(result, SceneCleanupVO)
     assert result.success == SuccessFlag(True)
-    assert result.dry_run == True
+    assert result.dry_run is True
     # Dry-run returns preview counts (what WOULD be removed), not actual removal
     assert result.removed_count == ObjectCount(2)
     assert result.preserved_count == ObjectCount(2)
@@ -273,7 +275,7 @@ async def test_fr_scn_001_missing_active_camera():
     import json
 
     class NoCameraExecutor:
-        async def __call__(self, code: Prompt) -> str:
+        async def __call__(self, _code: Prompt) -> str:
             data = {
                 "scene_name": "Scene",
                 "total_object_count": 1,
@@ -309,15 +311,17 @@ async def test_fr_scn_002_cleanup_partial_failure():
     import json
 
     class PartialFailureExecutor:
-        async def __call__(self, code: Prompt) -> str:
-            return json.dumps({
-                "removed_count": 1,
-                "preserved_count": 2,
-                "skipped_count": 1,
-                "removed_refs": ["Cube"],
-                "preserved_refs": ["Cam", "Lamp"],
-                "skipped_refs": ["ProtectedSphere"],
-            })
+        async def __call__(self, _code: Prompt) -> str:
+            return json.dumps(
+                {
+                    "removed_count": 1,
+                    "preserved_count": 2,
+                    "skipped_count": 1,
+                    "removed_refs": ["Cube"],
+                    "preserved_refs": ["Cam", "Lamp"],
+                    "skipped_refs": ["ProtectedSphere"],
+                }
+            )
 
     executor = SceneOperateExecutor(PartialFailureExecutor())
     request = SceneCleanupVO(mode=CleanupMode("all"), confirmation=True)

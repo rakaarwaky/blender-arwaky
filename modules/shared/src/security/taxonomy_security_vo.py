@@ -160,8 +160,11 @@ class SensitivityLevel(str, Enum):
 class RedactionVO:
     """Unified redaction — input and output in one VO.
 
-    Caller sets text, sensitivity_level, patterns, key_names.
-    Callee sets redacted_text, redacted_count, failed, failure_reason.
+    Caller provides ``text`` (the value to redact) as input.
+    Callee returns ``text`` as the redacted (safe) output and also populates
+    ``redacted_text``, ``redacted_count``, ``failed``, ``failure_reason``.
+    The returned RedactionVO never contains the original secret (FR-SEC-004):
+    on success ``text`` is the redacted value; on failure it is masked.
     """
 
     # Input

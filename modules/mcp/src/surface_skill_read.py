@@ -1,6 +1,10 @@
 """
 MCP Tool 3: read_skill_context — Read SKILL.md documentation for any skill.
 
+FR-MCP-001: Expose MCP Tools — register_skill_read registers tool with MCP
+FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.execute_action routes skill read
+FR-MCP-003: Format MCP Responses — Prompt type wraps skill context result
+
 This provides in-context documentation without leaving the chat.
 Surface delegates directly to Agent container aggregate (AES compliant).
 """
@@ -11,7 +15,6 @@ from modules.shared.src.common.taxonomy_core_vo import Prompt, SectionRef, Skill
 
 class SkillReadHandler:
     """Handler for reading skill documentation."""
-
 
     @staticmethod
     def register_read_skill_context(mcp):
@@ -33,5 +36,3 @@ class SkillReadHandler:
 
             orchestrator = get_container().core_agent_orchestrator
             return orchestrator.read_skill_context(skill_name, section)
-
-

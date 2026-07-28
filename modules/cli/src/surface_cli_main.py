@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""BlenderArwaky CLI — Standalone Blender lifecycle management.
+"""Standalone CLI entry point for BlenderArwaky.
+
+FR-CLI-001: Parse and Route Commands — argparse-based command parsing with subcommand routing
+FR-CLI-002: Render Terminal Output — structured text output with JSON fallback support
 
 Usage:
   blender-arwaky init --filepath <path> [--mode gui|headless]

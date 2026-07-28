@@ -58,11 +58,6 @@ from .asset.taxonomy_asset_vo import (
     ImportGlbVO,
 )
 
-# CLI domain — Protocols (command routing, render output, error display)
-from .cli.contract_cli_command_protocol import CliCommandProtocol
-from .cli.contract_cli_error_protocol import CliErrorProtocol
-from .cli.contract_cli_render_protocol import CliRenderProtocol
-
 # Protocols (inbound behavior interfaces — Capabilities implement these)
 from .common.contract_command_catalog import CommandCatalogPort
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
@@ -262,10 +257,6 @@ from .gateway.taxonomy_gateway_vo import (
     TransportOutcomeVO,
     TransportType,
 )
-from .job.contract_job_cancel_protocol import JobCancelProtocol
-from .job.contract_job_cleanup_protocol import JobCleanupProtocol
-from .job.contract_job_monitor_protocol import JobMonitorProtocol
-from .job.contract_job_tracker_protocol import JobTrackerProtocol
 
 # === Job domain exports ===
 from .job.taxonomy_job_state_constant import (
@@ -303,9 +294,7 @@ from .launcher.taxonomy_launcher_vo import (
     VersionCompatibility,
 )
 from .mcp.contract_discovery_protocol import ServerDiscoveryProtocol
-from .mcp.contract_execute_protocol import ServerExecuteProtocol
 from .mcp.contract_health_protocol import ServerHealthProtocol
-from .mcp.contract_response_protocol import ServerResponseProtocol
 from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from .object.contract_delete_object_protocol import DeleteObjectProtocol
@@ -347,7 +336,6 @@ from .object.taxonomy_object_vo import (
 from .render.contract_camera_config_protocol import CameraConfigProtocol
 from .render.contract_hdri_config_protocol import HdriConfigProtocol
 from .render.contract_render_operate_protocol import RenderOperateProtocol
-from .render.contract_viewport_capture import ViewportCapturePort
 from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
 
 # === Render domain exports ===
@@ -579,10 +567,6 @@ __all__ = [
     "ApplyModifierProtocol",
     "DeleteObjectProtocol",
     "GetObjectInfoProtocol",
-    "JobTrackerProtocol",
-    "JobMonitorProtocol",
-    "JobCancelProtocol",
-    "JobCleanupProtocol",
     "RenderOperateProtocol",
     "ViewportCaptureProtocol",
     "CameraConfigProtocol",
@@ -597,19 +581,13 @@ __all__ = [
     "ExecuteActionProtocol",
     "CommandCatalogPort",
     "SceneInspectionPort",
-    "ViewportCapturePort",
     "TelemetryClassificationPort",
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
     "ServerBootstrapManagerAggregate",
     "ServerDiscoveryProtocol",
-    "ServerExecuteProtocol",
     "ServerHealthProtocol",
-    "ServerResponseProtocol",
-    "CliCommandProtocol",
-    "CliRenderProtocol",
-    "CliErrorProtocol",
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",

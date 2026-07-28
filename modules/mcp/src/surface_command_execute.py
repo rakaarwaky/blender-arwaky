@@ -1,6 +1,10 @@
 """
 MCP Tool 1: execute_command — Thin wrapper delegating execution directly to the Agent container.
 
+FR-MCP-001: Expose MCP Tools — register_execute_command registers tool with MCP
+FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.execute_action routes to dispatcher
+FR-MCP-003: Format MCP Responses — Prompt type wraps JSON response
+
 Direct delegation to the Agent container via its aggregate contract (AES compliant).
 """
 
@@ -45,5 +49,3 @@ class CommandExecuteHandler:
             except Exception as e:
                 logger.error(f"Agent execution failed for '{action}': {e}", exc_info=True)
                 return Prompt(json.dumps({"error": str(e), "action": str(action)}, indent=2))
-
-

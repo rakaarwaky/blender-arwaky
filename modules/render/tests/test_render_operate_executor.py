@@ -46,7 +46,7 @@ class MockCodeExecutor:
 class _TestableRenderExecutor(RenderOperateExecutor):
     """Concrete executor with render_scene stub for testing."""
 
-    async def render_scene(self, **kwargs: object) -> dict:
+    async def render_scene(self, **_kwargs: object) -> dict:
         return {"success": True, "file_path": "/tmp/render.png"}
 
 
@@ -54,6 +54,7 @@ class _TestableRenderExecutor(RenderOperateExecutor):
 @dataclass(frozen=True)
 class _GetScreenshotVOStub:
     """Stub screenshot VO matching the capability's return signature."""
+
     success: bool = False
     image_path: str = ""
     duration_ms: float = 0.0
@@ -82,6 +83,7 @@ async def test_fr_rnd_001_get_viewport_screenshot_code_generated(
 
     Verifies that GetScreenshotVO contains image_path field (FR-RND-001 output).
     """
+
     # Simple request-like object matching what get_viewport_screenshot expects
     class ScreenshotRequest:
         output_path = "/tmp/test.png"

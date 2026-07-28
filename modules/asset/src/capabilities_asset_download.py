@@ -60,7 +60,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self,
         provider: ProviderName,
         asset_id: AssetId,
-        asset_type: AssetType,
+        asset_type: AssetType,  # noqa: ARG002 (intentional interface param, not used in impl)
         cache_dir: FilePath,
         resolution: str | None = None,
         overwrite_policy: str = "reuse",
@@ -195,6 +195,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
     def _get_unique_cache_path(self, cache_key: str) -> str:
         """Get unique cache path with timestamp suffix."""
         import time
+
         hash_value = hashlib.md5(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
@@ -205,23 +206,17 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         except OSError:
             return False
 
-    async def _estimate_download_size(
-        self, provider: ProviderName, asset_id: AssetId
-    ) -> int:
+    async def _estimate_download_size(self, _provider: ProviderName, _asset_id: AssetId) -> int:
         """Estimate download size from provider metadata."""
         # Placeholder - would call provider API for size info
         return 1048576  # 1MB default estimate
 
-    async def _submit_background_download(
-        self, provider: ProviderName, asset_id: AssetId, cache_path: str
-    ) -> str:
+    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, _cache_path: str) -> str:
         """Submit download as background job."""
         # Placeholder - would integrate with job feature
         return f"task-{provider}:{asset_id}"
 
-    async def _perform_download(
-        self, provider: ProviderName, asset_id: AssetId, cache_path: str
-    ) -> str:
+    async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
         """Perform actual download (placeholder for provider-specific logic).
 
         FR-AST-002: the real implementation must delegate to the provider

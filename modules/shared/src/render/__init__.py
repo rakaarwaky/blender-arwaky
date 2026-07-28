@@ -4,7 +4,6 @@ from .contract_render_aggregate import (
     CameraConfigProtocol,
     HdriConfigProtocol,
     RenderOperateProtocol,
-    ViewportCapturePort,
 )
 from .taxonomy_render_vo import (
     CameraConfigVO,
@@ -19,7 +18,6 @@ __all__ = [
     "CameraConfigProtocol",
     "HdriConfigProtocol",
     "RenderOperateProtocol",
-    "ViewportCapturePort",
     "CameraConfigVO",
     "CameraSetupVO",
     "GetScreenshotVO",

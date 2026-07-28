@@ -8,7 +8,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import QueueStatusVO, SceneOperationOutcomeVO, SceneOperationVO
+from .taxonomy_gateway_vo import (
+    ExecutionResult,
+    QueuedOperation,
+    QueueStatusVO,
+    SceneOperationOutcomeVO,
+    SceneOperationVO,
+)
 
 
 class SceneQueueProtocol(ABC):
@@ -30,11 +36,6 @@ class SceneQueueProtocol(ABC):
         FR-GWY-004: Observable queue state for monitoring and diagnostics.
         """
         ...
-
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_gateway_vo import ExecutionResult, QueuedOperation
 
 
 class IOperationQueueProtocol(ABC):

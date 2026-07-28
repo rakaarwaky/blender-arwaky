@@ -1,6 +1,13 @@
+"""Capability: Connection maintenance and reconnect logic.
+
+FR-GWY-002: Maintain connection with heartbeat, liveness detection,
+and configurable retry with exponential backoff and jitter.
+"""
+
 import logging
 import random
 import time
+from collections.abc import Callable
 
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
@@ -19,13 +26,14 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         max_retries: int = 3,
         base_backoff_seconds: float = 1.0,
         max_backoff_seconds: float = 16.0,
+        reconnect_fn: Callable[[], object] | None = None,
     ) -> None:
         self._state: ConnectionState = ConnectionState.DISCONNECTED
         self._last_heartbeat_timestamp: float | None = None
         self._reconnect_attempts: int = 0
         self._last_failure_reason: str | None = None
         self._active_operation: bool = False
-        self._connection: object | None = None
+        self._reconnect_fn: Callable[[], object] | None = reconnect_fn
         self._max_retries: int = max_retries
         self._base_backoff: float = base_backoff_seconds
         self._max_backoff: float = max_backoff_seconds
@@ -58,6 +66,11 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         logger.debug("Applying %.1fs backoff before reconnect", backoff)
         time.sleep(min(backoff, 0.1))
         try:
+            if self._reconnect_fn is not None:
+                outcome = self._reconnect_fn()
+                if outcome is None or getattr(outcome, "state", None) != ConnectionState.CONNECTED:
+                    reason = getattr(outcome, "error", None) if outcome is not None else "reconnect returned None"
+                    raise RuntimeError(f"Reconnect attempt did not establish a connection: {reason}")
             self._state = ConnectionState.CONNECTED
             self._last_failure_reason = None
             logger.info("Reconnection successful on attempt %d", self._reconnect_attempts)
@@ -66,7 +79,6 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
             self._state = ConnectionState.FAILED
             logger.warning("Reconnection failed: %s", e)
             if self._reconnect_attempts >= self._max_retries:
-                self._state = ConnectionState.FAILED
                 logger.error(
                     "Retry exhaustion after %d attempts — connection in failed state",
                     self._reconnect_attempts,

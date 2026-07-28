@@ -25,7 +25,7 @@ class MockSecurityValidator:
         self.validate = validate
         self._validated_paths: list[str] = []
 
-    async def validate_path(self, path: str, mode: str) -> None:
+    async def validate_path(self, path: str, _mode: str) -> None:
         if not self.validate:
             raise Exception("path denied")
         self._validated_paths.append(path)
@@ -278,6 +278,6 @@ async def test_fr_ast_002_credentials_not_logged():
         cache_dir=FilePath("/tmp/cache"),
     )
 
-    for key, value in result.items():
+    for _key, value in result.items():
         if isinstance(value, str):
             assert "secret" not in value.lower() or "provider" not in value.lower()

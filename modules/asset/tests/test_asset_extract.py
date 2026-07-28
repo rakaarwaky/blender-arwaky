@@ -325,7 +325,7 @@ async def test_fr_ast_003_security_delegation(tmp_path: pathlib.Path):
     dest = str(tmp_path / "dest")
     os.makedirs(dest, exist_ok=True)
 
-    result = await cap.extract_archive(
+    _result = await cap.extract_archive(
         artifact_path=FilePath(zip_path),
         destination=FilePath(dest),
         max_entries=500,

@@ -204,6 +204,69 @@ async def test_fr_sec_004_key_and_pattern_detection():
     assert "hunter2" not in res.redacted_text
 
 
+async def test_fr_sec_004_returned_text_is_leak_free():
+    # FR-SEC-004: the primary `text` field of the returned VO must never carry
+    # the raw secret — consumers reading `.text` (not just `.redacted_text`)
+    # must stay leak-free.
+    feat = create_security_feature()
+    res = await feat.redact(RedactionVO(
+        text="password=supersecret token=abc123xyz",
+        sensitivity_level=SensitivityLevel.HIGH))
+    assert "supersecret" not in res.text
+    assert "abc123xyz" not in res.text
+    assert res.text == res.redacted_text
+    assert res.failed is False
+
+
+async def test_fr_sec_004_redacts_json_quoted_secrets():
+    # FR-SEC-004 edge cases: "secret inside text blob" / "nested structure".
+    # JSON-formatted secrets were previously leaked because the key-based
+    # pattern only matched the unquoted shell `key=value` form.
+    feat = create_security_feature()
+    text = 'config = {"password": "hunter2", "api_key": "sk-abcdefghijklmnopqrstuvwx"}'
+    res = await feat.redact(RedactionVO(text=text, sensitivity_level=SensitivityLevel.HIGH))
+    assert "hunter2" not in res.text
+    assert "sk-abcdefghijklmnopqrstuvwx" not in res.text
+    assert res.redacted_count >= 2
+
+
+async def test_fr_sec_004_redacts_json_quoted_custom_key():
+    # Custom key_names must also match JSON/`"key": "value"` forms.
+    feat = create_security_feature()
+    text = 'payload = {"session_token": "tok-9f8e7d6c5b4a"}'
+    res = await feat.redact(RedactionVO(
+        text=text, sensitivity_level=SensitivityLevel.HIGH, key_names=("session_token",)))
+    assert "tok-9f8e7d6c5b4a" not in res.text
+
+
+async def test_fr_sec_004_redacts_spaced_json_quoted_secret():
+    # FR-SEC-004 edge case (cycle-43 known limitation): a quoted secret containing
+    # an internal space — `"password": "my secret"` — was only partially redacted
+    # (`secret"` leaked) because the value matcher stopped at whitespace. The value
+    # half now honors a matched closing quote, consuming the whole quoted value.
+    feat = create_security_feature()
+    text = 'config = {"password": "my secret", "api_key": "sk-1 2 3"}'
+    res = await feat.redact(RedactionVO(text=text, sensitivity_level=SensitivityLevel.HIGH))
+    assert "my secret" not in res.text
+    assert "secret" not in res.text          # no partial `"secret"` leak
+    assert "sk-1 2 3" not in res.text
+    assert res.redacted_count >= 2
+
+
+async def test_fr_sec_004_failure_masks_payload():
+    # FR-SEC-004: redaction failure must mask the entire payload, never echo
+    # the original secret back in `text`.
+    feat = create_security_feature()
+    res = await feat.redact(RedactionVO(
+        text="password=supersecret",
+        sensitivity_level=SensitivityLevel.HIGH,
+        patterns=("(",)))  # invalid regex -> forces the except path
+    assert res.failed is True
+    assert res.text == "[REDACTION_FAILED]"
+    assert res.redacted_text == "[REDACTION_FAILED]"
+    assert "supersecret" not in res.text
+
+
 # ─── FR-SEC-005: Emit Security Audit Events ───────────────────────────────
 
 async def test_fr_sec_005_emits_event_with_id_and_timestamp():
@@ -225,6 +288,77 @@ async def test_fr_sec_005_fallback_when_sink_unavailable():
         violation_category=ViolationCategory.CODE_VIOLATION,
         operation_type="validate_code", source_feature="gateway"))
     assert out.event_id
+
+
+async def test_fr_sec_005_redacts_secret_in_target_metadata():
+    # FR-SEC-004: secrets must not appear in audit/observability output.
+    feat = create_security_feature()
+    secret = "sk-abcdefghijklmnopqrstuvwxyz"
+    event = SecurityAuditEventVO(
+        violation_category=ViolationCategory.UNAUTHORIZED_ACCESS,
+        operation_type="connect", source_feature="gateway",
+        target_metadata={"endpoint": "wss://host", "auth": f"token={secret}"},
+    )
+    out = await feat.emit_audit(event)
+    assert out.event_id
+    # emitted metadata is masked; caller input is left untouched
+    assert secret not in str(out.target_metadata)
+    assert "[REDACTED]" in str(out.target_metadata)
+    assert event.target_metadata["auth"] == f"token={secret}"
+    # nested dict + list values are walked
+    deep = SecurityAuditEventVO(
+        violation_category=ViolationCategory.PATH_TRAVERSAL,
+        target_metadata={"nested": {"pw": "password=hunter2"}, "list": ["api_key=abc123xyz"]},
+    )
+    deep_out = await feat.emit_audit(deep)
+    assert "hunter2" not in str(deep_out.target_metadata)
+    assert "abc123xyz" not in str(deep_out.target_metadata)
+
+
+async def test_fr_sec_005_redacts_secret_in_json_metadata():
+    # FR-SEC-004: a JSON body nested as an audit-metadata string must be
+    # redacted at the emit boundary (quoted-key pattern now matches JSON).
+    feat = create_security_feature()
+    event = SecurityAuditEventVO(
+        violation_category=ViolationCategory.UNAUTHORIZED_ACCESS,
+        operation_type="connect", source_feature="gateway",
+        target_metadata={"config": '{"password": "hunter2"}'},
+    )
+    out = await feat.emit_audit(event)
+    assert out.event_id
+    assert "hunter2" not in str(out.target_metadata)
+    assert "[REDACTED]" in str(out.target_metadata)
+    # caller input left untouched
+    assert event.target_metadata["config"] == '{"password": "hunter2"}'
+
+
+async def test_fr_sec_005_redacts_spaced_secret_in_json_metadata():
+    # FR-SEC-004: a JSON body nested as an audit-metadata string with a spaced
+    # quoted secret (`"password": "my secret"`) must be fully redacted at the emit
+    # boundary — closes the same cycle-43 partial-redaction leak at the audit sink.
+    feat = create_security_feature()
+    event = SecurityAuditEventVO(
+        violation_category=ViolationCategory.UNAUTHORIZED_ACCESS,
+        operation_type="connect", source_feature="gateway",
+        target_metadata={"config": '{"password": "my secret"}'},
+    )
+    out = await feat.emit_audit(event)
+    assert out.event_id
+    assert "my secret" not in str(out.target_metadata)
+    assert "secret" not in str(out.target_metadata)
+    assert "[REDACTED]" in str(out.target_metadata)
+    # caller input left untouched
+    assert event.target_metadata["config"] == '{"password": "my secret"}'
+
+
+async def test_fr_sec_005_redacts_secret_in_redacted_reason():
+    feat = create_security_feature()
+    out = await feat.emit_audit(SecurityAuditEventVO(
+        violation_category=ViolationCategory.CODE_VIOLATION,
+        operation_type="validate_code", source_feature="gateway",
+        redacted_reason="blocked literal api_key=supersecretvalue",
+    ))
+    assert "supersecretvalue" not in (out.redacted_reason or "")
 
 
 # ─── Layered value objects / events are importable ────────────────────────

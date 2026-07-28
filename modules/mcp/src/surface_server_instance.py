@@ -1,5 +1,9 @@
 """Handler: MCP server instance lifecycle (FastMCP).
 
+FR-MCP-001: Expose MCP Tools — get_mcp_instance() creates FastMCP with lifespan for tool registration
+FR-MCP-002: Route Tool Calls — ToolRegistryHandler.register_tools() wires all tools to MCP router
+FR-MCP-003: Format MCP Responses — FastMCP wraps all tool responses in standard format
+
 Responsibilities:
 - Create FastMCP instance with configuration
 - Manage startup/shutdown lifecycle (lifespan context manager)
@@ -19,10 +23,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
+
 from modules.mcp.src.bootstrap import (
     record_startup,
 )
-
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -34,7 +38,6 @@ _mcp_lock = threading.Lock()
 
 class ServerInstanceHandler:
     """Handler for MCP server instance lifecycle management."""
-
 
     @staticmethod
     @asynccontextmanager

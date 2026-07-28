@@ -1,4 +1,10 @@
-"""Agent: Launcher feature orchestrator.
+"""Launcher feature orchestrator implementing LauncherOperateAggregate.
+
+FR-LAU-001: Locate and Register Application — locate() finds Blender executable path
+FR-LAU-002: Launch Application — launch() spawns Blender process with mode configuration
+FR-LAU-003: Shut Down Application — shutdown() terminates Blender gracefully
+FR-LAU-004: Check Runtime Status — status() returns current runtime state
+FR-LAU-005: Persist Runtime State — persist() saves runtime state to registry
 
 Coordinates the 5 launcher operations through the individual capability
 protocols. Implements LauncherOperateAggregate.

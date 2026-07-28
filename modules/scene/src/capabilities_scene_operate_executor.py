@@ -41,7 +41,6 @@ class SceneOperateExecutor(SceneOperateProtocol):
 
     FR-SCN-001: Enhanced inspection with detail level, hidden objects filter.
     FR-SCN-002: Cleanup with preservation policy, dry-run, child/dependent handling.
-    Unified VO (merged request + response) — no split classes.
     """
 
     def __init__(self, code_executor: Prompt) -> None:
@@ -161,11 +160,9 @@ class SceneOperateExecutor(SceneOperateProtocol):
         if request.child_handling_policy not in valid_child_policies:
             return False
         valid_dependent_policies = {"ignore", "reject", "remove_safe"}
-        if request.dependent_handling_policy not in valid_dependent_policies:
-            return False
-        return True
+        return request.dependent_handling_policy in valid_dependent_policies
 
-    def _build_inspection_code(self, request: SceneInspectionVO) -> str:
+    def _build_inspection_code(self, _request: SceneInspectionVO) -> str:
         """Build Blender Python code for scene inspection."""
         lines = [
             "import bpy",
@@ -184,7 +181,7 @@ class SceneOperateExecutor(SceneOperateProtocol):
 
         # Object type counts and camera/light detection
         lines.append(
-            'for obj in scene.objects:\n'
+            "for obj in scene.objects:\n"
             "    obj_type = obj.type\n"
             "    objects_by_type[obj_type] = objects_by_type.get(obj_type, 0) + 1\n"
             "    if obj.hide_viewport:\n"
@@ -206,52 +203,58 @@ class SceneOperateExecutor(SceneOperateProtocol):
         )
 
         # Render settings
-        lines.extend([
-            "render_engine = ''",
-            "res_x = 0",
-            "res_y = 0",
-            "frame_start = 1",
-            "frame_end = 250",
-            "unit_system = 'METRIC'",
-            "",
-            "if scene.render:\n"
-            "    render_engine = scene.render.engine if hasattr(scene.render, 'engine') else ''\n"
-            "    res_x = scene.render.resolution_x\n"
-            "    res_y = scene.render.resolution_y\n"
-            "if scene.frame_start is not None:\n"
-            "    frame_start = scene.frame_start\n"
-            "if scene.frame_end is not None:\n"
-            "    frame_end = scene.frame_end\n"
-        ])
+        lines.extend(
+            [
+                "render_engine = ''",
+                "res_x = 0",
+                "res_y = 0",
+                "frame_start = 1",
+                "frame_end = 250",
+                "unit_system = 'METRIC'",
+                "",
+                "if scene.render:\n"
+                "    render_engine = scene.render.engine if hasattr(scene.render, 'engine') else ''\n"
+                "    res_x = scene.render.resolution_x\n"
+                "    res_y = scene.render.resolution_y\n"
+                "if scene.frame_start is not None:\n"
+                "    frame_start = scene.frame_start\n"
+                "if scene.frame_end is not None:\n"
+                "    frame_end = scene.frame_end\n",
+            ]
+        )
 
         # Collections
-        lines.extend([
-            "collections = []",
-            "for col in scene.collection.children_recursive:\n"
-            "    collections.append({'name': col.name, 'object_count': len(col.objects)})\n"
-        ])
+        lines.extend(
+            [
+                "collections = []",
+                "for col in scene.collection.children_recursive:\n"
+                "    collections.append({'name': col.name, 'object_count': len(col.objects)})\n",
+            ]
+        )
 
         # Output as JSON-compatible dict
-        lines.extend([
-            "result = {",
-            '    "scene_name": scene.name,',
-            '    "total_object_count": len(scene.objects),',
-            '    "visible_object_count": visible_count,',
-            '    "hidden_object_count": hidden_count,',
-            '    "object_type_counts": objects_by_type,',
-            '    "cameras": cameras,',
-            '    "lights": lights,',
-            '    "active_camera_name": active_camera_name,',
-            '    "active_object_name": active_object_name,',
-            '    "render_engine": render_engine,',
-            '    "resolution_x": res_x,',
-            '    "resolution_y": res_y,',
-            '    "frame_start": frame_start,',
-            '    "frame_end": frame_end,',
-            '    "unit_system": unit_system,',
-            '    "collections": collections,',
-            "}"
-        ])
+        lines.extend(
+            [
+                "result = {",
+                '    "scene_name": scene.name,',
+                '    "total_object_count": len(scene.objects),',
+                '    "visible_object_count": visible_count,',
+                '    "hidden_object_count": hidden_count,',
+                '    "object_type_counts": objects_by_type,',
+                '    "cameras": cameras,',
+                '    "lights": lights,',
+                '    "active_camera_name": active_camera_name,',
+                '    "active_object_name": active_object_name,',
+                '    "render_engine": render_engine,',
+                '    "resolution_x": res_x,',
+                '    "resolution_y": res_y,',
+                '    "frame_start": frame_start,',
+                '    "frame_end": frame_end,',
+                '    "unit_system": unit_system,',
+                '    "collections": collections,',
+                "}",
+            ]
+        )
 
         code = "\n".join(lines) + "\nprint(result)"
         return code
@@ -260,27 +263,32 @@ class SceneOperateExecutor(SceneOperateProtocol):
         """Parse inspection result into SceneStateSummaryVO."""
         try:
             import json
+
             data = json.loads(result)
 
             # Parse cameras
             cameras = []
             for c in data.get("cameras", []):
-                cameras.append(CameraInfoVO(
-                    name=c.get("name", ""),
-                    type=ObjectType("CAMERA"),
-                    location=CoordinateList([0.0, 0.0, 0.0]),
-                    rotation=RotationVector([0.0, 0.0, 0.0]),
-                    scale=ScaleVector([1.0, 1.0, 1.0]),
-                    data_type=c.get("type", ""),
-                ))
+                cameras.append(
+                    CameraInfoVO(
+                        name=c.get("name", ""),
+                        type=ObjectType("CAMERA"),
+                        location=CoordinateList([0.0, 0.0, 0.0]),
+                        rotation=RotationVector([0.0, 0.0, 0.0]),
+                        scale=ScaleVector([1.0, 1.0, 1.0]),
+                        data_type=c.get("type", ""),
+                    )
+                )
 
             # Parse collections
             collections = []
             for c in data.get("collections", []):
-                collections.append(CollectionSummaryVO(
-                    name=c.get("name", ""),
-                    object_count=ObjectCount(c.get("object_count", 0)),
-                ))
+                collections.append(
+                    CollectionSummaryVO(
+                        name=c.get("name", ""),
+                        object_count=ObjectCount(c.get("object_count", 0)),
+                    )
+                )
 
             return SceneStateSummaryVO(
                 scene_name=data.get("scene_name", ""),
@@ -439,22 +447,19 @@ class SceneOperateExecutor(SceneOperateProtocol):
                 "        removable.append(obj.name)\n"
             )
         else:  # meshes
-            lines.append(
-                "for obj in scene.objects:\n"
-                "    if obj.type == 'MESH':\n"
-                "        removable.append(obj.name)\n"
-            )
+            lines.append("for obj in scene.objects:\n    if obj.type == 'MESH':\n        removable.append(obj.name)\n")
 
-        lines.extend([
-            "result = {",
-            '    "removed_count": len(removable),',
-            '    "preserved_count": len(preserved),',
-            '    "skipped_count": 0,',
-            '    "removed_refs": removable,',
-            '    "preserved_refs": preserved,',
-            '    "skipped_refs": [],'
-            "}"
-        ])
+        lines.extend(
+            [
+                "result = {",
+                '    "removed_count": len(removable),',
+                '    "preserved_count": len(preserved),',
+                '    "skipped_count": 0,',
+                '    "removed_refs": removable,',
+                '    "preserved_refs": preserved,',
+                '    "skipped_refs": [],}',
+            ]
+        )
 
         code = "\n".join(lines) + "\nprint(result)"
         return code
@@ -477,65 +482,76 @@ class SceneOperateExecutor(SceneOperateProtocol):
         ]
 
         # Preserve cameras
-        lines.extend([
-            "# Preserve cameras",
-            "for obj in list(scene.objects):",
-            "    if obj.type == 'CAMERA':",
-            "        preserved_count += 1",
-            "        preserved_refs.append(obj.name)",
-        ])
+        lines.extend(
+            [
+                "# Preserve cameras",
+                "for obj in list(scene.objects):",
+                "    if obj.type == 'CAMERA':",
+                "        preserved_count += 1",
+                "        preserved_refs.append(obj.name)",
+            ]
+        )
 
         # Preserve lights
-        lines.extend([
-            "",
-            "# Preserve lights",
-            "for obj in list(scene.objects):",
-            "    if obj.type == 'LIGHT':",
-            "        preserved_count += 1",
-            "        preserved_refs.append(obj.name)",
-        ])
+        lines.extend(
+            [
+                "",
+                "# Preserve lights",
+                "for obj in list(scene.objects):",
+                "    if obj.type == 'LIGHT':",
+                "        preserved_count += 1",
+                "        preserved_refs.append(obj.name)",
+            ]
+        )
 
         # Delete removable objects
         if mode == "all" or mode == "objects":
-            lines.extend([
-                "",
-                "# Remove non-preserved objects",
-                "for obj in list(scene.objects):",
-                "    if obj.type not in ('CAMERA', 'LIGHT'):",
-                "        bpy.data.objects.remove(obj, do_unlink=True)",
-                "        removed_count += 1",
-                "        removed_refs.append(obj.name)",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "# Remove non-preserved objects",
+                    "for obj in list(scene.objects):",
+                    "    if obj.type not in ('CAMERA', 'LIGHT'):",
+                    "        bpy.data.objects.remove(obj, do_unlink=True)",
+                    "        removed_count += 1",
+                    "        removed_refs.append(obj.name)",
+                ]
+            )
         else:  # meshes
-            lines.extend([
-                "",
-                "# Remove mesh objects only",
-                "for obj in list(scene.objects):",
-                "    if obj.type == 'MESH':",
-                "        bpy.data.objects.remove(obj, do_unlink=True)",
-                "        removed_count += 1",
-                "        removed_refs.append(obj.name)",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "# Remove mesh objects only",
+                    "for obj in list(scene.objects):",
+                    "    if obj.type == 'MESH':",
+                    "        bpy.data.objects.remove(obj, do_unlink=True)",
+                    "        removed_count += 1",
+                    "        removed_refs.append(obj.name)",
+                ]
+            )
 
-        lines.extend([
-            "",
-            "result = {",
-            '    "removed_count": removed_count,',
-            '    "preserved_count": preserved_count,',
-            '    "skipped_count": skipped_count,',
-            '    "removed_refs": removed_refs,',
-            '    "preserved_refs": preserved_refs,',
-            '    "skipped_refs": skipped_refs,',
-            "}"
-        ])
+        lines.extend(
+            [
+                "",
+                "result = {",
+                '    "removed_count": removed_count,',
+                '    "preserved_count": preserved_count,',
+                '    "skipped_count": skipped_count,',
+                '    "removed_refs": removed_refs,',
+                '    "preserved_refs": preserved_refs,',
+                '    "skipped_refs": skipped_refs,',
+                "}",
+            ]
+        )
 
         code = "\n".join(lines) + "\nprint(result)"
         return code
 
-    def _parse_cleanup_result(self, result: str, dry_run: bool) -> dict:
+    def _parse_cleanup_result(self, result: str, dry_run: bool) -> dict:  # noqa: ARG002 (unused, but called with keyword arg)
         """Parse cleanup result JSON into structured data."""
         try:
             import json
+
             data = json.loads(result)
             return {
                 "removed_count": ObjectCount(data.get("removed_count", 0)),

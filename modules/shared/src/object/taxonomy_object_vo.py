@@ -31,6 +31,7 @@ class PlaceAssetVO:
     Input: asset_id, object_name, location, rotation, scale.
     Output: success, message.
     """
+
     # Input
     asset_id: AssetId
     object_name: ObjectName | None = None
@@ -49,6 +50,7 @@ class GetObjectInfoVO:
     Input: object_name.
     Output: success, object_type, location, rotation, scale, parent_name, etc.
     """
+
     # Input
     object_name: ObjectName
     # Output
@@ -73,6 +75,7 @@ class SetObjectTransformVO:
     Input: object_name, location, rotation, scale.
     Output: success, message.
     """
+
     # Input
     object_name: ObjectName
     location: CoordinateList | None = None
@@ -88,11 +91,13 @@ class SetObjectTransformVO:
 class DeleteObjectVO:
     """Delete object — input and output in one VO.
 
-    Input: object_name.
+    Input: object_name, idempotent.
     Output: success, deleted_count, deleted_names, children_handled, message.
     """
+
     # Input
     object_name: ObjectName
+    idempotent: bool = False
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     deleted_count: ObjectCount = field(default_factory=lambda: ObjectCount(0))
@@ -108,6 +113,7 @@ class CreatePrimitiveVO:
     Input: primitive_type, name, location, scale.
     Output: success, object_name, message.
     """
+
     # Input
     primitive_type: PrimitiveType
     name: ObjectName | None = None
@@ -126,6 +132,7 @@ class SetMaterialVO:
     Input: object_name, material_name.
     Output: success, slot_index, message.
     """
+
     # Input
     object_name: ObjectName
     material_name: MaterialName
@@ -139,15 +146,17 @@ class SetMaterialVO:
 class ApplyModifierVO:
     """Apply modifier — input and output in one VO.
 
-    Input: object_name, modifier_name.
-    Output: success, modifier_type, action, applied_destructively, message.
+    Input: object_name, modifier_name, action, confirmation.
+    Output: success, modifier_type, applied_destructively, message.
     """
+
     # Input
     object_name: ObjectName
     modifier_name: ModifierName
+    action: str = "add"
+    confirmation: bool = False
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     modifier_type: ObjectType = field(default_factory=lambda: ObjectType(""))
-    action: str = "add"
     applied_destructively: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""

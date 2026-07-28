@@ -30,8 +30,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 class _CommandRunner(Protocol):
     """Runs a command and returns (returncode, stdout). DI boundary."""
 
-    def __call__(self, args: list[str], timeout: float = 5.0) -> tuple[int, str]:
-        ...
+    def __call__(self, args: list[str], timeout: float = 5.0) -> tuple[int, str]: ...
 
 
 class ExecutableLocator(LocateRegisterProtocol):
@@ -66,7 +65,9 @@ class ExecutableLocator(LocateRegisterProtocol):
         return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _build_candidate_order(self, config: LauncherConfigVO, override: str | None) -> list[tuple[RegistrationSource, str]]:
+    def _build_candidate_order(
+        self, config: LauncherConfigVO, override: str | None
+    ) -> list[tuple[RegistrationSource, str]]:
         order: list[tuple[RegistrationSource, str]] = []
         if override:
             order.append((RegistrationSource.OVERRIDE, override))
@@ -108,7 +109,7 @@ class ExecutableLocator(LocateRegisterProtocol):
             return VersionCompatibility.UNKNOWN
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, config: LauncherConfigVO, path: str) -> None:
+    def _register(self, _config: LauncherConfigVO, path: str) -> None:
         provider = self._config_provider
         setter = getattr(provider, "set_executable_path", None)
         if callable(setter):

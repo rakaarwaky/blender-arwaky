@@ -1,4 +1,10 @@
-"""Agent: Asset feature orchestrator.
+"""Asset feature orchestrator implementing IAssetAggregate.
+
+FR-AST-001: Search Assets Across Providers — search() routes to provider adapter
+FR-AST-002: Download Asset to Cache — download() handles integrity verification and cache reuse
+FR-AST-003: Extract Asset Archive — extract() delegates safe extraction to security policy
+FR-AST-004: Import Asset into Blender — import_asset() hands off object references
+FR-AST-005: Manage Provider Metadata — get_provider_metadata() returns normalized provider info
 
 Implements IAssetAggregate — single entry point for Surface layer
 across search, download, extract, import, and provider metadata.

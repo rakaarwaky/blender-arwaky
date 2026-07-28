@@ -1,4 +1,9 @@
-"""MCP Prompts for BlenderArwaky"""
+"""MCP Prompt registration for BlenderArwaky.
+
+FR-MCP-001: Expose MCP Tools — PromptHandlerModule registers prompt templates with FastMCP
+FR-MCP-002: Route Tool Calls — prompts are routed through MCP server instance lifecycle
+FR-MCP-003: Format MCP Responses — prompt responses follow standardized MCP format
+"""
 
 from mcp.server.fastmcp import FastMCP
 
@@ -57,11 +62,7 @@ Only fall back to scripting when:
         mcp.prompt(name="text_to_scene_orchestrator")(PromptHandlerModule.text_to_scene_orchestrator)
 
 
-
 register_prompts = PromptHandlerModule.register_prompts
-
-
-
 
 
 def get_layout_expert_prompt():

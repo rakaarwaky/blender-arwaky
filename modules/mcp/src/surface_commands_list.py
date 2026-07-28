@@ -1,6 +1,10 @@
 """
 MCP Tool 2: list_commands — Returns the command catalog (discovery).
 
+FR-MCP-001: Expose MCP Tools — register_list_commands registers tool with MCP
+FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.execute_action routes commands list
+FR-MCP-003: Format MCP Responses — Prompt type wraps command catalog result
+
 Lists all available actions, their parameters, descriptions, and domains.
 Surface delegates to Agent container via its aggregate contract (AES compliant).
 """
@@ -35,8 +39,5 @@ class CommandsListHandler:
             # to match zero commands and return {}.
             resolved_format = format or FormatRef("detailed")
 
-
             orchestrator = get_container().core_agent_orchestrator
             return orchestrator.list_commands(domain, resolved_format)
-
-

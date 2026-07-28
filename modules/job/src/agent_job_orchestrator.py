@@ -13,6 +13,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ResultUrl,
 )
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
+from modules.shared.src.job.taxonomy_job_error import CapacityError
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -27,22 +28,23 @@ class JobOrchestrator(IJobAggregate):
 
     # FR-JOB-001: Track and Update Task Lifecycle
 
-    def track_new_task(self, operation_type: str, metadata: dict | None = None) -> tuple[JobId, JobStatus]:
+    def track_new_task(self, operation_type: str, _metadata: dict | None = None) -> tuple[JobId, JobStatus]:
         """Register a new background task. Returns unique tracking ID."""
         import uuid
 
         job_id = JobId(str(uuid.uuid4()))
 
+        # FR-JOB-005: Enforce Background Capacity
         running = sum(1 for j in self._jobs.values() if j.status.value in ("RUNNING", "PENDING"))
         if running >= self._max_active:
-            raise OverflowError(f"Maximum active tasks ({self._max_active}) reached")
+            raise CapacityError(max_active=self._max_active, current_active=running)
 
         status = JobStatus(job_id=job_id)
         self._jobs[str(job_id)] = status
         logger.info("New task tracked: %s (type=%s)", job_id, operation_type)
         return job_id, status
 
-    def update_progress(self, job_id: JobId, progress: float, message: str = "") -> JobStatus:
+    def update_progress(self, job_id: JobId, progress: float, _message: str = "") -> JobStatus:
         """Update progress of a running task (0-100%)."""
         if job_id not in self._jobs:
             raise KeyError(f"Task {job_id} not found")
@@ -56,7 +58,9 @@ class JobOrchestrator(IJobAggregate):
         status.progress = Progress(progress)
         return status
 
-    def finalize_task_success(self, job_id: JobId, result_url: ResultUrl | None = None, summary: str = "") -> JobStatus:
+    def finalize_task_success(
+        self, job_id: JobId, result_url: ResultUrl | None = None, _summary: str = ""
+    ) -> JobStatus:
         """Mark a task as successfully completed."""
         if job_id not in self._jobs:
             raise KeyError(f"Task {job_id} not found")

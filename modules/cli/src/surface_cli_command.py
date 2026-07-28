@@ -2,6 +2,10 @@
 """
 BlenderArwaky CLI — Unlimited command dispatcher.
 
+FR-CLI-001: Parse and Route Commands — argparse parser + action_map routing
+FR-CLI-002: Render Terminal Output — JSON output when not TTY or --json-output flag
+FR-CLI-003: Display Errors — logger.error for all error paths with ExitCode
+
 Usage:
   blender-arwaky <action> [--args JSON]
 
@@ -21,7 +25,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 if TYPE_CHECKING:
     from modules.shared.src.common.agent_di_container import AgentDiContainer
 
-from ..common.taxonomy_core_vo import Details, ExitCode, Prompt
+from modules.shared.src.common.taxonomy_core_vo import Details, ExitCode, Prompt
 
 # ── Path setup ────────────────────────────────────────────────────────────────
 _PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")

@@ -98,7 +98,13 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
                     matches = result["matches"]
                     if len(matches) > 1:
                         raise ObjectAmbiguityError(str(request.object_name), matches)
+                elif isinstance(result, list):
+                    # Executor returned a list of matches directly
+                    if len(result) > 1:
+                        raise ObjectAmbiguityError(str(request.object_name), result)
                 return str(request.object_name)
+            except ObjectAmbiguityError:
+                raise  # Re-raise ambiguity errors — don't swallow them
             except Exception:
                 # Fallback: try to find by name pattern
                 fallback_code = (
@@ -112,22 +118,18 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
                         raise ObjectAmbiguityError(str(request.object_name), matches)
                     return str(request.object_name)
                 except Exception:
-                    raise ObjectNotFoundError(str(request.object_name))
+                    raise ObjectNotFoundError(str(request.object_name)) from None
 
         # Asset context — place selected objects
         else:
-            code = (
-                "import bpy\n"
-                "selected = [obj.name for obj in bpy.context.selected_objects]\n"
-                "result = selected\n"
-            )
+            code = "import bpy\nselected = [obj.name for obj in bpy.context.selected_objects]\nresult = selected\n"
             try:
                 selected = await self._executor.execute_blender_code(Prompt(code))
                 if isinstance(selected, list) and len(selected) > 0:
                     return selected[0]
                 raise ObjectNotFoundError(str(request.asset_id))
             except Exception:
-                raise ObjectNotFoundError(str(request.asset_id))
+                raise ObjectNotFoundError(str(request.asset_id)) from None
 
     @staticmethod
     def _validate_scale(scale: ScaleVector) -> None:
@@ -139,7 +141,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
             if not isinstance(val, (int, float)):
                 raise ValueError(f"Scale component {i} is not numeric: {val}")
             if val == 0:
-                logger.warning("Zero scale detected at component %d", i)
+                raise ValueError(f"Scale component {i} is zero — non-zero scale is required")
 
     def _generate_placement_code(self, object_name: str, request: PlaceAssetVO) -> str:
         """Generate Blender Python code for asset placement.

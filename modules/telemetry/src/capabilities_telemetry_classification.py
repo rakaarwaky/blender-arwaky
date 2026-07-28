@@ -35,7 +35,7 @@ class TelemetryEventClassifier(TelemetryClassificationProtocol):
         tool_name: ToolName | None = None,
         prompt_text: Prompt | None = None,
         error_message: ErrorMessage | None = None,
-        metadata: Details | None = None,
+        _metadata: Details | None = None,
     ) -> EventType:
         """Classify an event into a standardized category.
 

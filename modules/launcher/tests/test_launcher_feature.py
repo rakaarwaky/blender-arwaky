@@ -25,6 +25,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 
 # ─── FR-LAU-001: Locate and Register ─────────────────────────────────────
 
+
 def test_fr_lau_001_registers_override_executable():
     feat = create_launcher_feature(LauncherConfigVO())
     python_exe = os.path.realpath(os.sys.executable)
@@ -41,16 +42,17 @@ def test_fr_lau_001_no_candidate_returns_error():
 
 # ─── FR-LAU-002 / 003 / 004: launch / shutdown / status (injected seams) ──
 
+
 class _FakeStatus:
     def __init__(self):
         self.alive = False
         self.pid = 1000
         self.ready = True
 
-    def liveness(self, pid):
-        return self.alive and pid == self.pid
+    def liveness(self, _pid):
+        return self.alive and self.pid == self.pid
 
-    def check_status(self, depth="lightweight"):
+    def check_status(self, _depth="lightweight"):
         if self.alive:
             return RuntimeStateVO(
                 last_status=RuntimeState.RUNNING_READY if self.ready else RuntimeState.RUNNING_UNRESPONSIVE,
@@ -63,19 +65,19 @@ def _build_feature(status_backend):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: status_backend.pid,
-        bridge_probe=lambda to: status_backend.ready,
+        bridge_probe=lambda _to: status_backend.ready,
     )
     locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda exe, mode, to: 1000,
-        readiness_probe=lambda pid, to: status_backend.ready,
+        spawner=lambda _exe, _mode, _to: 1000,
+        readiness_probe=lambda _pid, _to: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,
-        signal_sender=lambda pid: True,
-        killer=lambda pid: True,
+        signal_sender=lambda _pid: True,
+        killer=lambda _pid: True,
     )
     persist = StatePersistence(path_resolver=lambda: None)
     return LauncherOrchestrator(locate, launch, shutdown, status_cap, persist)
@@ -133,11 +135,13 @@ def test_fr_lau_004_status_classifies_stale():
 
 # ─── FR-LAU-005: Persist State (corruption-safe) ─────────────────────────
 
+
 def test_fr_lau_005_persist_and_load_roundtrip(tmp_path):
     state_file = tmp_path / "launcher_state.json"
     cap = StatePersistence(path_resolver=lambda: str(state_file))
-    res = cap.persist(RuntimeStateVO(
-        executable_path="/usr/bin/blender", process_id=42, last_status=RuntimeState.RUNNING_READY))
+    res = cap.persist(
+        RuntimeStateVO(executable_path="/usr/bin/blender", process_id=42, last_status=RuntimeState.RUNNING_READY)
+    )
     assert res.success is True
     assert state_file.exists()
     loaded = cap.load()

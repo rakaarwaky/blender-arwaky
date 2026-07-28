@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from contextlib import suppress
 from typing import Any
 
 try:
@@ -127,10 +128,8 @@ def _apply_env_overrides(config_dict: dict[str, Any], env: Mapping[str, str]) ->
 
     port = env.get("BLENDER_PORT")
     if port:
-        try:
+        with suppress(ValueError):
             config_dict["port"] = int(port)
-        except ValueError:
-            pass
 
     # Auth token
     auth_token = env.get("BLENDER_AUTH_TOKEN")
@@ -145,24 +144,18 @@ def _apply_env_overrides(config_dict: dict[str, Any], env: Mapping[str, str]) ->
     # Queue settings
     queue_max = env.get("SERVER_QUEUE_MAX_DEPTH")
     if queue_max:
-        try:
+        with suppress(ValueError):
             config_dict["queue_max_depth"] = int(queue_max)
-        except ValueError:
-            pass
 
     queue_wait = env.get("SERVER_QUEUE_WAIT_TIMEOUT_MS")
     if queue_wait:
-        try:
+        with suppress(ValueError):
             config_dict["queue_wait_timeout_ms"] = float(queue_wait)
-        except ValueError:
-            pass
 
     exec_timeout = env.get("SERVER_EXECUTION_TIMEOUT_MS")
     if exec_timeout:
-        try:
+        with suppress(ValueError):
             config_dict["execution_default_timeout_ms"] = float(exec_timeout)
-        except ValueError:
-            pass
 
     # Allowed directories (platform path separator)
     allowed_dirs = env.get("SERVER_ALLOWED_DIRECTORIES")
@@ -195,7 +188,7 @@ def _validate_and_build(config_dict: dict[str, Any]) -> ServerConfig:
         if connection_timeout <= 0:
             raise ValueError()
     except (ValueError, TypeError):
-        raise ConnectionConfigError(message="connection_timeout_seconds must be a positive number")
+        raise ConnectionConfigError(message="connection_timeout_seconds must be a positive number") from None
 
     # Normalize allowed_directories to tuple
     allowed_dirs = config_dict.get("allowed_directories", [])

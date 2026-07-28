@@ -20,12 +20,19 @@ class MockSearchCollector(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[ProviderName] | None = None,
-        **kwargs: Any,
+        **_kwargs: Any,
     ) -> dict[str, Any]:
         self._search_calls.append((query, providers))
         return {
             "assets": [
-                {"id": "001", "name": "Cube HDRI", "type": "hdri", "provider": "polyhaven", "thumbnail_url": None, "tags": []},
+                {
+                    "id": "001",
+                    "name": "Cube HDRI",
+                    "type": "hdri",
+                    "provider": "polyhaven",
+                    "thumbnail_url": None,
+                    "tags": [],
+                },
             ],
             "provider_status": {"polyhaven": "success"},
             "total": 1,
@@ -35,6 +42,7 @@ class MockSearchCollector(AssetSearchProtocol):
 
 def test_orchestrator_implements_aggregate():
     from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
+
     assert isinstance(AssetOrchestrator.__mro__[1], type) and issubclass(AssetOrchestrator, IAssetAggregate)
 
 
@@ -51,7 +59,9 @@ async def test_orchestrator_search_delegates():
 @pytest.mark.asyncio
 async def test_orchestrator_search_empty():
     class EmptyCollector(AssetSearchProtocol):
-        async def search_all(self, query: SearchQuery, providers: list[ProviderName] | None = None, **kwargs: Any) -> dict[str, Any]:
+        async def search_all(
+            self, _query: SearchQuery, _providers: list[ProviderName] | None = None, **_kwargs: Any
+        ) -> dict[str, Any]:
             return {"assets": [], "provider_status": {}, "total": 0, "warnings": []}
 
     orch = AssetOrchestrator(search_capability=EmptyCollector())
@@ -62,5 +72,6 @@ async def test_orchestrator_search_empty():
 @pytest.mark.asyncio
 async def test_orchestrator_no_direct_blender_access():
     import inspect
+
     source = inspect.getsource(AssetOrchestrator)
     assert "bpy" not in source.lower()

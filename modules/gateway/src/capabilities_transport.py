@@ -102,12 +102,10 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
                 data_bytes = len(result.data.encode("utf-8")) if isinstance(result.data, str) else len(result.data)
                 if data_bytes > self._max_response_bytes:
                     if isinstance(result.data, str):
-                        result.data = result.data[:self._max_response_bytes] + "\n...[truncated]"
+                        result.data = result.data[: self._max_response_bytes] + "\n...[truncated]"
                     result.truncated = True
             logger.info("Command %s completed in %.1fms", action, elapsed_ms)
-            await self._event_publisher.publish(
-                CommandDispatched(action=action, execution_time_ms=elapsed_ms)
-            )
+            await self._event_publisher.publish(CommandDispatched(action=action, execution_time_ms=elapsed_ms))
             return result
         except asyncio.TimeoutError:
             logger.warning("Command %s timed out after %.1fms", action, timeout_s * 1000)
@@ -116,13 +114,13 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
             raise
         except ProviderError:
             raise
-        except Exception as e:
+        except Exception as exc:
             elapsed_ms = (time.monotonic() - start) * 1000
-            logger.error("Command %s failed: %s", action, e)
+            logger.error("Command %s failed: %s", action, exc)
             raise ProviderError(
-                message=f"Command '{action}' failed: {e}",
+                message=f"Command '{action}' failed: {exc}",
                 details={"action": action},
-            )
+            ) from None
 
 
 class TransportExecutor(TransportProtocol):
@@ -164,7 +162,9 @@ class TransportExecutor(TransportProtocol):
             response.request_size_bytes = len(frame)
             logger.debug(
                 "Transport complete: tracking_id=%s, status=%s, %.1fms",
-                request.tracking_id, response.status, duration_ms,
+                request.tracking_id,
+                response.status,
+                duration_ms,
             )
             return response
         except TimeoutError:
@@ -180,15 +180,17 @@ class TransportExecutor(TransportProtocol):
             )
 
     def _create_frame(self, request: TransportMessageVO) -> bytes:
-        message = json.dumps({
-            "tracking_id": request.tracking_id,
-            "operation_class": request.operation_class,
-            "payload": (request.payload or b"").hex() if request.payload else None,
-        })
+        message = json.dumps(
+            {
+                "tracking_id": request.tracking_id,
+                "operation_class": request.operation_class,
+                "payload": (request.payload or b"").hex() if request.payload else None,
+            }
+        )
         encoded = message.encode("utf-8")
         return len(encoded).to_bytes(4, "big") + encoded
 
-    def _receive_response(self, timeout_seconds: float) -> bytes:
+    def _receive_response(self, _timeout_seconds: float) -> bytes:
         if not self._socket:
             raise TimeoutError("No socket connection")
         header = b""
@@ -209,12 +211,13 @@ class TransportExecutor(TransportProtocol):
     def _parse_response(self, data: bytes, expected_tracking_id: str) -> TransportOutcomeVO:
         try:
             message = json.loads(data.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            raise TransportParseError(f"Failed to parse response: {e}")
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise TransportParseError(f"Failed to parse response: {exc}") from None
         if message.get("tracking_id") != expected_tracking_id:
             logger.warning(
                 "Orphan response discarded: expected=%s, got=%s",
-                expected_tracking_id, message.get("tracking_id"),
+                expected_tracking_id,
+                message.get("tracking_id"),
             )
         return TransportOutcomeVO(
             tracking_id=message.get("tracking_id", ""),

@@ -1,4 +1,7 @@
-"""Registry: Manages active Blender instance state via registry.json."""
+"""Registry: Manages active Blender instance state via registry.json.
+
+FR-CLI-001: Parse and Route Commands — registry provides instance state for command routing decisions
+"""
 
 import json
 import os
@@ -13,6 +16,7 @@ DEFAULT_PORT = 9876
 @dataclass
 class RegistryState:
     """State of the active Blender instance."""
+
     active_entity: str | None = None
     port: int = DEFAULT_PORT
     pid: int | None = None

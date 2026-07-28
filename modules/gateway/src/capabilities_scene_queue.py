@@ -86,10 +86,12 @@ class OperationQueue(IOperationQueueProtocol):
                 )
             self._queue.append(operation)
             depth = len(self._queue)
-        await self._event_publisher.publish(ItemEnqueued(
-            request_id=operation.request_id,
-            queue_depth=depth,
-        ))
+        await self._event_publisher.publish(
+            ItemEnqueued(
+                request_id=operation.request_id,
+                queue_depth=depth,
+            )
+        )
         logger.info("Enqueued operation %s (depth=%d)", operation.request_id, depth)
         return depth
 
@@ -149,7 +151,7 @@ class OperationQueue(IOperationQueueProtocol):
             raise OperationWaitTimeoutError(
                 request_id=request_id,
                 timeout_ms=timeout_ms,
-            )
+            ) from None
 
     async def wait_for_result(self, request_id: str) -> ExecutionResult | dict | str:
         async with self._lock:
@@ -164,7 +166,7 @@ class OperationQueue(IOperationQueueProtocol):
         try:
             return await future
         except asyncio.TimeoutError:
-            raise OperationWaitTimeoutError(request_id=request_id)
+            raise OperationWaitTimeoutError(request_id=request_id) from None
 
     async def cancel_pending(self, error: Exception) -> int:
         async with self._lock:
@@ -231,9 +233,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
         try:
             self._queue.put_nowait(operation)
         except queue.Full:
-            raise ChannelConflictError(
-                f"Queue depth limit {self._max_depth} reached"
-            )
+            raise ChannelConflictError(f"Queue depth limit {self._max_depth} reached") from None
         wait_start = time.time()
         while not self._processing and time.time() - wait_start < self._wait_timeout_seconds:
             time.sleep(0.05)
@@ -251,7 +251,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
             max_depth=self._max_depth,
         )
 
-    def _execute_directly(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
+    def _execute_directly(self, _operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         start_time = time.time()
         logger.debug("Executing read-only operation directly")
         return SceneOperationOutcomeVO(

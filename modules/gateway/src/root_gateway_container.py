@@ -38,11 +38,14 @@ class GatewayContainer:
             config=ConnectionConfigVO(host="localhost", port=50051),
         )
 
-        # Wire MaintenanceExecutor with retry config
+        # Wire MaintenanceExecutor with retry config + real reconnect hook.
+        # reconnect_fn drives FR-GWY-002 retry: each attempt calls the
+        # ConnectionExecutor; exhaustion transitions the connection to FAILED.
         self._maintenance = MaintenanceExecutor(
             max_retries=3,
             base_backoff_seconds=1.0,
             max_backoff_seconds=16.0,
+            reconnect_fn=self._connection.establish_connection,
         )
 
         # Wire SceneQueueExecutor

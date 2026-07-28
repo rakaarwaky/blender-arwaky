@@ -1,4 +1,8 @@
-"""BlenderManager: Launches and manages Blender subprocess."""
+"""BlenderManager: Launches and manages Blender subprocess.
+
+NOTE: This surface utility delegates process lifecycle to launcher feature (FR-LAU-001..004).
+The CLI surface layer does not own business logic — it translates terminal input to aggregate calls.
+"""
 
 import os
 import signal
@@ -39,9 +43,7 @@ def find_blender() -> str:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
-    raise FileNotFoundError(
-        "Blender not found. Set BLENDER_EXECUTABLE env var or install Blender."
-    )
+    raise FileNotFoundError("Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.")
 
 
 def launch_blender(
@@ -87,12 +89,17 @@ bpy.ops.wm.save_as_mainfile(filepath=r'{filepath}')
         addon_path = os.path.join(project_root, "blender_mcp_addon")
 
     if os.path.exists(addon_path):
-        cmd.extend(["--python-expr", f"""
+        cmd.extend(
+            [
+                "--python-expr",
+                f"""
 import sys
 sys.path.insert(0, r'{addon_path}')
 import bpy
 bpy.ops.preferences.addon_enable(module='blender_mcp_addon')
-"""])
+""",
+            ]
+        )
 
     # Launch process
     process = subprocess.Popen(

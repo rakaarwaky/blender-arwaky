@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import TransportMessageVO, TransportOutcomeVO
+from .taxonomy_gateway_vo import (
+    CommandResult,
+    TransportMessageVO,
+    TransportOutcomeVO,
+)
 
 
 class TransportProtocol(ABC):
@@ -23,11 +27,6 @@ class TransportProtocol(ABC):
         Discards uncorrelated/orphan responses safely.
         """
         ...
-
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_gateway_vo import CommandResult
 
 
 class IBlenderCommandProtocol(ABC):

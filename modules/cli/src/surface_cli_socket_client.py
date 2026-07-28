@@ -1,4 +1,8 @@
-"""SocketClient: TCP communication with Blender addon."""
+"""TCP socket client for CLI ↔ Blender addon communication.
+
+FR-CLI-001: Parse and Route Commands — socket client provides transport for routed command results
+FR-CLI-002: Render Terminal Output — socket client returns structured data for terminal rendering
+"""
 
 import contextlib
 import json

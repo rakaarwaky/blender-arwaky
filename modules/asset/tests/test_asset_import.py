@@ -63,7 +63,7 @@ def gateway_with_failure() -> MockGatewayClient:
     """Gateway client that raises on execute."""
     gw = MockGatewayClient()
 
-    async def fail(command: dict) -> dict:
+    async def fail(_command: dict) -> dict:
         raise Exception("Blender import failed")
 
     gw.execute_command = fail
@@ -277,7 +277,7 @@ async def test_fr_ast_004_import_command_structure(gateway_with_success: MockGat
     cap = AssetImportCapability(gateway_client=gateway_with_success)
     file_path = _create_test_file(tmp_path, "model.glb")
 
-    result = await cap.import_asset(
+    _result = await cap.import_asset(
         file_path=FilePath(file_path),
         asset_type=AssetType("model"),
         duplicate_policy="replace",

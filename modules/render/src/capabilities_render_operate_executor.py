@@ -195,7 +195,13 @@ class RenderOperateExecutor(RenderOperateProtocol):
             logger.error("apply_composition failed: %s", e)
             raise RuntimeError(f"Failed to apply composition: {e}") from e
 
+    # FR-RND-002: Render Scene Image
     async def render(self, request: RenderVO) -> RenderVO:
+        """Render scene to image at validated output destination.
+
+        FR-RND-002: Renders the scene to an image artifact at a validated output location.
+        Long-running renders are submitted through job feature (deferred until job integration).
+        """
         logger.info("Rendering frame to %s", request.output_path)
 
         safe_path = _py_str(str(request.output_path))

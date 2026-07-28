@@ -64,7 +64,7 @@ class StatePersistence(PersistStateProtocol):
             return None
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _contains_secret(self, state: RuntimeStateVO) -> bool:
+    def _contains_secret(self, _state: RuntimeStateVO) -> bool:
         return False
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:

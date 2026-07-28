@@ -60,7 +60,7 @@ def _rel_display(path: Path, project_root: Path) -> str:
         return str(path)
 
 
-def prompt_file(sources: list[Path]) -> Path:
+def prompt_file(_sources: list[Path]) -> Path:
     """Prompt user to type or paste the file path to export.
 
     Supports:
@@ -480,15 +480,15 @@ def write_markdown(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Export a source file into a single consolidated Markdown document."
-    )
+    parser = argparse.ArgumentParser(description="Export a source file into a single consolidated Markdown document.")
     parser.add_argument(
-        "--file", "-f",
+        "--file",
+        "-f",
         help="Source file path to export (non-interactive mode). Omit for interactive selection.",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output file path (default: .agents/finding/<stem>_export.md).",
     )
     return parser.parse_args()

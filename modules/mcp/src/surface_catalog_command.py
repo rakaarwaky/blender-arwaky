@@ -1,5 +1,8 @@
-"""
-MCP Command Catalog for BlenderArwaky - DDD Compliant Version
+"""MCP Command Catalog for BlenderArwaky — DDD Compliant Version.
+
+FR-MCP-001: Expose MCP Tools — COMMAND_CATALOG provides tool definitions for MCP router
+FR-MCP-002: Route Tool Calls — catalog query helpers enable tool routing by command name
+FR-MCP-003: Format MCP Responses — catalog returns standardized response structure
 
 Re-exports the canonical COMMAND_CATALOG from taxonomy.
 All command definitions live in taxonomy; this surface handler provides
@@ -62,5 +65,3 @@ class CommandCatalogSurfaceHandler:
             return Prompt(json.dumps(filtered, indent=2))
 
         return list_commands_tool
-
-

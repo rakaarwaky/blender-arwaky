@@ -1,3 +1,9 @@
+"""Capability: Asset search across providers.
+
+FR-AST-001: Unified search across Polyhaven and Sketchfab providers.
+Returns normalized, aggregated results with provider status summary.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,9 +36,9 @@ class AssetSearchCapability(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[ProviderName] | None = None,
-        asset_type_filter: AssetTypeFilter | None = None,
-        limit: ResultLimit | None = None,
-        page_token: NextPageToken | None = None,
+        asset_type_filter: AssetTypeFilter | None = None,  # noqa: ARG002 (intentional interface param, not used in impl)
+        limit: ResultLimit | None = None,  # noqa: ARG002 (intentional interface param, not used in impl)
+        page_token: NextPageToken | None = None,  # noqa: ARG002 (intentional interface param, not used in impl)
     ) -> dict[str, Any]:
         target = providers if providers is not None else PROVIDER_NAMES
 

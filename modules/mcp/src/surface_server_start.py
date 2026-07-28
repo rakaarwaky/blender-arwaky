@@ -1,5 +1,9 @@
 """BlenderArwaky MCP Server - Modularized
 
+FR-MCP-001: Expose MCP Tools — main() registers all tools/prompts via SurfaceHandler
+FR-MCP-002: Route Tool Calls — ServerInstanceHandler.get_mcp_instance() wires routing to agent container
+FR-MCP-003: Format MCP Responses — MCP server wraps all responses in Prompt type
+
 Main entry point that runs the MCP server.
 """
 
@@ -48,5 +52,3 @@ class ServerStartHandler:
             mcp.run(transport="sse")
         else:
             mcp.run()
-
-

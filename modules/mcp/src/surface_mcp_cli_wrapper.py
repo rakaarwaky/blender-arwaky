@@ -1,4 +1,9 @@
-"""MCP CLI Wrapper: Subprocess calls to blender-arwaky CLI."""
+"""MCP CLI Wrapper: Subprocess bridge to blender-arwaky CLI.
+
+FR-MCP-001: Expose MCP Tools — run_cli_command provides CLI invocation as MCP tool
+FR-MCP-002: Route Tool Calls — wrapper routes MCP tool calls to CLI subprocess
+FR-MCP-003: Format MCP Responses — wrapper returns standardized JSON responses for MCP client
+"""
 
 import asyncio
 import json
@@ -121,19 +126,23 @@ async def capture_screenshot(
     focus_object: str | None = None,
 ) -> dict[str, Any]:
     """Capture a viewport screenshot."""
-    result = await run_cli_command("screenshot", {
-        "filepath": filepath,
-        "output": output,
-        "max_size": max_size,
-        "view_angle": view_angle,
-        "shading": shading,
-        "show_overlays": show_overlays,
-        "focus_object": focus_object,
-    })
+    result = await run_cli_command(
+        "screenshot",
+        {
+            "filepath": filepath,
+            "output": output,
+            "max_size": max_size,
+            "view_angle": view_angle,
+            "shading": shading,
+            "show_overlays": show_overlays,
+            "focus_object": focus_object,
+        },
+    )
 
     # If successful, read the image file and encode to base64
     if result.get("success") and os.path.exists(output):
         import base64
+
         with open(output, "rb") as f:
             image_data = base64.b64encode(f.read()).decode("ascii")
         os.remove(output)  # Clean up temp file
@@ -149,16 +158,20 @@ async def render_frame(
     resolution_y: int = 1080,
 ) -> dict[str, Any]:
     """Execute a full frame render."""
-    result = await run_cli_command("render", {
-        "filepath": filepath,
-        "output": output,
-        "resolution_x": resolution_x,
-        "resolution_y": resolution_y,
-    })
+    result = await run_cli_command(
+        "render",
+        {
+            "filepath": filepath,
+            "output": output,
+            "resolution_x": resolution_x,
+            "resolution_y": resolution_y,
+        },
+    )
 
     # If successful, read the image file and encode to base64
     if result.get("success") and os.path.exists(output):
         import base64
+
         with open(output, "rb") as f:
             image_data = base64.b64encode(f.read()).decode("ascii")
         os.remove(output)  # Clean up temp file

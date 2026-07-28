@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import ConnectionOutcomeVO
+from .taxonomy_gateway_vo import (
+    CommandResult,
+    ConnectionConfig,
+    ConnectionOutcomeVO,
+    ConnectionStatus,
+)
 
 
 class ConnectionProtocol(ABC):
@@ -30,11 +35,6 @@ class ConnectionProtocol(ABC):
         FR-GWY-002: State transitions to closed. No-op if already disconnected.
         """
         ...
-
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_gateway_vo import CommandResult, ConnectionConfig, ConnectionStatus
 
 
 class IBlenderConnectionProtocol(ABC):

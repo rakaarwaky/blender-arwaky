@@ -21,12 +21,14 @@ from modules.shared.src.object.taxonomy_object_vo import DeleteObjectVO
 logger = logging.getLogger("BlenderMCPServer")
 
 # Protected object categories that require explicit confirmation
-PROTECTED_CATEGORIES: frozenset[str] = frozenset({
-    "active_camera",
-    "sole_camera",
-    "lights",
-    "protected",
-})
+PROTECTED_CATEGORIES: frozenset[str] = frozenset(
+    {
+        "active_camera",
+        "sole_camera",
+        "lights",
+        "protected",
+    }
+)
 
 
 class DeleteObjectExecutor(DeleteObjectProtocol):
@@ -71,7 +73,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
                     deleted_names=[],
                     message="Object not found — idempotent deletion policy enabled",
                 )
-            raise ObjectNotFoundError(str(request.object_name))
+            raise ObjectNotFoundError(str(request.object_name)) from None
 
         # Check protected categories
         await self._check_protected_categories(request)
@@ -105,9 +107,9 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
             "import bpy\n"
             f"obj = bpy.data.objects.get({DeleteObjectExecutor._safe_str(str(request.object_name))})\n"
             "protected = False\n"
-            '# Check if active camera\n'
+            "# Check if active camera\n"
             "if bpy.context.scene.camera == obj:\n"
-            '    protected = True\n'
+            "    protected = True\n"
             "# Check if sole camera\n"
             "cameras = [o for o in bpy.data.objects if o.type == 'CAMERA']\n"
             "if len(cameras) == 1 and cameras[0] == obj:\n"
@@ -125,6 +127,8 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
             is_protected = await self._executor.execute_blender_code(Prompt(check_code))
             if is_protected and not getattr(request, "confirmation", False):
                 raise DeletionProtectionError(str(request.object_name), "protected_category")
+        except DeletionProtectionError:
+            raise  # Re-raise protection errors — don't swallow them
         except Exception:
             pass  # Object doesn't exist or error already handled
 
@@ -162,9 +166,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
             )
 
         # Final removal
-        lines.append(
-            "bpy.data.objects.remove(obj, do_unlink=True)\n"
-        )
+        lines.append("bpy.data.objects.remove(obj, do_unlink=True)\n")
 
         return "\n".join(lines)
 

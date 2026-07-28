@@ -1,5 +1,8 @@
 """Capability: In-memory event bus for server domain events.
 
+FR-DIA-004: Emit audit events for security violations, connection failures,
+task failures, and destructive actions. Supports async subscribers with
+isolated exception handling.
 Implements IEventBus — supports async subscribers, isolates subscriber
 exceptions, and logs subscriber failures without stopping publish flow.
 """

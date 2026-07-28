@@ -20,6 +20,7 @@ import logging
 import socket
 import struct
 import time
+from contextlib import suppress
 
 from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
@@ -102,16 +103,15 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self._host = config.host or "localhost"
         self._port = config.port or 9876
 
-        if config.require_auth_for_remote and self._is_remote():
-            if not config.auth_token:
-                raise ConnectionConfigError(
-                    message="Remote connection requires authentication token",
-                    details={"host": self._host},
-                )
+        if config.require_auth_for_remote and self._is_remote() and not config.auth_token:
+            raise ConnectionConfigError(
+                message="Remote connection requires authentication token",
+                details={"host": self._host},
+            )
 
-        max_attempts = config.reconnect_max_attempts if hasattr(config, 'reconnect_max_attempts') else 3
-        base_delay = config.reconnect_base_delay_seconds if hasattr(config, 'reconnect_base_delay_seconds') else 1.0
-        max_delay = config.reconnect_max_delay_seconds if hasattr(config, 'reconnect_max_delay_seconds') else 4.0
+        max_attempts = config.reconnect_max_attempts if hasattr(config, "reconnect_max_attempts") else 3
+        base_delay = config.reconnect_base_delay_seconds if hasattr(config, "reconnect_base_delay_seconds") else 1.0
+        max_delay = config.reconnect_max_delay_seconds if hasattr(config, "reconnect_max_delay_seconds") else 4.0
 
         for attempt in range(max_attempts):
             try:
@@ -157,11 +157,13 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 self._last_error = str(e)
                 logger.warning(
                     "Connection attempt %d/%d failed: %s",
-                    attempt + 1, max_attempts, e,
+                    attempt + 1,
+                    max_attempts,
+                    e,
                 )
                 await self._close_stream()
                 if attempt < max_attempts - 1:
-                    base = min(base_delay * (2 ** attempt), max_delay)
+                    base = min(base_delay * (2**attempt), max_delay)
                     jitter = (time.monotonic() % 0.5) * base
                     delay = base + jitter
                     logger.debug("Waiting %.1f seconds before reconnect attempt %d", delay, attempt + 2)
@@ -179,9 +181,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         old_state = self._state
         self._state = CONNECTION_STATE_CLOSED
         if old_state != CONNECTION_STATE_CLOSED:
-            await self._event_publisher.publish(
-                ConnectionLost(reason="closed")
-            )
+            await self._event_publisher.publish(ConnectionLost(reason="closed"))
             logger.info("Disconnected from Blender (state=%s)", CONNECTION_STATE_CLOSED)
 
     async def is_connected(self) -> bool:
@@ -230,9 +230,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
             raise BlenderConnectionFailure(
                 message=f"Command '{action}' failed: {e}",
                 details={"action": action},
-            )
+            ) from e
 
-    async def receive_full_response(self, buffer_size: int = 8192) -> bytes:
+    async def receive_full_response(self, _buffer_size: int = 8192) -> bytes:
         if self._reader is None:
             raise ConnectionClosedError(details={"reason": "no_reader"})
         header = await self._reader.readexactly(4)
@@ -256,7 +256,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
             raise ConnectionConfigError(
                 message=f"Connection to {self._host}:{self._port} timed out",
                 details={"host": self._host, "port": self._port},
-            )
+            ) from None
 
     async def _perform_handshake(self, config: ConnectionConfig) -> None:
         request_id = str(time.monotonic())
@@ -313,19 +313,16 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     details={"host": self._host},
                 )
         except ConnectionClosedError:
-            raise AuthenticationError(message="Authentication connection lost")
+            raise AuthenticationError(message="Authentication connection lost") from None
 
     async def _receive_response(self, timeout_ms: float | None = None) -> bytes:
-        if timeout_ms:
-            timeout_s = timeout_ms / 1000.0
-        else:
-            timeout_s = 30.0
+        timeout_s = timeout_ms / 1000.0 if timeout_ms else 30.0
         try:
             header = await asyncio.wait_for(self._reader.readexactly(4), timeout=timeout_s)
         except asyncio.TimeoutError:
-            raise ConnectionClosedError(details={"reason": "response_timeout"})
+            raise ConnectionClosedError(details={"reason": "response_timeout"}) from None
         except asyncio.IncompleteReadError:
-            raise ConnectionClosedError(details={"reason": "connection_dropped"})
+            raise ConnectionClosedError(details={"reason": "connection_dropped"}) from None
         msg_len = struct.unpack("!I", header)[0]
         try:
             payload = await asyncio.wait_for(
@@ -333,9 +330,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 timeout=timeout_s,
             )
         except asyncio.TimeoutError:
-            raise ConnectionClosedError(details={"reason": "payload_timeout"})
+            raise ConnectionClosedError(details={"reason": "payload_timeout"}) from None
         except asyncio.IncompleteReadError:
-            raise ConnectionClosedError(details={"reason": "connection_dropped_during_read"})
+            raise ConnectionClosedError(details={"reason": "connection_dropped_during_read"}) from None
         return payload
 
     def _is_remote(self) -> bool:
@@ -349,20 +346,16 @@ class BlenderConnection(IBlenderConnectionProtocol):
             return 0
 
     def _start_heartbeat(self, config: ConnectionConfig) -> None:
-        interval = getattr(config, 'heartbeat_interval_seconds', HEARTBEAT_INTERVAL_SECONDS) or 10
-        threshold = getattr(config, 'heartbeat_failure_threshold', HEARTBEAT_FAILURE_THRESHOLD) or 3
-        self._heartbeat_task = asyncio.create_task(
-            self._heartbeat_loop(interval, threshold)
-        )
+        interval = getattr(config, "heartbeat_interval_seconds", HEARTBEAT_INTERVAL_SECONDS) or 10
+        threshold = getattr(config, "heartbeat_failure_threshold", HEARTBEAT_FAILURE_THRESHOLD) or 3
+        self._heartbeat_task = asyncio.create_task(self._heartbeat_loop(interval, threshold))
         logger.debug("Heartbeat started (interval=%ds, threshold=%d)", interval, threshold)
 
     async def _stop_heartbeat(self) -> None:
         if self._heartbeat_task is not None:
             self._heartbeat_task.cancel()
-            try:
+            with suppress(asyncio.CancelledError):
                 await self._heartbeat_task
-            except asyncio.CancelledError:
-                pass
             self._heartbeat_task = None
 
     async def _heartbeat_loop(self, interval: int, threshold: int) -> None:
@@ -396,18 +389,15 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 self._consecutive_failures += 1
                 logger.warning(
                     "Heartbeat failure %d/%d",
-                    self._consecutive_failures, threshold,
+                    self._consecutive_failures,
+                    threshold,
                 )
                 if self._consecutive_failures >= threshold:
                     if self._active_operation:
-                        logger.warning(
-                            "Operation in progress — deferring reconnect"
-                        )
+                        logger.warning("Operation in progress — deferring reconnect")
                         continue
                     self._state = CONNECTION_STATE_RECONNECTING
-                    await self._event_publisher.publish(
-                        ConnectionLost(reason="heartbeat_timeout")
-                    )
+                    await self._event_publisher.publish(ConnectionLost(reason="heartbeat_timeout"))
                     await self._close_stream()
             except asyncio.CancelledError:
                 break
@@ -513,6 +503,7 @@ class ConnectionExecutor(ConnectionProtocol):
 
     def _perform_handshake(self) -> dict:
         import uuid as _uuid
+
         handshake_request = TransportMessageVO(
             tracking_id=str(_uuid.uuid4()),
             operation_class="handshake",
@@ -547,6 +538,7 @@ class ConnectionExecutor(ConnectionProtocol):
         if not self._config.auth_enabled or not self._config.auth_material:
             return
         import uuid as _uuid
+
         auth_request = TransportMessageVO(
             tracking_id=str(_uuid.uuid4()),
             operation_class="authentication",
@@ -563,8 +555,8 @@ class ConnectionExecutor(ConnectionProtocol):
                 raise AuthenticationError(f"Authentication failed: {outcome.error or 'unknown error'}")
         except AuthenticationError:
             raise
-        except Exception as e:
-            raise AuthenticationError(f"Authentication transport error: {e}")
+        except Exception as exc:
+            raise AuthenticationError(f"Authentication transport error: {exc}") from None
 
     def get_state(self) -> ConnectionState:
         return self._state

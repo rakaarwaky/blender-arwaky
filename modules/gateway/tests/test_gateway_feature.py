@@ -53,6 +53,7 @@ class MockMaintenance(ConnectionMaintenanceProtocol):
 
     def get_connection_status(self) -> ConnectionStatusVO:
         from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionStatusVO
+
         return ConnectionStatusVO(
             state=self._state,
             last_heartbeat_timestamp=self._heartbeat_count * 1.0,
@@ -83,20 +84,23 @@ class MockTransport(TransportProtocol):
 class MockSceneQueue(SceneQueueProtocol):
     """Mock scene queue for testing."""
 
-    def enqueue_operation(self, operation: SceneOperationVO) -> object:
+    def enqueue_operation(self, _operation: SceneOperationVO) -> object:
         from modules.shared.src.gateway.taxonomy_gateway_vo import SceneOperationOutcomeVO
+
         return SceneOperationOutcomeVO(status="success")
 
     def get_queue_status(self) -> object:
         from modules.shared.src.gateway.taxonomy_gateway_vo import QueueStatusVO
+
         return QueueStatusVO(current_depth=0, is_busy=False, max_depth=50)
 
 
 class MockCodeExecutor(CodeExecutionProtocol):
     """Mock code executor for testing."""
 
-    def execute_code(self, request: CodeExecutionVO) -> object:
+    def execute_code(self, _request: CodeExecutionVO) -> object:
         from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
+
         return CodeExecutionOutcomeVO(status="success", output="hello")
 
 
@@ -150,7 +154,9 @@ def test_fr_gwy_002_reconnect_attempts():
 
 def test_fr_gwy_003_send_request():
     """Test that transport request succeeds with tracking ID correlation."""
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
     request = TransportMessageVO(
         tracking_id=str(uuid.uuid4()),
         operation_class="test",
@@ -164,7 +170,9 @@ def test_fr_gwy_003_send_request():
 
 def test_fr_gwy_004_enqueue_mutation():
     """Test that mutating operations are enqueued successfully."""
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
     operation = SceneOperationVO(is_mutation=True, payload=b"test")
     result = feat.enqueue_scene_operation(operation)
     assert result.status == "success"
@@ -172,7 +180,9 @@ def test_fr_gwy_004_enqueue_mutation():
 
 def test_fr_gwy_004_enqueue_readonly_bypass():
     """Test that read-only operations bypass queue and execute directly."""
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
     operation = SceneOperationVO(is_mutation=False, payload=b"test")
     result = feat.enqueue_scene_operation(operation)
     assert result.status == "success"
@@ -180,7 +190,9 @@ def test_fr_gwy_004_enqueue_readonly_bypass():
 
 def test_fr_gwy_004_get_queue_status():
     """Test that queue status reports current depth and busy state."""
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
     status = feat.get_queue_status()
     assert status.current_depth >= 0
     assert status.max_depth == 50
@@ -191,7 +203,9 @@ def test_fr_gwy_004_get_queue_status():
 
 def test_fr_gwy_005_execute_code():
     """Test that code execution succeeds with security validation."""
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
     request = CodeExecutionVO(
         tracking_id=str(uuid.uuid4()),
         code="print('hello')",

@@ -17,56 +17,62 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import CodeSecurityPolicy
 
 # ─── Blocked Modules ──────────────────────────────────────────────
 
-_BLOCKED_MODULES: Final[frozenset[str]] = frozenset({
-    "os",
-    "subprocess",
-    "shutil",
-    "importlib",
-    "sys",
-    "socket",
-    "urllib",
-    "requests",
-    "ctypes",
-    "multiprocessing",
-    "threading",
-    "signal",
-    "pickle",
-    "shelve",
-})
+_BLOCKED_MODULES: Final[frozenset[str]] = frozenset(
+    {
+        "os",
+        "subprocess",
+        "shutil",
+        "importlib",
+        "sys",
+        "socket",
+        "urllib",
+        "requests",
+        "ctypes",
+        "multiprocessing",
+        "threading",
+        "signal",
+        "pickle",
+        "shelve",
+    }
+)
 
 # ─── Blocked Functions ────────────────────────────────────────────
 
-_BLOCKED_FUNCTIONS: Final[frozenset[str]] = frozenset({
-    "eval",
-    "exec",
-    "compile",
-    "__import__",
-    "breakpoint",
-    "exit",
-    "quit",
-    "globals",
-    "locals",
-    "vars",
-    "getattr",
-    "setattr",
-    "delattr",
-})
+_BLOCKED_FUNCTIONS: Final[frozenset[str]] = frozenset(
+    {
+        "eval",
+        "exec",
+        "compile",
+        "__import__",
+        "breakpoint",
+        "exit",
+        "quit",
+        "globals",
+        "locals",
+        "vars",
+        "getattr",
+        "setattr",
+        "delattr",
+    }
+)
 
 # ─── Blocked Attributes ──────────────────────────────────────────
 
-_BLOCKED_ATTRIBUTES: Final[frozenset[str]] = frozenset({
-    "__subclasses__",
-    "__bases__",
-    "__mro__",
-    "__globals__",
-    "__builtins__",
-    "__import__",
-    "__loader__",
-    "__spec__",
-    "__file__",
-    "__name__",
-    "__package__",
-})
+_BLOCKED_ATTRIBUTES: Final[frozenset[str]] = frozenset(
+    {
+        "__subclasses__",
+        "__bases__",
+        "__mro__",
+        "__globals__",
+        "__builtins__",
+        "__import__",
+        "__loader__",
+        "__spec__",
+        "__file__",
+        "__name__",
+        "__package__",
+    }
+)
 
 # ─── File Write Modes ────────────────────────────────────────────
 
@@ -150,12 +156,11 @@ def _check_node(node: ast.AST, allowed_dirs: set[str]) -> None:
                 _check_file_write(node, allowed_dirs)
 
     # Check attribute access (dunder methods, etc.)
-    elif isinstance(node, ast.Attribute):
-        if node.attr in _BLOCKED_ATTRIBUTES:
-            raise SecurityViolationError(
-                message=f"Blocked attribute access: .{node.attr}",
-                details={"rule": "blocked_attribute_access", "attribute": node.attr},
-            )
+    elif isinstance(node, ast.Attribute) and node.attr in _BLOCKED_ATTRIBUTES:
+        raise SecurityViolationError(
+            message=f"Blocked attribute access: .{node.attr}",
+            details={"rule": "blocked_attribute_access", "attribute": node.attr},
+        )
 
 
 def _check_file_write(call_node: ast.Call, allowed_dirs: set[str]) -> None:
@@ -178,9 +183,8 @@ def _check_file_write(call_node: ast.Call, allowed_dirs: set[str]) -> None:
             mode_val = str(kw.value.value)
 
     # If we have a positional mode argument (args[1])
-    if len(call_node.args) >= 2 and not mode_val:
-        if isinstance(call_node.args[1], ast.Constant):
-            mode_val = str(call_node.args[1].value)
+    if len(call_node.args) >= 2 and not mode_val and isinstance(call_node.args[1], ast.Constant):
+        mode_val = str(call_node.args[1].value)
 
     # Check if this is a write operation
     if any(m in mode_val for m in _WRITE_MODES):
@@ -213,10 +217,7 @@ def check_payload_size(code: str, max_bytes: int) -> None:
     code_bytes = len(code.encode("utf-8"))
     if code_bytes > max_bytes:
         raise SecurityViolationError(
-            message=(
-                f"Code payload exceeds maximum size: {code_bytes} bytes "
-                f"(max: {max_bytes})"
-            ),
+            message=(f"Code payload exceeds maximum size: {code_bytes} bytes (max: {max_bytes})"),
             details={"rule": "payload_too_large", "size": code_bytes, "max": max_bytes},
         )
 

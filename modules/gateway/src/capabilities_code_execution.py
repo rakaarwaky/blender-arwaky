@@ -113,7 +113,9 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         code_len = len(code.encode("utf-8"))
         logger.info(
             "Executing Blender code: fingerprint=%s, length=%d bytes, request_id=%s",
-            fingerprint, code_len, request_id,
+            fingerprint,
+            code_len,
+            request_id,
         )
         check_payload_size(code, self._security_policy.max_payload_bytes)
         try:
@@ -140,7 +142,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             data = result.data if result.data is not None else ""
             truncated = False
             if isinstance(data, str) and len(data.encode("utf-8")) > self._max_output_bytes:
-                data = data[:self._max_output_bytes] + "\n...[truncated]"
+                data = data[: self._max_output_bytes] + "\n...[truncated]"
                 truncated = True
             exec_result = ExecutionResult(
                 status=ExecutionStatus("success"),
@@ -214,9 +216,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
     async def create_task(self, request_id: str | None = None) -> str:
         task_id = f"task_{request_id or 'unnamed'}_{int(time.monotonic() * 1000) % 1000000:06d}"
         try:
-            await self._event_publisher.publish(
-                TaskCreated(task_id=task_id, request_id=request_id or "")
-            )
+            await self._event_publisher.publish(TaskCreated(task_id=task_id, request_id=request_id or ""))
         except Exception as e:
             logger.error("Failed to emit TaskCreated: %s", e)
         async with self._lock:
@@ -271,9 +271,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             )
         if entry.state == TaskState("success"):
             try:
-                await self._event_publisher.publish(
-                    TaskCompleted(task_id=task_id, execution_time_ms=0)
-                )
+                await self._event_publisher.publish(TaskCompleted(task_id=task_id, execution_time_ms=0))
             except Exception as e:
                 logger.error("Failed to emit TaskCompleted: %s", e)
         elif entry.state == TaskState("error"):
@@ -320,8 +318,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         expired = [
             tid
             for tid, e in self._tasks.items()
-            if e.completed_at is not None
-            and (now - e.completed_at) > self._task_config.retention_seconds
+            if e.completed_at is not None and (now - e.completed_at) > self._task_config.retention_seconds
         ]
         for tid in expired:
             del self._tasks[tid]
@@ -329,10 +326,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         return len(expired)
 
     def __repr__(self) -> str:
-        return (
-            f"CodeExecutionAdapter(task_retention={self._task_config.retention_seconds}s, "
-            f"tasks={len(self._tasks)})"
-        )
+        return f"CodeExecutionAdapter(task_retention={self._task_config.retention_seconds}s, tasks={len(self._tasks)})"
 
 
 @dataclass
@@ -425,7 +419,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
                 violation_descriptions = "; ".join(v.description for v in result.violations)
                 raise SecurityViolationError(f"Code validation failed: {violation_descriptions}")
         except CodeValidationError as e:
-            raise SecurityViolationError(f"Security policy validation error: {e}")
+            raise SecurityViolationError(f"Security policy validation error: {e}") from e
 
     def _execute_via_transport(self, request: CodeExecutionVO, timeout_seconds: float) -> TransportOutcomeVO:
         tracking_id = request.tracking_id or str(hash(request.code))

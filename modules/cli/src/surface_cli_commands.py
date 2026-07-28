@@ -1,11 +1,16 @@
-"""Commands: High-level CLI operations (init, run, screenshot, render, close, status)."""
+"""High-level CLI operations: init, run, screenshot, render, close, status.
+
+FR-CLI-001: Parse and Route Commands — commands module routes CLI intents to owning feature aggregates
+FR-CLI-002: Render Terminal Output — commands return structured results for terminal rendering
+FR-CLI-003: Display Errors — commands wrap upstream errors for user-facing display
+"""
 
 import os
 from typing import Any
 
-from .blender_manager import is_running, kill_blender, launch_blender
-from .registry import Registry
-from .socket_client import BlenderSocketClient
+from .surface_cli_blender_manager import is_running, kill_blender, launch_blender
+from .surface_cli_registry import Registry
+from .surface_cli_socket_client import BlenderSocketClient
 
 
 def init(filepath: str, mode: str = "headless", port: int = 9876) -> dict[str, Any]:

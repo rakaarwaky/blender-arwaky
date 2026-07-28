@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import CodeExecutionOutcomeVO, CodeExecutionVO
+from .taxonomy_gateway_vo import (
+    CodeExecutionOutcomeVO,
+    CodeExecutionVO,
+    ExecutionResult,
+    TaskStatus,
+)
 
 
 class CodeExecutionProtocol(ABC):
@@ -23,9 +28,6 @@ class CodeExecutionProtocol(ABC):
         Does not manage background task lifecycle.
         """
         ...
-
-
-from .taxonomy_gateway_vo import ExecutionResult, TaskStatus
 
 
 class ICodeExecutionProtocol(ABC):

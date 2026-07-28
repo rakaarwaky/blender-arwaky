@@ -24,7 +24,7 @@ class MockSecurityValidator:
         self.validate = validate
         self._validated_paths: list[str] = []
 
-    async def validate_path(self, path: str, mode: str) -> None:
+    async def validate_path(self, path: str, _mode: str) -> None:
         if not self.validate:
             raise PermissionError("path denied")
         self._validated_paths.append(path)
@@ -38,9 +38,7 @@ class MockAssetFeature:
         self.file_path = file_path
         self._downloads: list[dict] = []
 
-    async def download_to_cache(
-        self, provider: str, asset_id: str, asset_type: str, cache_dir: str
-    ) -> dict:
+    async def download_to_cache(self, provider: str, asset_id: str, asset_type: str, cache_dir: str) -> dict:  # noqa: ARG002 (unused in mock)
         self._downloads.append({"provider": provider, "asset_id": asset_id})
         if self.success:
             return {"success": True, "file_path": self.file_path}
@@ -230,7 +228,7 @@ async def test_fr_rnd_004_hdri_file_not_found_asset_fallback(
 
 @pytest.mark.asyncio
 async def test_fr_rnd_004_hdri_file_not_found_asset_acquisition_success(
-    hdri_capability: HdriConfigCapability,
+    hdri_capability: HdriConfigCapability,  # noqa: ARG001 (fixture not used, creates own cap)
 ) -> None:
     """Test HDRI file not found — asset feature successfully acquires it."""
     asset = MockAssetFeature(success=True, file_path="/tmp/acquired.exr")

@@ -10,14 +10,13 @@ from abc import ABC, abstractmethod
 from .contract_camera_config_protocol import CameraConfigProtocol
 from .contract_hdri_config_protocol import HdriConfigProtocol
 from .contract_render_operate_protocol import RenderOperateProtocol
-from .contract_viewport_capture import ViewportCapturePort
 from .taxonomy_render_vo import CameraConfigVO, GetScreenshotVO, HdriConfigVO, RenderVO
 
 __all__ = [
     "CameraConfigProtocol",
+    "GetScreenshotVO",
     "HdriConfigProtocol",
     "RenderOperateProtocol",
-    "ViewportCapturePort",
 ]
 
 

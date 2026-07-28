@@ -49,9 +49,7 @@ NON_MESH_PRIMITIVES: dict[str, str] = {
 }
 
 # All supported primitives (mesh + non-mesh)
-ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(
-    set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys())
-)
+ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys()))
 
 
 class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
@@ -157,8 +155,9 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         if request.location is not None:
             lines.append(f"bpy.context.active_object.location = {CreatePrimitiveExecutor._tuple_str(request.location)}")
 
-        if request.rotation is not None:
-            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(request.rotation)}")
+        rotation = getattr(request, "rotation", None)
+        if rotation is not None:
+            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(rotation)}")
 
         # Set object name
         lines.append(

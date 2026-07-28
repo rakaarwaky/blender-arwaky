@@ -5,7 +5,7 @@ All errors subclass LauncherError with explicit error codes.
 
 from __future__ import annotations
 
-from modules.shared.src.common.taxonomy_core_vo import ErrorString, ErrorMessage
+from modules.shared.src.common.taxonomy_core_vo import ErrorMessage, ErrorString
 
 
 class LauncherError(Exception):

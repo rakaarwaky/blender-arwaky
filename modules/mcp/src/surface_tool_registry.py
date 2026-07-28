@@ -1,5 +1,8 @@
-"""
-MCP Tools Registry — Registers core MCP tools (AES handler layer).
+"""MCP Tools Registry — Registers core MCP tools (AES handler layer).
+
+FR-MCP-001: Expose MCP Tools — ToolRegistryHandler.register_tools() exposes execute_command/list_commands/read_skill_context/health_check
+FR-MCP-002: Route Tool Calls — registry wires all tools to FastMCP router via tool decorators
+FR-MCP-003: Format MCP Responses — all registered tools return standardized MCP response format
 
 Tool list (unlimited CLI via single entry point):
   1. execute_command  — Universal action executor (dispatches to CLI)
@@ -37,5 +40,3 @@ class ToolRegistryHandler:
 
         # Tool 4: Health check
         register_health_check(mcp)
-
-
