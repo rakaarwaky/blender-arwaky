@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.common.taxonomy_core_vo import SessionId
+from modules.shared.src.common.taxonomy_core_vo import SessionId, SuccessFlag
 
 
 class TelemetrySessionProtocol(ABC):
@@ -50,21 +50,6 @@ class TelemetrySessionProtocol(ABC):
     async def clear_session(self) -> None:
         """Clear session state (e.g., on consent withdrawal)."""
         pass
-
-
-# --- Merged from contract_telemetry_session_management.py ---
-
-"""Contract: Telemetry session management port interface.
-
-Defines the contract for managing anonymous analytics sessions.
-Port layer — depends only on taxonomy entities.
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from ..common.taxonomy_core_vo import SessionId, SuccessFlag
 
 
 class TelemetrySessionManagementPort(ABC):

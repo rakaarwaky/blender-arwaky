@@ -9,8 +9,20 @@ FR-TLM-001: Record Anonymous Usage Event
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ActionName, SuccessFlag
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    BlenderVersion,
+    Details,
+    DurationMs,
+    ErrorMessage,
+    Prompt,
+    SuccessFlag,
+    ToolName,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
 
 
 class TelemetryRecordingProtocol(ABC):
@@ -42,23 +54,6 @@ class TelemetryRecordingProtocol(ABC):
             Dict with recording acknowledgment and buffered record summary.
         """
         pass
-
-# --- Merged from contract_telemetry_recording.py ---
-
-"""
-Contract: Port interface for telemetry collection.
-
-Defines the contract for anonymous telemetry recording, configuration, and
-decorator utilities. Single port for all telemetry-related concerns.
-AES Port layer — depends only on taxonomy entities.
-"""
-
-from abc import ABC, abstractmethod
-from collections.abc import Callable
-from typing import Any
-
-from ..common.taxonomy_core_vo import BlenderVersion, Details, DurationMs, ErrorMessage, Prompt, SuccessFlag, ToolName
-from ..telemetry.taxonomy_telemetry_event import EventType
 
 
 class TelemetryRecordingPort(ABC):

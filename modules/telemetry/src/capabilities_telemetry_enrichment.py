@@ -92,8 +92,8 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
             from importlib.metadata import version as _v
 
             return VersionString(_v("blender-arwaky"))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Version detection via importlib.metadata failed: %s", e)
 
         # Fallback: try pyproject.toml in development layout
         if _tomli or _tomllib:
@@ -154,11 +154,7 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
 
     def _get_sys_blender_version(self) -> str | None:
         """Get Blender version from sys.version or platform.python_version."""
-        try:
-            # Check if running inside Blender (sys.prefix contains blender)
-            if hasattr(sys, "version"):
-                # This is a simplified check - in production would parse more thoroughly
-                return None
-        except Exception:
-            pass
+        # Check if running inside Blender (sys.prefix contains blender)
+        if hasattr(sys, "version"):
+            return None
         return None

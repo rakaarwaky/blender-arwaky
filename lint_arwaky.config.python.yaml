@@ -15,6 +15,7 @@ adapters:
 ignored_rules: []
 
 ignored_paths:
+ignored_paths:
   - "/target"
   - "/.git"
   - "/.github"
@@ -27,7 +28,6 @@ ignored_paths:
   - ".min.css"
   - "/.dsc_cache"
   - "/tests"
-  - "/modules/config/tests"
   - "/test-workspaces"
   - "/mimocode"
   - "build.rs"
@@ -162,12 +162,6 @@ architecture:
                   "auditor",
                   "actions",
                   "helper",
-                  "adapter",
-                  "connector",
-                  "connection",
-                  "client",
-                  "gateway",
-                  "dispatcher",
                 ]
             - forbidden:
                 [

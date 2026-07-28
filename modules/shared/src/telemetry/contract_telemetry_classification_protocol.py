@@ -11,7 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ActionName
+from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, ErrorMessage, Prompt, ToolName
+from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
 
 
 class TelemetryClassificationProtocol(ABC):
@@ -37,21 +38,6 @@ class TelemetryClassificationProtocol(ABC):
             Dict with categorized event including feature_area, operation_type, outcome_category.
         """
         pass
-
-# --- Merged from contract_telemetry_classification.py ---
-
-"""Contract: Telemetry classification port interface.
-
-Defines the contract for classifying and categorizing telemetry events.
-AES Port layer — depends only on taxonomy entities.
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from ..common.taxonomy_core_vo import Details, ErrorMessage, Prompt, ToolName
-from .taxonomy_telemetry_event import EventType
 
 
 class TelemetryClassificationPort(ABC):

@@ -15,7 +15,7 @@ Surface delegates to Agent container via its aggregate contract (AES compliant).
 
 from typing import Any
 
-from modules.mcp.src.container import get_container
+from modules.mcp.src.agent_mcp_orchestrator import get_container
 from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef
 
 

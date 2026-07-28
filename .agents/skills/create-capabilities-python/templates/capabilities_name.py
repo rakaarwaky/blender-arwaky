@@ -9,7 +9,7 @@ class Capabilities<Name>(I<Name>Protocol):
         # Value fields use shared VOs
         ...
 
-    # ─── Block 2: Public Contract  ────────────────────────
+    # ─── Block 2: Public Contract (domain protocol ONLY) ──
     def method_name(self, param: <VO>) -> None:
         # domain behavior
         ...

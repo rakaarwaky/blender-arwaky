@@ -9,7 +9,7 @@ health snapshots. The surface delegates via the DI container to the
 diagnostics aggregate, not the dispatcher orchestrator.
 """
 
-from modules.mcp.src.container import get_container
+from modules.mcp.src.agent_mcp_orchestrator import get_container
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 

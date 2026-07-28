@@ -11,7 +11,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import Details, PlatformName, VersionString
+from modules.shared.src.common.taxonomy_core_vo import (
+    BlenderVersion,
+    Details,
+    PlatformName,
+    VersionString,
+)
 
 
 class TelemetryEnrichmentProtocol(ABC):
@@ -46,25 +51,6 @@ class TelemetryEnrichmentProtocol(ABC):
             Dict with os_family, runtime_version, blender_version, app_version.
         """
         pass
-
-# --- Merged from contract_telemetry_enrichment.py ---
-
-"""Contract: Telemetry enrichment port interface.
-
-Defines the contract for enriching telemetry events with environment metadata.
-AES Port layer — depends only on taxonomy entities.
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from ..common.taxonomy_core_vo import (
-    BlenderVersion,
-    Details,
-    PlatformName,
-    VersionString,
-)
 
 
 class TelemetryEnrichmentPort(ABC):

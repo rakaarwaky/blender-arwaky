@@ -45,7 +45,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
-from modules.shared.src.gateway.utility.utility_schema import (
+from modules.shared.src.gateway.utility.utility_schema_helper import (
     effective_command_timeout_ms,
     get_command_spec,
     validate_command_args,

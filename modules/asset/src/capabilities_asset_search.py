@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
-from modules.shared.src.asset.utility.utility_polyhaven import polyhaven_search
-from modules.shared.src.asset.utility.utility_sketchfab import sketchfab_search
+from modules.shared.src.asset.utility.utility_polyhaven_search import polyhaven_search
+from modules.shared.src.asset.utility.utility_sketchfab_search import sketchfab_search
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
     NextPageToken,

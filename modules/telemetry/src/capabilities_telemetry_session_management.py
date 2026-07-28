@@ -7,7 +7,6 @@ generation and management per FR-TLM-003.
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import uuid
 
@@ -74,5 +73,4 @@ class TelemetrySessionManager(TelemetrySessionProtocol):
                 return SessionId(f"session-{random_id}")
             except Exception as fallback_error:
                 logger.error("Session ID generation failed completely: %s", fallback_error)
-                # Ultimate fallback: use process ID (still anonymous)
-                return SessionId(f"session-proc-{os.getpid()}")
+                raise RuntimeError("Session ID generation failed after UUID fallback") from fallback_error

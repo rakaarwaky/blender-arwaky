@@ -12,6 +12,7 @@ metadata:
     - cleanup-consolidate-python
     - create-capabilities-python
 ---
+
 # lint-arwaky-python — Complete Command & Argument Reference
 
 Run `lint-arwaky-cli` scanner and MCP server for Python projects. Validates AES (Architecture Error Standards) compliance, checks layer violations, and helps fix architecture issues.
@@ -55,16 +56,16 @@ Scans target Python workspace, discovers modules, and runs all linters.
 
 ```bash
 # Basic scan (defaults to text format)
-lint-arwaky-cli scan project/modules
+lint-arwaky-cli scan test-workspaces/modules
 
 # Scan with specific output format (text | json | sarif | junit)
-lint-arwaky-cli scan project/modules --format json
+lint-arwaky-cli scan test-workspaces/modules --format json
 
 # Filter scan results by rule code (e.g. AES201, AES401)
-lint-arwaky-cli scan project/modules --filter AES201
+lint-arwaky-cli scan test-workspaces/modules --filter AES201
 
 # Save reports to custom directory
-lint-arwaky-cli scan project/modules --format json --output-dir ~/.local/share/lint-arwaky/reports
+lint-arwaky-cli scan test-workspaces/modules --format json --output-dir ~/.local/share/lint-arwaky/reports
 ```
 
 **Arguments & Flags**:
@@ -243,14 +244,13 @@ lint-arwaky-cli version
 
 `lint-arwaky-mcp` exposes 5 JSON-RPC 2.0 tools over STDIO for AI clients (Claude Code, Cursor, Windsurf, Hermes):
 
-
-| Tool Name         | Description                             | Arguments / Parameters                                                                                                                         |
-| :------------------ | :---------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `execute_command` | Execute any CLI command action          | `action` (required: `"scan"`, `"check"`, `"fix"`, `"security"`, `"doctor"`, etc.), `args` (optional JSON object, e.g. `{"path": "/abs/path"}`) |
-| `list_commands`   | List available CLI commands catalog     | `domain` (optional: filter by domain string, e.g. `"setup"`, `"check"`)                                                                        |
-| `read_skill`      | Read`SKILL.md` documentation by section | `section` (optional: header name to extract)                                                                                                   |
-| `health_check`    | Check MCP server & adapter health       | None (0 parameters)                                                                                                                            |
-| `get_config`      | Get active architecture config          | `path` (optional project path), `language` (optional: `"rust"`, `"python"`, `"javascript"`)                                                    |
+| Tool Name | Description | Arguments / Parameters |
+| :--- | :--- | :--- |
+| `execute_command` | Execute any CLI command action | `action` (required: `"scan"`, `"check"`, `"fix"`, `"security"`, `"doctor"`, etc.), `args` (optional JSON object, e.g. `{"path": "/abs/path"}`) |
+| `list_commands` | List available CLI commands catalog | `domain` (optional: filter by domain string, e.g. `"setup"`, `"check"`) |
+| `read_skill` | Read `SKILL.md` documentation by section | `section` (optional: header name to extract) |
+| `health_check` | Check MCP server & adapter health | None (0 parameters) |
+| `get_config` | Get active architecture config | `path` (optional project path), `language` (optional: `"rust"`, `"python"`, `"javascript"`) |
 
 ### Example MCP JSON-RPC Payload
 
