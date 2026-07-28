@@ -1,5 +1,10 @@
-"""Scene domain shared taxonomy constants."""
+"""Scene domain shared taxonomy constants and contracts."""
 
+from .contract_scene_aggregate import (
+    SceneCleanupProtocol,
+    SceneInspectionPort,
+    SceneOperateProtocol,
+)
 from .taxonomy_scene_constant import (
     CLEANUP_CONFIRMATION_REQUIRED,
     CLEANUP_TIMEOUT_SECONDS,

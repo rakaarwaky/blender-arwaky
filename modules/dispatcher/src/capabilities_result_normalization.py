@@ -55,6 +55,8 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             error_category = raw_outcome.get("error_category")
             warnings = list(raw_outcome.get("warnings", []) or [])
             metadata = dict(raw_outcome.get("metadata", {}) or {})
+            # Surface the execution context for consumers (FR-DSP-006 metadata summary).
+            metadata["is_background"] = is_background
 
             # Process and sanitize data payload
             if data is not None:

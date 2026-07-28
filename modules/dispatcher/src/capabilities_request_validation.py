@@ -102,13 +102,15 @@ class RequestValidationExecutor(RequestValidationProtocol):
             )
 
         # Timeout-override bounds (FR-DSP-003)
-        if request.timeout_override is not None:
-            if request.timeout_override < 0 or request.timeout_override > self._max_timeout_override:
-                raise DispatchRequestError(
-                    f"Timeout override {request.timeout_override} out of bounds "
-                    f"[0, {self._max_timeout_override}]",
-                    "timeout_error",
-                )
+        if request.timeout_override is not None and (
+            request.timeout_override < 0
+            or request.timeout_override > self._max_timeout_override
+        ):
+            raise DispatchRequestError(
+                f"Timeout override {request.timeout_override} out of bounds "
+                f"[0, {self._max_timeout_override}]",
+                "timeout_error",
+            )
 
         resolved_metadata = {
             "owning_feature_ref": metadata.owning_feature_ref,

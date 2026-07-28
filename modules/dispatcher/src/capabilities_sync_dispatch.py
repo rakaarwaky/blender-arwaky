@@ -9,7 +9,8 @@ FR-DSP-004: Dispatch Synchronous Action
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
@@ -64,7 +65,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
                             future.cancel()
                             raise TimeoutError(
                                 f"Action '{action_name}' exceeded timeout {applied_timeout}s"
-                            )
+                            ) from None
                 else:
                     result = self._execute.execute_action(action_name, params)
             else:
