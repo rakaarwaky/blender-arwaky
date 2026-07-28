@@ -2,10 +2,10 @@
 
 FR-MCP-002: Route Tool Calls — every tool call routes to the same feature
 aggregate the CLI surface uses; the surface never retries, composes, or
-reinterprets the result. This suite injects a fake agent container, captures
+reinterprets the result. This suite injects fake container services, captures
 the registered tool functions, invokes them, and asserts they delegate to the
-correct orchestrator method with the correct arguments and pass the result
-through unchanged.
+correct service method with the correct arguments and pass the result through
+unchanged.
 """
 
 from __future__ import annotations
@@ -18,34 +18,56 @@ from modules.mcp.src.surface_command_execute import CommandExecuteHandler
 from modules.mcp.src.surface_commands_list import CommandsListHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
 from modules.mcp.src.surface_skill_read import SkillReadHandler
+from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
 class FakeOrchestrator:
-    """Records every call the surface makes into ``calls``."""
+    """Matches DispatcherOrchestrator's real interface (FR-DSP-002/004)."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple]] = []
 
-    async def execute_action(self, action, args):
+    def execute_action(self, action, args):
         self.calls.append(("execute_action", (action, args)))
         return {"routed": "execute_action", "action": action}
 
-    def list_commands(self, domain, fmt):
-        self.calls.append(("list_commands", (domain, fmt)))
-        return {"routed": "list_commands"}
+    def discover_actions(self, name_filter=None, capability_filter=None, detail_level="standard"):
+        self.calls.append(("discover_actions", (name_filter, capability_filter, detail_level)))
+        return {"routed": "discover_actions", "filter": capability_filter}
 
-    def read_skill_context(self, name, section):
-        self.calls.append(("read_skill_context", (name, section)))
-        return {"routed": "read_skill_context"}
 
-    def health_check(self):
-        self.calls.append(("health_check", ()))
-        return {"routed": "health_check"}
+class FakeDiagnostics:
+    """Matches DiagnosticsCapability's async get_snapshot interface."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple]] = []
+
+    async def get_snapshot(self, detail_level="summary", section_filter=None):
+        self.calls.append(("get_snapshot", (detail_level, section_filter)))
+        return {"health": "ok", "detail_level": detail_level}
+
+
+class FakeSkillReader:
+    """Matches SkillDocumentationReader's read_skill interface."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple]] = []
+
+    def read_skill(self, skill_name, section=None):
+        self.calls.append(("read_skill", (skill_name, section)))
+        return f"# {skill_name}\n\nSkill content."
 
 
 class FakeContainer:
-    def __init__(self, orchestrator: FakeOrchestrator) -> None:
+    def __init__(
+        self,
+        orchestrator: FakeOrchestrator,
+        diagnostics: FakeDiagnostics,
+        skill_reader: FakeSkillReader,
+    ) -> None:
         self.core_agent_orchestrator = orchestrator
+        self.diagnostics = diagnostics
+        self.skill_reader = skill_reader
 
 
 class FakeMCP:
@@ -61,11 +83,13 @@ class FakeMCP:
 
 
 class TestExecuteCommandRouting:
-    """execute_command -> orchestrator.execute_action (async)."""
+    """execute_command -> orchestrator.execute_action (sync facade, FR-DSP-004)."""
 
     async def test_routes_to_execute_action(self):
         orch = FakeOrchestrator()
-        container = FakeContainer(orch)
+        diag = FakeDiagnostics()
+        reader = FakeSkillReader()
+        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
             "modules.mcp.src.surface_command_execute.get_container",
@@ -81,7 +105,9 @@ class TestExecuteCommandRouting:
 
     async def test_defaults_args_to_empty_dict(self):
         orch = FakeOrchestrator()
-        container = FakeContainer(orch)
+        diag = FakeDiagnostics()
+        reader = FakeSkillReader()
+        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
             "modules.mcp.src.surface_command_execute.get_container",
@@ -94,11 +120,13 @@ class TestExecuteCommandRouting:
 
 
 class TestListCommandsRouting:
-    """list_commands -> orchestrator.list_commands (sync)."""
+    """list_commands -> orchestrator.discover_actions (FR-DSP-002)."""
 
     def test_routes_to_list_commands(self):
         orch = FakeOrchestrator()
-        container = FakeContainer(orch)
+        diag = FakeDiagnostics()
+        reader = FakeSkillReader()
+        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
             "modules.mcp.src.surface_commands_list.get_container",
@@ -107,16 +135,18 @@ class TestListCommandsRouting:
             CommandsListHandler.register_list_commands(mcp)
             result = mcp.tools["list_commands"](None, None)
 
-        assert orch.calls[0][0] == "list_commands"
-        assert result == {"routed": "list_commands"}
+        assert orch.calls[0][0] == "discover_actions"
+        assert result == {"routed": "discover_actions", "filter": None}
 
 
 class TestReadSkillContextRouting:
-    """read_skill_context -> orchestrator.read_skill_context (sync)."""
+    """read_skill_context -> skill_reader.read_skill (static docs surface)."""
 
     def test_routes_to_read_skill_context(self):
         orch = FakeOrchestrator()
-        container = FakeContainer(orch)
+        diag = FakeDiagnostics()
+        reader = FakeSkillReader()
+        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
             "modules.mcp.src.surface_skill_read.get_container",
@@ -125,16 +155,18 @@ class TestReadSkillContextRouting:
             SkillReadHandler.register_read_skill_context(mcp)
             result = mcp.tools["read_skill_context"]("skill_x", None)
 
-        assert orch.calls == [("read_skill_context", ("skill_x", None))]
-        assert result == {"routed": "read_skill_context"}
+        assert reader.calls[0][0] == "read_skill"
+        assert result == Prompt("# skill_x\n\nSkill content.")
 
 
 class TestHealthCheckRouting:
-    """health_check -> orchestrator.health_check (async)."""
+    """health_check -> diagnostics.get_snapshot (FR-DIA-001)."""
 
     async def test_routes_to_health_check(self):
         orch = FakeOrchestrator()
-        container = FakeContainer(orch)
+        diag = FakeDiagnostics()
+        reader = FakeSkillReader()
+        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
             "modules.mcp.src.surface_health_check.get_container",
@@ -143,5 +175,5 @@ class TestHealthCheckRouting:
             HealthCheckHandler.register_health_check(mcp)
             result = await mcp.tools["health_check"]()
 
-        assert orch.calls == [("health_check", ())]
-        assert result == {"routed": "health_check"}
+        assert diag.calls == [("get_snapshot", ("summary", None))]
+        assert "health" in str(result)

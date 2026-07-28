@@ -12,9 +12,15 @@ Layers:
       - SceneContainer
 """
 
+from .agent_scene_orchestrator import SceneOrchestrator
+from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
+from .capabilities_scene_inspection_executor import SceneInspectionExecutor
 from .root_scene_container import SceneContainer, create_scene_container
 
 __all__ = [
+    "SceneOrchestrator",
+    "SceneCleanupExecutor",
+    "SceneInspectionExecutor",
     "SceneContainer",
     "create_scene_container",
 ]

@@ -15,11 +15,21 @@ Surface layer is intentionally absent — MCP/CLI command handlers live in
 their respective feature modules (modules/mcp, modules/cli).
 """
 
-from . import root_asset_container
+from .agent_asset_orchestrator import AssetOrchestrator
+from .capabilities_asset_download import AssetDownloadCapability
+from .capabilities_asset_extract import AssetExtractCapability
+from .capabilities_asset_import import AssetImportCapability
+from .capabilities_asset_provider import AssetProviderMetadataCapability
+from .capabilities_asset_search import AssetSearchCapability
 from .root_asset_container import AssetContainer, create_asset_container
 
 __all__ = [
+    "AssetOrchestrator",
+    "AssetDownloadCapability",
+    "AssetExtractCapability",
+    "AssetImportCapability",
+    "AssetProviderMetadataCapability",
+    "AssetSearchCapability",
     "AssetContainer",
     "create_asset_container",
-    "root_asset_container",
 ]

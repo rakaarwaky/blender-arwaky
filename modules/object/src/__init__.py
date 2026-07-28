@@ -12,6 +12,7 @@ their respective feature modules (modules/mcp, modules/cli).
 """
 
 from . import root_object_container
+from .agent_object_orchestrator import ObjectOrchestrator
 from .capabilities_apply_modifier_executor import ApplyModifierExecutor
 from .capabilities_create_primitive_executor import CreatePrimitiveExecutor
 from .capabilities_delete_object_executor import DeleteObjectExecutor
@@ -22,6 +23,7 @@ from .capabilities_set_transform_executor import SetTransformExecutor
 from .root_object_container import ObjectContainer, create_object_feature
 
 __all__ = [
+    "ObjectOrchestrator",
     "ApplyModifierExecutor",
     "CreatePrimitiveExecutor",
     "DeleteObjectExecutor",

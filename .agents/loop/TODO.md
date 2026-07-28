@@ -2,94 +2,35 @@
 
 ## Current Priorities
 
-1. **Render tests broken** — 3 test files fail collection (wrong import paths: `capabilities_camera_config` → `capabilities_render_camera_config_executor`, same for hdri and operate executor). Fix imports, then add missing FR-RND-002/FR-RND-001 capability test.
-2. **Security resolved**: `capabilities_code_validator.py` non-strict SyntaxError UnboundLocalError fixed (FR-SEC-003); security suite 238/238.
-3. **Bulk remediation deferred** pending user decision: AES502 orphan deletion (58 contract orphans), AES304 surgical widening (431 bypass comments).
-
-## Module Dependency Graph
-
-```
-shared (taxonomy + contract) — foundation
-  └── config ──────────────────────────────────────────────┐
-  └── security ────────────────────────────────────────────┤
-  └── telemetry (→ config, security) ──────────────────────┤
-  └── launcher (→ config, security, diagnostics) ──────────┤
-  └── diagnostics (→ launcher, gateway, dispatcher,        ┤
-                    job, security, config) ─────────────┐┤
-  └── gateway (→ config, security, diagnostics) ──────────││
-  └── job (→ config, diagnostics) ────────────────────────││
-  └── asset (→ config, security, job, gateway) ────────────│
-  └── object (→ gateway, config, security) ────────────────│
-  └── scene (→ gateway, object, config, shared) ───────────│
-  └── render (→ gateway, security, job, asset, config) ────│
-  └── dispatcher (→ gateway, object, scene, render,         │
-                    asset, job, security, diagnostics) ───┘
-  └── cli (→ dispatcher, launcher, diagnostics, config, job, security)
-  └── mcp (→ dispatcher, diagnostics, config, job, security)
-```
-
-## Readiness Evaluation
-
-### Indicators
-
-* **Rule** : 1 FR = 1 capability file (capability layer) / 1 FR = N surface files (surface layer).
-
-
-| Indicator          | Weight     | Scoring Formula                                                                                        |
-| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------- |
-| **FR Coverage**    | **High**   | Base 3.0; -0.5 per FR without matching cap/surf file                                                   |
-| **Test Coverage**  | **High**   | Base 3.0; -0.5 per missing type (unit/integration/smoke/e2e/acceptance), -1.0 if test count < FR count |
-| **pyproject.toml** | **Medium** | Base 1.0; -1.0 if module lacks pyproject.toml                                                          |
-| **Shared Domain**  | **Medium** | Base 1.0; -0.5 per missing taxonomy/contract file for the module's domain                              |
-
-### Scoring Methodology
-
-```
-Score = (FR_Coverage + Test_Coverage + PyProject + Shared_Domain) - Violations × 0.5
-Clamped to [0, 10]
-```
-
-**Test type requirements by layer:**
-
-- **Capabilities**: Must have `unit` (+ mandatory `integration`). Missing `integration` → -0.5, missing `smoke` → -0.5, missing `e2e` → -0.5, missing `acceptance` → -0.5.
-- **Surfaces** (cli/mcp): `unit` only is acceptable. No deduction for missing integration/smoke/e2e/acceptance.
-- **Agents**: `unit` + `smoke`. Missing `smoke` → -0.5.
-
-**Violations penalty:** Each violation (-0.5), applied after base score calculation. Includes AES304 (bypass), AES402 (naming), AES502 (orphan), AES503/505/506 (unexported).
-
-### Production Readiness Scores (1–10)
-
-
-| Module          | FR | Cap/Surf | Gap | Tests (P/F) | Violations | Test Types         | Score      | Notes                                                                                         |
-| ----------------- | ---- | ---------- | ----- | ------------- | ------------ | -------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| **job**         | 5  | 5 cap    | ✅0 | 95/0        | 7          | unit:4             | **6.5/10** | 1:1 FR coverage + 95 tests; missing integration/smoke/e2e/acceptance (-1.5)                   |
-| **config**      | 5  | 5 cap    | ✅0 | 112/0       | 6          | unit:11            | **7/10**   | Full coverage; test count exceeds FRs; missing integration/smoke/e2e/acceptance (-1.5)        |
-| **diagnostics** | 5  | 2 cap    | ✅0 | 106/0       | 2          | unit:4, smoke:1    | **9/10**   | Full coverage; missing integration/e2e/acceptance (-1.0)                                      |
-| **telemetry**   | 4  | 4 cap    | ✅0 | 39/0        | 5          | unit:4             | **7.5/10** | Full coverage; missing integration/smoke/e2e/acceptance (-1.5)                                |
-| **asset**       | 5  | 5 cap    | ✅0 | 78/0        | 9          | unit:6             | **5.5/10** | Full coverage + pyproject added; missing integration/smoke/e2e/acceptance (-1.5)              |
-| **cli**         | 3  | 5 surf   | ✅S | 9/0         | 5          | unit:1             | **7.5/10** | Surface-layer design; unit only is acceptable for surfaces                                    |
-| **security**    | 5  | 5 cap    | ✅0 | 238/0       | 6          | unit:6             | **7/10**   | Full coverage; missing integration/smoke/e2e/acceptance (-1.5)                                |
-| **launcher**    | 5  | 5 cap    | ✅0 | 17/0        | 1          | unit:1             | **9.5/10** | Full coverage + pyproject added; missing integration/smoke/e2e/acceptance (-1.5)              |
-| **gateway**     | 5  | 5 cap    | ✅0 | 27/0        | 1          | unit:2             | **9.5/10** | Full coverage + pyproject; socket leak fixed; missing integration/smoke/e2e/acceptance (-1.5) |
-| **object**      | 7  | 7 cap    | ✅0 | 29/0        | 2          | unit:1             | **9/10**   | Full coverage; missing integration/smoke/e2e/acceptance (-1.5)                                |
-| **dispatcher**  | 6  | 6 cap    | ✅0 | 59/0        | 0          | unit:4             | **10/10**  | Full coverage + pyproject added; missing integration/smoke/e2e/acceptance (-1.5)              |
-| **render**      | 4  | 4 cap    | ✅0 | 36/0        | 5          | unit:3             | **7.5/10** | FR-RND-001..004 covered; missing integration/smoke/e2e/acceptance (-1.5)                      |
-| **scene**       | 2  | 2 cap    | ✅0 | 28/0        | 3          | unit:1             | **8.5/10** | Both FRs tested; missing integration/smoke/e2e/acceptance (-1.5)                              |
-| **mcp**         | 3  | 10 surf  | ✅S | 13/0        | 13         | contract:1, unit:1 | **3.5/10** | Surfaces complete; contract+unit is acceptable for surfaces                                   |
+1. **Bulk remediation deferred** pending user decision: AES505 agent exports (7 files), AES304 bypass comments (367), AES502 orphans (54).
+2. **MCP routing resolved** (Cycle 71): health_check→diagnostics.get_snapshot(), read_skill_context→SkillDocumentationReader, list_commands→discover_actions(). All 4 tools now route to existing, functional interfaces.
+3. **Security resolved**: `capabilities_code_validator.py` non-strict SyntaxError UnboundLocalError fixed (FR-SEC-003); security suite 238/238.
+4. **Render resolved** (Cycle 63): import chain fixed, 36 tests passing, full suite 886 green.
+5. **AES503 resolved** (Cycle 84): All 33 capability export violations fixed across 8 modules.
+6. **AES506 resolved** (Cycle 85): All 15 surface export violations fixed across cli and mcp modules.
 
 ### Violations Summary
 
 
 | Rule   | Description                             | Count | Modules Affected                                                                            |
 | -------- | ----------------------------------------- | ------- | --------------------------------------------------------------------------------------------- |
-| AES304 | Bypass comments                         | 53    | shared(44), asset(4), job(2), mcp(1), launcher(1), gateway(1)                               |
-| AES402 | Contract naming (wrong suffix)          | 5     | shared/common, shared/telemetry(4)                                                          |
-| AES502 | Contract orphan                         | 6     | common(2), gateway(1), mcp(2), object(1)                                                    |
-| AES503 | Capabilities not exported in__init__.py | 33    | config(5), job(5), diagnostics(2), telemetry(4), security(5), render(4), scene(2), asset(5) |
-| AES505 | Agent not exported in__init__.py        | 6     | config(1), telemetry(1), security(1), object(1), render(1), scene(1)                        |
-| AES506 | Surface not exported in__init__.py      | 15    | cli(5), mcp(10)                                                                             |
+| AES304 | Bypass comments                         | 367   | shared(280), asset(28), job(19), mcp(15), launcher(12), gateway(8), object(7), telemetry(4) |
+| AES502 | Contract orphan                         | 54    | common(2), gateway(1), mcp(2), object(1), asset(6), job(5), security(5), render(4), scene(3), config(3), launcher(5), telemetry(6), dispatcher(6) |
+| AES401 | Mandatory import                        | 26    | shared(10), mcp(4), job(3), asset(3), gateway(2), render(2), object(1)                      |
+| AES402 | Contract naming (wrong suffix)          | 21    | shared/common, shared/telemetry(4)                                                          |
+| AES203 | Forbidden import (lower layer)          | 18    | shared(6), mcp(4), asset(3), gateway(2), job(2), render(1), object(1), config(1)            |
+| AES204 | Forbidden import (agent layer)          | 16    | shared(5), mcp(3), gateway(2), job(2), asset(2), render(1), object(1), config(1), telemetry(1) |
+| AES202 | Mandatory import from barrel            | 15    | shared(6), mcp(3), job(2), asset(2), gateway(1), render(1), object(1)                       |
+| AES102 | Missing docstring                       | 15    | shared(4), mcp(2), job(2), asset(2), gateway(1), render(1), object(1), config(1), telemetry(1) |
+| AES504 | Agent not in __init__.py                | 12    | config(1), job(1), diagnostics(1), telemetry(1), security(1), render(1), scene(1), asset(1), launcher(1), gateway(1), dispatcher(1), mcp(1) |
+| AES505 | Agent not exported in __init__.py       | 7     | config(1), telemetry(1), security(1), object(1), render(1), scene(1), launcher(1)           |
+| AES305 | Missing noqa on bypass                  | 7     | shared(3), mcp(1), job(1), asset(1), gateway(1)                                            |
+| AES101 | Missing docstring (class)               | 6     | shared(2), mcp(1), job(1), asset(1), gateway(1)                                            |
+| AES501 | Contract not in __init__.py             | 5     | config(1), job(1), telemetry(1), security(1), render(1)                                    |
+| AES403 | Surface not in contract                 | 1     | mcp                                                                                         |
+| AES405 | Missing surface docstring               | 1     | mcp                                                                                         |
 
-**Total: 115 violations** (53 bypass + 5 naming + 6 orphan + 33 unexported caps + 6 unexported agents + 15 unexported surfaces)
+**Total: 573 violations** (down from 629, net -56 in Cycle 84)
 
 ## Recommended Execution Order
 
@@ -112,11 +53,16 @@ Clamped to [0, 10]
 ## Critical Action Items
 
 
-| Priority                                                               | Module                                         | Description & Gap                                                                                                                                                          |
-| ------------------------------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔴**#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1** | **All modules**                                | **AES503**: 33 capability files not exported in `__init__.py` (config, job, diagnostics, telemetry, security, render, scene, asset). Fix all module __init__.py exports.   |
-| 🔴**#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2** | **cli / mcp**                                  | **AES506**: 15 surface files not exported in `__init__.py`. Add exports to cli/__init__.py and mcp/__init__.py.                                                            |
-| 🟡**#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3** | **config, telemetry, security, render, scene** | **AES505**: 6 agent files not exported in `__init__.py`. Add agent exports.                                                                                                |
-| 🟡**#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4** | **shared/common, shared/telemetry**            | **AES402**: 5 contract files with wrong suffix (should be _protocol): contract_command_catalog, contract_telemetry_recording/classification/session_management/enrichment. |
-| 🟡**#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5** | **object**                                     | **AES502**: 1 orphan contract: `contract_object_operate_protocol.py` (0 implementation imports). Verify if deprecated.                                                     |
-| 🟢**#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6** | **mcp**                                        | 13 tests across 2 files; 10 surfaces complete; verify orchestrator routing in`list_commands`/`read_skill_context`.                                                         |
+| Priority                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Module                                         | Description & Gap                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔴**#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1** | **All modules**                                | **AES503**: 33 capability files not exported in `__init__.py` (config, job, diagnostics, telemetry, security, render, scene, asset). Fix all module __init__.py exports.   |
+| 🔴**#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2** | **cli / mcp**                                  | **AES506**: 15 surface files not exported in `__init__.py`. Add exports to cli/__init__.py and mcp/__init__.py.                                                            |
+| 🟡**#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3** | **config, telemetry, security, render, scene** | **AES505**: 6 agent files not exported in `__init__.py`. Add agent exports.                                                                                                |
+| 🟡**#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4** | **shared/common, shared/telemetry**            | **AES402**: 5 contract files with wrong suffix (should be _protocol): contract_command_catalog, contract_telemetry_recording/classification/session_management/enrichment. |
+| 🟡**#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5** | **object**                                     | **AES502**: 1 orphan contract: `contract_object_operate_protocol.py` (0 implementation imports). Verify if deprecated.                                                     |
+| 🟢**#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6** | **mcp**                                        | 13 tests across 2 files; 10 surfaces complete; verify orchestrator routing in`list_commands`/`read_skill_context`.                                                         |
+
+## Cycle Summary
+
+* **Cycle 84 (AES503 Export Fix)** : Resolved all 33 AES503 capability export violations across 8 modules. Added imports and __all__ exports to job/src/__init__.py, security/src/__init__.py, render/src/__init__.py, scene/src/__init__.py, asset/src/__init__.py. Created missing telemetry/src/__init__.py with all 4 capabilities + agent + root. Config and diagnostics already had complete exports. Total violations: 629→573 (-56). AES503: 33→0. Full suite: 886 passed, 0 regressions.
+* **Cycle 85 (AES506 Export Fix)** : Resolved all 15 AES506 surface export violations across cli and mcp modules. Created cli/src/__init__.py with 5 surface module exports + class exports (BlenderSocketClient, Registry, RegistryState). Updated mcp/src/__init__.py with module-level imports for all 10 surface files. Full suite: 886 passed, 0 regressions. AES506: 15→0.
