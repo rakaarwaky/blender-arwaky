@@ -85,7 +85,8 @@ def build_inspection_code(request: SceneInspectionVO) -> PythonCode:
 def build_cleanup_execution_code(request: SceneCleanupPolicyVO) -> PythonCode:
     """Build Blender cleanup execution code."""
     mode = request.mode or CLEANUP_MODE_ALL
-    preserve_list = request.preservation_list or []
+    preserve_cameras = request.preserve_cameras
+    preserve_lights = request.preserve_lights
 
     lines = [
         "import bpy",
@@ -94,7 +95,8 @@ def build_cleanup_execution_code(request: SceneCleanupPolicyVO) -> PythonCode:
         "scene = bpy.context.scene",
         "view_layer = bpy.context.view_layer",
         f"cleanup_mode = '{mode}'",
-        f"preserve_list = {preserve_list!r}",
+        f"preserve_cameras = {preserve_cameras!r}",
+        f"preserve_lights = {preserve_lights!r}",
         "",
         "removed_count = 0",
         "preserved_count = 0",
@@ -105,15 +107,12 @@ def build_cleanup_execution_code(request: SceneCleanupPolicyVO) -> PythonCode:
         "",
         "def should_preserve(obj):",
         "    obj_type = obj.type",
-        "    if obj_type == 'CAMERA':",
+        "    if preserve_cameras and obj_type == 'CAMERA':",
         "        return True",
-        "    if obj_type == 'LIGHT':",
+        "    if preserve_lights and obj_type == 'LIGHT':",
         "        return True",
         "    if obj.name == bpy.context.scene.camera.name if bpy.context.scene.camera else False:",
         "        return True",
-        "    for preserve_name in preserve_list:",
-        "        if obj.name.lower().startswith(preserve_name.lower()):",
-        "            return True",
         "    return False",
         "",
         "for obj in scene.objects:",
@@ -147,7 +146,8 @@ def build_cleanup_execution_code(request: SceneCleanupPolicyVO) -> PythonCode:
 def build_cleanup_preview_code(request: SceneCleanupPolicyVO) -> PythonCode:
     """Build Blender cleanup preview (dry-run) code."""
     mode = request.mode or CLEANUP_MODE_ALL
-    preserve_list = request.preservation_list or []
+    preserve_cameras = request.preserve_cameras
+    preserve_lights = request.preserve_lights
 
     lines = [
         "import bpy",
@@ -155,7 +155,8 @@ def build_cleanup_preview_code(request: SceneCleanupPolicyVO) -> PythonCode:
         "",
         "scene = bpy.context.scene",
         f"cleanup_mode = '{mode}'",
-        f"preserve_list = {preserve_list!r}",
+        f"preserve_cameras = {preserve_cameras!r}",
+        f"preserve_lights = {preserve_lights!r}",
         "",
         "candidates_count = 0",
         "preserved_count = 0",
@@ -164,15 +165,12 @@ def build_cleanup_preview_code(request: SceneCleanupPolicyVO) -> PythonCode:
         "",
         "def should_preserve(obj):",
         "    obj_type = obj.type",
-        "    if obj_type == 'CAMERA':",
+        "    if preserve_cameras and obj_type == 'CAMERA':",
         "        return True",
-        "    if obj_type == 'LIGHT':",
+        "    if preserve_lights and obj_type == 'LIGHT':",
         "        return True",
         "    if obj.name == bpy.context.scene.camera.name if bpy.context.scene.camera else False:",
         "        return True",
-        "    for preserve_name in preserve_list:",
-        "        if obj.name.lower().startswith(preserve_name.lower()):",
-        "            return True",
         "    return False",
         "",
         "for obj in scene.objects:",

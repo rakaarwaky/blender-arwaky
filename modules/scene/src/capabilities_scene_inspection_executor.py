@@ -31,6 +31,8 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
 
     # ─── Block 1: definition + constructor ─────────────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+        if code_executor is None:
+            raise ValueError("code_executor must be provided")
         self._code_executor = code_executor
 
     # ─── Block 2: protocol methods only ───────────────────────
@@ -60,7 +62,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 total_object_count=summary.total_object_count,
                 message=Prompt("Scene inspection completed"),
             )
-            logger.info(event.to_prompt())
+            logger.info(event.message)
 
             return SceneInspectionVO(
                 detail_level=request.detail_level,
