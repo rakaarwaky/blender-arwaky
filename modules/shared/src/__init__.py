@@ -306,10 +306,10 @@ from .gateway.taxonomy_gateway_vo import (
     TransportType,
 )
 
-from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
-from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
-from .mcp.contract_server_health_protocol import ServerHealthProtocol
-from .mcp.contract_server_response_protocol import ServerResponseProtocol
+from .mcp.contract_discovery_protocol import ServerDiscoveryProtocol
+from .mcp.contract_execute_protocol import ServerExecuteProtocol
+from .mcp.contract_health_protocol import ServerHealthProtocol
+from .mcp.contract_response_protocol import ServerResponseProtocol
 from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from .object.contract_delete_object_protocol import DeleteObjectProtocol

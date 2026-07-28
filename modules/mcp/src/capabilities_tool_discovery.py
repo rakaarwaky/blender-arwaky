@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 
-from modules.shared.src.mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
+from modules.shared.src.mcp.contract_discovery_protocol import ServerDiscoveryProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

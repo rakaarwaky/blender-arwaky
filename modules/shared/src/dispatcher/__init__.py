@@ -30,3 +30,12 @@ from .contract_dispatcher_aggregate import (
     ResultNormalizationProtocol,
     SyncDispatchProtocol,
 )
+
+__all__ += [
+    "ActionDiscoveryProtocol",
+    "BackgroundSubmitProtocol",
+    "CatalogRegistrationProtocol",
+    "RequestValidationProtocol",
+    "ResultNormalizationProtocol",
+    "SyncDispatchProtocol",
+]

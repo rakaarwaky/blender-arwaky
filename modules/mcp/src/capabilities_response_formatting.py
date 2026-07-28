@@ -17,7 +17,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     SuccessFlag,
 )
-from modules.shared.src.mcp.contract_server_response_protocol import ServerResponseProtocol
+from modules.shared.src.mcp.contract_response_protocol import ServerResponseProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 

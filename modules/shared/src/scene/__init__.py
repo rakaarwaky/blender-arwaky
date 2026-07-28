@@ -22,6 +22,10 @@ from .taxonomy_scene_constant import (
 )
 
 __all__ = [
+    "SceneCleanupProtocol",
+    "SceneInspectionPort",
+    "SceneOperateProtocol",
+
     "CLEANUP_CONFIRMATION_REQUIRED",
     "CLEANUP_TIMEOUT_SECONDS",
     "DEFAULT_CHILD_HANDLING_POLICY",

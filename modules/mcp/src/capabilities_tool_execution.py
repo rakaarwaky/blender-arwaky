@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ActionName
-from modules.shared.src.mcp.contract_server_execute_protocol import ServerExecuteProtocol
+from modules.shared.src.mcp.contract_execute_protocol import ServerExecuteProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
