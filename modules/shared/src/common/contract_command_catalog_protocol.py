@@ -8,7 +8,7 @@ from .taxonomy_command_catalog_constant import CommandSpec
 from .taxonomy_core_vo import ActionName, DomainRef
 
 
-class CommandCatalogPort(ABC):
+class CommandCatalogProtocol(ABC):
     """Port interface for querying the command catalog."""
 
     @abstractmethod

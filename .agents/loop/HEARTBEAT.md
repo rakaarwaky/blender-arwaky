@@ -1,24 +1,42 @@
-# ARWAKY LOOP HEARTBEAT
+# ARWAKY LOOP HEARTBEAT — Summary
 
-### Core Infrastructure & Cleanup (Cycles 1–35)
+## (Cycles 1–35): Core Infrastructure & Cleanup
 
-* **Structural Cleanup & Traceability** : Deleted redundant capability/orchestrator files across MCP, CLI, render, job, diagnostics, and scene modules; achieved 100% FR traceability across all surface, capability, and orchestrator files.
 
-### Gateway, Security & Barrel Refactor (Cycles 36–53)
+| Area                   | Outcome                                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| **Structural Cleanup** | Deleted redundant capability/orchestrator files across MCP, CLI, render, job, diagnostics, and scene modules. |
+| **Traceability**       | Achieved**100% FR traceability** across all surface, capability, and orchestrator files.                      |
 
-* **Reconnection Logic (FR-GWY-002)** : Refactored `MaintenanceExecutor` to perform active reconnects and transition to `FAILED` state on exhaustion.
-* **Secret Redaction (FR-SEC-004)** : Hardened `SensitiveRedactor` and `AuditEmitter` against raw payload leaks in logs and audit events (Cycles 41–44).
-* **Barrel Realignments** : Realigned job barrels to `JobStatusSnapshot` (Cycle 46) and re-pointed broken imports to `taxonomy_job_constant.py` (Cycle 52), resolving collection errors.
-* **Dead File Removal** : Removed legacy monolith CLI entry files, clearing AES201 violations (Cycle 49).
+## (Cycles 36–53): Gateway, Security & Barrel Refactor
 
-### Socket Hardening & Test Suite Expansions (Cycles 54–60)
 
-* **Reconnect Counter Reset (Cycle 54)** : Fixed shared attempt counter accumulation in `MaintenanceExecutor` with per-session resets.
-* **Formatting & Socket Leak Fixes (Cycles 56–57)** : Added missing EOF newlines across 26 files (W292); fixed socket Descriptor leak on connection/auth failure paths in `ConnectionExecutor`.
-* **Packaging & Test Coverage** : Added missing `pyproject.toml` across 6 modules (Cycle 58); added comprehensive test suites for **Job** (+95 tests, Cycle 59) and **Diagnostics** (+100 tests, Cycle 60).
+| Area                                         | Outcome                                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Reconnection Logic** *(FR-GWY-002)*        | `MaintenanceExecutor` performs active reconnects; transitions to `FAILED` on exhaustion.              |
+| **Secret Redaction** *(FR-SEC-004, C41–44)* | Hardened`SensitiveRedactor` + `AuditEmitter` against raw payload leaks in logs/audit events.          |
+| **Barrel Realignments** *(C46, C52)*         | Job barrels realigned to`JobStatusSnapshot`; broken imports re-pointed to `taxonomy_job_constant.py`. |
+| **Dead File Removal** *(C49)*                | Removed legacy monolith CLI entry files →**AES201 violations cleared**.                              |
 
-### Security, Render, and MCP Fixes (Cycles 61–71)
+## (Cycles 54–60): Socket Hardening & Test Suite Expansion
 
-* **Security & Code Validator Fixes (Cycles 61–62)** : Resolved 24 security test failures; fixed `UnboundLocalError` crash in `CodeValidator` during non-strict unparseable code handling (FR-SEC-003).
-* **Render Test Suite & Scene Resolution (Cycle 63)** : Fixed `taxonomy_render_constant.py` imports; rewrote 36 render tests; scene refactor auto-resolved shared import breakage. Total passing tests reached 886.
-* **MCP Tool Routing Fix (Cycle 71)** : Resolved open MCP tool routing (FR-MCP-002) by directing commands to diagnostics (`get_snapshot`), skill documentation reader, and dispatcher (`discover_actions`/`execute_action`). Reduced linter violations from 634 to 629.
+
+| Area                                | Outcome                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Reconnect Counter Reset** *(C54)* | Fixed shared`_reconnect_attempts` accumulation with per-session resets.               |
+| **Formatting Fixes** *(C56)*        | Added missing EOF newlines to 26 files →**W292: 25 → 0**.                           |
+| **Socket Leak Fix** *(C57)*         | Fixed socket Descriptor leak on connection/auth failure paths in`ConnectionExecutor`. |
+| **Packaging** *(C58)*               | Added missing`pyproject.toml` across 6 modules.                                       |
+| **Job Tests** *(C59)*               | **+95 tests** added for Job module.                                                   |
+| **Diagnostics Tests** *(C60)*       | **+100 tests** added for Diagnostics module.                                          |
+
+## (Cycles 61–71): Security, Render & MCP Fixes
+
+
+| Area                                        | Outcome                                                                                                                           |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Security Tests** *(C61)*                  | Resolved**24 security test failures** (async wrappers, type annotations, enum refs).                                              |
+| **CodeValidator Crash** *(C62, FR-SEC-003)* | Fixed`UnboundLocalError` on non-strict unparseable code handling.                                                                 |
+| **Render Suite** *(C63)*                    | Fixed`taxonomy_render_constant.py` imports; rewrote **36 render tests**.                                                          |
+| **Scene Resolution** *(C63)*                | Scene refactor auto-resolved shared import breakage.                                                                              |
+| **MCP Tool Routing** *(C71, FR-MCP-002)*    | Routed commands →`diagnostics.get_snapshot()`, `SkillDocumentationReader`, `orchestrator.discover_actions()`/`execute_action()`. |
