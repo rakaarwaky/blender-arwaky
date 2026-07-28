@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from modules.shared.src.config.taxonomy_config_vo import EventPayload
-
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
+from modules.shared.src.config.taxonomy_config_vo import EventPayload
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────

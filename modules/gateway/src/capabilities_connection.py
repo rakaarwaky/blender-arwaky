@@ -462,15 +462,17 @@ class ConnectionExecutor(ConnectionProtocol):
         self._state = ConnectionState.CONNECTING
         logger.info("Establishing connection to %s:%d", self._config.host, self._config.port)
 
+        socket: socket.SocketType | None = None
         try:
             timeout = self._config.timeout_seconds or 30.0
-            self._socket = socket.create_connection((self._config.host, self._config.port), timeout=timeout)
+            socket = socket.create_connection((self._config.host, self._config.port), timeout=timeout)
             self._endpoint_summary = f"{self._config.host}:{self._config.port}"
             handshake_response = self._perform_handshake()
             self._protocol_version = handshake_response.get("protocol_version", self._config.protocol_version)
             if not self._is_protocol_compatible():
                 raise ProtocolVersionMismatchError(f"Protocol version {self._protocol_version} incompatible")
             self._authenticate_if_needed()
+            self._socket = socket
             self._state = ConnectionState.CONNECTED
             duration_ms = (time.time() - start_time) * 1000
             logger.info(
@@ -486,10 +488,14 @@ class ConnectionExecutor(ConnectionProtocol):
                 capabilities=self._capabilities,
             )
         except ProtocolVersionMismatchError:
+            self._safe_close_socket(socket)
             raise
         except AuthenticationError:
+            self._safe_close_socket(socket)
             raise
         except Exception as e:
+            # Close leaked socket on any failure path
+            self._safe_close_socket(socket)
             self._state = ConnectionState.FAILED
             logger.error("Connection failed: %s", e)
             return ConnectionOutcomeVO(
@@ -510,6 +516,14 @@ class ConnectionExecutor(ConnectionProtocol):
             self._state = ConnectionState.CLOSED
             self._socket = None
             logger.info("Connection closed")
+
+    def _safe_close_socket(self, sock: socket.SocketType | None) -> None:
+        """Close a socket without raising exceptions."""
+        if sock is not None:
+            try:
+                sock.close()
+            except Exception:
+                pass
 
     def _perform_handshake(self) -> dict:
         import uuid as _uuid

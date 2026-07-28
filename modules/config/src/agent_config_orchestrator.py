@@ -13,16 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import deque
-from collections.abc import Mapping
 from dataclasses import asdict
-
-
-from modules.shared.src.config.taxonomy_config_vo import (
-    EventPayload,
-    SettingsData,
-    SettingsOverrides,
-    SettingsValue,
-)
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
@@ -32,7 +23,15 @@ from modules.shared.src.config.contract_settings_metadata_protocol import ISetti
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
-from modules.shared.src.config.taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
+from modules.shared.src.config.taxonomy_config_vo import (
+    EventPayload,
+    RedactionRule,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSnapshot,
+    SettingsValue,
+    WorkspacePath,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 

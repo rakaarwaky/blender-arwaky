@@ -6,14 +6,12 @@ and redaction rules used by consuming features for masking.
 
 from __future__ import annotations
 
-from modules.shared.src.config.taxonomy_config_vo import SettingsData, SettingsValue
-
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     REDACTION_PLACEHOLDER,
     SENSITIVE_KEY_PATTERNS,
 )
-from modules.shared.src.config.taxonomy_config_vo import RedactionRule
+from modules.shared.src.config.taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
