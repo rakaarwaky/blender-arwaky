@@ -40,9 +40,6 @@ Follow this exact 5-step sequence. **Do not skip steps.**
 Execute the plan exactly as designed. Apply the fixes to actual source files.
 
 - Follow the relevant skill workflow if applicable
-- For **backend** (Rust/Python): implement logic, write tests, fix AES violations
-- For **frontend** (TypeScript/JS): implement UI components, hooks, pages
-- For **config**: update YAML, Cargo.toml, package.json
 - Write tests for any new or changed functionality
 - Do NOT deviate from the plan's design
 
@@ -85,14 +82,15 @@ gh pr create --base main --head develop --title "feat({scope}): {title}" --body 
 
 ## Branch Strategy
 
-| Step | Action |
-|------|--------|
-| 1 | Commit changes to `develop` branch |
-| 2 | Push `develop` to remote: `git push origin develop` |
-| 3 | Create PR from `develop` → `main`: `gh pr create --base main --head develop` |
-| 4 | After PR approved and merged → switch back to `develop` for next cycle |
+
+| Step | Action                                                                       |
+| ------ | ------------------------------------------------------------------------------ |
+| 1    | Commit changes to`develop` branch                                            |
+| 2    | Push`develop` to remote: `git push origin develop`                           |
+| 3    | Create PR from`develop` → `main`: `gh pr create --base main --head develop` |
 
 **Rules:**
+
 - Never commit directly to `main`
 - Always create PR from `develop` to `main`
 - Do NOT delete `develop` branch after merge to `main`
