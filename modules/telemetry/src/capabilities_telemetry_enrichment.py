@@ -28,14 +28,14 @@ from modules.shared.src.common.taxonomy_core_vo import (
     PlatformName,
     VersionString,
 )
-from modules.shared.src.telemetry.contract_telemetry_enrichment import (
-    TelemetryEnrichmentPort,
+from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import (
+    TelemetryEnrichmentProtocol,
 )
 
 logger = logging.getLogger("blender-arwaky-telemetry-service")
 
 
-class TelemetryEventEnricher(TelemetryEnrichmentPort):
+class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
     """Telemetry event enrichment implementation.
 
     FR-TLM-004: Enriches events with environment metadata (OS, app version,

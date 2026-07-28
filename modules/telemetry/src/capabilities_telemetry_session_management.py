@@ -15,14 +15,14 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SessionId,
     SuccessFlag,
 )
-from modules.shared.src.telemetry.contract_telemetry_session_management import (
-    TelemetrySessionManagementPort,
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
+    TelemetrySessionProtocol,
 )
 
 logger = logging.getLogger("blender-arwaky-telemetry-service")
 
 
-class TelemetrySessionManager(TelemetrySessionManagementPort):
+class TelemetrySessionManager(TelemetrySessionProtocol):
     """Telemetry session management implementation.
 
     FR-TLM-003: Manages anonymous session identifiers that persist
