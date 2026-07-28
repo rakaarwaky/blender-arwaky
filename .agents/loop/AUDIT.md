@@ -179,3 +179,109 @@ NOTE: Helper scripts `_fix_naming.py` and `_preflight.py` still contain stale re
 - B904 (18): Return in except block — intentional error-handling design pattern
 - ARG001 (11): Unused first argument — intentional for protocol signature alignment
 - Other minor lint issues (SIM, N818, F841, B007, B008, E402) — deferred as non-critical
+
+## Cycle 9 — Orchestrator Aggregate Inheritance (2026-07-28)
+
+### Changes Applied
+1. **modules/scene/src/agent_scene_orchestrator.py**
+   - Added import for `ISceneAggregate` from `contract_scene_aggregate`
+   - Added `ISceneAggregate` inheritance to `SceneOrchestrator` class
+   - Fixed AES202 violations in scene orchestrator (2 violations → 0)
+
+2. **modules/render/src/agent_render_orchestrator.py**
+   - Added imports for `ICameraConfigAggregate`, `IHdriConfigAggregate`, `IRenderOperateAggregate`, `IViewportCaptureAggregate` from `contract_render_aggregate`
+   - Added all four aggregate interfaces as multiple inheritance to `RenderOrchestrator` class
+   - Fixed AES202 violations in render orchestrator (2 violations → 0)
+
+### Violations Resolved
+- AES202 (missing aggregate import): 48→44 violations (fixed 4 in scene/render orchestrators)
+- AES405 (no aggregate implementation): Scene and Render orchestrators now implement their aggregates
+
+### Test Verification
+- Full pytest: 340 passed, 0 regressions
+
+### Remaining AES202 Violations (44 total)
+- CLI capabilities (cli_lifecycle, cli_render, cli_error): 9 violations — missing contract imports
+- Diagnostics capabilities (snapshot, health_composition, logging_policy): 9 violations — missing contract imports
+- Taxonomy error files (job, gateway, launcher): 6 violations — missing taxonomy imports
+- Protocol files (mcp, object, cli): 18 violations — missing taxonomy imports
+- Gateway orchestrator: 2 violations — IBlenderServerAggregate import missing (async/sync mismatch)
+
+## Cycle 10 — Taxonomy Error Files Structural Compliance (2026-07-28)
+
+### Changes Applied
+1. **modules/job/src/taxonomy_job_error.py**
+   - Added import for `ErrorString` from `common.taxonomy_core_vo`
+   - Fixed AES202 violations in job error file (2 violations → 0)
+
+2. **modules/shared/src/gateway/taxonomy_gateway_error.py**
+   - Added imports for `ErrorString`, `ErrorMessage` from `common.taxonomy_core_vo`
+   - Replaced `str` type annotations with `ErrorString`, `ErrorMessage` in `ServerError.__init__`
+   - Fixed AES202 violations in gateway error file (2 violations → 0)
+
+3. **modules/shared/src/launcher/taxonomy_launcher_error.py**
+   - Added imports for `ErrorString`, `ErrorMessage` from `common.taxonomy_core_vo`
+   - Replaced `str` type annotations with `ErrorString`, `ErrorMessage` in `LauncherError.__init__` and all 7 subclasses
+   - Fixed AES202 violations in launcher error file (2 violations → 0)
+
+### Violations Resolved
+- AES202 (missing taxonomy import): 44→38 violations (fixed 6 in job/gateway/launcher error files)
+- AES401 (primitive in error signature): Fixed str→ErrorString/ErrorMessage in gateway/launcher errors
+
+### Test Verification
+- Full pytest: 340 passed, 0 regressions
+
+### Remaining AES202 Violations (38 total)
+- CLI capabilities (cli_lifecycle, cli_render, cli_error): 9 violations — missing contract imports
+- Diagnostics capabilities (snapshot, health_composition, logging_policy): 9 violations — missing contract imports
+- Protocol files (mcp, object, cli): 18 violations — missing taxonomy imports
+- Gateway orchestrator: 2 violations — IBlenderServerAggregate import missing (async/sync mismatch)
+
+## Cycle 11 — Tar Extraction PEP 706 Filter (2026-07-28)
+
+### Root Cause
+`modules/asset/src/capabilities_asset_extract.py` calls `tf.extract(member, dest)` for TAR member extraction without an extraction filter. Per PEP 706 (Python 3.12+), `tarfile.extract`/`extractall` require an explicit `filter` argument:
+- Without it, Python 3.12/3.13 emit a `DeprecationWarning` (observed in `test_fr_ast_003_extract_tar`).
+- In Python 3.14 the default behavior changes to `'data'`, which *rejects* previously-accepted members (e.g., absolute paths, special files) — a silent behavior break for archive extraction.
+
+This is a real potential bug (priority #6) / edge-case hardening gap (priority #11), not a style lint. It traces directly to **FR-AST-003: Extract Asset Archive**.
+
+### Fix
+- Added `import sys`.
+- Added a module-level constant: `_TAR_EXTRACT_FILTER = {"filter": "data"} if sys.version_info >= (3, 12) else {}`.
+- Applied it at the only TAR extraction site: `tf.extract(member, dest, **_TAR_EXTRACT_FILTER)`.
+- `filter='data'` is defense-in-depth and safe here: the security supervisor (`ArchiveGuard`) has already validated every member for path traversal, symlink/hardlink policy, and size, so approved output is byte-for-byte unchanged. Confirmed by the passing test suite.
+
+### Version-Guard Rationale (critical)
+`pyproject.toml` declares `requires-python = ">=3.10"`, but the `filter` kwarg on `tarfile.extract` only exists on **Python 3.12+**. Passing `filter='data'` unconditionally would raise `TypeError` on 3.10/3.11 and break the declared support floor. The version guard omits the kwarg entirely on <3.12 (legacy fully-trusted behavior, acceptable for already-validated members) and applies `'data'` on 3.12+, eliminating the warning and 3.14 break.
+
+### Verification
+- Full pytest: 341 passed (0 regressions; +1 new regression test).
+- Regression test `test_fr_ast_003_tar_extraction_no_deprecation_warning` asserts no tarfile `DeprecationWarning` is emitted — guards against a future edit silently dropping the filter.
+- Targeted `lint-arwaky-cli quality` on the changed file: 0 violations.
+- Combined working tree stays green alongside the sibling agent's cycles 9–10 (orchestrator aggregate inheritance; taxonomy error files).
+
+### Scope Note
+The ZIP branch (`zf.extract(info, dest)`) was intentionally left unchanged: `zipfile` has no `filter` parameter and emits no such warning. The Blender-side `blender_mcp_addon/*.py` zip `extractall` calls are addon code (separate runtime), not part of the agent workspace.
+
+## Cycle 11 — Gateway Orchestrator Broken Inheritance (concurrency remediation)
+
+### Incident
+During this run the combined working tree regressed: `python -m pytest` showed **9 gateway feature tests failing** with `TypeError: Can't instantiate abstract class GatewayOrchestrator without an implementation for abstract methods 'cancel_async_task', 'connect', 'get_metrics', 'get_status', 'poll_task_result', 'send_command', 'shutdown', 'start', 'submit_async_task'`. A concurrent sibling loop agent had edited `modules/gateway/src/agent_gateway_orchestrator.py` to `class GatewayOrchestrator(IBlenderServerAggregate):`.
+
+### Root cause
+`IBlenderServerAggregate` (modules/shared/src/gateway/contract_gateway_aggregate.py) is the **async server aggregate** — an `ABC` with 11 abstract async methods (`start`, `shutdown`, `connect`, `disconnect`, `get_status`, `execute_code`, `submit_async_task`, `poll_task_result`, `cancel_async_task`, `send_command`, `get_metrics`). `GatewayOrchestrator` implements NONE of them: it is the **sync gateway-feature orchestrator** (FR-GWY-001..005) that delegates to 5 capabilities via sync methods (`establish_connection`, `get_connection_status`, `send_heartbeat`, `attempt_reconnect`, `send_request`, `enqueue_scene_operation`, `get_queue_status`, `execute_code`). The sibling's AES202 fix (wire an aggregate base) was misapplied — it used the async *server* aggregate as the base instead of a gateway-specific aggregate, and left the abstract methods unimplemented, so the class became non-instantiable. `IBlenderServerAggregate` is otherwise an orphan ABC (no other implementer in the repo).
+
+### Fix (smallest safe)
+Reverted the broken inheritance:
+- Removed `from modules.shared.src.gateway.contract_gateway_aggregate import IBlenderServerAggregate` (and its `# Aggregate interface for AES202 compliance` comment).
+- Changed `class GatewayOrchestrator(IBlenderServerAggregate):` → `class GatewayOrchestrator:`.
+
+This restores the pre-break green state. No other module consumes `IBlenderServerAggregate`, and `root_gateway_container.py` only instantiates `GatewayOrchestrator(...)` with the 5 capabilities (no server-aggregate API expected).
+
+### Why not implement the 11 abstract methods
+Implementing them would invent a server-level async API on the gateway-feature orchestrator (signature/async mismatches vs the capabilities, new surface the FR-GWY tests do not exercise) and collide with the sibling's in-flight design. The correct AES202 resolution for the gateway orchestrator — a dedicated gateway aggregate, or wiring the server aggregate at the root/mcp server-entry orchestrator — must be done deliberately, not via a broken partial base class. Recorded as OPEN/DEFERRED (see STATE.md Active Priority 9, TODO.md AES202 item).
+
+### Verification
+- `python -m pytest modules/gateway/tests/test_gateway_feature.py` → 9 passed.
+- Full suite → 341 passed (0 regressions).

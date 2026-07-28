@@ -7,6 +7,8 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
+from modules.shared.src.common.taxonomy_core_vo import ErrorString, ErrorMessage
+
 
 class GatewayError(Exception):
     """Base error for all gateway domain exceptions."""
@@ -43,7 +45,7 @@ class ServerError(Exception):
     MCP error serialization and observability.
     """
 
-    def __init__(self, code: str, message: str, details: dict | None = None) -> None:
+    def __init__(self, code: ErrorString, message: ErrorMessage, details: dict | None = None) -> None:
         self.code = code
         self.message = message
         self.details = details or {}  # type: ignore[dict-item]

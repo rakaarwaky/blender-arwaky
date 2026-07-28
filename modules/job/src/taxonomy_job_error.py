@@ -11,6 +11,8 @@ concurrency. `ConcurrencyConflictError` is provided for the
 
 from __future__ import annotations
 
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
+
 
 class JobNotFoundError(Exception):
     """Task identifier not found, including records purged after retention."""

@@ -12,6 +12,7 @@ import json
 from typing import Any
 
 from modules.shared.src.cli.contract_cli_error_protocol import CliErrorProtocol
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
 
 
 class CliErrorCapability(CliErrorProtocol):

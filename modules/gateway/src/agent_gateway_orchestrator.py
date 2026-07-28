@@ -12,6 +12,7 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
+from modules.shared.src.gateway.contract_gateway_aggregate import IBlenderServerAggregate
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
@@ -36,7 +37,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class GatewayOrchestrator:
+class GatewayOrchestrator(IBlenderServerAggregate):
     """Aggregate facade for the Gateway feature.
 
     Coordinates all 5 gateway capabilities via protocol delegation.

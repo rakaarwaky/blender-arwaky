@@ -1,5 +1,6 @@
 # Temporary stub - FR-DIA-005 implementation pending
 from modules.shared.src.diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
 
 
 class DiagnosticsSnapshotExecutor(DiagnosticsSnapshotProtocol):

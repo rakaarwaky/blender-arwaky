@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import tarfile
 import zipfile
 from datetime import datetime, timezone
@@ -33,6 +34,15 @@ from modules.shared.src.security.taxonomy_security_vo import (
 )
 
 logger = logging.getLogger("BlenderMCPServer")
+
+# PEP 706 (Python 3.12+) requires an explicit extraction filter; without it
+# tarfile emits a DeprecationWarning now and changes default behavior (rejects
+# unsafe members) in Python 3.14. "data" is the correct filter for untrusted
+# asset archives: it strips absolute/relative path escapes and blocks special
+# files. Members reaching this point were already validated by the security
+# supervisor, so "data" adds defense-in-depth without changing approved output.
+# On Python < 3.12 the kwarg does not exist, so omit it entirely.
+_TAR_EXTRACT_FILTER = {"filter": "data"} if sys.version_info >= (3, 12) else {}
 
 
 class AssetExtractCapability(AssetExtractProtocol):
@@ -253,7 +263,7 @@ class AssetExtractCapability(AssetExtractProtocol):
                 for member in tf.getmembers():
                     if member.name in rejected_names:
                         continue
-                    tf.extract(member, dest)
+                    tf.extract(member, dest, **_TAR_EXTRACT_FILTER)
                     extracted.append(str(Path(dest) / member.name))
 
         return extracted

@@ -12,6 +12,7 @@ import os
 import pathlib
 import tarfile
 import tempfile
+import warnings
 import zipfile
 
 import pytest
@@ -368,6 +369,38 @@ async def test_fr_ast_003_extraction_timestamp():
     # If it somehow succeeds, should have timestamp
     if result.get("success"):
         assert "extraction_timestamp" in result
+
+
+@pytest.mark.asyncio
+async def test_fr_ast_003_tar_extraction_no_deprecation_warning(tmp_path: pathlib.Path):
+    """FR-AST-003: tar extraction must not emit the PEP 706 DeprecationWarning.
+
+    tarfile requires an explicit extraction filter on Python 3.12+; without it
+    a DeprecationWarning is emitted now and the default behavior changes in 3.14
+    (rejecting previously-accepted members). This guards the fix that passes
+    ``filter="data"`` so a future edit cannot silently reintroduce the warning.
+    """
+    cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
+    dest = str(tmp_path / "dest")
+    os.makedirs(dest, exist_ok=True)
+    archive = _make_tar(tmp_path, "test.tar.gz", {"data.txt": "hello"})
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = await cap.extract_archive(
+            artifact_path=FilePath(archive),
+            destination=FilePath(dest),
+        )
+
+    tar_warnings = [
+        w
+        for w in caught
+        if issubclass(w.category, DeprecationWarning)
+        and "filter" in str(w.message).lower()
+        and "tar" in str(w.message).lower()
+    ]
+    assert not tar_warnings, f"unexpected tarfile filter warning: {tar_warnings}"
+    assert result["success"] is True
 
 
 def test_fr_ast_003_no_local_traversal_protection():

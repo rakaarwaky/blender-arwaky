@@ -8,3 +8,7 @@
 
 
 <featuresname></featuresname>
+
+- Tar extraction `filter` must be version-guarded: `requires-python = ">=3.10"` but the `filter` kwarg on `tarfile.extract` only exists on Python 3.12+. Passing it unconditionally would raise `TypeError` on 3.10/3.11, so `filter='data'` is applied only when `sys.version_info >= (3, 12)` (see cycle 11, capabilities_asset_extract.py).
+- Concurrency: a sibling loop agent advanced the loop to cycle 10 (orchestrator aggregate inheritance; taxonomy error files) during this run. My cycle-11 tar fix touched only `modules/asset/src/capabilities_asset_extract.py` and its test — disjoint from the sibling's files — so no file-level conflict. Loop state markdown files were concurrently edited; I rewrote STATE.md coherently and recorded my work as cycle 11.
+- GatewayOrchestrator must NOT inherit `IBlenderServerAggregate`: the latter is the async *server* aggregate (start/shutdown/connect/execute_code/send_command/async-task/metrics); GatewayOrchestrator is the sync gateway-feature orchestrator implementing the gateway protocols (FR-GWY-001..005). The correct AES202 resolution for the gateway orchestrator is a dedicated gateway aggregate or server-aggregate wiring at the root/mcp entry orchestrator, done deliberately — not a blanket base-class inheritance that breaks instantiation (reverted in cycle 11 after a concurrent sibling edit introduced the broken base).

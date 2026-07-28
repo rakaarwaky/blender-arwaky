@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 from modules.shared.src.scene.contract_scene_inspection import SceneInspectionPort
 from modules.shared.src.scene.contract_scene_operate_protocol import SceneOperateProtocol
 from modules.shared.src.scene.taxonomy_scene_command_vo import (
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class SceneOrchestrator:
+class SceneOrchestrator(ISceneAggregate):
     """Orchestrates scene operations via capability protocols.
 
     FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.

@@ -11,6 +11,12 @@ from typing import Any
 
 from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
 from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
+from modules.shared.src.render.contract_render_aggregate import (
+    ICameraConfigAggregate,
+    IHdriConfigAggregate,
+    IRenderOperateAggregate,
+    IViewportCaptureAggregate,
+)
 from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
 from modules.shared.src.render.taxonomy_render_vo import (
     GetScreenshotVO,
@@ -20,7 +26,12 @@ from modules.shared.src.render.taxonomy_render_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class RenderOrchestrator:
+class RenderOrchestrator(
+    IRenderOperateAggregate,
+    ICameraConfigAggregate,
+    IHdriConfigAggregate,
+    IViewportCaptureAggregate,
+):
     """Orchestrates render operations via capability protocols."""
 
     def __init__(

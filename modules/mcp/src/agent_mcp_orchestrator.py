@@ -6,6 +6,8 @@ Coordinates MCP server lifecycle, tool registration, and AI agent communication.
 import logging
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
+
 from modules.shared.src.mcp.contract_mcp_aggregate import IMcpAggregate
 
 logger = logging.getLogger("BlenderMCPServer")

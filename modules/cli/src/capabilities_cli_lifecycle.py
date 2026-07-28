@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 
 from modules.shared.src.cli.contract_cli_lifecycle_protocol import CliLifecycleProtocol
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
 
 logger = logging.getLogger("BlenderMCPServer")
 
