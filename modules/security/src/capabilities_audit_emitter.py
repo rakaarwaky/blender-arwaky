@@ -27,7 +27,7 @@ from modules.shared.src.security.taxonomy_security_vo import SecurityAuditEventV
 _KV_VALUE = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
 
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r'(?i)(["\']?)(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + _KV_VALUE),
+    re.compile(r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + _KV_VALUE),
     re.compile(r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*"),
     re.compile(r"(?i)sk-[A-Za-z0-9]{20,}"),
     re.compile(r"(?i)ghp_[A-Za-z0-9]{36}"),
