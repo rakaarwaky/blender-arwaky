@@ -35,12 +35,27 @@ shared (taxonomy + contract) — foundation
 * **Rule** : 1 FR = 1 capability file (capability layer) / 1 FR = N surface files (surface layer).
 
 
-| Indicator          | Weight     | Purpose                                          |
-| -------------------- | ------------ | -------------------------------------------------- |
-| **FR Coverage**    | **High**   | Verifies 1:1 FR mapping to capabilities/surfaces |
-| **Test Coverage**  | **High**   | Assures test count ≥ FR count for all modules   |
-| **pyproject.toml** | **Medium** | Ensures standalone packageability                |
-| **Shared Domain**  | **Medium** | Complete taxonomy and contract definitions       |
+| Indicator          | Weight     | Scoring Formula                                                                                        |
+| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------- |
+| **FR Coverage**    | **High**   | Base 3.0; -0.5 per FR without matching cap/surf file                                                   |
+| **Test Coverage**  | **High**   | Base 3.0; -0.5 per missing type (unit/integration/smoke/e2e/acceptance), -1.0 if test count < FR count |
+| **pyproject.toml** | **Medium** | Base 1.0; -1.0 if module lacks pyproject.toml                                                          |
+| **Shared Domain**  | **Medium** | Base 1.0; -0.5 per missing taxonomy/contract file for the module's domain                              |
+
+### Scoring Methodology
+
+```
+Score = (FR_Coverage + Test_Coverage + PyProject + Shared_Domain) - Violations × 0.5
+Clamped to [0, 10]
+```
+
+**Test type requirements by layer:**
+
+- **Capabilities**: Must have `unit` (+ mandatory `integration`). Missing `integration` → -0.5, missing `smoke` → -0.5, missing `e2e` → -0.5, missing `acceptance` → -0.5.
+- **Surfaces** (cli/mcp): `unit` only is acceptable. No deduction for missing integration/smoke/e2e/acceptance.
+- **Agents**: `unit` + `smoke`. Missing `smoke` → -0.5.
+
+**Violations penalty:** Each violation (-0.5), applied after base score calculation. Includes AES304 (bypass), AES402 (naming), AES502 (orphan), AES503/505/506 (unexported).
 
 ### Production Readiness Scores (1–10)
 
@@ -97,11 +112,11 @@ shared (taxonomy + contract) — foundation
 ## Critical Action Items
 
 
-| Priority                               | Module                                         | Description & Gap                                                                                                                                                          |
-| ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔴**#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1** | **All modules**                                | **AES503**: 33 capability files not exported in `__init__.py` (config, job, diagnostics, telemetry, security, render, scene, asset). Fix all module __init__.py exports.   |
-| 🔴**#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2** | **cli / mcp**                                  | **AES506**: 15 surface files not exported in `__init__.py`. Add exports to cli/__init__.py and mcp/__init__.py.                                                            |
-| 🟡**#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3** | **config, telemetry, security, render, scene** | **AES505**: 6 agent files not exported in `__init__.py`. Add agent exports.                                                                                                |
-| 🟡**#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4** | **shared/common, shared/telemetry**            | **AES402**: 5 contract files with wrong suffix (should be _protocol): contract_command_catalog, contract_telemetry_recording/classification/session_management/enrichment. |
-| 🟡**#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5** | **object**                                     | **AES502**: 1 orphan contract: `contract_object_operate_protocol.py` (0 implementation imports). Verify if deprecated.                                                     |
-| 🟢**#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6** | **mcp**                                        | 13 tests across 2 files; 10 surfaces complete; verify orchestrator routing in`list_commands`/`read_skill_context`.                                                         |
+| Priority                                                               | Module                                         | Description & Gap                                                                                                                                                          |
+| ------------------------------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔴**#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1** | **All modules**                                | **AES503**: 33 capability files not exported in `__init__.py` (config, job, diagnostics, telemetry, security, render, scene, asset). Fix all module __init__.py exports.   |
+| 🔴**#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2#2** | **cli / mcp**                                  | **AES506**: 15 surface files not exported in `__init__.py`. Add exports to cli/__init__.py and mcp/__init__.py.                                                            |
+| 🟡**#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3#3** | **config, telemetry, security, render, scene** | **AES505**: 6 agent files not exported in `__init__.py`. Add agent exports.                                                                                                |
+| 🟡**#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4#4** | **shared/common, shared/telemetry**            | **AES402**: 5 contract files with wrong suffix (should be _protocol): contract_command_catalog, contract_telemetry_recording/classification/session_management/enrichment. |
+| 🟡**#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5#5** | **object**                                     | **AES502**: 1 orphan contract: `contract_object_operate_protocol.py` (0 implementation imports). Verify if deprecated.                                                     |
+| 🟢**#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6#6** | **mcp**                                        | 13 tests across 2 files; 10 surfaces complete; verify orchestrator routing in`list_commands`/`read_skill_context`.                                                         |
