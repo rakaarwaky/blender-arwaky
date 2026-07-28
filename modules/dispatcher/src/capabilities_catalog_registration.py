@@ -21,12 +21,16 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
     """Concrete implementation for action catalog registration.
 
     FR-DSP-001: Validates schema, rejects duplicates per policy, maintains sorted order.
+    The catalog dict is injectable so the container can share a single catalog instance
+    across registration, discovery, and validation capabilities.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self) -> None:
-        self._catalog: dict[str, ActionMetadataVO] = {}
+    def __init__(
+        self, catalog: dict[str, ActionMetadataVO] | None = None
+    ) -> None:
+        self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
         self._catalog_version: int = 0
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -37,7 +41,7 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
         FR-DSP-001: Duplicate names are rejected or replaced per policy.
         Catalog exposes deterministic ordering sorted by action name.
         """
-        # Validate schema integrity
+        # Validate schema integrity before acceptance
         self._validate_schema(metadata)
 
         # Check for duplicate registration
@@ -46,7 +50,6 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
                 "Duplicate action '%s' registration; replacing per policy",
                 metadata.action_name,
             )
-            # Replace with new version
             self._catalog_version += 1
             enriched = ActionMetadataVO(
                 action_name=metadata.action_name,
@@ -96,19 +99,46 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
     def _validate_schema(self, metadata: ActionMetadataVO) -> None:
         """Validate parameter schema integrity before acceptance.
 
-        FR-DSP-001: Schema must include required fields, types, ranges, and allowed values.
+        FR-DSP-001: Schema must declare a structure; required fields must be declared in
+        properties; each property must declare a type. Malformed schemas are rejected.
         """
-        if not isinstance(metadata.parameter_schema, dict):
-            raise TypeError("parameter_schema must be a dict")
-
-        # Basic schema validation — check for common keys
-        valid_keys = {"type", "required", "properties", "additionalProperties"}
-        schema_keys = set(metadata.parameter_schema.keys())
-        if not schema_keys.intersection(valid_keys):
-            logger.warning(
-                "Action '%s' parameter schema has minimal structure",
-                metadata.action_name,
+        schema = metadata.parameter_schema
+        if not isinstance(schema, dict):
+            raise ValueError(
+                f"Action '{metadata.action_name}': parameter_schema must be a dict"
             )
+
+        if "type" not in schema and "properties" not in schema:
+            raise ValueError(
+                f"Action '{metadata.action_name}': parameter_schema must declare 'type' or 'properties'"
+            )
+
+        properties = schema.get("properties")
+        if properties is not None:
+            if not isinstance(properties, dict):
+                raise ValueError(
+                    f"Action '{metadata.action_name}': parameter_schema 'properties' must be a dict"
+                )
+            for field_name, field_def in properties.items():
+                if not isinstance(field_def, dict) or "type" not in field_def:
+                    raise ValueError(
+                        f"Action '{metadata.action_name}': schema property '{field_name}' "
+                        f"must declare a 'type'"
+                    )
+
+        required = schema.get("required")
+        if required is not None:
+            if not isinstance(required, list):
+                raise ValueError(
+                    f"Action '{metadata.action_name}': parameter_schema 'required' must be a list"
+                )
+            declared = set(properties or {})
+            for field_name in required:
+                if not isinstance(field_name, str) or field_name not in declared:
+                    raise ValueError(
+                        f"Action '{metadata.action_name}': required field '{field_name}' "
+                        f"is not declared in 'properties'"
+                    )
 
     def get_catalog(self) -> dict[str, ActionMetadataVO]:
         """Return a sorted snapshot of the catalog (sorted by action name)."""

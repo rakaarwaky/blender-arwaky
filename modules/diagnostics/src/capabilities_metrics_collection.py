@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 import time
 
-from modules.diagnostics.src.contract_event_bus_protocol import IEventSubscriber
-from modules.diagnostics.src.contract_metrics_protocol import IMetricsProvider
+from modules.diagnostics.src.contract_audit_emission_protocol import IEventSubscriber
+from modules.diagnostics.src.contract_metrics_collection_protocol import IMetricsProvider
 from modules.gateway.src.taxonomy_server_event import (
     CodeExecuted,
     CodeExecutionFailed,

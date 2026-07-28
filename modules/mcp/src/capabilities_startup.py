@@ -8,7 +8,7 @@ import sys
 
 from modules.mcp.src.bootstrap import ServerBootstrapManager
 
-from .capabilities_server_lifecycle import ServerInstanceHandler
+from .capabilities_lifecycle import ServerInstanceHandler
 
 # --- Logging configuration ---
 logger = logging.getLogger("BlenderMCPServer")
@@ -48,5 +48,4 @@ class ServerStartHandler:
             mcp.run(transport="sse")
         else:
             mcp.run()
-
 

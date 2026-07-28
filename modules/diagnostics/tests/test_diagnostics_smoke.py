@@ -9,7 +9,7 @@ implements (FR-DIA-001..005 protocol conformance at the importable boundary).
 
 import asyncio
 
-from modules.diagnostics.src.capabilities_diagnostics_composer import DiagnosticsCapability
+from modules.diagnostics.src.capabilities_health_composition import DiagnosticsCapability
 
 
 def test_capability_instantiates() -> None:

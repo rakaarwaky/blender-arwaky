@@ -23,7 +23,7 @@ from mcp.server.fastmcp import FastMCP
 from modules.mcp.src.bootstrap import record_startup
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 
-from .contract_server_bootstrap import ServerBootstrapManagerAggregate
+from .contract_mcp_bootstrap_protocol import ServerBootstrapManagerAggregate
 
 logger = logging.getLogger("BlenderMCPServer")
 

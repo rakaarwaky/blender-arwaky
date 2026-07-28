@@ -21,7 +21,7 @@ Obey:
 - ARCHITECTURE.md.
 - .agents/rules/.
 - .agents/skills/.
-- .agents/loop/LOOP.md.
+- .agents/loop/arwaky-loop-prompt.txt
 - Loop State Files.
 
 LOOP STATE FILES
@@ -43,13 +43,10 @@ CORE RULES
 ==========
 
 - FRD is immutable; accidental changes revert immediately.
-- Do not add scope.
-- Do not invent requirements or FR codes.
+- Do not add scope requirements or FR.
 - Every change must trace to an existing FRD requirement and FR code.
 - FR code pattern: FR-XXX-0XX, example: FR-AST-001.
 - Reference the FR code in code
-- Production-ready only.
-- No dummy, stub, placeholder, or fake implementation .
 
 MANDATORY CODE STRUCTURE
 ========================
@@ -116,11 +113,9 @@ Common flags:
 Meaning:
 
 - <path></path> defaults to current directory.
-- --format choices: text, json, sarif, junit.
 - --filter filters violations by AES rule ID, example: AES201.
 - -o, --output-dir saves report files.
 - --member targets a single workspace member by module name and is valid only for orphan.
-- external uses ruff.
 
 QUALITY PRIORITIES
 ==================
@@ -132,29 +127,18 @@ Use this order for target selection, audit, and hardening:
 3. Missing FR traceability.
 4. Capability/protocol violation.
 5. Orchestrator/aggregate violation.
-6. Stub or placeholder needing real implementation.
-7. Security weakness.
-8. Potential bug.
-9. Performance issue.
-10. Missing regression test.
-11. Missing error handling.
-12. Missing required observability, diagnostics, or telemetry.
-13. Documentation mismatch.
-14. Maintainability or refactoring risk.
-15. Edge-case hardening.
-16. Failing tests.
+6. Potential bug.
+7. Performance issue.
+8. Missing error handling.
+9. Documentation mismatch.
+10. Maintainability or refactoring risk.
+11. Edge-case hardening.
+12. Failing tests.
 
 DEVELOPMENT METHOD
 ==================
 
 Before implementation, identify the governing spec and reusable skills.
-
-Implement by red-green-refactor:
-
-- write failing test,
-- implement minimal correct code,
-- make tests green,
-- refactor only while tests remain green.
 
 WORK CYCLE
 ==========
@@ -189,14 +173,9 @@ Apply Development Method.
 
 Run relevant:
 
-- unit tests,
-- integration tests,
-- CLI tests,
-- module-specific tests,
 - Linter Integration,
 - type checks,
 - build/check commands,
-- Blender background execution checks.
 
 Discover repository test commands if not obvious.
 
@@ -224,27 +203,18 @@ Update Loop State Files concisely.
 
 Begin the next cycle immediately.
 
-STRUCTURAL VIOLATION POLICY
-===========================
-
 Any deviation from Mandatory Code Structure is a violation.
 
 Remediation:
 
 - Record violation in .agents/loop/AUDIT.md.
 - Add remediation task to .agents/loop/TODO.md.
-- Consolidate offending files incrementally using Development Method.
-- Preserve behavior unless FRD requires change.
-
-AMBIGUITY POLICY
-================
 
 If ambiguous:
 
 - Record question in .agents/loop/QUESTIONS.md.
 - Record safe assumption in .agents/loop/ASSUMPTIONS.md.
 - Choose smallest safe interpretation.
-- Proceed.
 
 CYCLE OUTPUT
 ============

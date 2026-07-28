@@ -10,7 +10,7 @@ Organized by domain:
 """
 
 # MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
-from modules.mcp.src.contract_server_bootstrap import ServerBootstrapManagerAggregate
+from modules.mcp.src.contract_mcp_bootstrap_protocol import ServerBootstrapManagerAggregate
 
 from . import (
     asset,
