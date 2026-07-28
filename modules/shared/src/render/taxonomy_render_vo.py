@@ -27,7 +27,7 @@ from ..common.taxonomy_core_vo import (
     TaskUuid,
     UseDenoising,
 )
-from .taxonomy_constant_vo import (
+from .taxonomy_render_constant import (
     CAMERA_SENSOR_FIT_AUTO,
     DEFAULT_APERTURE,
     DEFAULT_FOCAL_LENGTH,

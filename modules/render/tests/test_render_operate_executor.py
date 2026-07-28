@@ -1,346 +1,255 @@
-"""Tests for RenderOperateExecutor — FR-RND-001: Capture Viewport Screenshot.
+"""Tests for render executors — FR-RND-001 (Viewport Capture) and FR-RND-002 (Scene Render).
 
-Exercises viewport screenshot capture, camera setup, render configuration,
-composition rules, and frame rendering via code executor. All dependencies mocked.
-Run via pytest from repo root.
+Exercises validation, Blender code generation, success paths with mocked code
+executor, and failure handling. All Blender transport is mocked.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
 
 import pytest
 
-from modules.render.src.capabilities_render_operate_executor import (
-    RenderOperateExecutor,
-    _format_coord,
-    _py_str,
+from modules.render.src.capabilities_render_scene_image_executor import (
+    RenderSceneImageExecutor,
+)
+from modules.render.src.capabilities_render_viewport_capture_executor import (
+    RenderViewportCaptureExecutor,
 )
 from modules.shared.src.common.taxonomy_core_vo import (
-    CoordinateList,
+    FilePath,
+    ImageFormat,
+    Prompt,
     RenderEngine,
     RenderSamples,
-    RotationVector,
-    RuleName,
+    ResolutionX,
+    ResolutionY,
     UseDenoising,
 )
-
-# ─── Mocks ──────────────────────────────────────────────────────────────────
+from modules.shared.src.render.taxonomy_render_vo import (
+    RenderSceneVO,
+    ViewportCaptureVO,
+)
 
 
 class MockCodeExecutor:
-    """Mock code executor that returns success."""
+    """Duck-typed ICodeExecutionProtocol returning a fixed JSON payload."""
 
-    def __init__(self, fail: bool = False) -> None:
+    def __init__(self, payload: dict | None = None, fail: bool = False) -> None:
+        self.payload = payload
         self.fail = fail
-        self._executed_code: list[str] = []
+        self.captured_code: str | None = None
 
-    async def __call__(self, code: str) -> str:
-        self._executed_code.append(code)
+    async def execute_python(self, code: str) -> Prompt:
+        self.captured_code = code
         if self.fail:
             raise RuntimeError("code execution failed")
-        return "/tmp/screenshot.png"
+        return Prompt(json.dumps(self.payload) if self.payload is not None else "")
 
 
-# Concrete subclass for testing — adds render_scene implementation
-class _TestableRenderExecutor(RenderOperateExecutor):
-    """Concrete executor with render_scene stub for testing."""
-
-    async def render_scene(self, **_kwargs: object) -> dict:
-        return {"success": True, "file_path": "/tmp/render.png"}
-
-
-# Stub VO that accepts arbitrary kwargs (matches buggy impl behavior)
-@dataclass(frozen=True)
-class _GetScreenshotVOStub:
-    """Stub screenshot VO matching the capability's return signature."""
-
-    success: bool = False
-    image_path: str = ""
-    duration_ms: float = 0.0
-    message: str = ""
-
-
-# ─── Helpers ────────────────────────────────────────────────────────────────
+# ─── FR-RND-001: Viewport capture ─────────────────────────────
 
 
 @pytest.fixture
-def executor() -> _TestableRenderExecutor:
-    """Render executor with code executor mocked."""
-    mock = MockCodeExecutor(fail=False)
-    cap = _TestableRenderExecutor(code_executor=mock)
-    return cap
+def viewport_executor() -> RenderViewportCaptureExecutor:
+    return RenderViewportCaptureExecutor(
+        code_executor=MockCodeExecutor(
+            payload={
+                "artifact_path": "/tmp/shot.png",
+                "width": 1920,
+                "height": 1080,
+                "format": "PNG",
+            }
+        )
+    )
 
 
-# ─── FR-RND-001: Capture Viewport Screenshot ──────────────────────────────
+def _viewport_req(**kwargs: object) -> ViewportCaptureVO:
+    base = dict(
+        output_path=FilePath("/tmp/shot.png"),
+        view_angle="perspective",
+        shading="rendered",
+        image_format=ImageFormat("PNG"),
+        overwrite_policy="overwrite",
+    )
+    base.update(kwargs)
+    return ViewportCaptureVO(**base)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_get_viewport_screenshot_code_generated(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_001_capture_viewport_success(
+    viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
-    """Test screenshot generates correct Blender Python code and returns VO.
+    result = await viewport_executor.capture_viewport(_viewport_req())
+    assert bool(result.success) is True
+    assert str(result.artifact_path) == "/tmp/shot.png"
+    assert int(result.width) == 1920
+    assert int(result.height) == 1080
 
-    Verifies that GetScreenshotVO contains image_path field (FR-RND-001 output).
-    """
 
-    # Simple request-like object matching what get_viewport_screenshot expects
-    class ScreenshotRequest:
-        output_path = "/tmp/test.png"
-        max_size = 1024
-        view_angle = "perspective"
-        shading = "wireframe"
-        show_overlays = False
-        focus_object = None
+@pytest.mark.asyncio
+async def test_fr_rnd_001_missing_output_path(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    result = await viewport_executor.capture_viewport(_viewport_req(output_path=FilePath("")))
+    assert bool(result.success) is False
 
-    result = await executor.get_viewport_screenshot(ScreenshotRequest())
-    assert result.image_path != ""
 
-    # The code IS generated before the return (in the try block)
-    assert len(executor._code_executor._executed_code) > 0
-    code = executor._code_executor._executed_code[0]
-    assert "import bpy" in code
+@pytest.mark.asyncio
+async def test_fr_rnd_001_invalid_view_angle(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    result = await viewport_executor.capture_viewport(_viewport_req(view_angle="top"))
+    assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_invalid_shading(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    result = await viewport_executor.capture_viewport(_viewport_req(shading="rainbow"))
+    assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_invalid_image_format(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    result = await viewport_executor.capture_viewport(
+        _viewport_req(image_format=ImageFormat("GIF"))
+    )
+    assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_invalid_overwrite_policy(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    result = await viewport_executor.capture_viewport(
+        _viewport_req(overwrite_policy="maybe")
+    )
+    assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_code_generated(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    await viewport_executor.capture_viewport(_viewport_req())
+    code = str(viewport_executor._code_executor.captured_code)
     assert "bpy.ops.render.render(write_still=True)" in code
-    assert "scene.render.filepath" in code
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_screenshot_execution_error(
-    executor: _TestableRenderExecutor,
-) -> None:
-    """Test screenshot when code execution fails."""
-    executor._code_executor = MockCodeExecutor(fail=True)
+async def test_fr_rnd_001_execution_failure() -> None:
+    bad = RenderViewportCaptureExecutor(code_executor=MockCodeExecutor(fail=True))
+    result = await bad.capture_viewport(_viewport_req())
+    assert bool(result.success) is False
 
-    from modules.shared.src.render.taxonomy_render_vo import GetScreenshotVO
 
-    try:
-        await executor.get_viewport_screenshot(
-            GetScreenshotVO(
-                output_path="/tmp/fail.png",
-                max_size=1920,
-                view_angle="perspective",
-                shading="solid",
-                show_overlays=True,
-            )
+# ─── FR-RND-002: Scene render ─────────────────────────────────
+
+
+@pytest.fixture
+def scene_executor() -> RenderSceneImageExecutor:
+    return RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(
+            payload={
+                "artifact_path": "/tmp/render.png",
+                "width": 1920,
+                "height": 1080,
+                "render_time": 1.5,
+                "engine_used": "CYCLES",
+                "denoising_applied": True,
+            }
         )
-    except TypeError:
-        pass  # VO has wrong fields
-    except RuntimeError as e:
-        assert "Failed to capture viewport screenshot" in str(e)
+    )
 
 
-# ─── Camera Setup ──────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_fr_rnd_001_setup_camera_creates_camera(
-    executor: _TestableRenderExecutor,
-) -> None:
-    """Test camera setup creates camera if none exists."""
-    location = CoordinateList([0.0, 0.0, 5.0])
-    rotation = RotationVector([0.0, 0.0, 0.0])
-
-    result = await executor.setup_camera(location, rotation)
-    assert isinstance(result, str)
-    assert "Camera setup" in result or "successful" in result.lower()
-
-
-@pytest.mark.asyncio
-async def test_fr_rnd_001_setup_camera_with_target(
-    executor: _TestableRenderExecutor,
-) -> None:
-    """Test camera setup with framing target."""
-    location = CoordinateList([0.0, 0.0, 5.0])
-    rotation = RotationVector([0.0, 0.0, 0.0])
-    target = CoordinateList([1.0, 0.0, 0.0])
-
-    await executor.setup_camera(location, rotation, target)
-    assert len(executor._code_executor._executed_code) >= 1
-    code = executor._code_executor._executed_code[-1]
-    assert "TRACK_TO" in str(code) or "bpy.ops.object.camera_add" in str(code)
-
-
-@pytest.mark.asyncio
-async def test_fr_rnd_001_setup_camera_failure(
-    executor: _TestableRenderExecutor,
-) -> None:
-    """Test camera setup execution failure."""
-    executor._code_executor = MockCodeExecutor(fail=True)
-
-    location = CoordinateList([0.0, 0.0, 5.0])
-    rotation = RotationVector([0.0, 0.0, 0.0])
-
-    with pytest.raises(RuntimeError):
-        await executor.setup_camera(location, rotation)
-
-
-# ─── Render Configuration ──────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_fr_rnd_001_setup_render_cycles_engine(
-    executor: _TestableRenderExecutor,
-) -> None:
-    """Test render configuration with Cycles engine."""
-    result = await executor.setup_render(
-        engine=RenderEngine("CYCLES"),
-        samples=RenderSamples(256),
+def _scene_req(**kwargs: object) -> RenderSceneVO:
+    base = dict(
+        output_path=FilePath("/tmp/render.png"),
+        resolution_x=ResolutionX(1920),
+        resolution_y=ResolutionY(1080),
+        samples=RenderSamples(128),
         use_denoising=UseDenoising(True),
+        render_engine=RenderEngine("CYCLES"),
+        overwrite_policy="overwrite",
     )
-    assert isinstance(result, str)
-    assert "cycles" in result.lower() or "configured" in result.lower()
+    base.update(kwargs)
+    return RenderSceneVO(**base)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_setup_render_resolution(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_render_scene_success(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test render configuration with resolution."""
-    await executor.setup_render(
-        engine=RenderEngine("CYCLES"),
-        resolution=CoordinateList([1920, 1080]),
-    )
-    code = executor._code_executor._executed_code[-1]
-    assert "resolution_x" in str(code) or "resolution_y" in str(code)
+    result = await scene_executor.render_scene(_scene_req())
+    assert bool(result.success) is True
+    assert str(result.artifact_path) == "/tmp/render.png"
+    assert float(result.render_time) == 1.5
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_setup_render_default_engine(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_missing_output_path(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test render defaults to Cycles when no engine specified."""
-    result = await executor.setup_render()
-    assert isinstance(result, str)
-
-
-# ─── Composition Rules ─────────────────────────────────────────────────────
+    result = await scene_executor.render_scene(_scene_req(output_path=FilePath("")))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_apply_composition_thirds(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_resolution_too_small(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test applying thirds composition rule."""
-    result = await executor.apply_composition(rule=RuleName("thirds"))
-    assert isinstance(result, str)
-    assert "thirds" in result.lower()
+    result = await scene_executor.render_scene(_scene_req(resolution_x=ResolutionX(0)))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_apply_composition_golden(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_resolution_too_large(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test applying golden composition rule."""
-    result = await executor.apply_composition(rule=RuleName("golden"))
-    assert isinstance(result, str)
-    assert "golden" in result.lower()
+    result = await scene_executor.render_scene(_scene_req(resolution_x=ResolutionX(9000)))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_apply_composition_unknown(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_samples_out_of_range(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test applying unknown composition rule — falls back to empty set."""
-    result = await executor.apply_composition(rule=RuleName("unknown_rule"))
-    assert isinstance(result, str)
-
-
-# ─── Frame Render ──────────────────────────────────────────────────────────
+    result = await scene_executor.render_scene(_scene_req(samples=RenderSamples(0)))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_render_frame_success(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_invalid_overwrite_policy(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test single frame render."""
-    from modules.shared.src.render.taxonomy_render_vo import RenderVO
-
-    result = await executor.render(
-        RenderVO(
-            output_path="/tmp/frame.png",
-            resolution_x=1920,
-            resolution_y=1080,
-            samples=128,
-            use_denoising=True,
-        )
-    )
-    assert result.success is True  # SuccessFlag is bool (NewType)
-    assert "Render complete" in str(result.message)
+    result = await scene_executor.render_scene(_scene_req(overwrite_policy="maybe"))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_001_render_frame_code_generated(
-    executor: _TestableRenderExecutor,
+async def test_fr_rnd_002_invalid_engine_normalized_to_cycles(
+    scene_executor: RenderSceneImageExecutor,
 ) -> None:
-    """Test frame render generates correct Blender code."""
-    from modules.shared.src.render.taxonomy_render_vo import RenderVO
-
-    await executor.render(
-        RenderVO(
-            output_path="/tmp/frame.png",
-            resolution_x=1920,
-            resolution_y=1080,
-            samples=128,
-            use_denoising=True,
-        )
-    )
-    assert len(executor._code_executor._executed_code) >= 1
-    code = executor._code_executor._executed_code[-1]
-    assert "bpy.ops.render.render" in str(code)
-
-
-# ─── Utility Functions ─────────────────────────────────────────────────────
-
-
-def test_py_str_escapes_string() -> None:
-    """Test _py_str properly escapes strings."""
-    result = _py_str("hello world")
-    assert result == '"hello world"'
-
-
-def test_py_str_escapes_special_chars() -> None:
-    """Test _py_str handles special characters."""
-    result = _py_str('path with "quotes"')
-    assert '"' in result
-
-
-def test_format_coord_floats() -> None:
-    """Test _format_coord converts floats."""
-    result = _format_coord(1.5)
-    assert result == "1.5"
-
-
-def test_format_coord_ints() -> None:
-    """Test _format_coord converts ints to float."""
-    result = _format_coord(42)
-    assert result == "42.0"
-
-
-# ─── Edge Cases ────────────────────────────────────────────────────────────
+    await scene_executor.render_scene(_scene_req(render_engine=RenderEngine("INVALID")))
+    code = str(scene_executor._code_executor.captured_code)
+    assert "scene.render.engine = 'CYCLES'" in code
 
 
 @pytest.mark.asyncio
-async def test_executor_no_callable_code_executor() -> None:
-    """Test executor with non-callable code executor."""
-    cap = _TestableRenderExecutor(code_executor="not_callable")
-
-    with pytest.raises(RuntimeError) as exc_info:
-        await cap._execute_code("import bpy")
-    assert "Unexpected code_executor type" in str(exc_info.value)
+async def test_fr_rnd_002_code_generated(
+    scene_executor: RenderSceneImageExecutor,
+) -> None:
+    await scene_executor.render_scene(_scene_req())
+    code = str(scene_executor._code_executor.captured_code)
+    assert "bpy.ops.render.render(write_still=True)" in code
 
 
 @pytest.mark.asyncio
-async def test_render_frame_time_recorded(executor: _TestableRenderExecutor) -> None:
-    """Test render frame time is recorded."""
-    from modules.shared.src.render.taxonomy_render_vo import RenderVO
-
-    result = await executor.render(
-        RenderVO(
-            output_path="/tmp/timing.png",
-            resolution_x=1920,
-            resolution_y=1080,
-            samples=128,
-            use_denoising=True,
-        )
-    )
-    assert result.render_time is not None
+async def test_fr_rnd_002_execution_failure() -> None:
+    bad = RenderSceneImageExecutor(code_executor=MockCodeExecutor(fail=True))
+    result = await bad.render_scene(_scene_req())
+    assert bool(result.success) is False

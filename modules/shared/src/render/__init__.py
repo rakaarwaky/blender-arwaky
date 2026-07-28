@@ -8,7 +8,7 @@ from .contract_render_protocol import (
     IRenderViewportCaptureProtocol,
 )
 
-from .taxonomy_constant_vo import (
+from .taxonomy_render_constant import (
     CAMERA_SENSOR_FIT_AUTO,
     CAMERA_SENSOR_FIT_HORIZONTAL,
     CAMERA_SENSOR_FIT_VERTICAL,

@@ -2,6 +2,9 @@
 
 Timestamped heartbeats:
 
+* Render Import Chain + Stale Test Fix (Cycle 63)
+  Renamed misnamed `taxonomy_constant_vo.py`→`taxonomy_render_constant.py`; rewrote 3 stale render test files to the real executors over a mocked `ICodeExecutionProtocol` (36 tests). Sibling commit `bbc5322` fixed the 5 render `src` import paths independently. Full suite 886 passed, 0 failures, 0 collection errors. Render module 0→36 tests.
+
 * Structural Remediation & Orphan Cleanup (Cycles 1–30)
   Dead Code Removal: Deleted redundant, unimported capability, contract, and orchestrator files across mcp, cli, render, job, diagnostics, and scene modules.
 * Traceability & Defensive Architecture (Cycles 31–35)

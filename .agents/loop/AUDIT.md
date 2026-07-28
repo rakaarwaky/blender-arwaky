@@ -12,6 +12,14 @@ Verification: isolated import harness + full security suite — 238 passed, 0 re
 
 Blocker (not fixed this cycle): The full project test suite cannot run because a concurrent sibling agent's in-flight scene refactor (untracked contract_scene_protocol.py; modified contract_scene_aggregate.py) imports a non-existent taxonomy_scene_vo module and uses protocol class names (ISceneInspectionProtocol/ISceneCleanupProtocol) that no longer match the aggregate's import (SceneInspectionProtocol/SceneCleanupProtocol). This breaks the modules.shared.src import chain for all consumers. Left untouched: out of scope and actively edited by a sibling; fixing risks conflicting with the sibling's completion. Recorded in QUESTIONS.md/TODO.md as an OPEN blocker.
 
+Cycle 63 — Render Module Import Chain + Stale Tests (Quality Priority #1 broken functionality / #12 failing tests)
+
+Issue: After the sibling's render feature commit, the full suite could not even collect — 3 render test files import non-existent classes (`CameraConfigCapability`, `HdriConfigCapability`, `RenderOperateExecutor`) and the render package's `taxonomy_constant_vo.py` was misnamed while every consumer imports `taxonomy_render_constant`. The 5 render `src` files also referenced `common.contract_code_execution_protocol` (non-existent); a concurrent sibling commit `bbc5322` already corrected those to `gateway.contract_code_execution_protocol`.
+
+Fix: Renamed `taxonomy_constant_vo.py`→`taxonomy_render_constant.py` (its content is constants; scene convention is `taxonomy_scene_constant.py`; all 6 consumers already import `taxonomy_render_constant`) and updated 2 internal references. Rewrote the 3 stale render test files against the real executors (`RenderCameraConfigExecutor`, `RenderHdriConfigExecutor`, `RenderViewportCaptureExecutor`, `RenderSceneImageExecutor`) over a duck-typed `ICodeExecutionProtocol` mock, covering FR-RND-001..004 validation/code-gen/success/failure.
+
+Verification: `lint-arwaky-cli quality/import` = 0 violations on render src; full suite **886 passed, 0 failures, 0 collection errors** (was 850 collected + 3 errors). The Cycle-62 scene import blocker is now auto-resolved (the sibling's committed scene refactor exposes `taxonomy_scene_vo` and matching protocol names).
+
 Cycle 54 — FR-GWY-002 Reconnect Attempt-Counter Fix
 
 Issue: MaintenanceExecutor shared an un-reset _reconnect_attempts counter across all reconnect sessions, causing premature exhaustion logs and inflated attempt counts on second-drop reconnects.
