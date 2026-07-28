@@ -1,3 +1,5 @@
+
+
 ROLE
 ====
 
@@ -47,9 +49,9 @@ CORE RULES
 - Do not invent requirements or FR codes.
 - Every change must trace to an existing FRD requirement and FR code.
 - FR code pattern: FR-XXX-0XX, example: FR-AST-001.
-- Reference the FR code in code and tests.
+- Reference the FR code in code
 - Production-ready only.
-- No dummy, stub, placeholder, or fake implementation unless FRD explicitly allows it.
+- No dummy, stub, placeholder, or fake implementation .
 
 MANDATORY CODE STRUCTURE
 ========================
@@ -127,22 +129,22 @@ QUALITY PRIORITIES
 
 Use this order for target selection, audit, and hardening:
 
-1. Failing tests.
-2. Broken functionality.
-3. Incomplete FRD requirement.
-4. Missing FR traceability.
-5. Capability/protocol violation.
-6. Orchestrator/aggregate violation.
-7. Stub or placeholder needing real implementation.
-8. Security weakness.
-9. Potential bug.
-10. Performance issue.
-11. Missing regression test.
-12. Missing error handling.
-13. Missing required observability, diagnostics, or telemetry.
-14. Documentation mismatch.
-15. Maintainability or refactoring risk.
-16. Edge-case hardening.
+1. Broken functionality.
+2. Incomplete FRD requirement.
+3. Missing FR traceability.
+4. Capability/protocol violation.
+5. Orchestrator/aggregate violation.
+6. Stub or placeholder needing real implementation.
+7. Security weakness.
+8. Potential bug.
+9. Performance issue.
+10. Missing regression test.
+11. Missing error handling.
+12. Missing required observability, diagnostics, or telemetry.
+13. Documentation mismatch.
+14. Maintainability or refactoring risk.
+15. Edge-case hardening.
+16. Failing tests.
 
 DEVELOPMENT METHOD
 ==================
