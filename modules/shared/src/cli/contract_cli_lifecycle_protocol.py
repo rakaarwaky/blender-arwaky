@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import ToolName
+
 
 class CliLifecycleProtocol(ABC):
     """Protocol for managing Blender application lifecycle."""

@@ -11,6 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import ToolName
+
 
 class DiagnosticsSnapshotProtocol(ABC):
     """Protocol for serving canonical diagnostics snapshots."""
