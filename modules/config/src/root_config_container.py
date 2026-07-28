@@ -15,8 +15,8 @@ from modules.shared.src.config.contract_settings_metadata_protocol import ISetti
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
-    STRICT_MODE_FLAG_ENV,
     DEFAULT_POLICY_MODE,
+    STRICT_MODE_FLAG_ENV,
 )
 from modules.shared.src.config.utility_config_helpers import (
     load_yaml_safe,
