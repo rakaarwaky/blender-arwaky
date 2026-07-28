@@ -176,4 +176,5 @@ class DiagnosticsCapability(
                 ),
             }
 
+        snapshot["detail_level"] = detail_level
         return snapshot

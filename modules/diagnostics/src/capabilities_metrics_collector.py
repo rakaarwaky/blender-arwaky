@@ -10,6 +10,7 @@ import logging
 import time
 
 from modules.diagnostics.src.contract_event_bus_protocol import IEventSubscriber
+from modules.diagnostics.src.contract_metrics_protocol import IMetricsProvider
 from modules.gateway.src.taxonomy_server_event import (
     CodeExecuted,
     CodeExecutionFailed,
@@ -29,7 +30,7 @@ from modules.gateway.src.taxonomy_server_event import (
     TaskFailed,
     TaskTimedOut,
 )
-from modules.gateway.src.taxonomy_server_vo import IMetricsProvider, ServerMetrics
+from modules.gateway.src.taxonomy_server_vo import ServerMetrics
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -60,7 +61,7 @@ class MetricsCollector(IEventSubscriber, IMetricsProvider):
         self._command_latencies: list[float] = []
         self._last_updated_at: float = time.monotonic()
 
-    async def handle(self, event: ServerEvent) -> None:  # type: ignore[override]
+    async def handle(self, event: ServerEvent) -> None:
         """Handle events and update metrics counters."""
         now = time.monotonic()
         updated = False
@@ -122,7 +123,7 @@ class MetricsCollector(IEventSubscriber, IMetricsProvider):
                 self._command_latencies = self._command_latencies[-100:]
             updated = True
 
-        elif isinstance(event, CommandFailed) or isinstance(event, CommandTimedOut) or isinstance(event, OperationRejected):
+        elif isinstance(event, (CommandFailed, CommandTimedOut, OperationRejected)):
             self._counters["failed_request_count"] += 1
             updated = True
 

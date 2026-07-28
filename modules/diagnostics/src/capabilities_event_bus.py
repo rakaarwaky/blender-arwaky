@@ -24,7 +24,6 @@ class InMemoryEventBus(IEventBus):
 
     def __init__(self) -> None:
         self._subscribers: list[IEventSubscriber] = []
-        self._lock = False  # Not using threading; asyncio handles concurrency
 
     def subscribe(self, subscriber: IEventSubscriber) -> None:
         """Subscribe an event handler.
