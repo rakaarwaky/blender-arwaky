@@ -12,8 +12,8 @@ import ast
 import hashlib
 from typing import Final
 
-from .taxonomy_server_error import SecurityViolationError
-from .taxonomy_server_vo import CodeSecurityPolicy
+from modules.shared.src.gateway.taxonomy_gateway_error import SecurityViolationError
+from modules.shared.src.gateway.taxonomy_gateway_vo import CodeSecurityPolicy
 
 # ─── Blocked Modules ──────────────────────────────────────────────
 

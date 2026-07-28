@@ -21,8 +21,8 @@ try:
 except ImportError:  # pragma: no cover
     yaml = None  # type: ignore[assignment]
 
-from .taxonomy_server_error import ConnectionConfigError
-from .taxonomy_server_vo import ServerConfig
+from modules.shared.src.gateway.taxonomy_gateway_error import ConnectionConfigError
+from modules.shared.src.gateway.taxonomy_gateway_vo import ServerConfig
 
 
 def load_server_config(

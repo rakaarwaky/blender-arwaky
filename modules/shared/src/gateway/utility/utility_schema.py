@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .taxonomy_server_error import ValidationError
-from .taxonomy_server_vo import ServerCommandSpec
+from modules.shared.src.gateway.taxonomy_gateway_error import ValidationError
+from modules.shared.src.gateway.taxonomy_gateway_vo import ServerCommandSpec
 
 # ─── Command Catalog ──────────────────────────────────────────────
 
