@@ -1,50 +1,31 @@
-"""Root layer: Dependency injection container for the scene feature.
+"""Root layer: Scene DI container.
 
-Wires scene capabilities to the agent orchestrator and bootstraps the system.
-Provides a single entry point to obtain a fully configured SceneOrchestrator.
-
-FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
+Wires capabilities to the agent orchestrator.
 """
 
 from __future__ import annotations
 
-import logging
 import threading
 from typing import TYPE_CHECKING
+
+from modules.shared.src.common.contract_code_execution_protocol import (
+    ICodeExecutionProtocol,
+)
 
 if TYPE_CHECKING:
     from .agent_scene_orchestrator import SceneOrchestrator
 
-logger = logging.getLogger("BlenderMCPServer")
-
 
 class SceneContainer:
-    """DI container that wires scene capabilities to the agent orchestrator.
+    """Dependency injection container for scene feature."""
 
-    Thread-safe singleton pattern for shared scene management.
-    All components are lazy-instantiated on first access.
-
-    FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
-    """
-
-    def __init__(self, code_executor: object) -> None:
-        """Initialize with a code executor from the server module.
-
-        Args:
-            code_executor: A callable or server capability that executes Python code.
-        """
+    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
         self._code_executor = code_executor
         self._lock = threading.Lock()
         self._orchestrator: SceneOrchestrator | None = None
 
     def get_orchestrator(self) -> SceneOrchestrator:
-        """Return a fully wired SceneOrchestrator (singleton).
-
-        Lazy-initializes all dependencies on first call.
-        Subsequent calls return the same orchestrator instance.
-
-        FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
-        """
+        """Return fully wired SceneOrchestrator singleton."""
         if self._orchestrator is not None:
             return self._orchestrator
 
@@ -53,16 +34,21 @@ class SceneContainer:
                 return self._orchestrator
 
             from .agent_scene_orchestrator import SceneOrchestrator
-            from .capabilities_scene_operate_executor import SceneOperateExecutor
+            from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
+            from .capabilities_scene_inspection_executor import SceneInspectionExecutor
 
-            executor = SceneOperateExecutor(self._code_executor)
-            self._orchestrator = SceneOrchestrator(executor=executor)
+            inspection = SceneInspectionExecutor(self._code_executor)
+            cleanup = SceneCleanupExecutor(self._code_executor)
 
-        logger.info("Scene container fully wired")
+            self._orchestrator = SceneOrchestrator(
+                inspection=inspection,
+                cleanup=cleanup,
+            )
+
         return self._orchestrator
 
     def shutdown(self) -> None:
-        """Shut down scene components."""
+        """Reset container state."""
         with self._lock:
             self._orchestrator = None
 
@@ -70,13 +56,6 @@ class SceneContainer:
         return "SceneContainer()"
 
 
-def create_scene_container(code_executor: object) -> SceneContainer:
-    """Factory function to create a new scene container.
-
-    Args:
-        code_executor: A callable or server capability that executes Python code.
-
-    Returns:
-        Configured SceneContainer instance.
-    """
+def create_scene_container(code_executor: ICodeExecutionProtocol) -> SceneContainer:
+    """Factory for SceneContainer."""
     return SceneContainer(code_executor=code_executor)

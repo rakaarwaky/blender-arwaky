@@ -1,9 +1,9 @@
 """Scene domain contract: operation protocols.
 
-FR-SCN-001: Scene inspection protocol.
-FR-SCN-002: Scene cleanup protocol.
+FR-SCN-001: scene inspection protocol.
+FR-SCN-002: scene cleanup protocol.
 
-Contract layer — pure behavior definitions, no implementation.
+Contract layer — pure ABC definitions, no implementation.
 """
 
 from __future__ import annotations
@@ -13,19 +13,19 @@ from abc import ABC, abstractmethod
 from .taxonomy_scene_command_vo import SceneCleanupVO, SceneInspectionVO
 
 
-class SceneInspectionProtocol(ABC):
+class ISceneInspectionProtocol(ABC):
     """Inbound contract for scene inspection capability."""
 
     @abstractmethod
     async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
-        """Inspect current scene state and return a structured summary."""
+        """Inspect current scene state."""
         raise NotImplementedError
 
 
-class SceneCleanupProtocol(ABC):
+class ISceneCleanupProtocol(ABC):
     """Inbound contract for scene cleanup capability."""
 
     @abstractmethod
     async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
-        """Execute cleanup or dry-run preview and return a cleanup report."""
+        """Execute cleanup or dry-run preview."""
         raise NotImplementedError

@@ -7,17 +7,11 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import ast
-
-import pytest
-
 from modules.security.src.capabilities_code_validator import CodeValidator
 from modules.shared.src.security.taxonomy_security_vo import (
     CodeValidationVO,
-    CodeViolationVO,
     SecurityPolicyVO,
 )
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

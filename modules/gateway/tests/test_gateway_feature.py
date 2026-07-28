@@ -212,3 +212,160 @@ def test_fr_gwy_005_execute_code():
     )
     result = feat.execute_code(request)
     assert result.status == "success"
+
+
+# ─── Additional Edge Case Tests ──────────────────────────────────────────
+
+
+def test_gateway_establish_connection_returns_protocol_version():
+    """Test that connection establishment returns protocol version info."""
+    conn = MockConnection()
+    feat = GatewayOrchestrator(conn, MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    result = feat.establish_connection()
+    assert result.protocol_version == "1.0"
+
+
+def test_gateway_disconnect_idempotent():
+    """Test that disconnect is idempotent when already disconnected."""
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
+    # First disconnect
+    feat.disconnect()
+    # Second disconnect should not raise
+    feat.disconnect()
+    assert True  # No exception means success
+
+
+def test_gateway_failed_connection_reports_state():
+    """Test that failed connection state is reported correctly."""
+    class FailedConnection(ConnectionProtocol):
+        def establish_connection(self):
+            return ConnectionOutcomeVO(state=ConnectionState.FAILED, error="connection refused")
+
+        def disconnect(self):
+            pass
+
+    feat = GatewayOrchestrator(
+        FailedConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
+    result = feat.establish_connection()
+    assert result.state == ConnectionState.FAILED
+    assert "connection refused" in result.error
+
+
+def test_gateway_transport_request_error():
+    """Test that transport request with error status is handled."""
+    class ErrorTransport(TransportProtocol):
+        def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
+            return TransportOutcomeVO(tracking_id=request.tracking_id, status="error", error="timeout")
+
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), ErrorTransport(), MockSceneQueue(), MockCodeExecutor()
+    )
+    request = TransportMessageVO(tracking_id=str(uuid.uuid4()), operation_class="test")
+    result = feat.send_request(request)
+    assert result.status == "error"
+    assert result.error == "timeout"
+
+
+def test_gateway_code_execution_with_output():
+    """Test that code execution captures output."""
+    class OutputExecutor(CodeExecutionProtocol):
+        def execute_code(self, _request: CodeExecutionVO) -> object:
+            from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
+
+            return CodeExecutionOutcomeVO(status="success", output="42")
+
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), OutputExecutor()
+    )
+    request = CodeExecutionVO(tracking_id=str(uuid.uuid4()), code="1 + 41")
+    result = feat.execute_code(request)
+    assert result.output == "42"
+
+
+def test_gateway_multiple_queue_operations():
+    """Test that multiple operations can be enqueued."""
+    class TrackingQueue(SceneQueueProtocol):
+        def __init__(self):
+            self.enqueued_count = 0
+
+        def enqueue_operation(self, _operation: SceneOperationVO) -> object:
+            from modules.shared.src.gateway.taxonomy_gateway_vo import SceneOperationOutcomeVO
+
+            self.enqueued_count += 1
+            return SceneOperationOutcomeVO(status="success")
+
+        def get_queue_status(self) -> object:
+            from modules.shared.src.gateway.taxonomy_gateway_vo import QueueStatusVO
+
+            return QueueStatusVO(current_depth=self.enqueued_count, is_busy=False, max_depth=50)
+
+    queue = TrackingQueue()
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), queue, MockCodeExecutor()
+    )
+    # Enqueue multiple operations
+    for _ in range(5):
+        result = feat.enqueue_scene_operation(SceneOperationVO(is_mutation=True, payload=b"test"))
+        assert result.status == "success"
+
+    # Check queue status reflects all operations
+    status = feat.get_queue_status()
+    assert status.current_depth == 5
+
+
+def test_gateway_disconnect_updates_state():
+    """Test that disconnect updates maintenance state."""
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
+
+    # Establish connection
+    feat.establish_connection()
+    assert feat.get_connection_status().state == ConnectionState.CONNECTED
+
+    # Disconnect - orchestrator passes None to set_state which sets state to None
+    feat.disconnect()
+    status = feat.get_connection_status()
+    assert status.state is None  # MockMaintenance sets state to None when passed None
+
+
+def test_gateway_reconnect_increments_attempts():
+    """Test that reconnect increments attempt counter."""
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
+
+    # Initial state
+    status = feat.get_connection_status()
+    initial_attempts = status.reconnect_attempts
+
+    # Attempt reconnect multiple times
+    for _ in range(3):
+        feat.attempt_reconnect()
+
+    status = feat.get_connection_status()
+    assert status.reconnect_attempts == initial_attempts + 3
+
+
+def test_gateway_heartbeat_updates_timestamp():
+    """Test that heartbeat updates last heartbeat timestamp."""
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
+
+    # Initial timestamp is 0
+    status = feat.get_connection_status()
+    assert status.last_heartbeat_timestamp == 0.0
+
+    # Send heartbeat
+    feat.send_heartbeat()
+    status = feat.get_connection_status()
+    assert status.last_heartbeat_timestamp == 1.0
+
+    # Send another heartbeat
+    feat.send_heartbeat()
+    status = feat.get_connection_status()
+    assert status.last_heartbeat_timestamp == 2.0

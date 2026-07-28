@@ -6,10 +6,10 @@ Surface layers depend on this facade.
 
 from __future__ import annotations
 
-from .contract_scene_protocol import SceneCleanupProtocol, SceneInspectionProtocol
+from .contract_scene_protocol import ISceneCleanupProtocol, ISceneInspectionProtocol
 
 
-class ISceneAggregate(SceneInspectionProtocol, SceneCleanupProtocol):
+class ISceneAggregate(ISceneInspectionProtocol, ISceneCleanupProtocol):
     """Facade for scene feature behavior.
 
     Combines:
