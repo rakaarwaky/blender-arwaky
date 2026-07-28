@@ -1,5 +1,4 @@
-"""Job domain error types."""
-
+# modules/shared/src/job/taxonomy_job_error.py
 from __future__ import annotations
 
 from ..common.taxonomy_core_vo import ErrorString
@@ -40,3 +39,10 @@ class InvalidStateTransitionError(JobError):
         super().__init__(message)
         self.from_state = from_state
         self.to_state = to_state
+
+
+class ValidationError(JobError):
+    """Raised when input validation fails."""
+
+    def __init__(self, message: ErrorString) -> None:
+        super().__init__(message)

@@ -1,130 +1,56 @@
-"""Agent: Job feature orchestrator.
+# modules/job/src/agent_job_orchestrator.py
+from __future__ import annotations
 
-Coordinates job state tracking, monitoring, cancellation, and cleanup.
-Wires capabilities together per FR-JOB requirements.
-"""
-
-import copy
-import logging
-
-from modules.shared.src.common.taxonomy_core_vo import (
-    ErrorString,
-    JobId,
-    Progress,
-    ResultUrl,
-)
+from modules.shared.src.common.taxonomy_core_vo import JobId
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
-from modules.shared.src.job.taxonomy_job_error import CapacityError
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
-
-logger = logging.getLogger("BlenderMCPServer")
+from modules.shared.src.job.contract_job_protocol import IJobRegistry
+from modules.shared.src.job.taxonomy_job_vo import (
+    CancelTaskCommand,
+    CancellationResult,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    FailTaskCommand,
+    JobStatusSnapshot,
+    ProgressUpdateCommand,
+)
 
 
 class JobOrchestrator(IJobAggregate):
-    """Orchestrates job lifecycle operations via capabilities layer."""
+    """
+    Thin agent facade.
 
-    def __init__(self, max_active: int = 100):
-        self._jobs: dict[str, JobStatus] = {}
-        self._max_active = max_active
+    This orchestrator delegates to capability contracts and does not
+    contain business logic or state.
+    """
 
-    # FR-JOB-001: Track and Update Task Lifecycle
+    def __init__(self, registry: IJobRegistry) -> None:
+        self._registry = registry
 
-    def track_new_task(self, operation_type: str, _metadata: dict | None = None) -> tuple[JobId, JobStatus]:
-        """Register a new background task. Returns unique tracking ID."""
-        import uuid
+    def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
+        return self._registry.create_task(command)
 
-        job_id = JobId(str(uuid.uuid4()))
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot:
+        return self._registry.start_task(job_id)
 
-        # FR-JOB-005: Enforce Background Capacity
-        running = sum(1 for j in self._jobs.values() if j.status.value in ("RUNNING", "PENDING"))
-        if running >= self._max_active:
-            raise CapacityError(max_active=self._max_active, current_active=running)
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot:
+        return self._registry.update_progress(command)
 
-        status = JobStatus(job_id=job_id)
-        self._jobs[str(job_id)] = status
-        logger.info("New task tracked: %s (type=%s)", job_id, operation_type)
-        return job_id, status
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
+        return self._registry.complete_task(command)
 
-    def update_progress(self, job_id: JobId, progress: float, _message: str = "") -> JobStatus:
-        """Update progress of a running task (0-100%)."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
+        return self._registry.fail_task(command)
 
-        status = self._jobs[str(job_id)]
-        if progress < 0 or progress > 100:
-            raise ValueError(f"Invalid progress value: {progress} (must be 0-100)")
-        if status.status.value not in ("RUNNING", "PENDING"):
-            raise RuntimeError(f"Cannot update progress on task in {status.status.value} state")
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult:
+        return self._registry.cancel_task(command)
 
-        status.progress = Progress(progress)
-        return status
+    def get_task_status(self, job_id: JobId) -> JobStatusSnapshot:
+        return self._registry.get_snapshot(job_id)
 
-    def finalize_task_success(
-        self, job_id: JobId, result_url: ResultUrl | None = None, _summary: str = ""
-    ) -> JobStatus:
-        """Mark a task as successfully completed."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+    def cleanup_expired_tasks(self) -> CleanupSummary:
+        return self._registry.cleanup_expired()
 
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
-
-        status.mark_completed(result_url)
-        logger.info("Task completed: %s", job_id)
-        return status
-
-    def finalize_task_failure(self, job_id: JobId, error_message: ErrorString, error_category: str = "") -> JobStatus:
-        """Mark a task as failed with error details."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
-
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
-
-        status.mark_failed(error_message)
-        logger.info("Task failed: %s (%s)", job_id, error_category)
-        return status
-
-    # FR-JOB-002: Monitor Task Status
-
-    def get_task_status(self, job_id: JobId) -> JobStatus | None:
-        """Retrieve current state snapshot of a task (read-only)."""
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return None
-        return copy.deepcopy(status)
-
-    # FR-JOB-003: Cancel a Task
-
-    def cancel_task(self, job_id: JobId, reason: ErrorString = "") -> tuple[bool, str]:
-        """Request cancellation of a waiting or running task."""
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return False, f"Task {job_id} not found"
-
-        state = status.status.value
-        if state in ("COMPLETED", "FAILED", "CANCELLED"):
-            return False, f"Cannot cancel task already in {state} state"
-
-        status.mark_cancelled(ErrorString(f"Cancelled: {reason}") if reason else ErrorString("Cancelled"))
-        logger.info("Task cancelled: %s (reason=%s)", job_id, reason)
-        return True, f"Task {job_id} cancellation accepted"
-
-    # FR-JOB-004: Automatic Task Record Cleanup
-
-    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, int]:
-        """Remove old, finished task records."""
-        terminal_states = {"COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"}
-
-        terminal = [jid for jid, s in self._jobs.items() if s.status.value in terminal_states]
-        to_remove = terminal[max_retained:] if len(terminal) > max_retained else []
-
-        for jid in to_remove:
-            del self._jobs[jid]
-
-        return {
-            "removed": len(to_remove),
-            "retained": len(self._jobs) - len(to_remove),
-        }
+    def get_capacity_status(self) -> CapacityStatus:
+        return self._registry.capacity_status()

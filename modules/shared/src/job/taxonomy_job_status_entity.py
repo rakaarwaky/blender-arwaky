@@ -1,69 +1,79 @@
-"""Mutable job status tracking entity."""
-
+# modules/shared/src/job/taxonomy_job_status_entity.py
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString, JobId, JobState, Progress, ResultUrl
+from dataclasses import dataclass, field
+
+from ..common.taxonomy_core_vo import (
+    ErrorString,
+    JobId,
+    JobState,
+    Progress,
+    ResultUrl,
+    Timestamp,
+)
 from .taxonomy_job_state_constant import (
-    JOB_STATE_CANCELLED,
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
+    ACTIVE_JOB_STATES,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    JOB_STATE_TIMED_OUT,
+    TERMINAL_JOB_STATES,
+)
+from .taxonomy_job_vo import (
+    CancellationReason,
+    CorrelationId,
+    ErrorCategory,
+    JobStatusSnapshot,
+    OperationType,
+    ProgressMessage,
 )
 
 
-class JobStatus:
-    """Mutable tracking of an async background job."""
+@dataclass
+class JobRecord:
+    """
+    Mutable internal job record.
 
-    def __init__(
-        self,
-        job_id: JobId,
-        status: JobState = JOB_STATE_PENDING,
-        progress: Progress | None = None,
-        result_url: ResultUrl | None = None,
-        error: ErrorString | None = None,
-    ) -> None:
-        self.job_id = job_id
-        self.status: JobState = status
-        self.progress: Progress = progress if progress is not None else Progress(0.0)
-        self.result_url: ResultUrl | None = result_url
-        self.error: ErrorString | None = error
+    This is an internal state holder, not a public read model.
+    Business rules should be applied by capabilities, not by direct mutation.
+    """
 
-    def mark_running(self) -> None:
-        """Transition to running state."""
-        self.status = JOB_STATE_RUNNING
-        self.progress = Progress(0.0)
+    job_id: JobId
+    operation_type: OperationType
+    created_at: Timestamp
+    updated_at: Timestamp
 
-    def mark_completed(self, result_url: ResultUrl | None = None) -> None:
-        """Transition to completed state."""
-        self.status = JOB_STATE_COMPLETED
-        self.progress = Progress(100.0)
-        self.result_url = result_url
+    correlation_id: CorrelationId | None = None
+    metadata: dict[str, str] = field(default_factory=dict)
 
-    def mark_failed(self, error: ErrorString) -> None:
-        """Transition to failed state."""
-        self.status = JOB_STATE_FAILED
-        self.error = error
+    state: JobState = JOB_STATE_PENDING
+    progress: Progress = Progress(0.0)
+    progress_message: ProgressMessage | None = None
 
-    def mark_cancelled(self, reason: ErrorString | None = None) -> None:
-        """Transition to cancelled state."""
-        self.status = JOB_STATE_CANCELLED
-        if reason:
-            self.error = reason
+    result_url: ResultUrl | None = None
+    error: ErrorString | None = None
+    error_category: ErrorCategory | None = None
+    cancellation_reason: CancellationReason | None = None
 
-    def mark_timed_out(self) -> None:
-        """Transition to timed out state."""
-        self.status = JOB_STATE_TIMED_OUT
+    started_at: Timestamp | None = None
+    finished_at: Timestamp | None = None
+    last_progress_at: Timestamp | None = None
 
-
-def create_job_id(raw: str) -> JobId:
-    """Factory helper to create a JobId from a raw string."""
-    return JobId(raw)
-
-
-def create_progress(raw: float) -> Progress:
-    """Factory helper to create a validated Progress value."""
-    if raw < 0.0 or raw > 100.0:
-        raise ValueError("progress must be between 0.0 and 100.0")
-    return Progress(raw)
+    def to_snapshot(self) -> JobStatusSnapshot:
+        return JobStatusSnapshot(
+            job_id=self.job_id,
+            state=self.state,
+            operation_type=self.operation_type,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            progress=self.progress,
+            progress_message=self.progress_message,
+            result_url=self.result_url,
+            error=self.error,
+            error_category=self.error_category,
+            correlation_id=self.correlation_id,
+            started_at=self.started_at,
+            finished_at=self.finished_at,
+            metadata=tuple(sorted(self.metadata.items())),
+            is_terminal=self.state in TERMINAL_JOB_STATES,
+            is_cancellable=self.state in ACTIVE_JOB_STATES,
+            progress_applicable=self.state == JOB_STATE_RUNNING,
+        )

@@ -88,6 +88,18 @@ class CameraConfigCapability(CameraConfigProtocol):
             camera_id, lens, framing_target, set_active, depth_of_field, create_if_missing
         )
 
+        # Validate gateway client is available
+        if self.gateway_client is None:
+            return {
+                "success": False,
+                "camera_reference": None,
+                "lens": lens,
+                "active_status": False,
+                "depth_of_field_applied": False,
+                "message": "Gateway client not configured",
+                "error": "missing_dependency",
+            }
+
         # Execute through gateway
         try:
             result = await self.gateway_client.execute_command(config_command)

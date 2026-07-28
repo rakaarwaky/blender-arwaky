@@ -63,8 +63,8 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         )
         try:
             await self._executor.execute_blender_code(Prompt(exists_code))
-        except Exception:
-            # Check idempotent policy
+        except ValueError as e:
+            # Blender raised ValueError — object not found
             if getattr(request, "idempotent", False):
                 return DeleteObjectVO(
                     object_name=request.object_name,
@@ -73,7 +73,14 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
                     deleted_names=[],
                     message="Object not found — idempotent deletion policy enabled",
                 )
-            raise ObjectNotFoundError(str(request.object_name)) from None
+            raise ObjectNotFoundError(str(request.object_name)) from e
+        except BaseException as e:
+            # Re-raise system-level errors (KeyboardInterrupt, SystemExit, MemoryError)
+            if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError)):
+                raise
+            # Other exceptions indicate actual errors, not "object not found"
+            logger.error("Existence check failed for object %s: %s", request.object_name, e)
+            raise ObjectNotFoundError(str(request.object_name)) from e
 
         # Check protected categories
         await self._check_protected_categories(request)
@@ -129,8 +136,12 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
                 raise DeletionProtectionError(str(request.object_name), "protected_category")
         except DeletionProtectionError:
             raise  # Re-raise protection errors — don't swallow them
-        except Exception:
-            pass  # Object doesn't exist or error already handled
+        except BaseException as e:
+            # Re-raise system-level errors (KeyboardInterrupt, SystemExit, MemoryError)
+            if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError)):
+                raise
+            # Object doesn't exist or error already handled — not a protected category issue
+            logger.debug("Protected categories check failed for object %s: %s", request.object_name, e)
 
     def _generate_deletion_code(self, request: DeleteObjectVO) -> str:
         """Generate Blender Python code for object deletion.
