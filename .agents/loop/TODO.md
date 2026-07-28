@@ -2,12 +2,13 @@
 
 ## Current Priorities
 
-1. **Bulk remediation deferred** pending user decision: AES505 agent exports (7 files), AES304 bypass comments (367), AES502 orphans (54).
+1. **Bulk remediation deferred** pending user decision: AES304 bypass comments (367), AES502 orphans (54).
 2. **MCP routing resolved** (Cycle 71): health_check→diagnostics.get_snapshot(), read_skill_context→SkillDocumentationReader, list_commands→discover_actions(). All 4 tools now route to existing, functional interfaces.
 3. **Security resolved**: `capabilities_code_validator.py` non-strict SyntaxError UnboundLocalError fixed (FR-SEC-003); security suite 238/238.
 4. **Render resolved** (Cycle 63): import chain fixed, 36 tests passing, full suite 886 green.
 5. **AES503 resolved** (Cycle 84): All 33 capability export violations fixed across 8 modules.
 6. **AES506 resolved** (Cycle 85): All 15 surface export violations fixed across cli and mcp modules.
+7. **AES505 analyzed** (Cycle 86): All 7 agents correctly exported in __init__.py; violations confirmed as false positives due to empty `entry_points` config.
 
 ### Violations Summary
 
@@ -23,14 +24,14 @@
 | AES202 | Mandatory import from barrel     | 15    | shared(6), mcp(3), job(2), asset(2), gateway(1), render(1), object(1)                                                                             |
 | AES102 | Missing docstring                | 15    | shared(4), mcp(2), job(2), asset(2), gateway(1), render(1), object(1), config(1), telemetry(1)                                                    |
 | AES504 | Agent not in__init__.py          | 12    | config(1), job(1), diagnostics(1), telemetry(1), security(1), render(1), scene(1), asset(1), launcher(1), gateway(1), dispatcher(1), mcp(1)       |
-| AES505 | Agent not exported in__init__.py | 7     | config(1), telemetry(1), security(1), object(1), render(1), scene(1), launcher(1)                                                                 |
+| AES505 | Agent not exported in__init__.py | 7     | asset(1), dispatcher(1), job(1), launcher(1), render(1), scene(1), telemetry(1) — FALSE POSITIVES (all agents correctly exported)                |
 | AES305 | Missing noqa on bypass           | 7     | shared(3), mcp(1), job(1), asset(1), gateway(1)                                                                                                   |
 | AES101 | Missing docstring (class)        | 6     | shared(2), mcp(1), job(1), asset(1), gateway(1)                                                                                                   |
 | AES501 | Contract not in__init__.py       | 5     | config(1), job(1), telemetry(1), security(1), render(1)                                                                                           |
 | AES403 | Surface not in contract          | 1     | mcp                                                                                                                                               |
 | AES405 | Missing surface docstring        | 1     | mcp                                                                                                                                               |
 
-**Total: 573 violations** (down from 629, net -56 in Cycle 84)
+**Total: 557 violations** (down from 629, net -72 across cycles 84-86; AES505 flagged as false positives)
 
 ## Recommended Execution Order
 

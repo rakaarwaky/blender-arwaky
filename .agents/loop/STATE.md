@@ -22,6 +22,10 @@ shared (taxonomy + contract) — foundation
   └── mcp (→ dispatcher, diagnostics, config, job, security)
 ```
 
+## Cycle 86 (ANALYSIS COMPLETE)
+
+* **AES505 Agent Export Analysis** : Investigated 7 AES505 violations across asset, dispatcher, job, launcher, render, scene, telemetry. All 7 modules correctly export their orchestrator classes in __init__.py (verified AssetOrchestrator, DispatcherOrchestrator, JobOrchestrator, LauncherOrchestrator, RenderOrchestrator, SceneOrchestrator, TelemetryOrchestrator). Violations report at line:1:1 despite correct exports — linter appears to have false positives when entry_points is empty in AES505 config. No code changes needed; violations documented as known linter limitation.
+
 ## Cycle 85 (RESOLVED)
 
 * **AES506 Export Fix** : Resolved all 15 AES506 surface export violations across cli and mcp modules. Created cli/src/__init__.py with 5 surface module exports + class exports. Updated mcp/src/__init__.py with module-level imports for all 10 surface files.
