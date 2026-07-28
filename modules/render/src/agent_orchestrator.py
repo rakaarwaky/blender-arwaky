@@ -13,9 +13,7 @@ from modules.shared.src.render.contract_camera_config_protocol import CameraConf
 from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
 from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
 from modules.shared.src.render.taxonomy_render_vo import (
-    CameraConfigVO,
     GetScreenshotVO,
-    HdriConfigVO,
     RenderVO,
 )
 
@@ -61,12 +59,6 @@ class RenderOrchestrator:
                 "success": False,
                 "message": "CameraConfigCapability not available",
             }
-        request = CameraConfigVO(
-            camera_name=camera_id,
-            focal_length=lens or 50.0,
-            is_active=set_active,
-            framing_target=framing_target,
-        )
         return await self._camera_config.configure_camera(
             camera_id=camera_id,
             lens=lens,
