@@ -38,7 +38,7 @@ class FakeOrchestrator:
         self.calls.append(("read_skill_context", (name, section)))
         return {"routed": "read_skill_context"}
 
-    async def health_check(self):
+    def health_check(self):
         self.calls.append(("health_check", ()))
         return {"routed": "health_check"}
 

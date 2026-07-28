@@ -24,19 +24,19 @@ class ToolRegistryHandler:
         """
         Register the core MCP tools for BlenderArwaky.
         """
-        from .surface_command_execute import register_execute_command
-        from .surface_commands_list import register_list_commands
-        from .surface_health_check import register_health_check
-        from .surface_skill_read import register_read_skill_context
+        from .surface_command_execute import CommandExecuteHandler
+        from .surface_commands_list import CommandsListHandler
+        from .surface_health_check import HealthCheckHandler
+        from .surface_skill_read import SkillReadHandler
 
         # Tool 1: Universal executor
-        register_execute_command(mcp)
+        CommandExecuteHandler.register_execute_command(mcp)
 
         # Tool 2: Command discovery
-        register_list_commands(mcp)
+        CommandsListHandler.register_list_commands(mcp)
 
         # Tool 3: Documentation reader
-        register_read_skill_context(mcp)
+        SkillReadHandler.register_read_skill_context(mcp)
 
         # Tool 4: Health check
-        register_health_check(mcp)
+        HealthCheckHandler.register_health_check(mcp)
