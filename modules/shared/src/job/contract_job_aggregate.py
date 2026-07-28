@@ -19,6 +19,12 @@ from .taxonomy_job_vo import (
 
 
 class IJobAggregate(ABC):
+    """Aggregate facade for job operations.
+
+    Agent implements this aggregate (JobOrchestrator). Surface layer depends on it.
+    Provides task lifecycle management, progress tracking, cancellation, cleanup, and capacity enforcement.
+    """
+
     @abstractmethod
     def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
 

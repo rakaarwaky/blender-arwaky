@@ -15,6 +15,12 @@ from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 
 class IDispatcherAggregate(ABC):
+    """Aggregate facade for dispatcher operations.
+
+    Agent implements this aggregate (DispatcherOrchestrator). Surface layers depend on it.
+    Provides action discovery, request validation, synchronous dispatch, background submission, and result normalization.
+    """
+
     @abstractmethod
     def register_action(self, metadata: Any) -> Any:
         ...

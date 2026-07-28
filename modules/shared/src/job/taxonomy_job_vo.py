@@ -27,6 +27,11 @@ TaskMetadata = NewType("TaskMetadata", Mapping[str, str])
 
 @dataclass(frozen=True)
 class JobPolicy:
+    """Configuration for job lifecycle behavior.
+
+    Defines capacity limits, retention policies, and stale task recovery settings.
+    """
+
     max_active: int = 100
     retention_seconds: float = 3600.0
     max_records: int = 1000
@@ -39,30 +44,40 @@ class JobPolicy:
 
 @dataclass(frozen=True)
 class CreateTaskCommand:
+    """Command to create a new job task."""
+
     operation_type: OperationType
     correlation_id: CorrelationId | None = None
     metadata: TaskMetadata | None = None
 
 @dataclass(frozen=True)
 class ProgressUpdateCommand:
+    """Command to update progress for an existing task."""
+
     job_id: JobId
     progress: Progress
     message: ProgressMessage | None = None
 
 @dataclass(frozen=True)
 class CompleteTaskCommand:
+    """Command to mark a task as completed."""
+
     job_id: JobId
     result_url: ResultUrl | None = None
     summary: ProgressMessage | None = None
 
 @dataclass(frozen=True)
 class FailTaskCommand:
+    """Command to mark a task as failed with error details."""
+
     job_id: JobId
     error_message: ErrorString
     error_category: ErrorCategory | None = None
 
 @dataclass(frozen=True)
 class CancelTaskCommand:
+    """Command to request cancellation of a running or pending task."""
+
     job_id: JobId
     reason: CancellationReason | None = None
 
@@ -70,6 +85,12 @@ class CancelTaskCommand:
 
 @dataclass(frozen=True)
 class JobStatusSnapshot:
+    """Immutable snapshot of a job's current state.
+
+    Carries all lifecycle data including state, progress, errors, and metadata.
+    Frozen (hashable). Used by repositories, orchestrators, and surface layers.
+    """
+
     job_id: JobId
     state: JobState
     operation_type: OperationType
@@ -90,6 +111,8 @@ class JobStatusSnapshot:
 
 @dataclass(frozen=True)
 class CancellationResult:
+    """Result of a cancellation evaluation."""
+
     job_id: JobId
     accepted: bool
     outcome: str
@@ -97,12 +120,16 @@ class CancellationResult:
 
 @dataclass(frozen=True)
 class CleanupDecision:
+    """Purge/stale timeout decision from job cleanup resolution."""
+
     purge_ids: tuple[JobId, ...] = field(default_factory=tuple)
     stale_timeout_ids: tuple[JobId, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class CleanupSummary:
+    """Summary of cleanup operations performed."""
+
     purged: int
     retained: int
     reclaimed_capacity: int
@@ -110,6 +137,8 @@ class CleanupSummary:
 
 @dataclass(frozen=True)
 class CapacityDecision:
+    """Evaluation result for background capacity eligibility."""
+
     accepted: bool
     active: int
     limit: int
@@ -118,6 +147,8 @@ class CapacityDecision:
 
 @dataclass(frozen=True)
 class CapacityStatus:
+    """Current background capacity status."""
+
     active: int
     limit: int
     available: int

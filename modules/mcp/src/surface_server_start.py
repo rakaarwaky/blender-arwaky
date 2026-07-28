@@ -10,7 +10,7 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
-from modules.mcp.src.bootstrap import ServerBootstrapManager
+from modules.mcp.src.capabilities_mcp_bootstrap import ServerBootstrapManager
 
 from .surface_server_instance import ServerInstanceHandler
 

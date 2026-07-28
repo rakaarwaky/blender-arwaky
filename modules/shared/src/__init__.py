@@ -349,15 +349,15 @@ from .scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
 )
-from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
+from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationPort
 
 # Telemetry domain — Protocols (recording, classification, session, enrichment)
 from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationProtocol
-from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
+from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentPort
 from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
-from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
+from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingPort
 from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
-from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
+from .telemetry.contract_telemetry_session_protocol import TelemetrySessionManagementPort
 from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
 
 # === Telemetry domain exports ===

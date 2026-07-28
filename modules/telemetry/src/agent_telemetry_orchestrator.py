@@ -16,16 +16,16 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ToolName,
 )
 from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
-from modules.shared.src.telemetry.contract_telemetry_classification import (
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
     TelemetryClassificationPort,
 )
-from modules.shared.src.telemetry.contract_telemetry_enrichment import (
+from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import (
     TelemetryEnrichmentPort,
 )
-from modules.shared.src.telemetry.contract_telemetry_recording import (
+from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
     TelemetryRecordingPort,
 )
-from modules.shared.src.telemetry.contract_telemetry_session_management import (
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
     TelemetrySessionManagementPort,
 )
 

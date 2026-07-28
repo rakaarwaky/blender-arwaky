@@ -6,12 +6,16 @@ from ..common.taxonomy_core_vo import ErrorString
 
 
 class JobError(Exception):
+    """Base error for job domain operations."""
+
     def __init__(self, message: ErrorString | None = None) -> None:
         message = message or ErrorString("Job error")
         super().__init__(message)
 
 
 class CapacityError(JobError):
+    """Raised when background capacity is exceeded."""
+
     def __init__(self, max_active: int = 100, current_active: int = 100) -> None:
         message = ErrorString(
             f"Background capacity exceeded: {current_active}/{max_active} active tasks"
@@ -22,6 +26,8 @@ class CapacityError(JobError):
 
 
 class TaskNotFoundError(JobError):
+    """Raised when a requested task ID is not found."""
+
     def __init__(self, task_id: str) -> None:
         message = ErrorString(f"Task {task_id} not found")
         super().__init__(message)
@@ -29,6 +35,8 @@ class TaskNotFoundError(JobError):
 
 
 class InvalidStateTransitionError(JobError):
+    """Raised when a state transition is not allowed."""
+
     def __init__(self, from_state: str, to_state: str) -> None:
         message = ErrorString(f"Invalid state transition: {from_state} -> {to_state}")
         super().__init__(message)
@@ -37,5 +45,7 @@ class InvalidStateTransitionError(JobError):
 
 
 class ValidationError(JobError):
+    """Raised when job validation fails."""
+
     def __init__(self, message: ErrorString) -> None:
         super().__init__(message)

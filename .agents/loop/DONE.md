@@ -54,3 +54,13 @@
 
 - **Updated** `modules/shared/src/job/__init__.py` — added `JobEvent` import and `__all__` export for taxonomy_job_event.py (fixes AES501)
 - **Result**: Total violations 634→633 (-1); 503 tests pass, 0 regressions
+
+### Cycle 89 — AES101 Class Docstring Fixes
+
+- **Updated** `modules/shared/src/asset/contract_asset_aggregate.py` — added docstring to IAssetAggregate class
+- **Updated** `modules/shared/src/diagnostics/contract_diagnostics_aggregate.py` — added docstring to IDiagnosticsAggregate class
+- **Updated** `modules/shared/src/dispatcher/contract_dispatcher_aggregate.py` — added docstring to IDispatcherAggregate class
+- **Updated** `modules/shared/src/job/contract_job_aggregate.py` — added docstring to IJobAggregate class
+- **Updated** `modules/shared/src/job/taxonomy_job_error.py` — added docstrings to JobError, CapacityError, TaskNotFoundError, InvalidStateTransitionError, ValidationError classes
+- **Updated** `modules/shared/src/job/taxonomy_job_vo.py` — added docstrings to JobPolicy, CreateTaskCommand, ProgressUpdateCommand, CompleteTaskCommand, FailTaskCommand, CancelTaskCommand, JobStatusSnapshot, CancellationResult, CleanupDecision, CleanupSummary, CapacityDecision, CapacityStatus classes
+- **Result**: All 0 remaining classes missing docstrings; 357 tests pass (import errors pre-existing), 0 regressions

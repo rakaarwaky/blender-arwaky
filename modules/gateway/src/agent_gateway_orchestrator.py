@@ -1,6 +1,6 @@
 """Gateway orchestrator — Aggregate facade coordinating all 5 capabilities.
 
-FR-GWY-001 through FR-GWY-005: Coordinates connection, maintenance, transport,
+FR-GWY: Coordinates connection, maintenance, transport,
 scene queue, and code execution via individual protocol delegation.
 """
 

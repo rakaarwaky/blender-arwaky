@@ -11,6 +11,11 @@ from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, Se
 
 
 class IAssetAggregate(ABC):
+    """Aggregate facade for asset operations.
+
+    Implemented by Agent layer (AssetOrchestrator). Surface layer depends on it.
+    """
+
     @abstractmethod
     async def search(self, query: SearchQuery, providers: StringList | None = None) -> list[AssetMetadata]:
         ...

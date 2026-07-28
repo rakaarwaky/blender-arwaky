@@ -13,6 +13,12 @@ from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
 
 
 class IDiagnosticsAggregate(ABC):
+    """Aggregate facade for diagnostics operations.
+
+    Agent implements this aggregate (DiagnosticsOrchestrator). Surface layers depend on it.
+    Provides health composition, metrics collection, audit emission, logging, and snapshot retrieval.
+    """
+
     @abstractmethod
     async def compose_health(
         self,
