@@ -4,12 +4,13 @@
 
 The AES pipeline is split into **4 separate cron jobs**, each running **15 minutes apart**:
 
-| Cron # | Role | Cron Expression | Time (example) | Prompt File |
-|--------|------|-----------------|----------------|-------------|
-| #1 | Architect | `0 5 * * *` | 05:00 | `.agents/loop/architect-prompt.md` |
-| #2 | Business Analyst | `15 5 * * *` | 05:15 | `.agents/loop/business-analyst-prompt.md` |
-| #3 | Tech Lead | `30 5 * * *` | 05:30 | `.agents/loop/tech-lead-prompt.md` |
-| #4 | Fullstack Developer | `45 5 * * *` | 05:45 | `.agents/loop/fullstack-developer-prompt.md` |
+
+| Cron # | Role                | Cron Expression | Time (example) | Prompt File                                  |
+| -------- | --------------------- | ----------------- | ---------------- | ---------------------------------------------- |
+| #1     | Architect           | `0 5 * * *`     | 06:00          | `.agents/loop/architect-prompt.md`           |
+| #2     | Business Analyst    | `15 5 * * *`    | 06:15          | `.agents/loop/business-analyst-prompt.md`    |
+| #3     | Tech Lead           | `30 5 * * *`    | 06:30          | `.agents/loop/tech-lead-prompt.md`           |
+| #4     | Fullstack Developer | `45 5 * * *`    | 06:45          | `.agents/loop/fullstack-developer-prompt.md` |
 
 ## How to Setup
 
@@ -71,6 +72,7 @@ This cycle repeats every day. Each phase respects the 15-minute gap so plans are
 ## Stopping the Pipeline
 
 Create a STOP file:
+
 ```bash
 touch .agents/loop/STOP
 ```
