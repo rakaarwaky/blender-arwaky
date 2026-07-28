@@ -82,11 +82,9 @@ def executor() -> _TestableRenderExecutor:
 async def test_fr_rnd_001_get_viewport_screenshot_code_generated(
     executor: _TestableRenderExecutor,
 ) -> None:
-    """Test screenshot generates correct Blender Python code.
+    """Test screenshot generates correct Blender Python code and returns VO.
 
-    Note: GetScreenshotVO VO doesn't have image_path (has image_data), so the
-    capability's return statement fails with TypeError → RuntimeError. We verify
-    code WAS generated before the error.
+    Verifies that GetScreenshotVO contains image_path field (FR-RND-001 output).
     """
     # Simple request-like object matching what get_viewport_screenshot expects
     class ScreenshotRequest:
@@ -97,12 +95,10 @@ async def test_fr_rnd_001_get_viewport_screenshot_code_generated(
         show_overlays = False
         focus_object = None
 
-    with pytest.raises(RuntimeError) as exc_info:
-        await executor.get_viewport_screenshot(ScreenshotRequest())
+    result = await executor.get_viewport_screenshot(ScreenshotRequest())
+    assert result.image_path != ""
 
-    assert "Failed to capture viewport screenshot" in str(exc_info.value)
-
-    # The code IS generated before the TypeError (in the try block)
+    # The code IS generated before the return (in the try block)
     assert len(executor._code_executor._executed_code) > 0
     code = executor._code_executor._executed_code[0]
     assert "import bpy" in code

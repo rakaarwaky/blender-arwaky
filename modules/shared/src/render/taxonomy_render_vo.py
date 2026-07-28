@@ -24,10 +24,11 @@ from ..common.taxonomy_core_vo import (
 class GetScreenshotVO:
     """Screenshot capture — input and output in one VO.
 
-    Input: max_size, view_angle, shading, show_overlays, focus_object, format.
-    Output: success, image_data, format, width, height.
+    Input: output_path, max_size, view_angle, shading, show_overlays, focus_object, format.
+    Output: success, image_path, image_data, format, width, height, duration_ms, message.
     """
     # Input
+    output_path: str = ""
     max_size: int = 800
     view_angle: str | None = None
     shading: str | None = None
@@ -36,9 +37,12 @@ class GetScreenshotVO:
     format: ImageFormat | None = None
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
+    image_path: str = ""
     image_data: ImageBytes = field(default_factory=lambda: ImageBytes(b""))
     width: ResolutionX = field(default_factory=lambda: ResolutionX(0))
     height: ResolutionY = field(default_factory=lambda: ResolutionY(0))
+    duration_ms: float = 0.0
+    message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
 @dataclass(frozen=True)
