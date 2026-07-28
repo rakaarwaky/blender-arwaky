@@ -14,15 +14,15 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     ToolName,
 )
-from modules.shared.src.telemetry.contract_telemetry_classification import (
-    TelemetryClassificationPort,
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationProtocol,
 )
 from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
 
 logger = logging.getLogger("blender-arwaky-telemetry-service")
 
 
-class TelemetryEventClassifier(TelemetryClassificationPort):
+class TelemetryEventClassifier(TelemetryClassificationProtocol):
     """Telemetry event classification implementation.
 
     FR-TLM-002: Classifies events into standardized high-level categories.
