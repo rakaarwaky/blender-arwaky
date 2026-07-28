@@ -18,6 +18,16 @@ Fix: Added missing trailing newlines to all 26 files (17 in modules/job/ and mod
 
 Verification: W292 violations reduced from 25→0. Total violations: 634 (down by 25 from 659). All 453 tests pass, 0 regressions.
 
+Cycle 60 — MCP Tool-Registry ImportError Fix (FR-MCP-001 / FR-MCP-002)
+
+Issue: `ToolRegistryHandler.register_tools()` in `modules/mcp/src/surface_tool_registry.py` executed `from .surface_command_execute import register_execute_command` (and three similar imports). Those names are static methods on the handler classes (`CommandExecuteHandler.register_execute_command`, etc.), NOT module-level symbols — so the import raised `ImportError` at call time. `register_tools` is invoked by `surface_server_instance.get_mcp_instance()`, meaning the MCP server could never register ANY tools; the entire AI entry point was dead on startup.
+
+Fix: Imported the handler classes and called their `register_*` static methods (`CommandExecuteHandler.register_execute_command(mcp)`, etc.).
+
+Verification: 13 new MCP tests (tool-exposure contract + routing parity) pass; full suite 561 passed, 0 failures (also cleared Cycle 59's 3 pre-existing MCP failures). `lint-arwaky-cli quality` + `import` on the changed file: 0 violations.
+
+Known follow-on defect (OPEN, not fixed this cycle): The four tool handlers delegate to `core_agent_orchestrator` (DispatcherOrchestrator), but that aggregate only implements `execute_action` (sync) — it does NOT expose `list_commands`, `read_skill_context`, or `health_check`. So `list_commands`/`read_skill_context`/`health_check` tools would raise `AttributeError`, and `execute_command`'s `await orchestrator.execute_action(...)` would raise `TypeError` (await on a sync method) at tool-call time. Fixing this requires a design decision on what aggregate each tool should route to (FR-MCP-002 = 1:1 parity with CLI). Recorded in QUESTIONS.md.
+
 Cycle 53 — Job Monitor Linter Analysis (AES302/AES403)
 
 Analysis: capabilities_job_monitor.py was flagged for missing docstrings and un-implemented protocol traits.

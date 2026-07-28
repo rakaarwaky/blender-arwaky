@@ -1,13 +1,16 @@
 # ARWAKY LOOP STATE
 
- **Last Cycle** : 56
+ **Last Cycle** : 60
 
- **Status** : Active (Cycle 56 complete — W292 trailing newline fix, 453 tests pass, violations 634)
+ **Status** : Active (Cycle 60 complete — diagnostics module test coverage added; 661 tests pass, 0 regressions; violations 634)
 
- **Current Focus** : All remaining violations deferred pending user decision on bulk remediation strategy. No actionable gaps identified — continue autonomous monitoring cycles.
+ **Current Focus** : Diagnostics module test coverage completed (FR-DIA-001..005). MCP routing-target mismatches recorded as OPEN questions. Next priority: security/launcher/object modules critically undertested (1 test each). Bulk remediation (AES502 orphan deletion, AES304 surgical widening) still deferred pending user decision.
 
 ## Cycle Summary
 
+* **Cycle 60** : Diagnostics module test coverage (Quality Priority #1 broken functionality gap) — created comprehensive test suite covering all 5 FRs: `test_diagnostics_health.py` (27 tests: FR-DIA-001 health composition status derivation, subsystem coverage, idempotency), `test_diagnostics_metrics.py` (25 tests: FR-DIA-002 metrics collection required counters, latency summaries, snapshot immutability), `test_diagnostics_audit.py` (34 tests: FR-DIA-003 audit event emission, InMemoryEventBus publish/subscribe, subscriber isolation), `test_diagnostics_logging.py` (14 tests: FR-DIA-004 structured logging policy record creation, level hierarchy, buffer management). Diagnostics module score: 4/10→8/10. Total project tests: 661 (up from 561, +100 new). All 661 tests pass, 0 regressions.
+* **Cycle 58** : Pyproject.toml completion & deprecation fix — created pyproject.toml for 6 modules missing it (gateway, launcher, security, dispatcher, diagnostics, mcp). All 15 modules now have pyproject.toml. Fixed deprecation warnings in `modules/asset/tests/test_asset_search.py` — replaced deprecated `asyncio.get_event_loop_policy().new_event_loop().run_until_complete()` with modern `asyncio.run()`. All 453 tests pass, 0 regressions, 0 warnings.
+* **Cycle 57** : Gateway socket leak fix (Quality Priority #6 potential bug) — fixed socket leak in `ConnectionExecutor.establish_connection` (`modules/gateway/src/capabilities_connection.py`) where `socket.create_connection` succeeded but handshake/auth failed, socket was never closed leaking file descriptors. Added `_safe_close_socket` helper, track socket in local variable, close on all failure paths. Total violations: 606 (down by 28 from 634). All 453 tests pass, 0 regressions. Traces to **FR-GWY-001**.
 * **Cycle 56** : W292 trailing newline fix — added missing trailing newlines to 26 Python files (17 in modules/, 9 in blender_mcp_addon/) that were left without EOF by sibling agent's InMemoryJobRegistry deletion. W292 violations reduced from 25→0. Total violations: 634 (down by 25 from 659). All 453 tests pass, 0 regressions. All remaining violations deferred pending user decision on bulk remediation strategy.
 * **Cycle 55** : Monitoring pass — full test suite stable (453 passed, 0 regressions). Total violations: 659 (up by 28 from 631). AES304 dropped by 4 (435→431, likely linter behavior change). New W292 violations: 8→25 (+17), likely from sibling agent's InMemoryJobRegistry deletion leaving files without trailing newlines. AES203 increased 1→15 (+14), AES204 3→14 (+11), AES202 9→11 (+2). AES502 reduced 58→57 (-1, one fewer orphan). All remaining violations deferred pending user decision on bulk remediation strategy. No code changes required.
 * **Cycle 0** : Idle — loop initialized.
