@@ -9,15 +9,11 @@ from __future__ import annotations
 
 import os
 import pathlib
-import tempfile
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from modules.asset.src.capabilities_asset_download import AssetDownloadCapability
 from modules.shared.src.common.taxonomy_core_vo import AssetId, AssetType, FilePath, MaxSize, ProviderName
-from modules.shared.src.common.taxonomy_domain_error import ProviderError
-
 
 # ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -98,7 +94,7 @@ async def test_fr_ast_002_cache_reuse_reuse_policy(capability_with_security: Ass
     cap = capability_with_security
 
     # Compute the actual cache path the capability would use
-    cache_key = f"polyhaven:hdri_001:default"
+    cache_key = "polyhaven:hdri_001:default"
     expected_path = cap._get_cache_path(cache_key)
 
     # Pre-populate cache at the correct path

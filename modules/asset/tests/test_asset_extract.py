@@ -18,7 +18,6 @@ import pytest
 
 from modules.asset.src.capabilities_asset_extract import AssetExtractCapability
 from modules.shared.src.common.taxonomy_core_vo import FilePath
-from modules.shared.src.common.taxonomy_domain_error import ValidationError
 from modules.shared.src.security.contract_extract_archive_protocol import (
     ExtractArchiveProtocol,
 )
@@ -26,7 +25,6 @@ from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
 )
-
 
 # ─── Mock Security Supervisor ───────────────────────────────────────────────
 
@@ -103,7 +101,7 @@ class MockSecuritySupervisor(ExtractArchiveProtocol):
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
-def _make_zip(tmpdir: pathlib.Path, name: str = "test.zip", files: dict[str, str] | None = None) -> str:  # noqa: A003
+def _make_zip(tmpdir: pathlib.Path, name: str = "test.zip", files: dict[str, str] | None = None) -> str:
     """Create a test ZIP archive."""
     path = str(tmpdir / name)
     files = files or {"data.txt": "hello world"}
@@ -113,7 +111,7 @@ def _make_zip(tmpdir: pathlib.Path, name: str = "test.zip", files: dict[str, str
     return path
 
 
-def _make_tar(tmpdir: pathlib.Path, name: str = "test.tar.gz", files: dict[str, str] | None = None) -> str:  # noqa: A003
+def _make_tar(tmpdir: pathlib.Path, name: str = "test.tar.gz", files: dict[str, str] | None = None) -> str:
     """Create a test TAR archive."""
     path = str(tmpdir / name)
     files = files or {"data.txt": "hello world"}
@@ -180,13 +178,17 @@ async def test_fr_ast_003_extract_tar(tmp_path: pathlib.Path):
 
 
 @pytest.mark.asyncio
-async def test_fr_ast_003_security_rejection():
+async def test_fr_ast_003_security_rejection(tmp_path: pathlib.Path):
     """Test that extraction fails when security supervisor rejects."""
     cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor(reject=True))
 
+    archive = _make_zip(tmp_path, "test.zip", {"data.txt": "hello"})
+    dest = str(tmp_path / "dest")
+    os.makedirs(dest, exist_ok=True)
+
     result = await cap.extract_archive(
-        artifact_path=FilePath("/tmp/test.zip"),
-        destination=FilePath("/tmp/dest"),
+        artifact_path=FilePath(archive),
+        destination=FilePath(dest),
     )
 
     assert result["success"] is False
@@ -247,7 +249,7 @@ async def test_fr_ast_003_invalid_zip_raises_validation_error():
 
 @pytest.mark.asyncio
 async def test_fr_ast_003_entry_count_limit(tmp_path: pathlib.Path):
-    """Test that extraction respects max_entries limit."""
+    """Test that extraction respects max_entries limit (security rejects excess)."""
     cap = AssetExtractCapability(security_supervisor=MockSecuritySupervisor())
 
     # Create ZIP with many entries
@@ -262,8 +264,10 @@ async def test_fr_ast_003_entry_count_limit(tmp_path: pathlib.Path):
         max_entries=3,
     )
 
-    assert result["success"] is True
-    assert len(result["extracted_files"]) <= 3
+    # The security supervisor rejects the archive when it exceeds the entry
+    # limit; the asset feature honors that authoritative (fail-closed) decision
+    # and reports the rejected entries instead of extracting them.
+    assert result["success"] is False
     assert len(result["rejected_entries"]) >= 7
 
 

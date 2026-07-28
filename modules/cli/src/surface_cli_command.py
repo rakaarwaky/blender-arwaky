@@ -47,7 +47,7 @@ class CliCommandHandler:
         return container
 
     @classmethod
-    def get_orchestrator(cls) -> "CoreAgentOrchestrator":
+    def get_orchestrator(cls) -> CoreAgentOrchestrator:
         """Lazy-load CoreAgentOrchestrator from DI container."""
         if cls._orchestrator is None:
             container = cls._get_container()

@@ -12,13 +12,10 @@ from modules.asset.src.capabilities_asset_search import AssetSearchCapability
 from modules.shared.src.asset.contract_asset_provider import AssetProviderPort
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
-    NextPageToken,
     ProviderName,
-    ResultLimit,
     SearchQuery,
 )
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
-
 
 # ─── Mock Provider Port ─────────────────────────────────────────────────────
 
@@ -26,17 +23,17 @@ from modules.shared.src.common.taxonomy_domain_error import ProviderError
 class MockProviderPort(AssetProviderPort):
     """Mock provider port for testing."""
 
-    def __init__(self, assets: list | None = None, error: Exception | None = None) -> None:  # noqa: A003
+    def __init__(self, assets: list | None = None, error: Exception | None = None) -> None:
         self._assets = assets or []
         self._error = error
 
-    async def search_assets(self, request: object) -> object:  # noqa: ARG001
+    async def search_assets(self, request: object) -> object:
         if self._error:
             raise self._error
         result = type("SearchResult", (), {"assets": self._assets})()
         return result
 
-    async def get_asset_details(self, asset_id: object) -> object:  # noqa: ARG001
+    async def get_asset_details(self, asset_id: object) -> object:
         """Return mock asset details or None."""
         if self._error:
             raise self._error
@@ -45,7 +42,7 @@ class MockProviderPort(AssetProviderPort):
                 return asset
         return None
 
-    async def download_asset(self, request: object) -> object:  # noqa: ARG001
+    async def download_asset(self, request: object) -> object:
         raise NotImplementedError("Not used in search tests")
 
 
@@ -55,7 +52,7 @@ class MockProviderPort(AssetProviderPort):
 class _AssetObject:
     """Mock asset object with standard attributes."""
 
-    def __init__(self, id: str, name: str, type: str, provider: str, tags: list[str] | None = None) -> None:  # noqa: A003
+    def __init__(self, id: str, name: str, type: str, provider: str, tags: list[str] | None = None) -> None:
         self.id = id
         self.name = name
         self.type = type
@@ -64,7 +61,7 @@ class _AssetObject:
         self.tags = tags or []
 
 
-def _make_asset(id: str, name: str, type: str, provider: str, tags: list[str] | None = None) -> _AssetObject:  # noqa: A003
+def _make_asset(id: str, name: str, type: str, provider: str, tags: list[str] | None = None) -> _AssetObject:
     """Create a mock asset object with standard attributes."""
     return _AssetObject(id, name, type, provider, tags)
 

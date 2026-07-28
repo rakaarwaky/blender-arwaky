@@ -8,7 +8,6 @@ Run via pytest from repo root.
 from __future__ import annotations
 
 import inspect
-import pathlib
 
 import pytest
 
@@ -24,7 +23,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SearchQuery,
     StringList,
 )
-
 
 # ─── Mock Collector ────────────────────────────────────────────────────────
 

@@ -7,15 +7,12 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import os
 import pathlib
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from modules.asset.src.capabilities_asset_import import AssetImportCapability
 from modules.shared.src.common.taxonomy_core_vo import AssetType, FilePath
-
 
 # ─── Mock Gateway Client ───────────────────────────────────────────────────
 
