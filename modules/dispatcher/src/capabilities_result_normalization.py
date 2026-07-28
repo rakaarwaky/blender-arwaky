@@ -116,14 +116,14 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
         """
         redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
-        MAX_DEPTH = 50
+        max_depth = 50
 
         # Iterative sanitization using a queue of (result_dict_ref, key_or_None, value_to_process)
         result: dict[str, Any] | None = None
         queue: list[tuple[dict[str, Any] | None, str | None, Any]] = [(None, None, data)]
         depth = 0
 
-        while queue and depth < MAX_DEPTH:
+        while queue and depth < max_depth:
             depth += 1
             parent_ref, key, value = queue.pop(0)
 

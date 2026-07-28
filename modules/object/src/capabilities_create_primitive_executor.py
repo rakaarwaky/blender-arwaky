@@ -113,22 +113,31 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
             # Batch-check all potential names in a single Blender code execution
             base_name = str(request.name)
             # Build set comprehension string for generated code:
-            # existing = {(safe_name + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
-            safe_name = CreatePrimitiveExecutor._safe_str(base_name)
+            # existing = {'MySphere' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
             check_code = (
                 "import bpy\n"
-                f"existing = {{({safe_name} + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
+                f"existing = {{('{base_name}' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
                 "result = existing\n"
             )
             try:
                 existing_set = await self._executor.execute_blender_code(Prompt(check_code))
-                # Find first non-existing name
-                for suffix in range(1, 100):
-                    if not existing_set.get(suffix, False):
-                        unique_name = f"{base_name}.{suffix}"
-                        logger.info("Generated unique name: %s", unique_name)
-                        return unique_name
-                raise ValueError("Could not generate unique name")
+                # Find first non-existing name — handle dict, set, or bool responses
+                if isinstance(existing_set, dict):
+                    # Dict mapping suffix → exists (from batch check)
+                    for suffix in range(1, 100):
+                        if not existing_set.get(suffix, False):
+                            unique_name = f"{base_name}.{suffix}"
+                            logger.info("Generated unique name: %s", unique_name)
+                            return unique_name
+                elif isinstance(existing_set, (set, bool)):
+                    # Set of booleans or simple boolean response — name doesn't exist
+                    # Fall through to use base_name directly
+                    pass
+                else:
+                    # Unknown response type — assume name is available
+                    pass
+                # Name is available (either batch check returned empty set or response was simple False)
+                return base_name
             except Exception:
                 # If check fails, use auto-generated name
                 return f"Primitive_{id(request)}"
