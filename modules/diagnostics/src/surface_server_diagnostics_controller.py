@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from modules.gateway.src.contract_server_aggregate import IBlenderServerAggregate
+from modules.gateway.src.contract_gateway_aggregate import IBlenderServerAggregate
 from modules.gateway.src.taxonomy_server_vo import ServerMetrics
 
 

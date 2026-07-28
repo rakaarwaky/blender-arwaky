@@ -43,42 +43,52 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         """Normalize any dispatch or submission outcome into a unified result envelope.
 
         FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
-        Returns identical shape for CLI and MCP consumers.
+        Returns identical shape for CLI and MCP consumers. Sets the `data_truncated`
+        indicator when the data payload exceeds the configured size limit.
         """
+        truncated = False
         try:
             # Extract outcome fields
             success = raw_outcome.get("success", False)
             message = raw_outcome.get("message", "")
             data = raw_outcome.get("data")
             error_category = raw_outcome.get("error_category")
-            warnings = raw_outcome.get("warnings", [])
-            metadata = raw_outcome.get("metadata", {})
+            warnings = list(raw_outcome.get("warnings", []) or [])
+            metadata = dict(raw_outcome.get("metadata", {}) or {})
 
             # Process and sanitize data payload
             if data is not None:
                 data = self._sanitize_data(data)
-                data_size = len(json.dumps(data))
+                try:
+                    data_size = len(json.dumps(data, default=str))
+                except TypeError:
+                    data_size = 0
                 if data_size > self._max_size:
+                    truncated = True
                     data = {"_truncated": True, "_size_exceeded": self._max_size}
+                    warnings.append("Result data truncated to fit envelope size limit")
 
             # Build envelope
             if success:
-                return UnifiedResultEnvelopeVO.success_envelope(
+                return UnifiedResultEnvelopeVO(
+                    success=True,
                     message=message,
                     tracking_id=tracking_id,
                     data=data,
-                    warnings=list(warnings) if warnings else [],
-                    metadata=dict(metadata) if metadata else {},
+                    warnings=warnings,
+                    metadata=metadata,
+                    data_truncated=truncated,
                 )
-            else:
-                return UnifiedResultEnvelopeVO.error_envelope(
-                    message=message,
-                    tracking_id=tracking_id,
-                    error_category=error_category or "execution_error",
-                    data=data,
-                    warnings=list(warnings) if warnings else [],
-                    metadata=dict(metadata) if metadata else {},
-                )
+            return UnifiedResultEnvelopeVO(
+                success=False,
+                message=message,
+                tracking_id=tracking_id,
+                error_category=error_category or "execution_error",
+                data=data,
+                warnings=warnings,
+                metadata=metadata,
+                data_truncated=truncated,
+            )
 
         except Exception as e:
             # Envelope construction failure — fall back to safe error

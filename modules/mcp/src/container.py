@@ -20,7 +20,7 @@ def _create_container() -> Any:
     """Create and wire the DI container."""
     from modules.config.src.utility_config_loader import get_config
 
-    from modules.gateway.src.capabilities_blender_connection import BlenderConnection
+    from modules.gateway.src.capabilities_connection import BlenderConnection
 
     config = get_config
     blender_conn = BlenderConnection.create_from_config(config=config)

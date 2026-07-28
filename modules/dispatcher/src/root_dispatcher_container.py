@@ -40,9 +40,13 @@ class DispatcherContainer:
 
         logger.info("Wiring dispatcher feature module")
 
-        catalog_registration = CatalogRegistrationExecutor()
-        action_discovery = ActionDiscoveryExecutor()
-        request_validation = RequestValidationExecutor()
+        # Single shared catalog instance — registration, discovery, and validation
+        # must observe the same catalog (FR-DSP-001: dispatcher owns the catalog).
+        catalog: dict = {}
+
+        catalog_registration = CatalogRegistrationExecutor(catalog)
+        action_discovery = ActionDiscoveryExecutor(catalog)
+        request_validation = RequestValidationExecutor(catalog)
         sync_dispatch = SyncDispatchExecutor()
         background_submit = BackgroundSubmitExecutor()
         result_normalization = ResultNormalizationExecutor()

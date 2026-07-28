@@ -151,10 +151,13 @@ class DispatcherOrchestrator:
 
         except ValueError as e:
             logger.error("Action execution failed: %s", e)
+            # Duck-typed category: DispatchRequestError carries .error_category so the
+            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
+            error_category = getattr(e, "error_category", "validation_error")
             return UnifiedResultEnvelopeVO.error_envelope(
                 message=str(e),
-                tracking_id="",
-                error_category="validation_error",
+                tracking_id=request.validated_tracking_id,
+                error_category=error_category,
             )
 
         except Exception as e:

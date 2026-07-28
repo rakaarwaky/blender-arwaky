@@ -1,9 +1,15 @@
-"""Capability: Code execution with centralized AST validation and async task management.
+"""Capability: Code execution with AST validation and async task management.
 
-Implements ICodeExecutionProtocol — handles code validation via shared
-utility, socket-based execution forwarding, payload size enforcement,
-output truncation, result formatting, and async task lifecycle tracking
-per FR-SRV-002 (v2.0.0).
+FR-GWY-005: Execute Raw Python Code
+- Validates code via security policy feature before transport
+- Enforces execution timeout
+- Truncates oversized output with truncation indicator
+- Does not manage background task lifecycle
+- Delegates security validation to security policy feature (ValidateCodeProtocol)
+- Delegates code transport to gateway transport feature (TransportProtocol)
+
+Contains CodeExecutionAdapter (asyncio-based, ICodeExecutionProtocol)
+and CodeExecutionExecutor (sync socket-based, CodeExecutionProtocol).
 """
 
 from __future__ import annotations
@@ -13,31 +19,69 @@ import logging
 import time
 from dataclasses import dataclass, field
 
-from modules.gateway.src import (
+from modules.diagnostics.src.contract_audit_emission_protocol import (
+    IEventPublisher,
+)
+from modules.gateway.src.contract_code_execution_protocol import (
+    ICodeExecutionProtocol,
+)
+from modules.gateway.src.contract_connection_protocol import (
+    IBlenderConnectionProtocol,
+)
+from modules.gateway.src.taxonomy_server_constant import (
     DEFAULT_EXECUTION_TIMEOUT_MS,
     MAX_EXECUTION_OUTPUT_BYTES,
-    CodeExecuted,
-    CodeSecurityPolicy,
-    ExecutionErrorDetail,
-    ExecutionResult,
-    ExecutionStatus,
+)
+from modules.gateway.src.taxonomy_server_error import (
     ExecutionTimeoutError,
-    IBlenderConnectionProtocol,
-    ICodeExecutionProtocol,
-    IEventPublisher,
     SecurityViolationError,
+    TaskNotFoundError,
+    ValidationError,
+)
+from modules.gateway.src.taxonomy_server_event import (
+    CodeExecuted,
     TaskCancelled,
     TaskCompleted,
     TaskCreated,
     TaskFailed,
+)
+from modules.gateway.src.taxonomy_server_vo import (
+    CodeSecurityPolicy,
+    ExecutionErrorDetail,
+    ExecutionResult,
+    ExecutionStatus,
     TaskManagerConfig,
-    TaskNotFoundError,
     TaskState,
     TaskStatus,
-    ValidationError,
+)
+from modules.gateway.src.utility_validator import (
     check_payload_size,
     code_fingerprint,
     validate_code_ast,
+)
+from modules.shared.src.gateway.contract_code_execution_protocol import (
+    CodeExecutionProtocol,
+)
+from modules.shared.src.gateway.contract_transport_protocol import (
+    TransportProtocol,
+)
+from modules.shared.src.gateway.taxonomy_gateway_error import (
+    TimeoutError,
+)
+from modules.shared.src.gateway.taxonomy_gateway_vo import (
+    CodeExecutionOutcomeVO,
+    CodeExecutionVO,
+    TransportMessageVO,
+    TransportOutcomeVO,
+)
+from modules.shared.src.security.contract_validate_code_protocol import (
+    ValidateCodeProtocol,
+)
+from modules.shared.src.security.taxonomy_security_error import (
+    CodeValidationError,
+)
+from modules.shared.src.security.taxonomy_security_vo import (
+    CodeValidationVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -57,77 +101,32 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         default_timeout_ms: float = DEFAULT_EXECUTION_TIMEOUT_MS,
         max_output_bytes: int = MAX_EXECUTION_OUTPUT_BYTES,
     ) -> None:
-        """Initialize code execution adapter.
-
-        Args:
-            connection_port: The connection protocol for executing code.
-            event_publisher: Event bus for emitting execution events.
-            security_policy: Code security policy for validation.
-            task_config: Task manager configuration.
-            default_timeout_ms: Default execution timeout in milliseconds.
-            max_output_bytes: Maximum output size before truncation.
-        """
         self._connection = connection_port
         self._event_publisher = event_publisher
         self._security_policy = security_policy
         self._task_config = task_config or TaskManagerConfig()
         self._default_timeout_ms = default_timeout_ms
         self._max_output_bytes = max_output_bytes
-
-        # Task storage: task_id -> TaskEntry
         self._tasks: dict[str, TaskEntry] = {}
         self._lock: asyncio.Lock = asyncio.Lock()
-
-    # ─── Block 2: ICodeExecutionProtocol Methods ──────────────
 
     async def execute_blender_code(
         self,
         code: str,
         request_id: str | None = None,
     ) -> ExecutionResult:
-        """Execute Python code in Blender via asyncio stream.
-
-        Validates code against centralized AST validator (FR-SRV-002),
-        enforces payload size limits, sends to Blender, and returns
-        standardized ExecutionResult with timing and truncation.
-
-        Never logs raw code — only fingerprint, length, and validation outcome.
-
-        Args:
-            code: The Python code string to execute.
-            request_id: Optional tracking ID.
-
-        Returns:
-            ExecutionResult with status, data, and timing.
-
-        Raises:
-            SecurityViolationError: If code contains blocked patterns.
-            ValidationError: If code is empty or syntax error.
-            ExecutionTimeoutError: If execution exceeds timeout.
-        """
         fingerprint = code_fingerprint(code)
         code_len = len(code.encode("utf-8"))
-
-        # Audit log — record all code execution attempts (no raw code)
         logger.info(
             "Executing Blender code: fingerprint=%s, length=%d bytes, request_id=%s",
             fingerprint, code_len, request_id,
         )
-
-        # Enforce payload size limit
         check_payload_size(code, self._security_policy.max_payload_bytes)
-
-        # AST-based validation (centralized utility)
         try:
             validate_code_ast(code, self._security_policy)
         except Exception as e:
-            logger.warning(
-                "Code validation failed: fingerprint=%s, error=%s",
-                fingerprint, e,
-            )
+            logger.warning("Code validation failed: fingerprint=%s, error=%s", fingerprint, e)
             raise
-
-        # Execute code via connection
         start = time.monotonic()
         try:
             loop = asyncio.get_running_loop()
@@ -143,16 +142,12 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 ),
                 timeout=self._default_timeout_ms / 1000.0,
             )
-
             elapsed_ms = (time.monotonic() - start) * 1000
-
-            # Truncate output if too large
             data = result.data if result.data is not None else ""
             truncated = False
             if isinstance(data, str) and len(data.encode("utf-8")) > self._max_output_bytes:
                 data = data[:self._max_output_bytes] + "\n...[truncated]"
                 truncated = True
-
             exec_result = ExecutionResult(
                 status=ExecutionStatus("success"),
                 data=data,
@@ -160,8 +155,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 execution_time_ms=elapsed_ms,
                 request_id=request_id,
             )
-
-            # Emit event
             await self._event_publisher.publish(
                 CodeExecuted(
                     request_id=request_id or "",
@@ -169,9 +162,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                     truncated=truncated,
                 )
             )
-
             return exec_result
-
         except asyncio.TimeoutError:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.warning("Code execution timed out after %.1fms", elapsed_ms)
@@ -197,25 +188,11 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             )
 
     async def execute_task(self, task_id: str, code: str, request_id: str | None = None) -> ExecutionResult:
-        """Execute code for an existing background task.
-
-        Internal use by the queue worker. Updates task state to running,
-        executes code, then marks as completed or failed.
-
-        Args:
-            task_id: The task ID to execute.
-            code: The Python code string.
-            request_id: Optional tracking ID.
-
-        Returns:
-            ExecutionResult with status and data.
-        """
         async with self._lock:
             entry = self._tasks.get(task_id)
             if entry is None:
                 raise TaskNotFoundError(task_id=task_id)
             entry.state = TaskState("running")
-
         try:
             result = await self.execute_blender_code(code, request_id)
         except Exception as e:
@@ -232,36 +209,22 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                     )
                     entry.completed_at = time.monotonic()
             raise
-
         async with self._lock:
             entry = self._tasks.get(task_id)
             if entry:
                 entry.state = TaskState("success")
                 entry.result = result
                 entry.completed_at = time.monotonic()
-
         return result
 
     async def create_task(self, request_id: str | None = None) -> str:
-        """Create a new pending task and return its unique task_id.
-
-        Args:
-            request_id: Optional tracking ID.
-
-        Returns:
-            Unique task_id string.
-        """
         task_id = f"task_{request_id or 'unnamed'}_{int(time.monotonic() * 1000) % 1000000:06d}"
-
-        # Emit creation event
         try:
             await self._event_publisher.publish(
                 TaskCreated(task_id=task_id, request_id=request_id or "")
             )
         except Exception as e:
             logger.error("Failed to emit TaskCreated: %s", e)
-
-        # Store task entry synchronously under lock
         async with self._lock:
             self._tasks[task_id] = TaskEntry(
                 task_id=task_id,
@@ -269,23 +232,11 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 request_id=request_id,
                 created_at=time.monotonic(),
             )
-
         logger.info("Created task %s", task_id)
         self.cleanup_expired()
         return task_id
 
     async def get_task(self, task_id: str) -> TaskStatus:
-        """Get task status.
-
-        Args:
-            task_id: The task ID to query.
-
-        Returns:
-            TaskStatus with current state.
-
-        Raises:
-            TaskNotFoundError: If not found or expired.
-        """
         async with self._lock:
             entry = self._tasks.get(task_id)
             if entry is None:
@@ -306,18 +257,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             )
 
     async def poll_task_result(self, task_id: str, request_id: str | None = None) -> TaskStatus:
-        """Poll async task status and final result.
-
-        Args:
-            task_id: The task ID to poll.
-            request_id: Optional tracking ID.
-
-        Returns:
-            TaskStatus with current state and optional ExecutionResult.
-
-        Raises:
-            TaskNotFoundError: If not found or expired.
-        """
         async with self._lock:
             entry = self._tasks.get(task_id)
             if entry is None:
@@ -327,7 +266,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 if elapsed > self._task_config.retention_seconds:
                     del self._tasks[task_id]
                     raise TaskNotFoundError(task_id=task_id)
-
             status = TaskStatus(
                 task_id=entry.task_id,
                 state=entry.state,
@@ -337,8 +275,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 completed_at=entry.completed_at,
                 cancel_requested=entry.cancel_requested,
             )
-
-        # Emit completion events for terminal states
         if entry.state == TaskState("success"):
             try:
                 await self._event_publisher.publish(
@@ -346,7 +282,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 )
             except Exception as e:
                 logger.error("Failed to emit TaskCompleted: %s", e)
-
         elif entry.state == TaskState("error"):
             try:
                 await self._event_publisher.publish(
@@ -354,30 +289,13 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 )
             except Exception as e:
                 logger.error("Failed to emit TaskFailed: %s", e)
-
         return status
 
     async def cancel_async_task(self, task_id: str, request_id: str | None = None) -> TaskStatus:
-        """Cancel a pending or running task.
-
-        - If pending: marks as cancelled, emits TaskCancelled
-        - If running: sets cancel_requested=True, attempts asyncio cancellation
-
-        Args:
-            task_id: The task ID to cancel.
-            request_id: Optional tracking ID.
-
-        Returns:
-            Updated TaskStatus.
-
-        Raises:
-            TaskNotFoundError: If not found.
-        """
         async with self._lock:
             entry = self._tasks.get(task_id)
             if entry is None:
                 raise TaskNotFoundError(task_id=task_id)
-
             status = TaskStatus(
                 task_id=entry.task_id,
                 state=entry.state,
@@ -387,7 +305,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 completed_at=entry.completed_at,
                 cancel_requested=entry.cancel_requested,
             )
-
             if entry.state == TaskState("pending"):
                 entry.state = TaskState("cancelled")
                 entry.completed_at = time.monotonic()
@@ -398,23 +315,13 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
                 )
             elif entry.state == TaskState("running"):
                 entry.cancel_requested = True
-                # Attempt asyncio cancellation of the running coroutine
-                # (actual cancellation depends on the coroutine supporting it)
-
-        # Emit event outside lock
         try:
             await self._event_publisher.publish(TaskCancelled(task_id=task_id))
         except Exception as e:
             logger.error("Failed to emit TaskCancelled: %s", e)
-
         return status
 
     def cleanup_expired(self) -> int:
-        """Remove tasks beyond retention window.
-
-        Returns:
-            Number of tasks removed.
-        """
         now = time.monotonic()
         expired = [
             tid
@@ -427,8 +334,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             logger.info("Cleaned up expired task %s", tid)
         return len(expired)
 
-    # ─── Block 3: Helpers ──────────────────────────────────────
-
     def __repr__(self) -> str:
         return (
             f"CodeExecutionAdapter(task_retention={self._task_config.retention_seconds}s, "
@@ -438,8 +343,6 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
 
 @dataclass
 class TaskEntry:
-    """Internal mutable state for a tracked task."""
-
     task_id: str
     state: TaskState
     result: ExecutionResult | None = None
@@ -447,3 +350,103 @@ class TaskEntry:
     created_at: float = field(default_factory=time.monotonic)
     completed_at: float | None = None
     cancel_requested: bool = False
+
+
+class CodeExecutionExecutor(CodeExecutionProtocol):
+    """Concrete implementation for raw Python code execution.
+
+    FR-GWY-005: Validates via security policy before transport. Enforces timeout.
+    Truncates oversized output. Does not manage background task lifecycle.
+    Delegates security validation to ValidateCodeProtocol.
+    Delegates code transport to TransportProtocol.
+    """
+
+    def __init__(
+        self,
+        security_policy: ValidateCodeProtocol,
+        transport: TransportProtocol,
+        max_output_bytes: int = 1_048_576,
+        execution_timeout_seconds: float = 30.0,
+    ) -> None:
+        self._security_policy: ValidateCodeProtocol = security_policy
+        self._transport: TransportProtocol = transport
+        self._max_output_bytes: int = max_output_bytes
+        self._execution_timeout_seconds: float = execution_timeout_seconds
+
+    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
+        self._validate_code(request)
+        start_time = time.time()
+        timeout = request.timeout_override_seconds or self._execution_timeout_seconds
+        try:
+            outcome = self._execute_via_transport(request, timeout)
+            duration_ms = (time.time() - start_time) * 1000
+            output = outcome.payload.decode("utf-8") if outcome.payload else ""
+            truncated = False
+            if len(output.encode("utf-8")) > self._max_output_bytes:
+                output = output[: self._max_output_bytes]
+                truncated = True
+            logger.debug(
+                "Code execution complete: status=%s, %.1fms, truncated=%s",
+                outcome.status,
+                duration_ms,
+                truncated,
+            )
+            return CodeExecutionOutcomeVO(
+                status=outcome.status,
+                output=output[:500],
+                truncated=truncated,
+                duration_ms=duration_ms,
+                error_category=outcome.error,
+                error_message=outcome.error,
+            )
+        except TimeoutError:
+            logger.error("Code execution timed out after %.1fs", timeout)
+            return CodeExecutionOutcomeVO(
+                status="timeout",
+                error_message=f"Execution timed out after {timeout}s",
+                duration_ms=(time.time() - start_time) * 1000,
+            )
+        except SecurityViolationError:
+            logger.error("Code execution blocked by security policy")
+            raise
+        except Exception as e:
+            logger.error("Code execution failed: %s", e)
+            return CodeExecutionOutcomeVO(
+                status="error",
+                error_category="runtime",
+                error_message=str(e),
+                duration_ms=(time.time() - start_time) * 1000,
+            )
+
+    def _validate_code(self, request: CodeExecutionVO) -> None:
+        security_request = CodeValidationVO(
+            code_text=request.code,
+            max_code_size=100_000,
+            strict_mode=True,
+            execution_context="gateway_code_execution",
+        )
+        try:
+            result = self._security_policy.validate_code(security_request)
+            if not result.allowed:
+                violation_descriptions = "; ".join(v.description for v in result.violations)
+                raise SecurityViolationError(f"Code validation failed: {violation_descriptions}")
+        except CodeValidationError as e:
+            raise SecurityViolationError(f"Security policy validation error: {e}")
+
+    def _execute_via_transport(self, request: CodeExecutionVO, timeout_seconds: float) -> TransportOutcomeVO:
+        tracking_id = request.tracking_id or str(hash(request.code))
+        transport_request = TransportMessageVO(
+            tracking_id=tracking_id,
+            operation_class="code_execution",
+            payload=request.code.encode("utf-8"),
+            timeout_override_seconds=timeout_seconds,
+        )
+        return self._transport.send_request(transport_request)
+
+    def __repr__(self) -> str:
+        return (
+            f"CodeExecutionExecutor(security={self._security_policy!r}, "
+            f"transport={self._transport!r}, "
+            f"max_output={self._max_output_bytes}, "
+            f"timeout={self._execution_timeout_seconds})"
+        )

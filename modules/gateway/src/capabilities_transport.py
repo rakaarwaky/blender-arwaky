@@ -33,7 +33,7 @@ from modules.gateway.src.taxonomy_server_error import (
 from modules.gateway.src.taxonomy_server_event import (
     CommandDispatched,
 )
-from modules.gateway.src.contract_command_protocol import (
+from modules.gateway.src.contract_transport_protocol import (
     IBlenderCommandProtocol,
 )
 from modules.gateway.src.taxonomy_server_vo import (
