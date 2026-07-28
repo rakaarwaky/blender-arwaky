@@ -6,6 +6,12 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
+from modules.shared.src.common.taxonomy_core_vo import SuccessFlag, ToolName
+from modules.shared.src.mcp.contract_discovery_protocol import ServerDiscoveryProtocol
+from modules.shared.src.mcp.contract_execute_protocol import ServerExecuteProtocol
+from modules.shared.src.mcp.contract_health_protocol import ServerHealthProtocol
+from modules.shared.src.mcp.contract_mcp_tool_exposure_protocol import McpToolExposureProtocol
+from modules.shared.src.mcp.contract_response_protocol import ServerResponseProtocol
 from modules.mcp.src.bootstrap import ServerBootstrapManager
 
 from .capabilities_lifecycle import ServerInstanceHandler
@@ -48,4 +54,3 @@ class ServerStartHandler:
             mcp.run(transport="sse")
         else:
             mcp.run()
-

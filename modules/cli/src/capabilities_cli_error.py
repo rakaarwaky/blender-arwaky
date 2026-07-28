@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.cli.contract_cli_error_protocol import CliErrorProtocol
 
 
@@ -51,14 +52,18 @@ class CliErrorCapability(CliErrorProtocol):
         hint = self.REMEDIATION.get(category, self.REMEDIATION.get("validation", ""))
 
         if format == "json":
-            return json.dumps({
-                "error": {
-                    "category": category,
-                    "message": str(message),
-                    "hint": hint,
-                    "detail": error.get("detail") if verbose else None,
+            return json.dumps(
+                {
+                    "error": {
+                        "category": category,
+                        "message": str(message),
+                        "hint": hint,
+                        "detail": error.get("detail") if verbose else None,
+                    },
                 },
-            }, default=str, indent=2)
+                default=str,
+                indent=2,
+            )
 
         lines: list[str] = [
             f"Error [{category}]: {message}",
