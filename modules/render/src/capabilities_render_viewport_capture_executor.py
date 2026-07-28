@@ -9,7 +9,7 @@ import logging
 import time
 from dataclasses import replace
 
-from modules.shared.src.common.contract_code_execution_protocol import (
+from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
 from modules.shared.src.common.taxonomy_core_vo import (
