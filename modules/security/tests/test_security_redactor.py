@@ -280,7 +280,7 @@ class TestTruncation:
         """FR-SEC-004: payloads over 10000 bytes are truncated."""
         cap = _make_redactor()
         res = _redact(cap, "a" * 15000)
-        assert len(res.text) <= 10007  # 10000 + "\n[TRUNCATED]"
+        assert len(res.text) <= 10012  # 10000 + "\n[TRUNCATED]"
 
     def test_truncated_payload_has_marker(self) -> None:
         """FR-SEC-004: truncated payload includes truncation marker."""

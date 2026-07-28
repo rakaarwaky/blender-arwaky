@@ -117,6 +117,49 @@ async def test_fr_obj_001_zero_scale_rejected_with_validation_error():
         pass
 
 
+async def test_fr_obj_001_object_not_found_raises():
+    # FR-OBJ-001: object not found should raise ObjectNotFoundError
+    # Need two ValueError responses: one for initial get, one for fallback pattern match
+    ex = FakeBlenderExecutor(responses=[ValueError("Object not found in scene."), ValueError("Object not found in scene.")])
+    cap = PlaceAssetExecutor(ex)
+    try:
+        await cap.place_asset(PlaceAssetVO(asset_id="asset_1", object_name=ObjectName("Missing")))
+        raise AssertionError("expected ObjectNotFoundError")
+    except ObjectNotFoundError:
+        pass
+
+
+async def test_fr_obj_001_place_with_rotation():
+    # FR-OBJ-001: placement code should include rotation when provided
+    # Need two responses: one for existence check, one for place code execution
+    ex = FakeBlenderExecutor(responses=[True, True])
+    cap = PlaceAssetExecutor(ex)
+    res = await cap.place_asset(
+        PlaceAssetVO(
+            asset_id="asset_1",
+            object_name=ObjectName("Cube"),
+            location=CoordinateList([1.0, 2.0, 3.0]),
+            rotation=CoordinateList([0.0, 0.0, 1.57]),
+            scale=ScaleVector([1.0, 1.0, 1.0]),
+        )
+    )
+    assert res.success is True
+    # First call is resolve, second call is placement code with rotation
+    code = str(ex.calls[1])
+    assert "rotation_euler" in code
+
+
+async def test_fr_obj_001_no_selected_objects_raises():
+    # FR-OBJ-001: no object_name and no selected objects should raise ObjectNotFoundError
+    ex = FakeBlenderExecutor(responses=[])  # Empty responses queue -> returns True, but we need to simulate no selection
+    cap = PlaceAssetExecutor(ex)
+    try:
+        await cap.place_asset(PlaceAssetVO(asset_id="asset_1"))  # No object_name
+        raise AssertionError("expected ObjectNotFoundError")
+    except ObjectNotFoundError:
+        pass
+
+
 # ─── FR-OBJ-002: Create Primitive ───────────────────────────────────────────
 
 
@@ -205,6 +248,23 @@ async def test_fr_obj_003_non_numeric_scale_rejected():
         pass
 
 
+async def test_fr_obj_003_rotation_only_transform():
+    # FR-OBJ-003: setting rotation only should not include location or scale in generated code
+    ex = FakeBlenderExecutor()
+    cap = SetTransformExecutor(ex)
+    res = await cap.set_object_transform(
+        SetObjectTransformVO(
+            object_name=ObjectName("Cube"),
+            rotation=CoordinateList([0.0, 0.0, 1.57]),
+        )
+    )
+    assert res.success is True
+    code = str(ex.calls[0])
+    assert "rotation_euler" in code
+    assert "obj.location =" not in code
+    assert "obj.scale =" not in code
+
+
 # ─── FR-OBJ-004: Set Material ───────────────────────────────────────────────
 
 
@@ -270,6 +330,46 @@ async def test_fr_obj_005_add_modifier_succeeds():
     assert res.success is True
     assert res.modifier_type == "SUBSURF"
     assert res.applied_destructively is False
+
+
+async def test_fr_obj_005_remove_modifier_succeeds():
+    # FR-OBJ-005: remove action should succeed without confirmation
+    ex = FakeBlenderExecutor()
+    cap = ApplyModifierExecutor(ex)
+    res = await cap.apply_modifier(
+        ApplyModifierVO(object_name=ObjectName("Cube"), modifier_name="subsurf", action="remove")
+    )
+    assert res.success is True
+    assert res.modifier_type == "SUBSURF"
+    assert res.applied_destructively is False
+
+
+async def test_fr_obj_005_update_modifier_succeeds():
+    # FR-OBJ-005: update action should succeed without confirmation
+    ex = FakeBlenderExecutor()
+    cap = ApplyModifierExecutor(ex)
+    res = await cap.apply_modifier(
+        ApplyModifierVO(object_name=ObjectName("Cube"), modifier_name="subsurf", action="update")
+    )
+    assert res.success is True
+    assert res.modifier_type == "SUBSURF"
+    assert res.applied_destructively is False
+
+
+async def test_fr_obj_005_apply_modifier_with_confirmation_succeeds():
+    # FR-OBJ-005: apply with confirmation should succeed
+    ex = FakeBlenderExecutor()
+    cap = ApplyModifierExecutor(ex)
+    res = await cap.apply_modifier(
+        ApplyModifierVO(
+            object_name=ObjectName("Cube"),
+            modifier_name="subsurf",
+            action="apply",
+            confirmation=True,
+        )
+    )
+    assert res.success is True
+    assert res.applied_destructively is True
 
 
 # ─── FR-OBJ-006: Delete Object ──────────────────────────────────────────────

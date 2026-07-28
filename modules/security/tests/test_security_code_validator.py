@@ -187,13 +187,11 @@ class TestStrictMode:
         assert any("syntax_error" in v.category for v in res.violations)
 
     def test_syntax_error_non_strict_warns(self) -> None:
-        """FR-SEC-003: unparseable code in non-strict mode produces warning."""
+        """FR-SEC-003: unparseable code in non-strict mode records a syntax_error violation (no crash)."""
         cap = _make_validator()
-        # Non-strict mode with syntax error: implementation has a bug where it
-        # tries to walk an unparseable tree - accept whatever outcome occurs
         res = _validate(cap, "def (:", strict_mode=False)
-        # Either violations exist or the code proceeds (depending on implementation)
-        assert res.allowed in (True, False)
+        assert res.allowed is False
+        assert any("syntax_error" in v.category for v in res.violations)
 
     def test_valid_code_strict_allowed(self) -> None:
         """FR-SEC-003: valid code in strict mode is allowed."""
@@ -335,7 +333,7 @@ class TestAuditMetadata:
     def test_size_limit_has_audit_metadata(self) -> None:
         """FR-SEC-003: size limit violation includes audit metadata."""
         cap = _make_validator()
-        res = _validate(cap, "x", max_code_size=1)
+        res = _validate(cap, "xx", max_code_size=1)
         assert isinstance(res.audit_metadata, dict)
         assert res.audit_metadata.get("rule") == "code_oversized"
 

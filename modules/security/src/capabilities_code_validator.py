@@ -86,6 +86,16 @@ class CodeValidator(ValidateCodeProtocol):
                     audit_metadata={"rule": "syntax_error", "line": exc.lineno},
                 )
             violations.append(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"))
+            # Non-strict mode records the syntax error as a violation and stops:
+            # an unparseable tree cannot be walked, so do not fall through to ast.walk.
+            return CodeValidationVO(
+                code_text=request.code_text,
+                max_code_size=request.max_code_size,
+                strict_mode=request.strict_mode,
+                allowed=False,
+                violations=tuple(violations),
+                audit_metadata={"rule": "syntax_error", "line": exc.lineno},
+            )
 
         blocked_modules = {"os", "subprocess", "shutil", "importlib", "sys", "socket", "ctypes", "multiprocessing", "threading", "signal", "pickle"}
         blocked_functions = {"eval", "exec", "compile", "__import__", "breakpoint", "globals", "locals", "getattr", "setattr", "delattr"}

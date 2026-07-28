@@ -1,5 +1,11 @@
 # ARWAKY LOOP TODO
 
+## Current Priorities
+
+1. **Launcher/Object modules test coverage** — critically undertested (1 test each), next after security completed.
+2. **Known implementation bug**: `capabilities_code_validator.py` line 93 — `ast.walk(tree)` raises UnboundLocalError when `strict_mode=False` and code has syntax error; test skips this case.
+3. **Bulk remediation deferred** pending user decision: AES502 orphan deletion (58 contract orphans), AES304 surgical widening (431 bypass comments).
+
 ## Module Dependency Graph
 
 ```

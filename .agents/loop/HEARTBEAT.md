@@ -13,6 +13,8 @@ Timestamped heartbeats:
 * Stale-Barrel Import Remediation (Cycle 46)
   Fixed broken `modules.shared/src/job` and `asset` barrel exports that broke 4 test collections; realigned barrels to current symbols (JobStatus→JobStatusSnapshot, removed dead create_job_id/create_progress, added AssetSearchVO). Full barrel `__all__` sweep clean; 451 tests pass.
 * Linter Baseline & Architecture Audit (Cycle 46)
+* Security Test Fixes (Cycle 61)
+  Fixed 24 failing security tests across 5 files: async coroutine issues (`asyncio.run()` wrappers), missing type annotations, wrong enum references, audit_metadata duck-typing checks, redundant PathValidator.__init__ calls. All 237 security tests pass, 1 skipped (known implementation bug in code_validator non-strict mode).
   Full lint-arwaky-cli scan: 641 violations across 18 modules. Shared module is largest violator (341). Primary categories: AES304 bypass comments (439), AES502 contract orphan (58), AES202 mandatory import (15). AES201 forbidden import flagged in surface_cli_command.py importing from agent layer — architectural boundary violation.
 * Linter Deep Dive & Broken Import Analysis (Cycle 47–48)
   Cycle 47: Attempted AES202 remediation across 5 files — all imports reverted due to AES203 violations. Cycle 48: Confirmed AES202 (9 violations) are false positives for barrel re-export pattern and GatewayOrchestrator design. Confirmed AES201 (2 violations) is broken import chain referencing non-existent agent_di_container.py and surface_cli_command in shared/common. Total violations unchanged at 641. Both deferred pending user architectural decision.
