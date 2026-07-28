@@ -28,11 +28,9 @@ from . import (
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol
 from .asset.contract_asset_extract_protocol import AssetExtractProtocol
 from .asset.contract_asset_import_protocol import AssetImportProtocol
-from .asset.contract_asset_provider_metadata_protocol import AssetProviderMetadataProtocol
+from .asset.contract_asset_provider_protocol import AssetProviderProtocol
 from .asset.contract_asset_search_protocol import AssetSearchProtocol
-from .asset.contract_import_export_protocol import ImportExportProtocol
-from .asset.contract_polyhaven_api import PolyhavenApiPort
-from .asset.contract_sketchfab_api import SketchfabApiPort
+from .asset.contract_asset_aggregate import IAssetAggregate
 
 # === Asset domain exports ===
 from .asset.taxonomy_asset_constant import (
@@ -583,19 +581,17 @@ __all__ = [
     "ViewportCaptureProtocol",
     "CameraConfigProtocol",
     "HdriConfigProtocol",
-    "ImportExportProtocol",
     "AssetSearchProtocol",
     "AssetDownloadProtocol",
     "AssetExtractProtocol",
     "AssetImportProtocol",
-    "AssetProviderMetadataProtocol",
+    "AssetProviderProtocol",
+    "IAssetAggregate",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
     "CommandCatalogPort",
     "SceneInspectionPort",
     "ViewportCapturePort",
-    "SketchfabApiPort",
-    "PolyhavenApiPort",
     "TelemetryClassificationPort",
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",

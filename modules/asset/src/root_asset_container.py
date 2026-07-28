@@ -1,7 +1,7 @@
 """Root layer: Dependency injection container for the asset feature.
 
-Wires asset capabilities (search, download, extract, import, metadata) to
-the agent orchestrator and bootstraps the system.
+Wires asset capabilities to the agent orchestrator and bootstraps the system.
+Provides a single entry point to obtain a fully configured AssetOrchestrator.
 """
 
 from __future__ import annotations
@@ -17,11 +17,7 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class AssetContainer:
-    """DI container that wires asset capabilities to the agent orchestrator.
-
-    Thread-safe singleton pattern for shared asset management.
-    All components are lazy-instantiated on first access.
-    """
+    """DI container that wires asset capabilities to the agent orchestrator."""
 
     def __init__(self, connection: object) -> None:
         self._connection = connection
@@ -37,10 +33,25 @@ class AssetContainer:
                 return self._orchestrator
 
             from .agent_orchestrator import AssetOrchestrator
+            from .capabilities_asset_download import AssetDownloadCapability
+            from .capabilities_asset_extract import AssetExtractCapability
+            from .capabilities_asset_import import AssetImportCapability
+            from .capabilities_asset_provider import AssetProviderMetadataCapability
             from .capabilities_asset_search import AssetSearchCapability
 
             search = AssetSearchCapability(self._connection)
-            self._orchestrator = AssetOrchestrator(collector=search)
+            download = AssetDownloadCapability()
+            extract = AssetExtractCapability()
+            import_ = AssetImportCapability()
+            metadata = AssetProviderMetadataCapability()
+
+            self._orchestrator = AssetOrchestrator(
+                search_capability=search,
+                download_capability=download,
+                extract_capability=extract,
+                import_capability=import_,
+                metadata_capability=metadata,
+            )
 
         logger.info("Asset container fully wired")
         return self._orchestrator

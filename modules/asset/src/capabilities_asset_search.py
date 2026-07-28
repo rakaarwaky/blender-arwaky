@@ -34,7 +34,7 @@ class AssetSearchCapability(AssetSearchProtocol):
         limit: ResultLimit | None = None,
         page_token: NextPageToken | None = None,
     ) -> dict[str, Any]:
-        target = providers if providers else PROVIDER_NAMES
+        target = providers if providers is not None else PROVIDER_NAMES
 
         async def search_one(name: str) -> tuple[str, list[dict[str, Any]], str | None]:
             try:

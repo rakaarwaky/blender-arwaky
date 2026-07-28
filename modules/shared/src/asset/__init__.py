@@ -1,17 +1,11 @@
 """Asset domain — taxonomy types and contracts."""
 
-from .contract_asset_aggregate import (
-    AssetDownloadProtocol,
-    AssetExtractProtocol,
-    AssetImportProtocol,
-    AssetProviderMetadataProtocol,
-    AssetSearchProtocol,
-    ImportExportProtocol,
-    LibraryDownloadProtocol,
-    LibrarySearchProtocol,
-    MarketplaceDownloadProtocol,
-    MarketplaceSearchProtocol,
-)
+from .contract_asset_aggregate import IAssetAggregate
+from .contract_asset_download_protocol import AssetDownloadProtocol
+from .contract_asset_extract_protocol import AssetExtractProtocol
+from .contract_asset_import_protocol import AssetImportProtocol
+from .contract_asset_provider_protocol import AssetProviderProtocol
+from .contract_asset_search_protocol import AssetSearchProtocol
 from .taxonomy_asset_constant import (
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
@@ -59,9 +53,6 @@ __all__ = [
     "AssetDownloadProtocol",
     "AssetExtractProtocol",
     "AssetImportProtocol",
-    "ImportExportProtocol",
-    "LibrarySearchProtocol",
-    "LibraryDownloadProtocol",
-    "MarketplaceSearchProtocol",
-    "MarketplaceDownloadProtocol",
+    "AssetProviderProtocol",
+    "IAssetAggregate",
 ]

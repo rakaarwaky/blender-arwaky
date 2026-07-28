@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from modules.asset.src.capabilities_asset_provider_metadata import AssetProviderMetadataCapability
+from modules.asset.src.capabilities_asset_provider import AssetProviderMetadataCapability
 from modules.shared.src.common.taxonomy_core_vo import ProviderName
 
 # ─── Fixtures ───────────────────────────────────────────────────────────────

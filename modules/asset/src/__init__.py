@@ -4,7 +4,7 @@ Layers:
   - Taxonomy (shared/src/asset/)    → VOs for search, download, extract, import
   - Contract (shared/src/asset/)   → AssetSearchProtocol, AssetDownloadProtocol,
                                       AssetExtractProtocol, AssetImportProtocol,
-                                      AssetProviderMetadataProtocol
+                                      AssetProviderProtocol
   - Capabilities                   → SearchCapability, DownloadCapability,
                                       ExtractCapability, ImportCapability,
                                       ProviderMetadataCapability

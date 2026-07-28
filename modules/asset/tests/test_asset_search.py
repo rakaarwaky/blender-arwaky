@@ -122,7 +122,7 @@ def test_fr_ast_001_search_empty_providers():
 
     capability = AssetSearchCapability(EmptyMock())
     result = asyncio.get_event_loop_policy().new_event_loop().run_until_complete(
-        capability.search_all(_make_query())
+        capability.search_all(_make_query(), providers=[])
     )
 
     assert result["total"] == 0
@@ -153,7 +153,7 @@ def test_fr_ast_001_search_pagination_included():
 
     capability = AssetSearchCapability(EmptyMock())
     result = asyncio.get_event_loop_policy().new_event_loop().run_until_complete(
-        capability.search_all(_make_query())
+        capability.search_all(_make_query(), providers=[])
     )
 
     assert "total" in result
