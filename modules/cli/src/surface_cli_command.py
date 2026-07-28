@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from modules.shared.src.common.agent_di_container import AgentDiContainer
@@ -34,7 +34,7 @@ logger = logging.getLogger("blender-arwaky-cli_entry_point")
 class CliCommandHandler:
     """Handler for CLI help command."""
 
-
+    _orchestrator: ClassVar[Any] = None
 
     @classmethod
     def _get_container(cls) -> AgentDiContainer:
@@ -47,7 +47,7 @@ class CliCommandHandler:
         return container
 
     @classmethod
-    def get_orchestrator(cls) -> CoreAgentOrchestrator:
+    def get_orchestrator(cls) -> Any:
         """Lazy-load CoreAgentOrchestrator from DI container."""
         if cls._orchestrator is None:
             container = cls._get_container()

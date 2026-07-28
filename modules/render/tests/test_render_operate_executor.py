@@ -8,7 +8,7 @@ Run via pytest from repo root.
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -19,6 +19,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     RenderSamples,
     RotationVector,
     RuleName,
+    SuccessFlag,
     UseDenoising,
 )
 from modules.render.src.capabilities_render_operate_executor import (
@@ -45,14 +46,22 @@ class MockCodeExecutor:
         return "/tmp/screenshot.png"
 
 
+# Concrete subclass for testing — adds render_scene implementation
+class _TestableRenderExecutor(RenderOperateExecutor):
+    """Concrete executor with render_scene stub for testing."""
+
+    async def render_scene(self, **kwargs: object) -> dict:
+        return {"success": True, "file_path": "/tmp/render.png"}
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
-def executor() -> RenderOperateExecutor:
+def executor() -> _TestableRenderExecutor:
     """Render executor with code executor mocked."""
     mock = MockCodeExecutor(fail=False)
-    cap = RenderOperateExecutor(code_executor=mock)
+    cap = _TestableRenderExecutor(code_executor=mock)
     return cap
 
 
@@ -317,7 +326,7 @@ def test_format_coord_ints() -> None:
 @pytest.mark.asyncio
 async def test_executor_no_callable_code_executor() -> None:
     """Test executor with non-callable code executor."""
-    cap = RenderOperateExecutor(code_executor="not_callable")
+    cap = _TestableRenderExecutor(code_executor="not_callable")
 
     with pytest.raises(RuntimeError) as exc_info:
         await cap._execute_code("import bpy")

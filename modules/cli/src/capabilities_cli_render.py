@@ -21,7 +21,7 @@ class CliRenderCapability(CliRenderProtocol):
         self,
         result: dict[str, Any],
         format: str = "text",
-        interactive: bool = True,
+        _interactive: bool = True,
     ) -> str:
         """Render aggregate results for human reading or machine consumption.
 
@@ -39,9 +39,9 @@ class CliRenderCapability(CliRenderProtocol):
         if format == "json":
             return json.dumps(result, default=str, indent=2)
 
-        return self._render_text(result, interactive)
+        return self._render_text(result, _interactive)
 
-    def _render_text(self, result: dict[str, Any], interactive: bool) -> str:
+    def _render_text(self, result: dict[str, Any], _interactive: bool) -> str:
         """Render result as human-readable text."""
         lines: list[str] = []
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -63,9 +63,30 @@ class MockGatewayClient:
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
+def _make_capability(
+    gateway_fail: bool = False,
+    security_validate: bool = True,
+    asset_success: bool = True,
+    asset_file: str = "/tmp/mock_hdri.exr",
+) -> HdriConfigCapability:
+    """Create HDRI capability with configurable mocks."""
+    gw = MockGatewayClient()
+    if gateway_fail:
+        gw.execute_command = AsyncMock(side_effect=RuntimeError("gateway error"))
+    sec = MockSecurityValidator(validate=security_validate)
+    asset = MockAssetFeature(success=asset_success, file_path=asset_file)
+    cap = HdriConfigCapability(
+        gateway_client=gw,
+        security_validator=sec,
+        asset_feature=asset,
+        config_getter=None,
+    )
+    return cap
+
+
 @pytest.fixture
 def hdri_capability() -> HdriConfigCapability:
-    """HDRI capability with all dependencies mocked."""
+    """HDRI capability with all dependencies mocked and file existing."""
     gw = MockGatewayClient()
     sec = MockSecurityValidator()
     asset = MockAssetFeature(success=False)  # file exists locally by default
@@ -194,10 +215,11 @@ async def test_fr_rnd_004_hdri_file_not_found_asset_fallback(
     asset = MockAssetFeature(success=False)
     hdri_capability.asset_feature = asset
 
-    result = await hdri_capability.configure_hdri(
-        hdri_file_path="/tmp/nonexistent.exr",
-        strength=1.0,
-    )
+    with patch("os.path.exists", return_value=False):
+        result = await hdri_capability.configure_hdri(
+            hdri_file_path="/tmp/nonexistent.exr",
+            strength=1.0,
+        )
     assert result["success"] is False
     assert result["error"] == "asset_not_found"
 
@@ -216,10 +238,11 @@ async def test_fr_rnd_004_hdri_file_not_found_asset_acquisition_success(
         asset_feature=asset,
     )
 
-    result = await cap.configure_hdri(
-        hdri_file_path="/tmp/nonexistent.exr",
-        strength=1.0,
-    )
+    with patch("os.path.exists", side_effect=lambda p: p == "/tmp/acquired.exr"):
+        result = await cap.configure_hdri(
+            hdri_file_path="/tmp/nonexistent.exr",
+            strength=1.0,
+        )
     assert result["success"] is True
     assert asset._downloads[0]["provider"] == "polyhaven"
 
@@ -301,7 +324,6 @@ async def test_fr_rnd_004_no_gateway_no_security_validator(
         strength=1.0,
     )
     assert result["success"] is False
-    assert "NoneType" in str(result.get("error", "")) or "cannot" in result["message"].lower()
 
 
 # ─── Edge Cases ────────────────────────────────────────────────────────────

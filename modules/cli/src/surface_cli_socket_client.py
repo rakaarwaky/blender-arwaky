@@ -1,5 +1,6 @@
 """SocketClient: TCP communication with Blender addon."""
 
+import contextlib
 import json
 import socket
 import struct
@@ -27,10 +28,8 @@ class BlenderSocketClient:
     def disconnect(self) -> None:
         """Disconnect from Blender addon."""
         if self._sock:
-            try:
+            with contextlib.suppress(Exception):
                 self._sock.close()
-            except Exception:
-                pass
             self._sock = None
 
     def send_command(self, action: str, params: dict[str, Any] | None = None) -> dict[str, Any]:

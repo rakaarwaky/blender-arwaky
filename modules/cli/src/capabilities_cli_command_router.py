@@ -55,7 +55,7 @@ class CliCommandCapability(CliCommandProtocol):
         self,
         command: str,
         args: list[str] | None = None,
-        flags: dict[str, Any] | None = None,
+        _flags: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Parse terminal input and route to owning feature aggregate.
 
