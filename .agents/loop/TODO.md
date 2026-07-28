@@ -1,29 +1,97 @@
 # ARWAKY LOOP TODO
 
-## Completed Actions
-
-* [X]  **Baseline & Structural Audit** : Ran initial test sweep, audited module FRDs, replaced stubs, and aligned capability-protocol structures for asset, scene, telemetry, security, job, and MCP modules (Cycles 1–3, 5, 6, 7, 28).
-* [X]  **Imports & Linter Fixes** : Resolved critical F821/F811/F401 crashes, missing imports, and applied ruff auto-fixes (Cycles 4, 8, 14b, 22, 24, 25b, 27, 29).
-* [X]  **Orchestrator Aggregate Alignment** : Added aggregate inheritance and VO type compliance across scene, render, gateway, telemetry, and MCP orchestrators (Cycles 6, 7, 9, 10, 12).
-* [X]  **Unused Arguments & Exception Chaining** : Cleaned up ARG001/ARG002/ARG005 unused parameters and resolved B904 exception chaining issues (Cycles 23, 27, 28).
-* [X]  **FR Traceability** : Completed FR references across all 14 capability and surface modules (Cycles 14, 31, 32).
-* [X]  **Orphan & Dead Code Cleanup** : Removed unreachable CLI agent layer (Cycle 25), MCP orchestrator (Cycle 26), redundant capabilities (Cycles 20, 28), and duplicate telemetry contract (Cycle 37).
-* [X]  **Security & Logic Hardening** :
-  * Added PEP 706 tar extraction filtering (Cycle 11).
-  * Enforced job capacity limits `FR-JOB-005` (Cycle 30).
-  * Hardened gateway reconnect logic `FR-GWY-002` (Cycle 36).
-  * Fixed credential leaks in `SensitiveRedactor` and `AuditEmitter` for raw, JSON, and spaced secrets `FR-SEC-004` (Cycles 41–44).
-* [X]  **Performance Sweep** : Resolved 7 HIGH/MEDIUM bottlenecks (O(n²) bytes concatenation, ThreadPoolExecutor per-call instantiation, N+1 Blender calls, recursive dict depth limit) (Cycle 45).
-* [X]  **Stale-Barrel Import Remediation** : Fixed broken `modules.shared/src/job`/`asset` barrel exports (JobStatus→JobStatusSnapshot, removed dead create_job_id/create_progress factories, added missing AssetSearchVO) that broke 4 test collections; full barrel `__all__` sweep clean (Cycle 46).
-* [X]  **AES201 Forbidden Import Fix** : Deleted dead/orphan files (`surface_cli_command.py` with CliCommandHandler, `root_cli_entry.py`) that imported from non-existent `modules.shared.src.common.agent_di_container`. AES201 violations reduced to 0. All 451 tests pass (Cycle 49).
-* [X]  **AES202 False Positive Resolution** : ACCEPTED (Cycle 48) — barrel re-export files and GatewayOrchestrator flagged for missing taxonomy imports; adding taxonomy creates AES203 violations. Documented as intentional false positives (barrel pattern + GatewayOrchestrator design).
-* [X]  **Broken Barrel Export Fix** : Fixed `modules/shared/src/job/__init__.py` and `modules/shared/src/__init__.py` importing from non-existent `taxonomy_job_state_constant.py`. Corrected to `taxonomy_job_constant.py`. Recovered 4 test collection errors. Total tests: 453 (Cycle 52).
-* [X]  **Monitoring Pass (Cycle 53)** : Full test suite stable (453 passed, 0 regressions). Modules-only scan: 128 violations (AES304 36, AES401 24, AES402 21, AES202 17, AES305 9, AES102 8, AES101 6, AES204 3, AES405 2, AES403 2, AES302 1, AES203 1). New AES302/AES403 in capabilities_job_monitor.py confirmed false positive (file has docstrings, implements IJobMonitor protocol). All violations remain deferred pending user decision on bulk remediation strategy. No code changes required (Cycle 53).
-
 ## Deferred & Pending Actions
 
-* [ ]  **Exception Naming (N818)** : Preserve existing `ConnectionError` naming hierarchy without adding forced `Error` suffixes.
-* [ ]  **Design Pattern Checks (B017/B024/ARG004)** : Retain blind assertions, abstract base classes without abstract methods, and unused protocol parameters as intentional architectural patterns.
-* [ ]  **Contract & Addon Linting (AES203/AES204/AES401/AES402)** : Retain primitive getters in contracts and defer out-of-scope addon linter rules.
-* [ ]  **AES502 Contract Orphan Remediation** : 58 contract protocols defined but never implemented (abandoned requirements from concurrent multi-agent editing). Verified zero FRD match, zero implementations, zero consumers. Exported from shared/src/__init__.py (public API) so removal = breaking change. Requires explicit user decision on bulk remediation strategy. Priority: Maintainability risk (Quality #10).
-* [ ]  **Bulk Lint-Arwaky Remediation** : Kept deferred pending explicit user decision to prevent cascading file rename collisions with sibling agents. Current violation summary: AES304 noqa bypass (435), AES502 contract orphan (58), AES202 mandatory import (13, accepted false positives), AES401 taxonomy primitive (24), AES402 unused import (19), AES102 naming suffix mismatch (16), AES204 unused import (14), AES305 noqa missing reason (9, false positive), AES501 orphan utility (5), AES505 orphan capability (7), AES504 orphan taxonomy (7), AES101 naming prefix mismatch (6), AES405/AES403 (3). Total: 636 violations.
+```
+shared (taxonomy + contract) — foundation for all modules
+  └── config ──────────────────────────────────────────────┐
+  └── security ────────────────────────────────────────────┤
+  └── telemetry (→ config, security) ──────────────────────┤
+  └── launcher (→ config, security, diagnostics) ──────────┤
+  └── diagnostics (→ launcher, gateway, dispatcher,        ┤
+                      job, security, config) ─────────────┐┤
+  └── gateway (→ config, security, diagnostics) ──────────││
+  └── job (→ config, diagnostics) ────────────────────────││
+  └── asset (→ config, security, job, gateway) ────────────│
+  └── object (→ gateway, config, security) ────────────────│
+  └── scene (→ gateway, object, config, shared) ───────────│
+  └── render (→ gateway, security, job, asset, config) ────│
+  └── dispatcher (→ gateway, object, scene, render,        │
+                     asset, job, security, diagnostics) ───┘
+  └── cli (→ dispatcher, launcher, diagnostics,
+               config, job, security)
+  └── mcp (→ dispatcher, diagnostics, config, job,
+               security)
+```
+
+---
+
+## Readiness Indicators
+
+> **Primary rule: 1 FR = 1 capabilities file** (for modules with a capabilities layer)
+> CLI & MCP are surface-layer by design — indicator is **1 FR = N surface files**
+
+
+| Indicator                          | Weight   | Notes                                |
+| ------------------------------------ | ---------- | -------------------------------------- |
+| FR coverage (1 FR = 1 cap/surface) | **High** | Gap = unimplemented FR               |
+| Test count ≥ FR count             | **High** | Every FR must have at least one test |
+| pyproject.toml present             | Medium   | Module is not packagable without it  |
+| Shared domain complete             | Medium   | Taxonomy + Contract files exist      |
+
+---
+
+## Production Readiness Score (1–10)
+
+
+| Module          | FR | Cap / Surface | Gap          | Tests | Score    | Notes                                                        |
+| ----------------- | ---- | --------------- | -------------- | ------- | ---------- | -------------------------------------------------------------- |
+| **config**      | 5  | 5 cap         | ✅ 0         | 11    | **8/10** | Full coverage, tests exceed FR count                         |
+| **job**         | 5  | 5 cap         | ✅ 0         | 0     | **7/10** | Full 1:1 FR→cap refactor complete,**0 tests** remaining     |
+| **telemetry**   | 4  | 4 cap         | ✅ 0         | 4     | **7/10** | Full coverage, 1 test/FR, minor shared naming inconsistency  |
+| **asset**       | 5  | 5 cap         | ✅ 0         | 6     | **7/10** | Full coverage, good tests, no pyproject                      |
+| **cli**         | 3  | 5 surface     | ✅ by design | 1     | **6/10** | Surface-layer by design, needs more test coverage            |
+| **security**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, severely undertested, no pyproject            |
+| **launcher**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, only 1 test, no pyproject                     |
+| **gateway**     | 5  | 5 cap         | ✅ 0         | 2     | **6/10** | Full coverage, minimal tests, no pyproject                   |
+| **object**      | 7  | 7 cap         | ✅ 0         | 1     | **6/10** | Full coverage, critically undertested                        |
+| **dispatcher**  | 6  | 6 cap         | ✅ 0         | 4     | **6/10** | Full coverage, no pyproject                                  |
+| **render**      | 4  | 3 cap         | 🔴 -1        | 3     | **5/10** | FR-RND-001 (screenshot) merged into executor, not standalone |
+| **scene**       | 2  | 1 cap         | 🟡 -1        | 1     | **5/10** | 2 FRs in 1 capabilities — acceptable if FRs are simple      |
+| **mcp**         | 3  | 10 surface    | ✅ by design | 0     | **4/10** | Surfaces complete,**0 tests**                                |
+| **diagnostics** | 5  | 2 cap         | 🔴 -3        | 1     | **4/10** | FR-DIA-002,003,004,005 missing dedicated capabilities        |
+
+---
+
+## Recommended Work Priority (dependency + readiness)
+
+```
+1.  shared      → foundation, must be fully stable first
+2.  config      → 8/10, most ready, consumed by everything
+3.  security    → 6/10, consumed by almost every module
+4.  job         → 7/10, 5-cap refactor done — add tests next
+5.  gateway     → 6/10, consumed by all domain features
+6.  launcher    → 6/10, consumed by diagnostics / cli / mcp
+7.  diagnostics → 4/10, missing 3 capabilities, consumed widely
+8.  telemetry   → 7/10, standalone — can run in parallel
+9.  asset       → 7/10, consumed by render
+10. object      → 6/10, consumed by scene + dispatcher
+11. scene       → 5/10, consumed by dispatcher
+12. render      → 5/10, consumed by dispatcher
+13. dispatcher  → 6/10, gates all domain actions
+14. cli         → 6/10, terminal entry point
+15. mcp         → 4/10, AI entry point — needs tests urgently
+```
+
+---
+
+## Critical Gaps (immediate action required)
+
+
+| Priority | Module                           | Gap                                                        |
+| ---------- | ---------------------------------- | ------------------------------------------------------------ |
+| 🔴#1     | **job**                          | 5 capabilities done,**0 tests** — highest risk            |
+| 🔴#2     | **mcp**                          | **0 tests**, no pyproject, primary AI entry point          |
+| 🔴#3     | **diagnostics**                  | 3 capabilities missing (FR-DIA-002, 003, 004, 005)         |
+| 🟡#4     | **render**                       | FR-RND-001 not standalone — needs dedicated capability    |
+| 🟡#5     | **security / launcher / object** | Full cap coverage but critically undertested (1 test each) |

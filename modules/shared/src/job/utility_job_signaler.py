@@ -1,9 +1,6 @@
 # modules/shared/src/job/utility_job_signaler.py
 """Job executor signaling utility — stateless standalone function.
 
-Zero abstraction. Zero classes. Concrete implementation.
-Depends on: Taxonomy only (via stdlib logging).
-
 Technical mechanics: dispatches a cancellation signal to the
 execution layer. In the current in-memory architecture, this
 logs the signal and confirms dispatch. When a real executor
