@@ -17,15 +17,15 @@ import pytest
 
 from modules.scene.src.capabilities_scene_cleanup_executor import SceneCleanupExecutor
 from modules.scene.src.capabilities_scene_inspection_executor import SceneInspectionExecutor
-from modules.shared.src.common.contract_code_execution_protocol import Prompt
 from modules.shared.src.common.taxonomy_core_vo import (
     CleanupMode,
     ObjectCount,
+    Prompt,
     PythonCode,
     SuccessFlag,
 )
-from modules.shared.src.scene.contract_scene_protocol import ICodeExecutionProtocol
-from modules.shared.src.scene.taxonomy_scene_command_vo import (
+from modules.shared.src.gateway.contract_code_execution_protocol import ICodeExecutionProtocol
+from modules.shared.scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
 )
