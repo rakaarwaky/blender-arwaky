@@ -1,2 +1,1 @@
-every 5 minutes inject prompt /home/raka/mcp-arwaky/blender-arwaky/.qwen/commands or 
-/home/raka/mcp-arwaky/blender-arwaky/.agents/loop/arwaky-loop-prompt.txt  chose one . use cronjp tool for loop autoamtion
+list
