@@ -265,11 +265,7 @@ from .job.taxonomy_job_state_constant import (
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
 )
-from .job.taxonomy_job_status_entity import (
-    JobStatus,
-    create_job_id,
-    create_progress,
-)
+from .job.taxonomy_job_vo import JobStatusSnapshot
 
 # === Launcher domain exports ===
 from .launcher.contract_launch_protocol import LaunchProtocol
@@ -506,7 +502,7 @@ __all__ = [
     "CameraConfigVO",
     "HdriConfigVO",
     "BlenderObject",
-    "JobStatus",
+    "JobStatusSnapshot",
     "BlenderMCPError",
     "DomainError",
     "SceneValidationError",
@@ -554,9 +550,9 @@ __all__ = [
     "EVENT_TYPE_ERROR",
     "create_asset_id",
     "create_object_id",
-    "create_job_id",
+
     "create_provider_name",
-    "create_progress",
+
     "SceneOperateProtocol",
     "SceneCleanupVO",
     "SceneInspectionVO",

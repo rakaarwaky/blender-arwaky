@@ -1,6 +1,78 @@
 # ARWAKY LOOP AUDIT
 
-## Cycle 44 Audit Record
+## Cycle 46 Audit Record
+
+- PRIORITY #1 BROKEN FUNCTIONALITY — stale barrel exports broke test collection (4 collection ERRORs: test_asset_download, test_asset_extract, test_gateway_feature, test_maintenance_executor).
+- ROOT CAUSE: a concurrent sibling refactor of `modules/shared/src/job/taxonomy_job_status_entity.py` reduced it to only `JobRecord` (its `to_snapshot()` returns `JobStatusSnapshot`), removing `JobStatus`, `create_job_id`, and `create_progress`. The two barrel `__init__.py` files (`modules/shared/src/__init__.py`, `modules/shared/src/job/__init__.py`) were NOT updated, so `from .job.taxonomy_job_status_entity import (JobStatus, create_job_id, create_progress)` raised `ImportError: cannot import name 'JobStatus'`, aborting `import modules.shared.src` and breaking every test that imports the shared package. `create_job_id`/`create_progress` are referenced ONLY in the broken barrel (zero definitions, zero consumers anywhere in the repo) — fully dead. `JobStatus` was renamed to `JobStatusSnapshot` (defined in `taxonomy_job_vo.py`), the canonical status read-model used by the job aggregate/protocol/orchestrator/capability.
+- FIX (smallest safe, align barrels to present reality):
+  - `modules/shared/src/job/__init__.py`: `from .taxonomy_job_status_entity import JobStatus` → `from .taxonomy_job_vo import JobStatusSnapshot`; `__all__` `JobStatus` → `JobStatusSnapshot`.
+  - `modules/shared/src/__init__.py`: replaced the 3-name job-entity import with `from .job.taxonomy_job_vo import JobStatusSnapshot`; `__all__` `JobStatus`→`JobStatusSnapshot`; removed dangling `create_job_id`/`create_progress` from `__all__`.
+- SECONDARY (same family, Priority #9 contract mismatch): `modules/shared/src/asset/__init__.py` listed `AssetSearchVO` in `__all__` but its `taxonomy_asset_vo` import block omitted it (the class IS defined in `taxonomy_asset_vo.py`). `from modules.shared.src.asset import AssetSearchVO` would fail. FIX: added `AssetSearchVO` to the import block. (No consumer broke — utilities import it directly from `taxonomy_asset_vo`; top-level barrel already exports it correctly.)
+- VERIFICATION:
+  - `import modules.shared.src` + `from modules.shared.src.job import JobStatusSnapshot` + `from modules.shared.src import JobStatusSnapshot` → OK.
+  - Full barrel `__all__` sweep across ALL `modules/**/__init__.py`: 0 IMPORT-FAIL, 0 DANGLING (verified before fix: 1 DANGLING asset/AssetSearchVO; after fix: none).
+  - Full pytest: 451 passed, 0 failures, 0 collection errors (was 4 collection ERRORs before).
+  - ruff check on all 3 edited files: All checks passed.
+  - `lint-arwaky-cli quality modules/shared/src`: only pre-existing AES304 (noqa bypass, systemic/deferred) — none on edited files.
+  - `python -m py_compile` across all `modules/**/*.py`: clean.
+- NOTE: `git status` shows a spurious deleted file `"modules/shared/src/job/contract job"` (literal space in name) — a transient artifact from a concurrent sibling agent, unrelated to this fix; the real files `contract_job_aggregate.py`/`contract_job_protocol.py` are intact and were not touched.
+- SCOPE: did NOT recreate `create_job_id`/`create_progress` factories (genuinely removed, no consumers); did NOT touch deferred items (N818, B017/B024/ARG004, AES203/204/401/402, bulk lint).
+
+## Cycle 50 Audit Record — AES502 Orphan Analysis
+
+### AES502 Contract Orphan (58 violations — confirmed abandoned requirements)
+
+- **Root cause**: Contract protocols defined but never implemented by any capability. These represent abandoned architectural plans from concurrent multi-agent editing.
+- **Analysis**: Verified each orphaned protocol has zero implementations and zero consumers outside contract file + shared/src/__init__.py export:
+  - `ExecuteActionProtocol`, `WorkflowProtocol`, `CommandCatalogPort` — cross-cutting contracts in shared/common, never used by MCP surfaces (MCP uses MCPContainer directly)
+  - `ServerHealthProtocol`, `ServerDiscoveryProtocol` — MCP lifecycle protocols, never implemented (actual MCP uses bootstrap.py/container.py pattern)
+  - `ViewportCaptureProtocol` — render protocol, never implemented (viewport capture done via scene capability)
+  - `ICancellationSignaler`, `IJobEventPublisher` — job interfaces referenced in type hints but never implemented
+  - `TelemetryRecordingPort`, `TelemetryClassificationPort` — telemetry interfaces referenced in orchestrator constructor but never implemented as separate capabilities
+- **FRD verification**: None of these protocols are mentioned in any FRD.md files — they represent requirements that were never product-scoped.
+- **Decision**: DEFERRED — these are genuine orphans representing abandoned requirements. They're exported from shared/src/__init__.py (public API) so removal would be a breaking change. Requires explicit user decision on bulk remediation strategy. NOT actionable autonomously.
+- **Note**: Protocols WITH implementations are genuine and not orphans: `ISceneAggregate`→`SceneOrchestrator`, `SceneOperateProtocol`→`SceneOperateExecutor`, `IJobAggregate`→`JobOrchestrator`, `ITelemetryAggregate`→`TelemetryOrchestrator`, `IAssetAggregate`→`AssetOrchestrator`. These 5 are correctly wired and should NOT be removed.
+
+## Cycle 49 Audit Record — AES201 Broken Import Fix
+
+### AES201 Forbidden Import (FIXED)
+
+- **Root cause**: Two dead/orphan files with broken import chains:
+  - `modules/cli/src/surface_cli_command.py` (`CliCommandHandler`) imports from non-existent `modules.shared.src.common.agent_di_container`
+  - `modules/root_cli_entry.py` imports from non-existent path `modules.shared.src.common.surface_cli_command`
+- **Analysis**: Both files are legacy monolith code explicitly marked as dead in test comments ("NOTE: The legacy monolith files (surface_cli_main/surface_cli_commands and their broken intra-module imports) are intentionally NOT exercised here"). The actual CLI entry point is `modules/cli/src/surface_cli_main.py` which uses a completely different pattern (commands module). The MCP surfaces use `MCPContainer` from `modules.mcp.src.container`.
+- **Fix**: Deleted both dead files — `surface_cli_command.py` and `root_cli_entry.py`. Zero consumers outside the files themselves. All 451 tests pass. AES201 violations reduced to 0.
+- **Verification**: Full test suite (451 passed, 0 failures), AES201 linter scan (0 violations), ruff check clean.
+
+### AES202 Mandatory Import (9 violations — confirmed false positives)
+
+- **Root cause**: Barrel re-export files (`contract_object_operate_protocol.py`, `contract_discovery_protocol.py`, `contract_health_protocol.py`) aggregate protocol imports without directly using taxonomy types. The linter's strict rule requires every contract-layer file to import at least one taxonomy type, but barrel files serve as convenience aggregators and don't directly reference taxonomy VOs.
+- **Attempted fix**: Added taxonomy imports to each barrel file — immediately created new AES203 (unused import) violations because the taxonomy types were never used at call site. Reverted all unnecessary imports.
+- **Decision**: Accept as intentional false positives — barrel files are a valid architectural pattern that serves as convenience aggregators. The linter's strict rule doesn't account for barrel file patterns.
+- **GatewayOrchestrator** (`agent_gateway_orchestrator.py`): Imports `IBlenderServerAggregate` but does NOT inherit it (per Cycle 11 design decision — GatewayOrchestrator is sync gateway orchestrator, NOT async server aggregate). Added import kept because it may be needed for future AES202 resolution but current class signature is correct per design. Resolving this requires either: (a) creating a dedicated gateway aggregate interface, or (b) accepting the linter flag as intentional. Deferred pending user decision.
+- **DiagnosticsCapability** (`capabilities_health_composition.py`): Same barrel pattern — imports protocol types via contract protocols but doesn't directly use taxonomy VOs. Attempted adding taxonomy imports → AES203 violations. Reverted.
+
+### AES201 Forbidden Import (2 violations — confirmed broken import chain)
+
+- **File**: `modules/cli/src/surface_cli_command.py`
+- **Lines 26 & 46**: Import from `modules.shared.src.common.agent_di_container` — this file DOES NOT EXIST anywhere in the repository.
+- **Root cause**: Broken import chain. The import path references a non-existent file. The actual DI containers are:
+  - `modules/dispatcher/src/root_dispatcher_container.py` (DispatcherContainer)
+  - `modules/diagnostics/src/root_diagnostics_container.py` (DiagnosticsContainer)
+- **Secondary impact**: `modules/root_cli_entry.py` also imports from non-existent path `modules.shared.src.common.surface_cli_command` — the actual file is at `modules/cli/src/surface_cli_command.py`.
+- **Decision**: This is a confirmed broken import that needs fixing. The surface layer imports from a non-existent "agent" layer file. Fix requires either: (a) creating the missing `agent_di_container.py` in shared/common, or (b) redirecting to existing containers (DispatcherContainer/DiagnosticsContainer). Deferred pending user decision on DI architecture.
+
+### Linter Scan Summary (Cycle 48 baseline)
+
+- Total violations: 641 (same as cycle 46 — no new fixes applied in cycle 47)
+- Categories: AES304 noqa bypass (439), AES502 contract orphan (58), AES202 mandatory import (9 after reverting cycle 47 changes), AES401 taxonomy primitive (24), AES102 naming suffix mismatch (14), AES201 forbidden import (2), W292 no newline at EOF (8)
+- Shared module: largest violator (341 violations total across all categories)
+
+### Cycle 47 Summary (no changes applied)
+
+- Attempted AES202 remediation across 5 files (agent_gateway_orchestrator.py, capabilities_health_composition.py, 3 barrel contract files)
+- All taxonomy imports reverted due to new AES203 violations
+- Core AES202 issues remain unresolved — require architectural decisions rather than straightforward fixes
 
 - FR-SEC-004 spaced-quoted-secret redaction (closes cycle-43 known edge limitation).
 - ROOT CAUSE of the original leak: the key alternation `(password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)` was capture group 2, so the value branch's `\2` backreference in the quoted-value alternative `(["'])(?:\\.|[^"'])*\2` pointed at the KEY NAME instead of the value quote. The quoted branch could therefore never match, and JSON/`"key": "value"` forms silently fell through to the unquoted alternative `[^"'\s,]+` (which stops at whitespace) -- leaking `"secret"` for spaced values. This same collision also briefly broke the cycle-43 JSON tests on first attempt; they were restored once the key group was made non-capturing `(?:...)`.
@@ -1038,3 +1110,71 @@ A quoted secret containing an internal space — `"password": "my secret"` — i
 - `ruff check modules/security/src modules/security/tests` -> All checks passed.
 - `lint-arwaky-cli quality modules/security/src` and `.../tests` -> 0 violations each.
 - Scope safety: security module not in the concurrent-sibling dirty set. Full-scan total rose 660->667 (+7) from concurrent sibling dirty-tree edits (147 sibling-M files in tree); my two files are 0 violations, so the delta is not attributable to this change.
+
+## Cycle 46 — Full Linter Scan Baseline (2026-07-28)
+
+### Scan Results
+- **Total violations: 641** (up from ~421 baseline)
+- **Quality**: 448 (AES304 bypass comments 439, AES305 missing docstrings 9)
+- **Import**: 42 (AES201 forbidden 2, AES202 mandatory 15, AES203 unused 20, AES204 intent 13)
+- **Naming**: 22 (AES101 convention 8, AES102 unknown suffix 14)
+- **Role**: 46 (AES401 taxonomy primitive 24, AES402 contract primitive 15, AES403 capability 1, AES405 agent 2)
+- **Orphan**: 75 (AES501 taxonomy orphan 3, AES502 contract orphan 58, AES504 utility orphan 7, AES505 capability orphan 7)
+- **External**: 8 (W292 no newline at EOF 8)
+
+### Top Violators by Module
+| Module | Violations | Primary Codes |
+|--------|-----------|---------------|
+| shared | 341 | AES304, AES502, AES401, AES402 |
+| asset | 46 | AES304, AES202, AES201 |
+| config | 30 | AES304, AES202 |
+| dispatcher | 29 | AES304, AES202 |
+| render | 30 | AES304, AES502, AES405 |
+| cli | 22 | AES304, AES201, AES101 |
+| diagnostics | 21 | AES304, AES502, AES403 |
+| mcp | 18 | AES304, AES102, AES203 |
+| object | 19 | AES304, AES202 |
+| gateway | 14 | AES304, AES502 |
+| telemetry | 10 | AES304, AES202 |
+| job | 7 | AES304, AES502 |
+| launcher | 2 | AES304 |
+| scene | 2 | AES304 |
+| root_mcp_entry.py | 1 | AES304 |
+
+### Key Findings
+
+#### AES304 — Bypass Comments (439 violations, CRITICAL)
+- Dominant violation across shared taxonomy, contract, and utility files
+- `# type: ignore` and `# pragma: no cover` comments bypassing quality checks
+- Root cause: type annotations on ABC methods with incompatible signatures across inheritance chains
+- Files affected: taxonomy_core_vo.py (4), taxonomy_domain_error.py (4), taxonomy_bounding_box_vo.py (3), contract files (20+), utility files (3+)
+- Decision: defer — bulk removal would cause massive inheritance breakage; requires careful per-file resolution
+
+#### AES502 — Contract Orphan (58 violations, MEDIUM)
+- New contract protocols defined in shared/src/* are not implemented by any capabilities layer file
+- Examples: ExecuteActionProtocol, WorkflowProtocol, ServerDiscoveryProtocol, ServerHealthProtocol
+- Root cause: concurrent multi-agent editing created contracts faster than capabilities implementations
+- Many are base ABC interfaces (intentionally inherited, not directly implemented) — false positives for abstract base classes
+
+#### AES401 — Taxonomy Primitive (24 violations, HIGH)
+- Direct primitive types (`str`, `int`, `dict`, `float`, `Any`) in taxonomy entities and errors
+- Primary files: taxonomy_gateway_error.py (16 violations), taxonomy_blender_object_entity.py (3), taxonomy_job_error.py (3)
+- Root cause: taxonomy error classes use Python exception patterns (str message, int code) which conflict with AES strict VO boundaries
+
+#### AES402 — Contract Primitive (15 violations, HIGH)
+- Contract method signatures use primitive types instead of taxonomy VOs
+- Files: contract_job_protocol.py, contract_telemetry_aggregate.py, contract_config_aggregate.py, contract_launcher_operate_aggregate.py, contract_code_execution_protocol.py
+- Root cause: protocol signatures mirror Blender API / Python stdlib patterns (dict[str, Any], str)
+
+#### AES201 — Forbidden Import (2 violations, CRITICAL)
+- `modules/cli/src/surface_cli_command.py` imports from forbidden layer `agent`
+- Violates architectural boundary: surface must not depend on agent
+
+#### AES102 — Naming Suffix Mismatch (14 violations, HIGH)
+- Contract files using non-standard suffixes: catalog, inspection, recording, classification, management, enrichment
+- Allowed contract suffixes: protocol, aggregate only
+- Files: contract_command_catalog.py, contract_scene_inspection.py, contract_telemetry_*.py
+
+#### W292 — No Newline at EOF (8 violations, HIGH)
+- blender_mcp_addon/*.py files missing trailing newline
+- 8 files affected: __init__.py, operators.py, polyhaven.py, properties.py, server.py, sketchfab.py, ui.py, utils.py

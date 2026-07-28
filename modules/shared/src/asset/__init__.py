@@ -26,6 +26,7 @@ from .taxonomy_asset_vo import (
     AssetImportBlenderVO,
     AssetMetadataItem,
     AssetMetadataVO,
+    AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
 )

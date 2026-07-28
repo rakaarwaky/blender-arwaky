@@ -9,14 +9,23 @@ This document contains the source code for module `job` along with related and i
 - [modules/job/pyproject.toml](<modules/job/pyproject.toml>)
 - [modules/job/src/__init__.py](<modules/job/src/__init__.py>)
 - [modules/job/src/agent_job_orchestrator.py](<modules/job/src/agent_job_orchestrator.py>)
+- [modules/job/src/capabilities_job_registry.py](<modules/job/src/capabilities_job_registry.py>)
 - [modules/job/src/root_job_container.py](<modules/job/src/root_job_container.py>)
 - [modules/shared/src/common/__init__.py](<modules/shared/src/common/__init__.py>)
 - [modules/shared/src/common/taxonomy_core_vo.py](<modules/shared/src/common/taxonomy_core_vo.py>)
+- [modules/shared/src/common/taxonomy_domain_error.py](<modules/shared/src/common/taxonomy_domain_error.py>)
+- [modules/shared/src/gateway/taxonomy_gateway_error.py](<modules/shared/src/gateway/taxonomy_gateway_error.py>)
 - [modules/shared/src/job/__init__.py](<modules/shared/src/job/__init__.py>)
 - [modules/shared/src/job/contract_job_aggregate.py](<modules/shared/src/job/contract_job_aggregate.py>)
+- [modules/shared/src/job/contract_job_protocol.py](<modules/shared/src/job/contract_job_protocol.py>)
 - [modules/shared/src/job/taxonomy_job_error.py](<modules/shared/src/job/taxonomy_job_error.py>)
 - [modules/shared/src/job/taxonomy_job_state_constant.py](<modules/shared/src/job/taxonomy_job_state_constant.py>)
 - [modules/shared/src/job/taxonomy_job_status_entity.py](<modules/shared/src/job/taxonomy_job_status_entity.py>)
+- [modules/shared/src/job/taxonomy_job_vo.py](<modules/shared/src/job/taxonomy_job_vo.py>)
+- [modules/shared/src/job/utility_job_sanitizer.py](<modules/shared/src/job/utility_job_sanitizer.py>)
+- [modules/shared/src/security/__init__.py](<modules/shared/src/security/__init__.py>)
+- [modules/shared/src/security/taxonomy_security_error.py](<modules/shared/src/security/taxonomy_security_error.py>)
+- [modules/shared/src/security/taxonomy_security_vo.py](<modules/shared/src/security/taxonomy_security_vo.py>)
 - [pyproject.toml](<pyproject.toml>)
 - [README.md](<README.md>)
 
@@ -742,137 +751,592 @@ __all__ = [
 ## File: modules/job/src/agent_job_orchestrator.py
 
 ```python
-"""Agent: Job feature orchestrator.
+# modules/job/src/agent_job_orchestrator.py
+from __future__ import annotations
 
-Coordinates job state tracking, monitoring, cancellation, and cleanup.
-Wires capabilities together per FR-JOB requirements.
-"""
+from modules.shared.src.common.taxonomy_core_vo import JobId
+from modules.shared.src.job.contract_job_aggregate import IJobAggregate
+from modules.shared.src.job.contract_job_protocol import IJobRegistry
+from modules.shared.src.job.taxonomy_job_vo import (
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    FailTaskCommand,
+    JobStatusSnapshot,
+    ProgressUpdateCommand,
+)
+
+
+class JobOrchestrator(IJobAggregate):
+    """
+    Thin agent facade.
+
+    This orchestrator delegates to capability contracts and does not
+    contain business logic or state.
+    """
+
+    def __init__(self, registry: IJobRegistry) -> None:
+        self._registry = registry
+
+    def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
+        return self._registry.create_task(command)
+
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot:
+        return self._registry.start_task(job_id)
+
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot:
+        return self._registry.update_progress(command)
+
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
+        return self._registry.complete_task(command)
+
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
+        return self._registry.fail_task(command)
+
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult:
+        return self._registry.cancel_task(command)
+
+    def get_task_status(self, job_id: JobId) -> JobStatusSnapshot:
+        return self._registry.get_snapshot(job_id)
+
+    def cleanup_expired_tasks(self) -> CleanupSummary:
+        return self._registry.cleanup_expired()
+
+    def get_capacity_status(self) -> CapacityStatus:
+        return self._registry.capacity_status()
+```
+
+---
+
+## File: modules/job/src/capabilities_job_registry.py
+
+```python
+# modules/job/src/capabilities_job_registry.py
+from __future__ import annotations
 
 import logging
+import threading
+import uuid
+from collections.abc import Callable
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
+    JobState,
     Progress,
-    ResultUrl,
+    Timestamp,
 )
-from modules.shared.src.job.contract_job_aggregate import IJobAggregate
-from modules.shared.src.job.taxonomy_job_error import CapacityError
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
+from modules.shared.src.job.contract_job_protocol import (
+    ICancellationSignaler,
+    IJobEventPublisher,
+    IJobRegistry,
+)
+from modules.shared.src.job.taxonomy_job_error import (
+    CapacityError,
+    InvalidStateTransitionError,
+    JobError,
+    TaskNotFoundError,
+    ValidationError,
+)
+from modules.shared.src.job.taxonomy_job_state_constant import (
+    CANCELLATION_OUTCOME_ACCEPTED,
+    CANCELLATION_OUTCOME_ALREADY_TERMINAL,
+    CANCELLATION_OUTCOME_NOT_FOUND,
+    CANCELLATION_OUTCOME_UNSUPPORTED,
+    JOB_STATE_CANCELLED,
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+    JOB_STATE_TIMED_OUT,
+    TERMINAL_JOB_STATES,
+    VALID_JOB_TRANSITIONS,
+)
+from modules.shared.src.job.taxonomy_job_status_entity import JobRecord
+from modules.shared.src.job.taxonomy_job_vo import (
+    CancellationReason,
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    ErrorCategory,
+    FailTaskCommand,
+    JobPolicy,
+    JobStatusSnapshot,
+    OperationType,
+    ProgressUpdateCommand,
+)
+from modules.shared.src.job.utility_job_sanitizer import (
+    redact_metadata,
+    sanitize_cancellation_reason,
+    sanitize_error,
+    sanitize_progress_message,
+    sanitize_text,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class JobOrchestrator(IJobAggregate):
-    """Orchestrates job lifecycle operations via capabilities layer."""
+class InMemoryJobRegistry(IJobRegistry):
+    """
+    Thread-safe in-memory job registry capability.
 
-    def __init__(self, max_active: int = 100):
-        self._jobs: dict[str, JobStatus] = {}
-        self._max_active = max_active
+    This capability owns job state and enforces:
+    - state machine transitions
+    - capacity limits
+    - progress rules
+    - cancellation outcomes
+    - retention cleanup
+    - stale running recovery
+    """
 
-    # FR-JOB-001: Track and Update Task Lifecycle
+    def __init__(
+        self,
+        policy: JobPolicy,
+        clock: Callable[[], Timestamp],
+        cancellation_signaler: ICancellationSignaler | None = None,
+        event_publisher: IJobEventPublisher | None = None,
+        id_generator: Callable[[], JobId] | None = None,
+    ) -> None:
+        if policy.max_active < 0:
+            raise ValueError("policy.max_active must be >= 0")
+        if policy.retention_seconds < 0:
+            raise ValueError("policy.retention_seconds must be >= 0")
+        if policy.max_records < 0:
+            raise ValueError("policy.max_records must be >= 0")
+        if policy.stale_running_lifetime_seconds < 0:
+            raise ValueError("policy.stale_running_lifetime_seconds must be >= 0")
+        if policy.progress_throttle_seconds < 0:
+            raise ValueError("policy.progress_throttle_seconds must be >= 0")
 
-    def track_new_task(self, operation_type: str, _metadata: dict | None = None) -> tuple[JobId, JobStatus]:
-        """Register a new background task. Returns unique tracking ID."""
-        import uuid
+        self._policy = policy
+        self._clock = clock
+        self._cancellation_signaler = cancellation_signaler
+        self._event_publisher = event_publisher
+        self._new_id = id_generator or (lambda: JobId(str(uuid.uuid4())))
 
-        job_id = JobId(str(uuid.uuid4()))
+        self._lock = threading.RLock()
+        self._records: dict[str, JobRecord] = {}
+        self._active_count = 0
 
-        # FR-JOB-005: Enforce Background Capacity
-        running = sum(1 for j in self._jobs.values() if j.status.value in ("RUNNING", "PENDING"))
-        if running >= self._max_active:
-            raise CapacityError(max_active=self._max_active, current_active=running)
+    # ============================================================
+    # PUBLIC API
+    # ============================================================
 
-        status = JobStatus(job_id=job_id)
-        self._jobs[str(job_id)] = status
-        logger.info("New task tracked: %s (type=%s)", job_id, operation_type)
-        return job_id, status
+    def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
+        now = self._now()
 
-    def update_progress(self, job_id: JobId, progress: float, _message: str = "") -> JobStatus:
-        """Update progress of a running task (0-100%)."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+        operation = sanitize_text(str(command.operation_type), 100)
+        if not operation:
+            raise ValidationError(ErrorString("operation_type is required"))
 
-        status = self._jobs[str(job_id)]
-        if progress < 0 or progress > 100:
-            raise ValueError(f"Invalid progress value: {progress} (must be 0-100)")
-        if status.status.value not in ("RUNNING", "PENDING"):
-            raise RuntimeError(f"Cannot update progress on task in {status.status.value} state")
+        metadata = redact_metadata(command.metadata)
 
-        status.progress = Progress(progress)
-        return status
+        with self._lock:
+            if self._active_count >= self._policy.max_active:
+                raise CapacityError(
+                    max_active=self._policy.max_active,
+                    current_active=self._active_count,
+                )
 
-    def finalize_task_success(
-        self, job_id: JobId, result_url: ResultUrl | None = None, _summary: str = ""
-    ) -> JobStatus:
-        """Mark a task as successfully completed."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+            job_id = self._new_id()
+            record = JobRecord(
+                job_id=job_id,
+                operation_type=OperationType(operation),
+                correlation_id=command.correlation_id,
+                metadata=metadata,
+                created_at=now,
+                updated_at=now,
+            )
 
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
+            self._records[str(job_id)] = record
 
-        status.mark_completed(result_url)
-        logger.info("Task completed: %s", job_id)
-        return status
+            if self._counts_toward_capacity(record.state):
+                self._active_count += 1
 
-    def finalize_task_failure(self, job_id: JobId, error_message: ErrorString, error_category: str = "") -> JobStatus:
-        """Mark a task as failed with error details."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+            snapshot = record.to_snapshot()
 
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
+        self._publish_snapshot("job.task.created", snapshot)
+        return snapshot
 
-        status.mark_failed(error_message)
-        logger.info("Task failed: %s (%s)", job_id, error_category)
-        return status
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot:
+        snapshot = self._transition(job_id, JOB_STATE_RUNNING, event="job.task.started")
+        return snapshot
 
-    # FR-JOB-002: Monitor Task Status
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot:
+        now = self._now()
+        progress_value = float(command.progress)
 
-    def get_task_status(self, job_id: JobId) -> JobStatus | None:
-        """Retrieve current state snapshot of a task (read-only)."""
-        import copy
+        if progress_value < 0.0 or progress_value > 100.0:
+            raise ValidationError(ErrorString("progress must be between 0 and 100"))
 
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return None
-        return copy.deepcopy(status)
+        message = sanitize_progress_message(command.message)
 
-    # FR-JOB-003: Cancel a Task
+        with self._lock:
+            record = self._records.get(str(command.job_id))
+            if record is None:
+                raise TaskNotFoundError(str(command.job_id))
 
-    def cancel_task(self, job_id: JobId, reason: ErrorString = "") -> tuple[bool, str]:
-        """Request cancellation of a waiting or running task."""
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return False, f"Task {job_id} not found"
+            if record.state != JOB_STATE_RUNNING:
+                raise InvalidStateTransitionError(str(record.state), "PROGRESS")
 
-        state = status.status.value
-        if state in ("COMPLETED", "FAILED", "CANCELLED"):
-            return False, f"Cannot cancel task already in {state} state"
+            if progress_value < float(record.progress):
+                raise ValidationError(ErrorString("progress must be monotonic"))
 
-        status.mark_cancelled(ErrorString(f"Cancelled: {reason}") if reason else ErrorString("Cancelled"))
-        logger.info("Task cancelled: %s (reason=%s)", job_id, reason)
-        return True, f"Task {job_id} cancellation accepted"
+            # Throttle non-final progress updates.
+            if (
+                record.last_progress_at is not None
+                and (float(now) - float(record.last_progress_at)) < self._policy.progress_throttle_seconds
+                and progress_value < 100.0
+            ):
+                return record.to_snapshot()
 
-    # FR-JOB-004: Automatic Task Record Cleanup
+            record.progress = Progress(progress_value)
+            record.progress_message = message
+            record.updated_at = now
+            record.last_progress_at = now
 
-    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, int]:
-        """Remove old, finished task records."""
-        terminal_states = {"COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"}
+            snapshot = record.to_snapshot()
 
-        terminal = [jid for jid, s in self._jobs.items() if s.status.value in terminal_states]
-        to_remove = terminal[max_retained:] if len(terminal) > max_retained else []
+        self._publish_snapshot("job.task.progress_updated", snapshot)
+        return snapshot
 
-        for jid in to_remove:
-            del self._jobs[jid]
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
+        summary = sanitize_progress_message(command.summary)
+        snapshot = self._transition(
+            command.job_id,
+            JOB_STATE_COMPLETED,
+            result_url=command.result_url,
+            progress_message=summary,
+            event="job.task.completed",
+        )
+        return snapshot
 
-        return {
-            "removed": len(to_remove),
-            "retained": len(self._jobs) - len(to_remove),
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
+        error = sanitize_error(command.error_message)
+        if not str(error).strip():
+            raise ValidationError(ErrorString("error_message is required"))
+
+        category: ErrorCategory | None = None
+        if command.error_category:
+            raw_category = sanitize_text(str(command.error_category), 100)
+            category = ErrorCategory(raw_category) if raw_category else None
+
+        snapshot = self._transition(
+            command.job_id,
+            JOB_STATE_FAILED,
+            error=error,
+            error_category=category,
+            event="job.task.failed",
+        )
+        return snapshot
+
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult:
+        reason = sanitize_cancellation_reason(command.reason)
+
+        with self._lock:
+            record = self._records.get(str(command.job_id))
+            if record is None:
+                return CancellationResult(
+                    job_id=command.job_id,
+                    accepted=False,
+                    outcome=CANCELLATION_OUTCOME_NOT_FOUND,
+                    message="Task not found",
+                )
+
+            if record.state in TERMINAL_JOB_STATES:
+                return CancellationResult(
+                    job_id=command.job_id,
+                    accepted=False,
+                    outcome=CANCELLATION_OUTCOME_ALREADY_TERMINAL,
+                    message=f"Task already in terminal state {record.state}",
+                )
+
+            current_state = record.state
+
+        # Pending tasks cancel immediately.
+        if current_state == JOB_STATE_RUNNING:
+            if self._cancellation_signaler is None:
+                return CancellationResult(
+                    job_id=command.job_id,
+                    accepted=False,
+                    outcome=CANCELLATION_OUTCOME_UNSUPPORTED,
+                    message="Executor does not support cancellation",
+                )
+
+            try:
+                signaled = self._cancellation_signaler.signal(command.job_id, reason)
+            except Exception:
+                logger.exception("Cancellation signaler failed for job %s", command.job_id)
+                signaled = False
+
+            if not signaled:
+                return CancellationResult(
+                    job_id=command.job_id,
+                    accepted=False,
+                    outcome=CANCELLATION_OUTCOME_UNSUPPORTED,
+                    message="Executor could not be signaled",
+                )
+
+        try:
+            self._transition(
+                command.job_id,
+                JOB_STATE_CANCELLED,
+                cancellation_reason=reason,
+                event="job.task.cancelled",
+            )
+        except TaskNotFoundError:
+            return CancellationResult(
+                job_id=command.job_id,
+                accepted=False,
+                outcome=CANCELLATION_OUTCOME_NOT_FOUND,
+                message="Task not found",
+            )
+        except InvalidStateTransitionError:
+            return CancellationResult(
+                job_id=command.job_id,
+                accepted=False,
+                outcome=CANCELLATION_OUTCOME_ALREADY_TERMINAL,
+                message="Task reached terminal state before cancellation applied",
+            )
+
+        return CancellationResult(
+            job_id=command.job_id,
+            accepted=True,
+            outcome=CANCELLATION_OUTCOME_ACCEPTED,
+            message="Cancellation accepted",
+        )
+
+    def get_snapshot(self, job_id: JobId) -> JobStatusSnapshot:
+        with self._lock:
+            record = self._records.get(str(job_id))
+            if record is None:
+                raise TaskNotFoundError(str(job_id))
+            return record.to_snapshot()
+
+    def cleanup_expired(self) -> CleanupSummary:
+        now = self._now()
+        warnings: list[str] = []
+        events: list[tuple[str, JobStatusSnapshot]] = []
+
+        with self._lock:
+            reclaimed_capacity = 0
+
+            # 1) Stale running recovery.
+            if self._policy.stale_recovery_enabled:
+                for record in list(self._records.values()):
+                    if record.state != JOB_STATE_RUNNING:
+                        continue
+                    if record.started_at is None:
+                        continue
+
+                    age = float(now) - float(record.started_at)
+                    if age <= self._policy.stale_running_lifetime_seconds:
+                        continue
+
+                    try:
+                        snapshot = self._apply_transition_locked(
+                            record,
+                            JOB_STATE_TIMED_OUT,
+                            now,
+                            error=ErrorString("Task exceeded maximum running lifetime"),
+                            error_category=ErrorCategory("TIMEOUT"),
+                        )
+                        reclaimed_capacity += 1
+                        events.append(("job.task.timed_out", snapshot))
+                    except JobError as exc:
+                        warnings.append(f"stale_transition_failed: {exc}")
+
+            # 2) Retention purge, oldest terminal first.
+            terminal = [r for r in self._records.values() if r.state in TERMINAL_JOB_STATES]
+            terminal.sort(key=lambda r: float(r.finished_at if r.finished_at is not None else r.updated_at))
+
+            purge_ids: set[str] = set()
+
+            for record in terminal:
+                finished = float(record.finished_at if record.finished_at is not None else record.updated_at)
+                if float(now) - finished >= self._policy.retention_seconds:
+                    purge_ids.add(str(record.job_id))
+
+            remaining_terminal = [r for r in terminal if str(r.job_id) not in purge_ids]
+
+            # 3) Max retained terminal records.
+            if len(remaining_terminal) > self._policy.max_records:
+                excess = len(remaining_terminal) - self._policy.max_records
+                for record in remaining_terminal[:excess]:
+                    purge_ids.add(str(record.job_id))
+
+            for job_id in purge_ids:
+                self._records.pop(job_id, None)
+
+            retained = len(self._records)
+
+            summary = CleanupSummary(
+                purged=len(purge_ids),
+                retained=retained,
+                reclaimed_capacity=reclaimed_capacity,
+                warnings=tuple(warnings),
+            )
+
+        for event_name, snapshot in events:
+            self._publish_snapshot(event_name, snapshot)
+
+        self._publish_raw(
+            "job.task.cleanup_sweep",
+            {
+                "purged": summary.purged,
+                "retained": summary.retained,
+                "reclaimed_capacity": summary.reclaimed_capacity,
+                "warnings": list(summary.warnings),
+            },
+        )
+
+        return summary
+
+    def capacity_status(self) -> CapacityStatus:
+        with self._lock:
+            active = self._active_count
+            limit = self._policy.max_active
+            available = max(0, limit - active)
+            return CapacityStatus(active=active, limit=limit, available=available)
+
+    # ============================================================
+    # INTERNAL HELPERS
+    # ============================================================
+
+    def _now(self) -> Timestamp:
+        return Timestamp(float(self._clock()))
+
+    def _counts_toward_capacity(self, state: JobState) -> bool:
+        if state == JOB_STATE_RUNNING:
+            return True
+        if state == JOB_STATE_PENDING:
+            return self._policy.count_pending_toward_capacity
+        return False
+
+    def _assert_transition(self, current: JobState, target: JobState) -> None:
+        allowed = VALID_JOB_TRANSITIONS.get(current, frozenset())
+        if target not in allowed:
+            raise InvalidStateTransitionError(str(current), str(target))
+
+    def _transition(
+        self,
+        job_id: JobId,
+        target: JobState,
+        *,
+        result_url: Any | None = None,
+        error: ErrorString | None = None,
+        error_category: ErrorCategory | None = None,
+        cancellation_reason: CancellationReason | None = None,
+        progress_message: Any | None = None,
+        event: str | None = None,
+    ) -> JobStatusSnapshot:
+        now = self._now()
+
+        with self._lock:
+            record = self._records.get(str(job_id))
+            if record is None:
+                raise TaskNotFoundError(str(job_id))
+
+            snapshot = self._apply_transition_locked(
+                record,
+                target,
+                now,
+                result_url=result_url,
+                error=error,
+                error_category=error_category,
+                cancellation_reason=cancellation_reason,
+                progress_message=progress_message,
+            )
+
+        event_name = event or f"job.task.{str(target).lower()}"
+        self._publish_snapshot(event_name, snapshot)
+        return snapshot
+
+    def _apply_transition_locked(
+        self,
+        record: JobRecord,
+        target: JobState,
+        now: Timestamp,
+        *,
+        result_url: Any | None = None,
+        error: ErrorString | None = None,
+        error_category: ErrorCategory | None = None,
+        cancellation_reason: CancellationReason | None = None,
+        progress_message: Any | None = None,
+    ) -> JobStatusSnapshot:
+        self._assert_transition(record.state, target)
+
+        was_active = self._counts_toward_capacity(record.state)
+
+        record.state = target
+        record.updated_at = now
+
+        if target == JOB_STATE_RUNNING:
+            record.started_at = now
+            record.progress = Progress(0.0)
+            record.progress_message = None
+            record.last_progress_at = None
+
+        if target in TERMINAL_JOB_STATES:
+            record.finished_at = now
+
+        if target == JOB_STATE_COMPLETED:
+            record.progress = Progress(100.0)
+            record.result_url = result_url
+            if progress_message is not None:
+                record.progress_message = progress_message
+
+        if target == JOB_STATE_FAILED:
+            record.error = error or ErrorString("Unknown error")
+            record.error_category = error_category
+
+        if target == JOB_STATE_CANCELLED:
+            record.cancellation_reason = cancellation_reason
+
+        now_active = self._counts_toward_capacity(target)
+        delta = (1 if now_active else 0) - (1 if was_active else 0)
+        self._active_count += delta
+
+        if self._active_count < 0:
+            logger.warning("Active job count became negative; resetting to zero")
+            self._active_count = 0
+
+        return record.to_snapshot()
+
+    def _publish_snapshot(self, event: str, snapshot: JobStatusSnapshot) -> None:
+        if self._event_publisher is None:
+            return
+
+        payload = {
+            "job_id": str(snapshot.job_id),
+            "state": str(snapshot.state),
+            "operation_type": str(snapshot.operation_type),
+            "progress": float(snapshot.progress),
+            "correlation_id": str(snapshot.correlation_id) if snapshot.correlation_id else None,
+            "is_terminal": snapshot.is_terminal,
+            "created_at": float(snapshot.created_at),
+            "updated_at": float(snapshot.updated_at),
+            "started_at": float(snapshot.started_at) if snapshot.started_at is not None else None,
+            "finished_at": float(snapshot.finished_at) if snapshot.finished_at is not None else None,
         }
+
+        self._publish_raw(event, payload)
+
+    def _publish_raw(self, event: str, payload: dict[str, Any]) -> None:
+        if self._event_publisher is None:
+            return
+
+        try:
+            self._event_publisher.publish(event, payload)
+        except Exception:
+            logger.exception("Failed publishing job event: %s", event)
 ```
 
 ---
@@ -880,20 +1344,22 @@ class JobOrchestrator(IJobAggregate):
 ## File: modules/job/src/root_job_container.py
 
 ```python
-"""Root: Job feature composition container.
-
-Wires the job orchestrator (self-contained lifecycle state machine) and
-bootstraps the job module. The JobOrchestrator owns task state directly and
-delegates to no external capabilities.
-
-This file is the composition root for the job feature.
-"""
-
+# modules/job/src/root_job_container.py
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
+
+from modules.shared.src.common.taxonomy_core_vo import Timestamp
+from modules.shared.src.job.contract_job_protocol import (
+    ICancellationSignaler,
+    IJobEventPublisher,
+)
+from modules.shared.src.job.taxonomy_job_vo import JobPolicy
 
 from .agent_job_orchestrator import JobOrchestrator
+from .capabilities_job_registry import InMemoryJobRegistry
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -901,37 +1367,60 @@ logger = logging.getLogger("BlenderMCPServer")
 class JobContainer:
     """Dependency injection container for the job feature module."""
 
-    def __init__(self, max_active: int = 100) -> None:
-        self._max_active = max_active
+    def __init__(
+        self,
+        policy: JobPolicy | None = None,
+        cancellation_signaler: ICancellationSignaler | None = None,
+        event_publisher: IJobEventPublisher | None = None,
+        clock: Callable[[], Timestamp] | None = None,
+    ) -> None:
+        self._policy = policy or JobPolicy()
+        self._cancellation_signaler = cancellation_signaler
+        self._event_publisher = event_publisher
+        self._clock = clock
+
         self._orchestrator: JobOrchestrator | None = None
         self._wired: bool = False
 
     def wire(self) -> None:
-        """Wire the job orchestrator."""
         if self._wired:
             return
 
         logger.info("Wiring job feature module")
 
-        self._orchestrator = JobOrchestrator(max_active=self._max_active)
+        clock = self._clock or (lambda: Timestamp(time.time()))
 
+        registry = InMemoryJobRegistry(
+            policy=self._policy,
+            clock=clock,
+            cancellation_signaler=self._cancellation_signaler,
+            event_publisher=self._event_publisher,
+        )
+
+        self._orchestrator = JobOrchestrator(registry)
         self._wired = True
+
         logger.info("Job feature module wired successfully")
 
     @property
     def agent(self) -> JobOrchestrator:
-        """Return the assembled job orchestrator facade.
-
-        Must call wire() first, or this property will raise RuntimeError.
-        """
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("JobContainer not wired — call wire() first")
         return self._orchestrator
 
 
-def create_job_feature(max_active: int = 100) -> JobOrchestrator:
-    """Factory function to create and wire the job feature module."""
-    container = JobContainer(max_active=max_active)
+def create_job_feature(
+    policy: JobPolicy | None = None,
+    cancellation_signaler: ICancellationSignaler | None = None,
+    event_publisher: IJobEventPublisher | None = None,
+    clock: Callable[[], Timestamp] | None = None,
+) -> JobOrchestrator:
+    container = JobContainer(
+        policy=policy,
+        cancellation_signaler=cancellation_signaler,
+        event_publisher=event_publisher,
+        clock=clock,
+    )
     container.wire()
     return container.agent
 ```
@@ -1167,6 +1656,346 @@ class ConfigMetadata:
 
 ---
 
+## File: modules/shared/src/common/taxonomy_domain_error.py
+
+```python
+"""Domain error types for the BlenderMCP system."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from .taxonomy_core_vo import AssetId, Details, ErrorString, ProviderName
+
+
+class BlenderMCPError(Exception):
+    """Base error for all BlenderMCP exceptions."""
+
+    def __init__(self, message: ErrorString | None = None, details: Details | None = None) -> None:
+        message = message or ErrorString("")
+        super().__init__(message)
+        self.details = details or {}
+        self._error_message: ErrorString = ErrorString(str(message))
+
+    def to_mcp_format(self) -> Any:
+        """Serialize error for MCP response."""
+        return {
+            "code": self.__class__.__name__,
+            "message": str(ErrorString(str(self))),
+            "details": getattr(self, "details", None),
+        }
+
+
+class DomainError(BlenderMCPError):
+    """Base for domain-specific errors in the BlenderMCP system."""
+
+    def __init__(self, message: ErrorString | None = None, details: Details | None = None) -> None:
+        message = message or ErrorString("Domain error")
+        super().__init__(message)
+        self.details = details or {}
+        self._error_message: ErrorString = ErrorString(str(message))
+
+    def to_mcp_format(self) -> Any:
+        """Serialize error for MCP response."""
+        return {
+            "code": self.__class__.__name__,
+            "message": str(ErrorString(str(self))),
+            "details": getattr(self, "details", None),
+        }
+
+
+class SceneValidationError(DomainError):
+    """Raised when a scene invariant is violated or validation fails."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Scene validation failed"))
+
+
+class AssetNotFoundError(DomainError):
+    """Raised when an asset is not found in a provider's database."""
+
+    def __init__(self, asset_id: AssetId, provider: ProviderName):
+        super().__init__(ErrorString(f"Asset {asset_id} not found in provider {provider}"))
+        self.asset_id = asset_id
+        self.provider = provider
+
+
+class ValidationError(DomainError):
+    """Raised when input parameters fail domain validation rules or constraints."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Input validation failed"))
+
+
+class ConnectionError(DomainError):
+    """Raised when a persistent connection to an external service or socket fails."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Connection failed"))
+
+
+class ProviderError(DomainError):
+    """Raised when an external asset provider returns an error."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Provider error"))
+
+
+class ExecutionError(DomainError):
+    """Raised when a command execution in Blender fails or returns a runtime error."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Execution failed"))
+
+
+class BlenderConnectionFailure(ConnectionError):  # noqa: N818
+    """Raised when the specific socket connection to the Blender instance is lost."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Blender connection lost"))
+
+
+class InvalidCommandError(DomainError):
+    """Raised when a command string is not recognized by the internal dispatcher."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Invalid command"))
+```
+
+---
+
+## File: modules/shared/src/gateway/taxonomy_gateway_error.py
+
+```python
+"""Taxonomy error types for gateway and server domains.
+
+Gateway errors (lines 8-56): simple exceptions for transport/connection failures.
+Server errors (lines 57+): MCP-serializable errors with code/message/details.
+All errors use explicit typed classes — no bare strings.
+"""
+
+from __future__ import annotations
+
+from modules.shared.src.common.taxonomy_core_vo import ErrorMessage, ErrorString
+
+
+class GatewayError(Exception):
+    """Base error for all gateway domain exceptions."""
+
+
+class ConnectionError(GatewayError):
+    """Connection failed, refused, or lost."""
+
+
+class TimeoutError(GatewayError):
+    """Transport timeout, execution timeout, or queue wait timeout exceeded."""
+
+
+class ProtocolVersionMismatchError(GatewayError):
+    """Protocol version incompatible between application and Blender bridge."""
+
+
+class ChannelConflictError(GatewayError):
+    """Queue conflict, queue depth limit reached, or serialization contention."""
+
+
+class TransportParseError(GatewayError):
+    """Malformed frame or unparseable response content."""
+
+
+class PayloadLimitError(GatewayError):
+    """Request or response exceeded configured payload size."""
+
+
+class ServerError(Exception):
+    """Base error for all server-domain exceptions.
+
+    Provides structured error info with code/message/details for
+    MCP error serialization and observability.
+    """
+
+    def __init__(self, code: ErrorString, message: ErrorMessage, _details: dict | None = None) -> None:
+        self.code = code
+        self.message = message
+        self.details = _details or {}  # type: ignore[dict-item]
+        super().__init__(f"[{code}] {message}")
+
+    def to_mcp_format(self) -> dict:  # noqa: ANN004
+        """Serialize error for MCP response."""
+        return {
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
+# ─── Security Errors ──────────────────────────────────────────────
+
+
+class SecurityViolationError(ServerError):
+    """Raised when user-provided code contains blocked patterns or violates sandbox policy."""
+
+    def __init__(self, message: str = "Security violation", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("security_violation", message, _details)
+
+
+# ─── Execution Errors ──────────────────────────────────────────────
+
+
+class ExecutionTimeoutError(ServerError):
+    """Raised when code execution exceeds the configured timeout."""
+
+    def __init__(self, timeout_ms: float = 30_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("execution_timeout", f"Execution exceeded {timeout_ms}ms", {"timeout_ms": timeout_ms})
+
+
+class CommandTimeoutError(ServerError):
+    """Raised when a command response exceeds the configured timeout."""
+
+    def __init__(self, action: str = "", timeout_ms: float = 5_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "command_timeout",
+            f"Command '{action}' timed out after {timeout_ms}ms",
+            {"action": action, "timeout_ms": timeout_ms},
+        )
+
+
+# ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
+
+
+class TooManyPendingOperationsError(ServerError):
+    """Raised when the serialized execution queue has reached maximum depth.
+
+    Renamed from QueueFullError in v2.0.0.
+    Error code: 'too_many_pending_operations'
+    """
+
+    def __init__(self, max_depth: int = 50, request_id: str | None = None, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "too_many_pending_operations",
+            f"Queue full (depth={max_depth})",
+            {"max_depth": max_depth, "request_id": request_id, **(_details or {})},
+        )
+
+
+class OperationWaitTimeoutError(ServerError):
+    """Raised when a queued operation exceeds the configured wait timeout.
+
+    Renamed from QueueTimeoutError in v2.0.0.
+    Error code: 'operation_wait_timeout'
+    """
+
+    def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "operation_wait_timeout",
+            f"Operation wait timeout for {request_id}",
+            {"request_id": request_id, "timeout_ms": timeout_ms},
+        )
+
+
+# ─── Task Errors ────────────────────────────────────────────────
+
+
+class TaskNotFoundError(ServerError):
+    """Raised when polling an unknown or expired async task."""
+
+    def __init__(self, task_id: str = "", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("task_not_found", f"Task not found: {task_id}", {"task_id": task_id})
+
+
+# ─── Connection Errors ──────────────────────────────────────────
+
+
+class ConnectionConfigError(ServerError):
+    """Raised when connection factory receives invalid configuration."""
+
+    def __init__(self, message: str = "Connection config error", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("connection_config_error", message, _details)
+
+
+class AuthenticationError(ServerError):
+    """Raised when connection authentication fails."""
+
+    def __init__(self, message: str = "Authentication failed", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("authentication_failed", message, _details)
+
+
+class VersionMismatchError(ServerError):
+    """Raised when server and Blender addon protocol versions are incompatible.
+
+    Renamed from ProtocolVersionMismatchError in v2.0.0.
+    Error code: 'version_mismatch'
+    """
+
+    def __init__(self, expected: str = "", actual: str = "", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "version_mismatch",
+            f"Expected major version {expected}, got {actual}",
+            {"expected": expected, "actual": actual},
+        )
+
+
+class ConnectionClosedError(ServerError):
+    """Raised when an operation is rejected after graceful disconnect."""
+
+    def __init__(self, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("connection_closed", "Connection already closed", _details)
+
+
+class BlenderConnectionExhausted(ServerError):  # noqa: N818
+    """Raised after all reconnect attempts have been exhausted."""
+
+    def __init__(self, attempts: int = 3, _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__(
+            "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
+        )
+
+
+class BlenderConnectionFailure(ServerError):  # noqa: N818
+    """Raised when connection is lost or unavailable."""
+
+    def __init__(self, message: str = "Blender connection failure", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("blender_connection_failure", message, _details)
+
+
+# ─── Validation Errors ──────────────────────────────────────────
+
+
+class ValidationError(ServerError):
+    """Raised for unknown commands, invalid parameters, or syntax errors."""
+
+    def __init__(
+        self, message: str = "Validation error", code: str = "validation_error", _details: dict | None = None
+    ) -> None:  # noqa: ANN004
+        super().__init__(code, message, _details)
+
+
+# ─── Adapter / Surface Errors ────────────────────────────────────
+
+
+class ProviderError(ServerError):
+    """Raised when Blender addon returns a command-specific failure."""
+
+    def __init__(self, message: str = "Provider error", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("provider_error", message, _details)
+
+
+class ExecutionError(ServerError):
+    """Raised when Blender code execution returns a runtime failure."""
+
+    def __init__(self, message: str = "Execution error", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("execution_error", message, _details)
+
+
+class AdapterSurfaceError(ServerError):
+    """Raised when an unexpected adapter surface failure occurs."""
+
+    def __init__(self, message: str = "Adapter surface error", _details: dict | None = None) -> None:  # noqa: ANN004
+        super().__init__("adapter_surface_error", message, _details)
+```
+
+---
+
 ## File: modules/shared/src/job/__init__.py
 
 ```python
@@ -1200,65 +2029,124 @@ __all__ = [
 ## File: modules/shared/src/job/contract_job_aggregate.py
 
 ```python
-"""Job domain contract: job aggregate (ABC).
-
-Agent implements this aggregate. Surface layers depend on it.
-Facade for job lifecycle operations: track, update, finalize, cancel, cleanup.
-"""
-
+# modules/shared/src/job/contract_job_aggregate.py
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from ..common.taxonomy_core_vo import ErrorString, JobId, ResultUrl
-from .taxonomy_job_status_entity import JobStatus
+from ..common.taxonomy_core_vo import JobId
+from .taxonomy_job_vo import (
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    FailTaskCommand,
+    JobStatusSnapshot,
+    ProgressUpdateCommand,
+)
 
 
 class IJobAggregate(ABC):
     @abstractmethod
-    def track_new_task(
-        self,
-        operation_type: str,
-        metadata: dict[str, Any] | None = None,
-    ) -> tuple[JobId, JobStatus]: ...
+    def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def update_progress(
-        self,
-        job_id: JobId,
-        progress: float,
-        message: str = "",
-    ) -> JobStatus: ...
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def finalize_task_success(
-        self,
-        job_id: JobId,
-        result_url: ResultUrl | None = None,
-        summary: str = "",
-    ) -> JobStatus: ...
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def finalize_task_failure(
-        self,
-        job_id: JobId,
-        error_message: ErrorString,
-        error_category: str = "",
-    ) -> JobStatus: ...
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def get_task_status(self, job_id: JobId) -> JobStatus | None: ...
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def cancel_task(
-        self,
-        job_id: JobId,
-        reason: ErrorString = "",
-    ) -> tuple[bool, str]: ...
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult: ...
 
     @abstractmethod
-    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, Any]: ...
+    def get_task_status(self, job_id: JobId) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def cleanup_expired_tasks(self) -> CleanupSummary: ...
+
+    @abstractmethod
+    def get_capacity_status(self) -> CapacityStatus: ...
+```
+
+---
+
+## File: modules/shared/src/job/contract_job_protocol.py
+
+```python
+# modules/shared/src/job/contract_job_protocol.py
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any
+
+from ..common.taxonomy_core_vo import JobId
+from .taxonomy_job_vo import (
+    CancellationReason,
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    FailTaskCommand,
+    JobStatusSnapshot,
+    ProgressUpdateCommand,
+)
+
+
+class IJobRegistry(ABC):
+    """Protocol contract for job state management capability."""
+
+    @abstractmethod
+    def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult: ...
+
+    @abstractmethod
+    def get_snapshot(self, job_id: JobId) -> JobStatusSnapshot: ...
+
+    @abstractmethod
+    def cleanup_expired(self) -> CleanupSummary: ...
+
+    @abstractmethod
+    def capacity_status(self) -> CapacityStatus: ...
+
+
+class ICancellationSignaler(ABC):
+    """Protocol contract for signaling job cancellation to the executor."""
+
+    @abstractmethod
+    def signal(self, job_id: JobId, reason: CancellationReason | None) -> bool: ...
+
+
+class IJobEventPublisher(ABC):
+    """Protocol contract for publishing job lifecycle events."""
+
+    @abstractmethod
+    def publish(self, event: str, payload: Mapping[str, Any]) -> None: ...
 ```
 
 ---
@@ -1266,8 +2154,7 @@ class IJobAggregate(ABC):
 ## File: modules/shared/src/job/taxonomy_job_error.py
 
 ```python
-"""Job domain error types."""
-
+# modules/shared/src/job/taxonomy_job_error.py
 from __future__ import annotations
 
 from ..common.taxonomy_core_vo import ErrorString
@@ -1308,6 +2195,13 @@ class InvalidStateTransitionError(JobError):
         super().__init__(message)
         self.from_state = from_state
         self.to_state = to_state
+
+
+class ValidationError(JobError):
+    """Raised when input validation fails."""
+
+    def __init__(self, message: ErrorString) -> None:
+        super().__init__(message)
 ```
 
 ---
@@ -1315,10 +2209,10 @@ class InvalidStateTransitionError(JobError):
 ## File: modules/shared/src/job/taxonomy_job_state_constant.py
 
 ```python
-"""Job state constants."""
-
+# modules/shared/src/job/taxonomy_job_state_constant.py
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Final
 
 from ..common.taxonomy_core_vo import JobState
@@ -1326,13 +2220,63 @@ from ..common.taxonomy_core_vo import JobState
 # ============================================================
 # JOB STATE CONSTANTS
 # ============================================================
-
 JOB_STATE_PENDING: Final[JobState] = JobState("PENDING")
 JOB_STATE_RUNNING: Final[JobState] = JobState("RUNNING")
 JOB_STATE_COMPLETED: Final[JobState] = JobState("COMPLETED")
 JOB_STATE_FAILED: Final[JobState] = JobState("FAILED")
 JOB_STATE_CANCELLED: Final[JobState] = JobState("CANCELLED")
 JOB_STATE_TIMED_OUT: Final[JobState] = JobState("TIMED_OUT")
+
+# ============================================================
+# STATE SETS
+# ============================================================
+ACTIVE_JOB_STATES: Final[frozenset[JobState]] = frozenset(
+    {
+        JOB_STATE_PENDING,
+        JOB_STATE_RUNNING,
+    }
+)
+
+TERMINAL_JOB_STATES: Final[frozenset[JobState]] = frozenset(
+    {
+        JOB_STATE_COMPLETED,
+        JOB_STATE_FAILED,
+        JOB_STATE_CANCELLED,
+        JOB_STATE_TIMED_OUT,
+    }
+)
+
+# ============================================================
+# VALID TRANSITIONS
+# ============================================================
+VALID_JOB_TRANSITIONS: Final[Mapping[JobState, frozenset[JobState]]] = {
+    JOB_STATE_PENDING: frozenset(
+        {
+            JOB_STATE_RUNNING,
+            JOB_STATE_CANCELLED,
+        }
+    ),
+    JOB_STATE_RUNNING: frozenset(
+        {
+            JOB_STATE_COMPLETED,
+            JOB_STATE_FAILED,
+            JOB_STATE_CANCELLED,
+            JOB_STATE_TIMED_OUT,
+        }
+    ),
+    JOB_STATE_COMPLETED: frozenset(),
+    JOB_STATE_FAILED: frozenset(),
+    JOB_STATE_CANCELLED: frozenset(),
+    JOB_STATE_TIMED_OUT: frozenset(),
+}
+
+# ============================================================
+# CANCELLATION OUTCOMES
+# ============================================================
+CANCELLATION_OUTCOME_ACCEPTED: Final[str] = "ACCEPTED"
+CANCELLATION_OUTCOME_ALREADY_TERMINAL: Final[str] = "ALREADY_TERMINAL"
+CANCELLATION_OUTCOME_NOT_FOUND: Final[str] = "NOT_FOUND"
+CANCELLATION_OUTCOME_UNSUPPORTED: Final[str] = "UNSUPPORTED"
 ```
 
 ---
@@ -1340,75 +2284,750 @@ JOB_STATE_TIMED_OUT: Final[JobState] = JobState("TIMED_OUT")
 ## File: modules/shared/src/job/taxonomy_job_status_entity.py
 
 ```python
-"""Mutable job status tracking entity."""
-
+# modules/shared/src/job/taxonomy_job_status_entity.py
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString, JobId, JobState, Progress, ResultUrl
+from dataclasses import dataclass, field
+
+from ..common.taxonomy_core_vo import (
+    ErrorString,
+    JobId,
+    JobState,
+    Progress,
+    ResultUrl,
+    Timestamp,
+)
 from .taxonomy_job_state_constant import (
-    JOB_STATE_CANCELLED,
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
+    ACTIVE_JOB_STATES,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    JOB_STATE_TIMED_OUT,
+    TERMINAL_JOB_STATES,
+)
+from .taxonomy_job_vo import (
+    CancellationReason,
+    CorrelationId,
+    ErrorCategory,
+    JobStatusSnapshot,
+    OperationType,
+    ProgressMessage,
 )
 
 
-class JobStatus:
-    """Mutable tracking of an async background job."""
+@dataclass
+class JobRecord:
+    """
+    Mutable internal job record.
+
+    This is an internal state holder, not a public read model.
+    Business rules should be applied by capabilities, not by direct mutation.
+    """
+
+    job_id: JobId
+    operation_type: OperationType
+    created_at: Timestamp
+    updated_at: Timestamp
+
+    correlation_id: CorrelationId | None = None
+    metadata: dict[str, str] = field(default_factory=dict)
+
+    state: JobState = JOB_STATE_PENDING
+    progress: Progress = Progress(0.0)
+    progress_message: ProgressMessage | None = None
+
+    result_url: ResultUrl | None = None
+    error: ErrorString | None = None
+    error_category: ErrorCategory | None = None
+    cancellation_reason: CancellationReason | None = None
+
+    started_at: Timestamp | None = None
+    finished_at: Timestamp | None = None
+    last_progress_at: Timestamp | None = None
+
+    def to_snapshot(self) -> JobStatusSnapshot:
+        return JobStatusSnapshot(
+            job_id=self.job_id,
+            state=self.state,
+            operation_type=self.operation_type,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            progress=self.progress,
+            progress_message=self.progress_message,
+            result_url=self.result_url,
+            error=self.error,
+            error_category=self.error_category,
+            correlation_id=self.correlation_id,
+            started_at=self.started_at,
+            finished_at=self.finished_at,
+            metadata=tuple(sorted(self.metadata.items())),
+            is_terminal=self.state in TERMINAL_JOB_STATES,
+            is_cancellable=self.state in ACTIVE_JOB_STATES,
+            progress_applicable=self.state == JOB_STATE_RUNNING,
+        )
+```
+
+---
+
+## File: modules/shared/src/job/taxonomy_job_vo.py
+
+```python
+# modules/shared/src/job/taxonomy_job_vo.py
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import NewType
+
+from ..common.taxonomy_core_vo import (
+    ErrorString,
+    JobId,
+    JobState,
+    Progress,
+    ResultUrl,
+    Timestamp,
+)
+
+# ============================================================
+# JOB-SPECIFIC VOs
+# ============================================================
+OperationType = NewType("OperationType", str)
+CorrelationId = NewType("CorrelationId", str)
+ProgressMessage = NewType("ProgressMessage", str)
+CancellationReason = NewType("CancellationReason", str)
+ErrorCategory = NewType("ErrorCategory", str)
+TaskMetadata = NewType("TaskMetadata", Mapping[str, str])
+
+
+# ============================================================
+# POLICY / CONFIG VO
+# ============================================================
+@dataclass(frozen=True)
+class JobPolicy:
+    """Runtime policy for job tracking, capacity, retention, and recovery."""
+
+    max_active: int = 100
+    retention_seconds: float = 3600.0
+    max_records: int = 1000
+    stale_recovery_enabled: bool = True
+    stale_running_lifetime_seconds: float = 1800.0
+    progress_throttle_seconds: float = 0.5
+    count_pending_toward_capacity: bool = True
+
+
+# ============================================================
+# COMMANDS
+# ============================================================
+@dataclass(frozen=True)
+class CreateTaskCommand:
+    operation_type: OperationType
+    correlation_id: CorrelationId | None = None
+    metadata: TaskMetadata | None = None
+
+
+@dataclass(frozen=True)
+class ProgressUpdateCommand:
+    job_id: JobId
+    progress: Progress
+    message: ProgressMessage | None = None
+
+
+@dataclass(frozen=True)
+class CompleteTaskCommand:
+    job_id: JobId
+    result_url: ResultUrl | None = None
+    summary: ProgressMessage | None = None
+
+
+@dataclass(frozen=True)
+class FailTaskCommand:
+    job_id: JobId
+    error_message: ErrorString
+    error_category: ErrorCategory | None = None
+
+
+@dataclass(frozen=True)
+class CancelTaskCommand:
+    job_id: JobId
+    reason: CancellationReason | None = None
+
+
+# ============================================================
+# READ MODELS / RESULTS
+# ============================================================
+@dataclass(frozen=True)
+class JobStatusSnapshot:
+    job_id: JobId
+    state: JobState
+    operation_type: OperationType
+    created_at: Timestamp
+    updated_at: Timestamp
+
+    progress: Progress = Progress(0.0)
+    progress_message: ProgressMessage | None = None
+    result_url: ResultUrl | None = None
+    error: ErrorString | None = None
+    error_category: ErrorCategory | None = None
+    correlation_id: CorrelationId | None = None
+
+    started_at: Timestamp | None = None
+    finished_at: Timestamp | None = None
+
+    metadata: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+
+    is_terminal: bool = False
+    is_cancellable: bool = False
+    progress_applicable: bool = False
+
+
+@dataclass(frozen=True)
+class CancellationResult:
+    job_id: JobId
+    accepted: bool
+    outcome: str
+    message: str
+
+
+@dataclass(frozen=True)
+class CleanupSummary:
+    purged: int
+    retained: int
+    reclaimed_capacity: int
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class CapacityStatus:
+    active: int
+    limit: int
+    available: int
+```
+
+---
+
+## File: modules/shared/src/job/utility_job_sanitizer.py
+
+```python
+# modules/shared/src/job/utility_job_sanitizer.py
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping
+from typing import Any
+
+from ..common.taxonomy_core_vo import ErrorString
+from .taxonomy_job_vo import CancellationReason
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_SENSITIVE_KEYS = frozenset({"password", "token", "secret", "api_key", "auth"})
+
+
+def sanitize_text(value: str, max_length: int) -> str:
+    """Strip control characters and truncate to max_length."""
+    cleaned = _CONTROL_CHARS.sub("", value).strip()
+    return cleaned[:max_length]
+
+
+def sanitize_error(value: ErrorString) -> ErrorString:
+    """Sanitize an error string, preserving type."""
+    return ErrorString(sanitize_text(str(value), 500))
+
+
+def sanitize_progress_message(value: Any | None) -> str | None:
+    """Sanitize an optional progress message string."""
+    if value is None:
+        return None
+    cleaned = sanitize_text(str(value), 500)
+    return cleaned if cleaned else None
+
+
+def sanitize_cancellation_reason(value: CancellationReason | None) -> CancellationReason | None:
+    """Sanitize an optional cancellation reason."""
+    if value is None:
+        return None
+    cleaned = sanitize_text(str(value), 500)
+    return CancellationReason(cleaned) if cleaned else None
+
+
+def redact_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Shallow-copy metadata, redacting values for known sensitive keys."""
+    if not metadata:
+        return {}
+    return {
+        k: ("***" if k.lower() in _SENSITIVE_KEYS else v)
+        for k, v in metadata.items()
+    }
+```
+
+---
+
+## File: modules/shared/src/security/__init__.py
+
+```python
+"""Security domain — taxonomy types and contracts.
+
+Provides Value Objects, Entities, Events, Errors, Constants,
+5 individual Protocol interfaces, and Aggregate facade for all 5 security operations per the Security FRD.
+"""
+
+from . import (
+    taxonomy_security_constant,
+    taxonomy_security_error,
+    taxonomy_security_event,
+    taxonomy_security_vo,
+)
+from .contract_emit_audit_protocol import EmitAuditProtocol
+from .contract_extract_archive_protocol import ExtractArchiveProtocol
+from .contract_redact_sensitive_protocol import RedactSensitiveProtocol
+from .contract_security_operate_aggregate import ISecurityOperateAggregate
+from .contract_validate_code_protocol import ValidateCodeProtocol
+from .contract_validate_path_protocol import ValidatePathProtocol
+
+__all__ = [
+    "EmitAuditProtocol",
+    "ExtractArchiveProtocol",
+    "RedactSensitiveProtocol",
+    "ISecurityOperateAggregate",
+    "ValidateCodeProtocol",
+    "ValidatePathProtocol",
+    "taxonomy_security_constant",
+    "taxonomy_security_error",
+    "taxonomy_security_event",
+    "taxonomy_security_vo",
+]
+```
+
+---
+
+## File: modules/shared/src/security/taxonomy_security_error.py
+
+```python
+"""Security domain — Error types for path, archive, code, redaction, and audit failures.
+
+All errors subclass SecurityError with explicit error codes.
+"""
+
+from __future__ import annotations
+
+from modules.shared.src.common.taxonomy_core_vo import ErrorMessage
+from modules.shared.src.security.taxonomy_security_vo import (
+    ErrorCategory,
+    FilePath,
+    FileSize,
+    MetadataMap,
+)
+
+# ─── Default Message Constants ──────────────────────────────────
+
+_DEFAULT_ARCHIVE_SAFETY_MESSAGE: ErrorMessage = ErrorMessage("Archive safety violation")
+_DEFAULT_ARCHIVE_BOMB_MESSAGE: ErrorMessage = ErrorMessage("Archive bomb detected")
+_DEFAULT_CODE_VALIDATION_MESSAGE: ErrorMessage = ErrorMessage("Code validation failed")
+_DEFAULT_REDACTION_MESSAGE: ErrorMessage = ErrorMessage("Redaction failed")
+_DEFAULT_AUDIT_EMISSION_MESSAGE: ErrorMessage = ErrorMessage("Audit emission failed")
+_DEFAULT_VALIDATION_MESSAGE: ErrorMessage = ErrorMessage("Validation error")
+
+# ─── Default Path Constants ─────────────────────────────────────
+
+_EMPTY_PATH: FilePath = FilePath("")
+
+# ─── Default FileSize Constants ─────────────────────────────────
+
+_DEFAULT_FILE_SIZE_ZERO: FileSize = FileSize(0)
+
+
+class SecurityError(Exception):
+    """Base error for all security-domain exceptions."""
+
+    def __init__(self, code: ErrorCategory, message: str, details: MetadataMap | None = None) -> None:
+        self.code = code
+        self.message = message
+        self.details = details or {}
+        super().__init__(f"[{code}] {message}")
+
+    def to_dict(self) -> dict:
+        return {
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
+# ─── Path Validation Errors ─────────────────────────────────────
+
+
+class PathTraversalError(SecurityError):
+    """Raised when a path traversal attempt is detected."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("path_traversal"),
+            f"Path traversal detected: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+class UnauthorizedAccessError(SecurityError):
+    """Raised when a path is outside allowed directories."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("unauthorized_access"),
+            f"Access denied: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+class SymlinkEscapeError(SecurityError):
+    """Raised when a symbolic link escapes allowed directories."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("symlink_escape"),
+            f"Symbolic link escape: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+# ─── Archive Safety Errors ──────────────────────────────────────
+
+
+class ArchiveSafetyError(SecurityError):
+    """Raised when archive extraction violates safety policy."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("archive_safety"), message or _DEFAULT_ARCHIVE_SAFETY_MESSAGE, details)
+
+
+class ArchiveBombError(SecurityError):
+    """Raised when an archive bomb pattern is detected."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("archive_bomb"), message or _DEFAULT_ARCHIVE_BOMB_MESSAGE, details)
+
+
+# ─── Code Validation Errors ─────────────────────────────────────
+
+
+class CodeValidationError(SecurityError):
+    """Raised when untrusted code fails validation."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("code_validation"), message or _DEFAULT_CODE_VALIDATION_MESSAGE, details)
+
+
+class CodeOversizedError(SecurityError):
+    """Raised when code exceeds maximum allowed size."""
 
     def __init__(
         self,
-        job_id: JobId,
-        status: JobState = JOB_STATE_PENDING,
-        progress: Progress | None = None,
-        result_url: ResultUrl | None = None,
-        error: ErrorString | None = None,
+        size: FileSize = _DEFAULT_FILE_SIZE_ZERO,
+        max_size: FileSize = _DEFAULT_FILE_SIZE_ZERO,
+        details: MetadataMap | None = None,
     ) -> None:
-        self.job_id = job_id
-        self.status: JobState = status
-        self.progress: Progress = progress if progress is not None else Progress(0.0)
-        self.result_url: ResultUrl | None = result_url
-        self.error: ErrorString | None = error
-
-    def mark_running(self) -> None:
-        """Transition to running state."""
-        self.status = JOB_STATE_RUNNING
-        self.progress = Progress(0.0)
-
-    def mark_completed(self, result_url: ResultUrl | None = None) -> None:
-        """Transition to completed state."""
-        self.status = JOB_STATE_COMPLETED
-        self.progress = Progress(100.0)
-        self.result_url = result_url
-
-    def mark_failed(self, error: ErrorString) -> None:
-        """Transition to failed state."""
-        self.status = JOB_STATE_FAILED
-        self.error = error
-
-    def mark_cancelled(self, reason: ErrorString | None = None) -> None:
-        """Transition to cancelled state."""
-        self.status = JOB_STATE_CANCELLED
-        if reason:
-            self.error = reason
-
-    def mark_timed_out(self) -> None:
-        """Transition to timed out state."""
-        self.status = JOB_STATE_TIMED_OUT
+        super().__init__(
+            ErrorCategory("code_oversized"),
+            ErrorMessage(f"Code payload too large: {size} bytes (max: {max_size})"),
+            {"size": size, "max_size": max_size, **(details or {})},
+        )
 
 
-def create_job_id(raw: str) -> JobId:
-    """Factory helper to create a JobId from a raw string."""
-    return JobId(raw)
+# ─── Redaction Errors ───────────────────────────────────────────
 
 
-def create_progress(raw: float) -> Progress:
-    """Factory helper to create a validated Progress value."""
-    if raw < 0.0 or raw > 100.0:
-        raise ValueError("progress must be between 0.0 and 100.0")
-    return Progress(raw)
+class RedactionError(SecurityError):
+    """Raised when sensitive value redaction fails."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("redaction_error"), message or _DEFAULT_REDACTION_MESSAGE, details)
+
+
+# ─── Audit Errors ───────────────────────────────────────────────
+
+
+class AuditEmissionError(SecurityError):
+    """Raised when audit event delivery fails."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("audit_emission"), message or _DEFAULT_AUDIT_EMISSION_MESSAGE, details)
+
+
+# ─── Policy Errors ──────────────────────────────────────────────
+
+
+class ValidationError(SecurityError):
+    """Raised for malformed request or invalid security policy input."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("validation_error"), message or _DEFAULT_VALIDATION_MESSAGE, details)
+```
+
+---
+
+## File: modules/shared/src/security/taxonomy_security_vo.py
+
+```python
+"""Security domain — Value Objects for path validation, archive safety, code validation, redaction, and audit.
+
+Frozen dataclasses with explicit types. All VOs are immutable.
+Input and output fields live in a single VO per concept.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from dataclasses import field as dc_field
+from enum import Enum
+from typing import Any, NewType
+
+# ============================================================
+# Access Mode
+# ============================================================
+
+
+class AccessMode(str, Enum):
+    """File access mode for path validation."""
+
+    READ = "read"
+    WRITE = "write"
+    CREATE = "create"
+    DELETE = "delete"
+    EXTRACT = "extract"
+
+
+# ============================================================
+# Path Validation (FR-SEC-001)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class PathValidationVO:
+    """Unified path validation — input and output in one VO.
+
+    Caller sets target_path, access_mode, base_directory, operation_context.
+    Callee sets allowed, canonical_path, denial_reason, audit_metadata.
+    """
+
+    # Input
+    target_path: str = ""
+    access_mode: AccessMode = AccessMode.READ
+    base_directory: str | None = None
+    operation_context: str | None = None
+    # Output
+    allowed: bool = False
+    canonical_path: str | None = None
+    denial_reason: str | None = None
+    audit_metadata: dict = dc_field(default_factory=dict)
+
+
+# ============================================================
+# Archive Extraction (FR-SEC-002)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class ArchiveEntryVO:
+    """Metadata for a single archive entry."""
+
+    entry_path: str
+    is_directory: bool = False
+    is_symbolic_link: bool = False
+    is_hard_link: bool = False
+    compressed_size: int = 0
+    uncompressed_size: int = 0
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionOptionsVO:
+    """Options controlling archive extraction safety."""
+
+    max_depth: int = 5
+    max_total_size: int = 104_857_600  # 100 MB
+    max_entry_size: int = 10_485_760  # 10 MB
+    max_entry_count: int = 1_000
+    allow_symbolic_links: bool = False
+    allow_hard_links: bool = False
+
+
+@dataclass(frozen=True)
+class RejectedEntryVO:
+    """A rejected archive entry with reason."""
+
+    entry_path: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionVO:
+    """Unified archive extraction — input and output in one VO.
+
+    Caller sets destination_directory, entries, options.
+    Callee sets allowed, safe_destination, rejected_entries, warnings, audit_metadata.
+    """
+
+    # Input
+    destination_directory: str = ""
+    entries: tuple[ArchiveEntryVO, ...] = dc_field(default_factory=tuple)
+    options: ArchiveExtractionOptionsVO = dc_field(default_factory=ArchiveExtractionOptionsVO)
+    # Output
+    allowed: bool = False
+    safe_destination: str | None = None
+    rejected_entries: tuple[RejectedEntryVO, ...] = dc_field(default_factory=tuple)
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    audit_metadata: dict = dc_field(default_factory=dict)
+
+
+# ============================================================
+# Code Validation (FR-SEC-003)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class CodeViolationVO:
+    """A single code validation violation."""
+
+    category: str
+    description: str
+    location_hint: str | None = None
+
+
+@dataclass(frozen=True)
+class CodeValidationVO:
+    """Unified code validation — input and output in one VO.
+
+    Caller sets code_text, max_code_size, strict_mode, execution_context.
+    Callee sets allowed, violations, redacted_metadata, audit_metadata.
+    """
+
+    # Input
+    code_text: str = ""
+    max_code_size: int = 1_048_576  # 1 MB
+    strict_mode: bool = True
+    execution_context: str | None = None
+    # Output
+    allowed: bool = False
+    violations: tuple[CodeViolationVO, ...] = dc_field(default_factory=tuple)
+    redacted_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict = dc_field(default_factory=dict)
+
+
+# ============================================================
+# Redaction (FR-SEC-004)
+# ============================================================
+
+
+class SensitivityLevel(str, Enum):
+    """Sensitivity level for redaction."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+@dataclass(frozen=True)
+class RedactionVO:
+    """Unified redaction — input and output in one VO.
+
+    Caller provides ``text`` (the value to redact) as input.
+    Callee returns ``text`` as the redacted (safe) output and also populates
+    ``redacted_text``, ``redacted_count``, ``failed``, ``failure_reason``.
+    The returned RedactionVO never contains the original secret (FR-SEC-004):
+    on success ``text`` is the redacted value; on failure it is masked.
+    """
+
+    # Input
+    text: str = ""
+    sensitivity_level: SensitivityLevel = SensitivityLevel.HIGH
+    patterns: tuple[str, ...] = dc_field(default_factory=tuple)
+    key_names: tuple[str, ...] = dc_field(default_factory=tuple)
+    # Output
+    redacted_text: str = ""
+    redacted_count: int = 0
+    failed: bool = False
+    failure_reason: str | None = None
+
+
+# ============================================================
+# Audit Events (FR-SEC-005)
+# ============================================================
+
+
+class AuditSeverity(str, Enum):
+    """Audit event severity level."""
+
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class ViolationCategory(str, Enum):
+    """Security violation category."""
+
+    PATH_TRAVERSAL = "path_traversal"
+    UNAUTHORIZED_ACCESS = "unauthorized_access"
+    UNSAFE_ARCHIVE_ENTRY = "unsafe_archive_entry"
+    CODE_VIOLATION = "code_violation"
+    REDACTION_FAILURE = "redaction_failure"
+    PERMISSION_DENIED = "permission_denied"
+    POLICY_OVERRIDE = "policy_override"
+
+
+@dataclass(frozen=True)
+class SecurityAuditEventVO:
+    """Unified security audit event — input context and emitted event in one VO.
+
+    Caller sets violation_category, operation_type, source_feature, severity, etc.
+    Callee sets event_id, timestamp, policy_mode.
+    """
+
+    # Input (context)
+    violation_category: ViolationCategory = ViolationCategory.PATH_TRAVERSAL
+    operation_type: str = ""
+    source_feature: str = ""
+    target_metadata: dict = dc_field(default_factory=dict)
+    severity: AuditSeverity = AuditSeverity.WARNING
+    correlation_id: str | None = None
+    redacted_reason: str | None = None
+    # Output (emitted event)
+    event_id: str = ""
+    timestamp: float = 0.0
+    policy_mode: str = "strict"
+
+
+# ============================================================
+# Security Policy Config
+# ============================================================
+
+
+@dataclass(frozen=True)
+class SecurityPolicyVO:
+    """Security policy configuration."""
+
+    allowed_directories: tuple[str, ...] = ()
+    archive_max_depth: int = 5
+    archive_max_total_size: int = 104_857_600
+    archive_max_entry_count: int = 1_000
+    archive_allow_symbolic_links: bool = False
+    code_validation_enabled: bool = True
+    blocked_code_constructs: tuple[str, ...] = dc_field(default_factory=tuple)
+    max_code_size: int = 1_048_576
+    redaction_patterns: tuple[str, ...] = dc_field(default_factory=tuple)
+    redaction_debug_mode: bool = False
+    security_policy_mode: str = "strict"
+
+
+# ============================================================
+# Error Domain Types
+# ============================================================
+
+ErrorCategory = NewType("ErrorCategory", str)
+FilePath = NewType("FilePath", str)
+FileSize = NewType("FileSize", int)
+
+# ============================================================
+# Metadata Type
+# ============================================================
+
+MetadataMap = dict[str, Any]
 ```
 
 ---
@@ -1707,363 +3326,3 @@ uv run pytest -m integration  # Integration tests
 
 ---
 
----
-name: create-capabilities-python
-description: "Create and validate Python capabilities layer files following AES rules: concrete implementation of behavior (business logic + external adaptation), 3-block structure, max 3 types per file, protocol ABC contracts, DI for service dependencies, and shared VOs for domain data."
-metadata:
-  tags:
-    [
-      python,
-      aes,
-      capability,
-      protocol,
-      structure,
-      3-block-structure,
-      di,
-      vo,
-      role-naming,
-    ]
-  triggers:
-    - "create capability python"
-    - "add capability python"
-    - "fix capability structure python"
-    - "create protocol python"
-    - "capability missing protocol python"
-    - "check capabilities python"
-    - "audit capabilities python"
-  dependencies: []
-  related:
-    - create-agent-python
-    - create-contract-python
-    - create-taxonomy-python
----
-# create-capabilities-python
-
-## Purpose
-
-Create and validate Python **capabilities layer** files following AES rules.
-
-A capabilities file contains the **concrete implementation** of the system's behavior. This layer encapsulates both:
-
-- **Business logic**: computations, validations, transformations, assessments
-- **External adaptation**: database access, third-party API calls, file system access
-
-Capabilities hide these implementations behind Contracts, keeping behavior modular, swappable, and fully isolated from orchestration.
-
-A capabilities file must:
-
-- implement at least one domain protocol ABC (via class inheritance),
-- follow strict 3-block structure,
-- use dependency injection for service collaborators,
-- use shared VOs for domain data,
-- use Utility standalone functions for low-level technical operations.
-
-## Role Naming (ARCHITECTURE §8)
-
-Capabilities use role suffixes describing their concern. Two families:
-
-**Internal (business logic):**
-
-validator, assessor, calculator, resolver, classifier, selector, mapper, transformer, policy, enricher, evaluator, analyzer, scorer, grader, ranker, filter, checker, reviewer, approver, rejector
-
-**External (adaptation):**
-
-repository, gateway, client, provider, fetcher, reader, writer, scanner, executor, publisher, subscriber, adapter, connector, uploader, downloader, sender, receiver, dispatcher, watcher, monitor
-
-File: `capabilities_<domain>_<role>.py`
-
-## Dependencies (ARCHITECTURE §8)
-
-- **May depend on:** Taxonomy, Contract, Utility.
-- **Must NOT depend on / import:** other Capabilities, Agent.
-
-Note: use the Utility layer for I/O, network, and database access.
-
-## Special Rules (ARCHITECTURE §8)
-
-- **No Inter-Capability Dependency:** a capability never imports or calls another capability. They are standalone execution units.
-- **Pipeline Aggregation:** multiple capabilities are composed into a sequential pipeline by the **Agent layer**, not by themselves.
-- **Shared Logic Extraction (DRY):** if several capabilities need the same technical mechanics, extract it into a reusable standalone function in the **Utility layer**. Capabilities must not duplicate technical code.
-- **Contract Implementation:** the capability inherits the protocol ABC defined in the Contract layer. The file MUST import from `_protocol` module only. Example: `from shared.role_rules.contract_<name>_protocol import I<Name>`
-- **State Ownership:** the capability owns business and technical state within its execution scope.
-- **Utility Delegation:** low-level technical operations call Utility standalone functions, passing state/data as arguments.
-- **No Orchestration:** no flow control across capabilities (looping/branching between capabilities) and no error-escalation policy. Execute one responsibility, return a result.
-- **No Domain Definition:** do not define domain models (Entities, Value Objects); only consume and produce Taxonomy.
-- **Constant Extraction:** extract reusable constants (magic strings, numbers, patterns) into `taxonomy_<domain>_constant.py` in shared. Capabilities must not contain magic constants.
-
-## AES403 — Capability Composition Rules
-
-See `references/capabilities-roles.md` for the full AES403 rules: Rule 1 (internal helpers allowed), Rule 2 (at least one implementor required), Rule 3 (max 3 types per file), detection patterns, and guard check.
-
-## Definition of Done
-
-1. At least one class inherits a protocol ABC in Block 2 (Rule 2).
-2. Block 2 contains ONLY domain protocol method implementations.
-3. Dunder methods, factory classmethods, private helpers in Block 3.
-4. No locally defined domain models — Entities/Value Objects are consumed from Taxonomy, not defined here.
-5. Service dependencies use DI via protocol interfaces.
-6. Value/configuration fields use shared VOs.
-7. No inter-capability dependencies (capabilities must not import other capabilities or Agent).
-8. Low-level technical operations delegate to Utility standalone functions.
-9. Reusable constants extracted to `taxonomy_<domain>_constant.py` in shared.
-10. Total class count ≤ 3 (Rule 3).
-11. File imports from `_protocol` module only.
-12. `python -c "import <module>"` passes.
-
-## References
-
-Read these files for detailed rules:
-
-
-| File                                | Content                                                      |
-| ------------------------------------- | -------------------------------------------------------------- |
-| `references/layer-boundaries.md`    | Allowed/Forbidden imports and dependencies                   |
-| `references/3-block-structure.md`   | Block 1/2/3 definitions, method placement rules              |
-| `references/helper-vs-utility.md`   | Helper vs utility decision, I/O Blocker, decision tree       |
-| `references/primitive-vo-policy.md` | Primitive policy table, VO construction rules                |
-| `references/error-handling.md`      | Error handling rules with examples                           |
-| `references/examples.md`            | All BAD/GOOD code examples                                   |
-| `references/commands.md`            | Quick heuristic check commands                               |
-| `references/checklist.md`           | Verification checklist                                       |
-| `references/capabilities-roles.md`  | AES403 capabilities roles (helpers, implementor, type count) |
-
-## Templates
-
-Use these templates when creating new files:
-
-
-| File                                  | Purpose                              |
-| --------------------------------------- | -------------------------------------- |
-| `templates/capabilities_name.py`      | New capabilities implementation file |
-| `templates/contract_name_protocol.py` | New protocol ABC definition          |
-
-## Workflow
-
-### Step 1: Analyze File Responsibility
-
-Read the file and ask: **"Does this implement protocol behavior?"**
-
-If yes → keep as capabilities. If no → check if it's orchestration (→ agent), domain data (→ taxonomy), or pure technical mechanics (→ utility).
-
-### Step 2: Check Protocol Import (AES403 Guard)
-
-The file MUST import from a `_protocol` module. If missing → flag `CapabilityNoProtocol`.
-
-```python
-from shared.role_rules.contract_<name>_protocol import I<Name>
-```
-
-### Step 3: Create Protocol File if Missing
-
-Create `contract_<name>_protocol.py` in the appropriate shared domain folder.
-
-### Step 4: Enforce 3-Block Structure
-
-Reorganize: class definition + `__init__` → protocol methods → dunders/factories/helpers.
-
-### Step 5: Verify AES403 Compliance
-
-- **Rule 1:** Internal helper classes without ABC inheritance are ALLOWED (never flagged).
-- **Rule 2:** At least one class must inherit a protocol ABC (`class Name(Protocol):`).
-- **Rule 3:** Total class count ≤ 3.
-
-### Step 6: Verify Type Discipline
-
-At least one class inherits a protocol ABC, max 3 total classes, DI via protocol interfaces, shared VOs.
-
-### Step 7: Verify Helper vs Utility Boundary
-
-See `references/helper-vs-utility.md` for the decision tree.
-
-### Step 8: Verify Layer Compliance
-
-No forbidden imports (Agent, other capabilities), no inter-capability dependencies, no business logic leakage, no domain model definition.
-
-### Step 9: Verify Error Handling, VO, and Constants
-
-See `references/error-handling.md` and `references/primitive-vo-policy.md`.
-
-### Step 10: Verify Compilation
-
-```bash
-python -c "import <module>"
-```
-
-## Quick Commands
-
-```bash
-# Check forbidden imports (no agent, no other capabilities)
-grep -n "^\s*from.*capabilities_\|from.*agent_\|from.*surface_" modules/*/src/capabilities_*.py
-
-# List protocol ABC implementations
-grep -n "class.*I[A-Za-z0-9_]*Protocol" modules/*/src/capabilities_*.py
-
-# Check _protocol import (guard)
-grep -n "from.*capabilities_\|from.*agent_\|from.*surface_" modules/*/src/capabilities_*.py
-```
-
-## Common Mistakes
-
-- Importing other capabilities or Agent directly.
-- Defining domain models (Entities, Value Objects) in capabilities files.
-- Using concrete service types as constructor fields.
-- Putting private helpers in the protocol ABC.
-- Putting constructors in the protocol ABC.
-- Placing dunder methods before the domain protocol methods.
-- Mixing Block 2 and Block 3 responsibilities.
-- Flow control across capabilities / error-escalation policy (orchestration).
-- Silent error swallowing with `or ""` or `or 0`.
-- Magic constants in capabilities logic (extract to `taxonomy_<domain>_constant.py`).
-- Not delegating low-level technical operations to Utility.
-- Importing from the wrong module instead of `_protocol`.
-- Having no class that inherits a protocol ABC (Rule 2 violation).
-- Exceeding 3 total classes in a file (Rule 3 violation).
-
----
-name: create-agent-python
-description: "Create and validate Python agent layer files following AES rules: orchestration-only, zero I/O, zero business logic, zero domain computation, 3-block structure, max 3 types per file, aggregate ABC contracts, DI for service dependencies, and shared VOs for domain data."
-metadata:
-  tags:
-    [
-      python,
-      aes,
-      agent,
-      aggregate,
-      structure,
-      3-block-structure,
-      di,
-      orchestration,
-      vo,
-    ]
-  triggers:
-    - "create agent python"
-    - "add agent python"
-    - "fix agent structure python"
-    - "create aggregate python"
-    - "agent missing aggregate python"
-    - "validate agent logic python"
-    - "check agent python"
-    - "audit agent python"
-  dependencies: []
-  related:
-    - create-capabilities-python
-    - create-taxonomy-python
-    - create-contract-python
----
-# create-agent-python
-
-## Purpose
-
-Create and validate Python **agent layer** files following AES rules.
-
-An agent file contains **orchestration / pipeline execution only**.
-
-Agents coordinate capabilities into executable flows. They control sequence and movement, not business calculation.
-
-Agents MUST NOT contain I/O, business logic, domain rules, domain computation, or domain data definitions.
-
-Agents depend ONLY on Taxonomy, Contract, and Utility layers. They must be completely ignorant of Capabilities implementations.
-
-## Definition of Done
-
-1. At least one class inherits an aggregate ABC in Block 2 (AES405 Rule 2).
-2. Block 2 contains ONLY aggregate ABC method implementations.
-3. Dunder methods, factory classmethods, private helpers in Block 3.
-4. Zero I/O, zero business logic, zero domain computation.
-5. No locally defined domain data structures.
-6. Service dependencies use DI via aggregate/protocol interfaces.
-7. Value/configuration fields use shared VOs.
-8. Aggregate signatures use shared VOs for domain data.
-9. Total class count ≤ 3 (AES405 Rule 3).
-10. `python -c "import <module>"` passes.
-
-## References
-
-
-| File                                  | Content                                                |
-| --------------------------------------- | -------------------------------------------------------- |
-| `references/layer-boundaries.md`      | Allowed/Forbidden imports and dependencies             |
-| `references/3-block-structure.md`     | Block 1/2/3 definitions, method placement rules        |
-| `references/helper-vs-utility.md`     | Helper vs utility decision, I/O Blocker, decision tree |
-| `references/computation-detection.md` | Computation detection rules                            |
-| `references/error-handling.md`        | Error handling rules                                   |
-| `references/primitive-vo-policy.md`   | Primitive policy table, VO rules                       |
-| `references/examples.md`              | All BAD/GOOD code examples                             |
-| `references/commands.md`              | Quick heuristic check commands                         |
-| `references/checklist.md`             | Verification checklist                                 |
-
-## Templates
-
-
-| File                                   | Purpose                       |
-| ---------------------------------------- | ------------------------------- |
-| `templates/agent_name.py`              | New agent implementation file |
-| `templates/contract_name_aggregate.py` | New aggregate ABC definition  |
-
-## Workflow
-
-### Step 1: Analyze File
-
-Read the file and ask: **"Is this orchestration only?"**
-
-If yes → keep as agent. If it contains computation → capabilities, domain data → taxonomy.
-
-### Step 2: Check for Missing Aggregate
-
-Does the agent class inherit an aggregate ABC? If no → create one.
-
-### Step 3: Create Aggregate File if Missing
-
-Create `contract_<name>_aggregate.py` in the appropriate shared domain folder.
-
-### Step 4: Enforce 3-Block Structure
-
-Reorganize: class definition + `__init__` → aggregate methods → dunders/factories/helpers.
-
-### Step 5: Verify Type Discipline
-
-At least one class inherits an aggregate ABC, max 3 total classes, DI via protocol interfaces, shared VOs.
-
-### Step 6: Verify Helper vs Utility Boundary
-
-See `references/helper-vs-utility.md` for the decision tree.
-
-### Step 7: Verify Layer Compliance
-
-No forbidden imports, no I/O, no business logic, no domain computation.
-
-### Step 8: Verify Error Handling, VO, and Constants
-
-See `references/error-handling.md` and `references/primitive-vo-policy.md`.
-
-### Step 9: Verify Compilation
-
-```bash
-python -c "import <module>"
-```
-
-## Quick Commands
-
-```bash
-# List aggregate ABC implementations
-grep -n "class.*I[A-Za-z0-9_]*Aggregate" modules/*/src/agent_*.py
-
-# Check computation patterns
-grep -n "sum(\|len(\|\.iter\(\)\|\.map(" modules/*/src/agent_*.py
-
-# Check forbidden imports (agent must only depend on taxonomy + contract + utility)
-grep -n "^\s*from.*capabilities_\|from.*agent_\|from.*surface_" modules/*/src/agent_*.py
-```
-
-## Common Mistakes
-
-- Putting domain computation in agents.
-- Putting business logic in agents.
-- Putting I/O in agents.
-- Defining domain data classes in agent files.
-- Using concrete service types as constructor fields.
-- Putting private helpers in the aggregate ABC.
-- Placing dunder methods before the aggregate ABC methods.
-- Mixing Block 2 and Block 3 responsibilities.
-- Silent error swallowing with `or ""` or `or 0`.
-- Magic constants in agent logic.

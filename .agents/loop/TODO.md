@@ -16,10 +16,14 @@ Next concrete actions (filled by the loop):
   * Hardened gateway reconnect logic `FR-GWY-002` (Cycle 36).
   * Fixed credential leaks in `SensitiveRedactor` and `AuditEmitter` for raw, JSON, and spaced secrets `FR-SEC-004` (Cycles 41–44).
 * [X]  **Performance Sweep** : Resolved 7 HIGH/MEDIUM bottlenecks (O(n²) bytes concatenation, ThreadPoolExecutor per-call instantiation, N+1 Blender calls, recursive dict depth limit) (Cycle 45).
+* [X]  **Stale-Barrel Import Remediation** : Fixed broken `modules/shared/src/job`/`asset` barrel exports (JobStatus→JobStatusSnapshot, removed dead create_job_id/create_progress factories, added missing AssetSearchVO) that broke 4 test collections; full barrel `__all__` sweep clean (Cycle 46).
+* [X]  **AES201 Forbidden Import Fix** : Deleted dead/orphan files (`surface_cli_command.py` with CliCommandHandler, `root_cli_entry.py`) that imported from non-existent `modules.shared.src.common.agent_di_container`. AES201 violations reduced to 0. All 451 tests pass (Cycle 49).
+* [X]  **AES202 False Positive Resolution** : ACCEPTED (Cycle 48) — barrel re-export files and GatewayOrchestrator flagged for missing taxonomy imports; adding taxonomy creates AES203 violations. Documented as intentional false positives (barrel pattern + GatewayOrchestrator design).
 
 ## Deferred & Pending Actions
 
 * [ ]  **Exception Naming (N818)** : Preserve existing `ConnectionError` naming hierarchy without adding forced `Error` suffixes.
 * [ ]  **Design Pattern Checks (B017/B024/ARG004)** : Retain blind assertions, abstract base classes without abstract methods, and unused protocol parameters as intentional architectural patterns.
 * [ ]  **Contract & Addon Linting (AES203/AES204/AES401/AES402)** : Retain primitive getters in contracts and defer out-of-scope addon linter rules.
-* [ ]  **Bulk Lint-Arwaky Remediation** : Kept deferred pending explicit user decision to prevent cascading file rename collisions with sibling agents.
+* [ ]  **AES502 Contract Orphan Remediation** : 58 contract protocols defined but never implemented (abandoned requirements from concurrent multi-agent editing). Verified zero FRD match, zero implementations, zero consumers. Exported from shared/src/__init__.py (public API) so removal = breaking change. Requires explicit user decision on bulk remediation strategy. Priority: Maintainability risk (Quality #10).
+* [ ]  **Bulk Lint-Arwaky Remediation** : Kept deferred pending explicit user decision to prevent cascading file rename collisions with sibling agents. Current violation summary: AES304 noqa bypass (439), AES502 contract orphan (58), AES202 mandatory import (9, accepted false positives), AES401 taxonomy primitive (24), AES102 naming suffix mismatch (14), W292 no newline at EOF (8). Total: 635 violations.

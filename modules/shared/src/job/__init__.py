@@ -9,7 +9,7 @@ from .taxonomy_job_state_constant import (
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
 )
-from .taxonomy_job_status_entity import JobStatus
+from .taxonomy_job_vo import JobStatusSnapshot
 
 __all__ = [
     "IJobAggregate",
@@ -19,5 +19,5 @@ __all__ = [
     "JOB_STATE_PENDING",
     "JOB_STATE_RUNNING",
     "JOB_STATE_TIMED_OUT",
-    "JobStatus",
+    "JobStatusSnapshot",
 ]
