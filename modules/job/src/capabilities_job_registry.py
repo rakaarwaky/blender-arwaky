@@ -10,6 +10,7 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
+    JobState,
     Progress,
     Timestamp,
 )
@@ -33,6 +34,7 @@ from modules.shared.src.job.taxonomy_job_state_constant import (
     JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
     TERMINAL_JOB_STATES,
@@ -40,10 +42,10 @@ from modules.shared.src.job.taxonomy_job_state_constant import (
 )
 from modules.shared.src.job.taxonomy_job_status_entity import JobRecord
 from modules.shared.src.job.taxonomy_job_vo import (
-    CancelTaskCommand,
-    CancellationResult,
-    CapacityStatus,
     CancellationReason,
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
     CleanupSummary,
     CompleteTaskCommand,
     CreateTaskCommand,
@@ -342,7 +344,7 @@ class InMemoryJobRegistry(IJobRegistry):
             purge_ids: set[str] = set()
 
             for record in terminal:
-                finished = float(record.finished_at if record.finished_at is not None else r.updated_at)
+                finished = float(record.finished_at if record.finished_at is not None else record.updated_at)
                 if float(now) - finished >= self._policy.retention_seconds:
                     purge_ids.add(str(record.job_id))
 
@@ -398,7 +400,7 @@ class InMemoryJobRegistry(IJobRegistry):
     def _counts_toward_capacity(self, state: JobState) -> bool:
         if state == JOB_STATE_RUNNING:
             return True
-        if state == JOB_STATE_RUNNING.__class__("PENDING"):  # JOB_STATE_PENDING
+        if state == JOB_STATE_PENDING:
             return self._policy.count_pending_toward_capacity
         return False
 

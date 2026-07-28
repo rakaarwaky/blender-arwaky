@@ -29,14 +29,19 @@ class Registry:
     _lock = threading.Lock()
 
     def __new__(cls, registry_path: str = REGISTRY_FILE) -> "Registry":
+        # Double-checked locking with atomic initialization
         if cls._instance is None:
             with cls._lock:
+                # Re-check after acquiring lock
                 if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._path = registry_path
-                    cls._instance._state = RegistryState()
-                    cls._instance._file_lock = threading.Lock()
-                    cls._instance._load()
+                    instance = super().__new__(cls)
+                    # Atomic initialization — all attributes set before making visible
+                    instance._path = registry_path
+                    instance._state = RegistryState()
+                    instance._file_lock = threading.Lock()
+                    instance._load()
+                    # Atomically publish the fully-initialized instance
+                    cls._instance = instance
         return cls._instance
 
     @classmethod

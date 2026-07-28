@@ -1,10 +1,13 @@
-# modules/shared/src/job/contract_job_aggregate.py
+# modules/shared/src/job/contract_job_protocol.py
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any
 
 from ..common.taxonomy_core_vo import JobId
 from .taxonomy_job_vo import (
+    CancellationReason,
     CancellationResult,
     CancelTaskCommand,
     CapacityStatus,
@@ -17,9 +20,11 @@ from .taxonomy_job_vo import (
 )
 
 
-class IJobAggregate(ABC):
+class IJobRegistry(ABC):
+    """Protocol contract for job state management capability."""
+
     @abstractmethod
-    def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
+    def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
     def start_task(self, job_id: JobId) -> JobStatusSnapshot: ...
@@ -37,10 +42,24 @@ class IJobAggregate(ABC):
     def cancel_task(self, command: CancelTaskCommand) -> CancellationResult: ...
 
     @abstractmethod
-    def get_task_status(self, job_id: JobId) -> JobStatusSnapshot: ...
+    def get_snapshot(self, job_id: JobId) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def cleanup_expired_tasks(self) -> CleanupSummary: ...
+    def cleanup_expired(self) -> CleanupSummary: ...
 
     @abstractmethod
-    def get_capacity_status(self) -> CapacityStatus: ...
+    def capacity_status(self) -> CapacityStatus: ...
+
+
+class ICancellationSignaler(ABC):
+    """Protocol contract for signaling job cancellation to the executor."""
+
+    @abstractmethod
+    def signal(self, job_id: JobId, reason: CancellationReason | None) -> bool: ...
+
+
+class IJobEventPublisher(ABC):
+    """Protocol contract for publishing job lifecycle events."""
+
+    @abstractmethod
+    def publish(self, event: str, payload: Mapping[str, Any]) -> None: ...

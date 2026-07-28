@@ -5,8 +5,8 @@ from modules.shared.src.common.taxonomy_core_vo import JobId
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
 from modules.shared.src.job.contract_job_protocol import IJobRegistry
 from modules.shared.src.job.taxonomy_job_vo import (
-    CancelTaskCommand,
     CancellationResult,
+    CancelTaskCommand,
     CapacityStatus,
     CleanupSummary,
     CompleteTaskCommand,

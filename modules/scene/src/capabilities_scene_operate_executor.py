@@ -49,6 +49,8 @@ class SceneOperateExecutor(SceneOperateProtocol):
         Args:
             code_executor: A callable or server capability that executes Python code.
         """
+        if code_executor is None:
+            raise ValueError("code_executor must be provided to SceneOperateExecutor")
         self._code_executor = code_executor
 
     async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:

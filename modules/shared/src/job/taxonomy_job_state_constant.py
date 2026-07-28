@@ -1,7 +1,8 @@
 # modules/shared/src/job/taxonomy_job_state_constant.py
 from __future__ import annotations
 
-from typing import Final, Mapping
+from collections.abc import Mapping
+from typing import Final
 
 from ..common.taxonomy_core_vo import JobState
 
