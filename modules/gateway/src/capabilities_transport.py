@@ -22,24 +22,24 @@ import uuid
 from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
-from modules.gateway.src.contract_connection_protocol import (
+from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
 )
-from modules.gateway.src.taxonomy_server_error import (
+from modules.shared.src.gateway.taxonomy_gateway_error import (
     CommandTimeoutError,
     ProviderError,
     ValidationError,
 )
-from modules.gateway.src.taxonomy_server_event import (
+from modules.shared.src.gateway.taxonomy_gateway_event import (
     CommandDispatched,
 )
-from modules.gateway.src.contract_transport_protocol import (
+from modules.shared.src.gateway.contract_transport_protocol import (
     IBlenderCommandProtocol,
 )
-from modules.gateway.src.taxonomy_server_vo import (
+from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CommandResult,
 )
-from modules.gateway.src.utility_schema import (
+from modules.shared.src.gateway.utility.utility_schema import (
     effective_command_timeout_ms,
     get_command_spec,
     validate_command_args,
@@ -86,7 +86,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         request_id: str | None = None,
     ) -> CommandResult:
         get_command_spec(action)
-        from modules.gateway.src.utility_schema import validate_command_args
+        from modules.shared.src.gateway.utility.utility_schema import validate_command_args
         try:
             validate_command_args(action, params)
         except ValidationError:

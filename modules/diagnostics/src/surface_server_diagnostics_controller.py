@@ -9,8 +9,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from modules.gateway.src.contract_gateway_aggregate import IBlenderServerAggregate
-from modules.gateway.src.taxonomy_server_vo import ServerMetrics
+from modules.shared.src.gateway.contract_gateway_aggregate import IBlenderServerAggregate
+from modules.shared.src.gateway.taxonomy_gateway_vo import ServerMetrics
 
 
 class ServerDiagnosticsController:

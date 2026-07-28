@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from modules.diagnostics.src.contract_audit_emission_protocol import IEventBus, IEventSubscriber
-from modules.gateway.src.taxonomy_server_event import ServerEvent
+from modules.shared.src.gateway.taxonomy_gateway_event import ServerEvent
 
 logger = logging.getLogger("BlenderMCPServer")
 

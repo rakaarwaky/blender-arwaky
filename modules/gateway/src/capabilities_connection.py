@@ -24,10 +24,10 @@ import time
 from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
-from modules.gateway.src.contract_connection_protocol import (
+from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
 )
-from modules.gateway.src.taxonomy_server_constant import (
+from modules.shared.src.gateway.taxonomy_gateway_constant import (
     CONNECTION_STATE_CLOSED,
     CONNECTION_STATE_CONNECTED,
     CONNECTION_STATE_DISCONNECTED,
@@ -37,7 +37,7 @@ from modules.gateway.src.taxonomy_server_constant import (
     HEARTBEAT_FAILURE_THRESHOLD,
     HEARTBEAT_INTERVAL_SECONDS,
 )
-from modules.gateway.src.taxonomy_server_error import (
+from modules.shared.src.gateway.taxonomy_gateway_error import (
     AuthenticationError,
     BlenderConnectionExhausted,
     BlenderConnectionFailure,
@@ -45,11 +45,11 @@ from modules.gateway.src.taxonomy_server_error import (
     ConnectionConfigError,
     VersionMismatchError,
 )
-from modules.gateway.src.taxonomy_server_event import (
+from modules.shared.src.gateway.taxonomy_gateway_event import (
     ConnectionEstablished,
     ConnectionLost,
 )
-from modules.gateway.src.taxonomy_server_vo import (
+from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CommandResult,
     ConnectionConfig,
     ConnectionStatus,

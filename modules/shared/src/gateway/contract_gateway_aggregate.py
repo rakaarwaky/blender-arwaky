@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_server_vo import (
+from .taxonomy_gateway_vo import (
     CommandResult,
     ConnectionConfig,
     ConnectionStatus,

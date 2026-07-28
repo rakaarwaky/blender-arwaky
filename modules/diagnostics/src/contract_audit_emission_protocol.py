@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.gateway.src.taxonomy_server_event import ServerEvent
+from modules.shared.src.gateway.taxonomy_gateway_event import ServerEvent
 
 
 class IEventPublisher(ABC):

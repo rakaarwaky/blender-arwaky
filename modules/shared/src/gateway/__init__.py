@@ -1,5 +1,3 @@
-"""Gateway domain — Taxonomy layer: VOs, Errors for connection, transport, queue, execution."""
-
 from .taxonomy_gateway_error import (
     AuthenticationError,
     ChannelConflictError,
@@ -26,6 +24,12 @@ from .taxonomy_gateway_vo import (
     TransportType,
 )
 
+from .contract_code_execution_protocol import CodeExecutionProtocol
+from .contract_connection_protocol import ConnectionProtocol
+from .contract_maintenance_protocol import ConnectionMaintenanceProtocol
+from .contract_scene_queue_protocol import SceneQueueProtocol
+from .contract_transport_protocol import TransportProtocol
+
 __all__ = [
     "GatewayError",
     "ConnectionError",
@@ -48,4 +52,9 @@ __all__ = [
     "QueueStatusVO",
     "CodeExecutionVO",
     "CodeExecutionOutcomeVO",
+    "CodeExecutionProtocol",
+    "ConnectionProtocol",
+    "ConnectionMaintenanceProtocol",
+    "SceneQueueProtocol",
+    "TransportProtocol",
 ]

@@ -21,19 +21,19 @@ from dataclasses import dataclass
 from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
-from modules.gateway.src.contract_operation_queue_protocol import (
+from modules.shared.src.gateway.contract_scene_queue_protocol import (
     IOperationQueueProtocol,
 )
-from modules.gateway.src.taxonomy_server_error import (
+from modules.shared.src.gateway.taxonomy_gateway_error import (
     OperationWaitTimeoutError,
     TooManyPendingOperationsError,
 )
-from modules.gateway.src.taxonomy_server_event import (
+from modules.shared.src.gateway.taxonomy_gateway_event import (
     ItemDequeued,
     ItemEnqueued,
     OperationRejected,
 )
-from modules.gateway.src.taxonomy_server_vo import (
+from modules.shared.src.gateway.taxonomy_gateway_vo import (
     ExecutionResult,
     QueuedOperation,
 )

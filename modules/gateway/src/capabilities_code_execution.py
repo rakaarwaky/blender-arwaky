@@ -22,30 +22,30 @@ from dataclasses import dataclass, field
 from modules.diagnostics.src.contract_audit_emission_protocol import (
     IEventPublisher,
 )
-from modules.gateway.src.contract_code_execution_protocol import (
+from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
-from modules.gateway.src.contract_connection_protocol import (
+from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
 )
-from modules.gateway.src.taxonomy_server_constant import (
+from modules.shared.src.gateway.taxonomy_gateway_constant import (
     DEFAULT_EXECUTION_TIMEOUT_MS,
     MAX_EXECUTION_OUTPUT_BYTES,
 )
-from modules.gateway.src.taxonomy_server_error import (
+from modules.shared.src.gateway.taxonomy_gateway_error import (
     ExecutionTimeoutError,
     SecurityViolationError,
     TaskNotFoundError,
     ValidationError,
 )
-from modules.gateway.src.taxonomy_server_event import (
+from modules.shared.src.gateway.taxonomy_gateway_event import (
     CodeExecuted,
     TaskCancelled,
     TaskCompleted,
     TaskCreated,
     TaskFailed,
 )
-from modules.gateway.src.taxonomy_server_vo import (
+from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeSecurityPolicy,
     ExecutionErrorDetail,
     ExecutionResult,
@@ -54,7 +54,7 @@ from modules.gateway.src.taxonomy_server_vo import (
     TaskState,
     TaskStatus,
 )
-from modules.gateway.src.utility_validator import (
+from modules.shared.src.gateway.utility.utility_validator import (
     check_payload_size,
     code_fingerprint,
     validate_code_ast,

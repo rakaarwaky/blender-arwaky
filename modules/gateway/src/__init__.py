@@ -1,5 +1,3 @@
-"""Gateway module src — Capabilities, Agent, and Root layers."""
-
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionAdapter, CodeExecutionExecutor, TaskEntry
 from .capabilities_connection import BlenderConnection, ConnectionExecutor

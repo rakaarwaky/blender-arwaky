@@ -2,6 +2,8 @@
 
 Completed work log (appended by the loop):
 
+- cycle 3: structural remediation — remove 2 unused scene capability files (duplicate + orphan), verify all module imports pass
+- cycle 2: structural remediation — remove 6 duplicate/orphan files from asset module (13 → 5 capabilities matching 5 FRs), fix root_asset_container import
 - feat: add render aggregate contracts (FR-RND-001/002/003/004), fix GetScreenshotVO missing fields, fix screenshot test
 - feat: wire FR-RND-003/FR-RND-004 capabilities into root container and orchestrator (fix orphan)
 - fix: remove unused HdriConfigVO import and CameraConfigVO variable in agent_orchestrator

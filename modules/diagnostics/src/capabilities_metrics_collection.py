@@ -11,7 +11,7 @@ import time
 
 from modules.diagnostics.src.contract_audit_emission_protocol import IEventSubscriber
 from modules.diagnostics.src.contract_metrics_collection_protocol import IMetricsProvider
-from modules.gateway.src.taxonomy_server_event import (
+from modules.shared.src.gateway.taxonomy_gateway_event import (
     CodeExecuted,
     CodeExecutionFailed,
     CommandDispatched,
@@ -30,7 +30,7 @@ from modules.gateway.src.taxonomy_server_event import (
     TaskFailed,
     TaskTimedOut,
 )
-from modules.gateway.src.taxonomy_server_vo import ServerMetrics
+from modules.shared.src.gateway.taxonomy_gateway_vo import ServerMetrics
 
 logger = logging.getLogger("BlenderMCPServer")
 
