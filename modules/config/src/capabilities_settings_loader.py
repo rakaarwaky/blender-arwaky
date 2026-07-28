@@ -213,7 +213,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 raise ConfigPathError(f"{resolved} is a directory")
             parse_warnings.append(ParseWarning(f"{resolved} is a directory; using defaults"))
         elif not p.is_file():
-            # Missing file: never fatal in any mode (Q6).
+            # Missing file: never fatal (Q6).
             parse_warnings.append(
                 ParseWarning(f"settings file not found: {resolved}; using defaults")
             )

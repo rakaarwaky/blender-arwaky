@@ -13,6 +13,8 @@ server is required.
 
 from __future__ import annotations
 
+from typing import Any
+
 from modules.mcp.src.surface_command_execute import CommandExecuteHandler
 from modules.mcp.src.surface_commands_list import CommandsListHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
@@ -31,7 +33,7 @@ class FakeMCP:
     """Minimal stand-in for a FastMCP router that captures registered tools."""
 
     def __init__(self) -> None:
-        self.tools: dict[str, object] = {}
+        self.tools: dict[str, Any] = {}
 
     def tool(self):
         def decorator(fn):

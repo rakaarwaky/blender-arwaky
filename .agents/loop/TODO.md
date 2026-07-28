@@ -49,16 +49,16 @@ shared (taxonomy + contract) — foundation for all modules
 | **config**      | 5  | 5 cap         | ✅ 0         | 11    | **8/10** | Full coverage, tests exceed FR count                         |
 | **job**         | 5  | 5 cap         | ✅ 0         | 0     | **7/10** | Full 1:1 FR→cap refactor complete,**0 tests** remaining     |
 | **telemetry**   | 4  | 4 cap         | ✅ 0         | 4     | **7/10** | Full coverage, 1 test/FR, minor shared naming inconsistency  |
-| **asset**       | 5  | 5 cap         | ✅ 0         | 6     | **7/10** | Full coverage, good tests, no pyproject                      |
+| **asset**       | 5  | 5 cap         | ✅ 0         | 6     | **7/10** | Full coverage, good tests, pyproject added                   |
 | **cli**         | 3  | 5 surface     | ✅ by design | 1     | **6/10** | Surface-layer by design, needs more test coverage            |
-| **security**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, severely undertested, no pyproject            |
-| **launcher**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, only 1 test, no pyproject                     |
-| **gateway**     | 5  | 5 cap         | ✅ 0         | 2     | **6/10** | Full coverage, minimal tests, no pyproject                   |
+| **security**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, severely undertested, pyproject added         |
+| **launcher**    | 5  | 5 cap         | ✅ 0         | 1     | **6/10** | Full coverage, only 1 test, pyproject added                  |
+| **gateway**     | 5  | 5 cap         | ✅ 0         | 2     | **6/10** | Full coverage, minimal tests, pyproject added                |
 | **object**      | 7  | 7 cap         | ✅ 0         | 1     | **6/10** | Full coverage, critically undertested                        |
-| **dispatcher**  | 6  | 6 cap         | ✅ 0         | 4     | **6/10** | Full coverage, no pyproject                                  |
+| **dispatcher**  | 6  | 6 cap         | ✅ 0         | 4     | **6/10** | Full coverage, pyproject added                               |
 | **render**      | 4  | 3 cap         | 🔴 -1        | 3     | **5/10** | FR-RND-001 (screenshot) merged into executor, not standalone |
 | **scene**       | 2  | 1 cap         | 🟡 -1        | 1     | **5/10** | 2 FRs in 1 capabilities — acceptable if FRs are simple      |
-| **mcp**         | 3  | 10 surface    | ✅ by design | 0     | **4/10** | Surfaces complete,**0 tests**                                |
+| **mcp**         | 3  | 10 surface    | ✅ by design | 0     | **4/10** | Surfaces complete, pyproject added, 0 tests                  |
 | **diagnostics** | 5  | 2 cap         | 🔴 -3        | 1     | **4/10** | FR-DIA-002,003,004,005 missing dedicated capabilities        |
 
 ---
@@ -91,15 +91,22 @@ shared (taxonomy + contract) — foundation for all modules
 | Priority | Module                           | Gap                                                        |
 | ---------- | ---------------------------------- | ------------------------------------------------------------ |
 | 🔴#1     | **job**                          | 5 capabilities done,**0 tests** — highest risk            |
-| 🔴#2     | **mcp**                          | **0 tests**, no pyproject, primary AI entry point          |
+| 🔴#2     | **mcp**                          | **0 tests**, primary AI entry point (pyproject resolved)   |
 | 🔴#3     | **diagnostics**                  | 3 capabilities missing (FR-DIA-002, 003, 004, 005)         |
 | 🟡#4     | **render**                       | FR-RND-001 not standalone — needs dedicated capability    |
 | 🟡#5     | **security / launcher / object** | Full cap coverage but critically undertested (1 test each) |
 
 ---
 
+## Cycle 58 — Pyproject.toml Completion & Deprecation Fix (COMPLETED)
+
+* [X]  Created `pyproject.toml` for 6 modules missing it: gateway, launcher, security, dispatcher, diagnostics, mcp. All 15 modules now have pyproject.toml — readiness indicator "pyproject.toml present" is now fully satisfied across all modules.
+* [X]  Fixed deprecation warnings in `modules/asset/tests/test_asset_search.py` — replaced deprecated `asyncio.get_event_loop_policy().new_event_loop().run_until_complete()` with modern `asyncio.run()`. Eliminates 2 Python 3.16 deprecation warnings. All 453 tests pass, 0 regressions, 0 warnings.
+
+---
+
 ## Cycle 57 — Gateway Socket Leak Fix (COMPLETED)
 
-* [X] Fixed socket leak in `ConnectionExecutor.establish_connection` (`modules/gateway/src/capabilities_connection.py`) — when `socket.create_connection` succeeded but handshake/auth failed, the socket was never closed, leaking file descriptors. Fixed by tracking socket in local variable and closing on all failure paths (ProtocolVersionMismatchError, AuthenticationError, generic Exception). Added `_safe_close_socket` helper method. Total violations: 606 (down by 28 from 634). All 453 tests pass, 0 regressions. Traces to **FR-GWY-001**.
+* [X]  Fixed socket leak in `ConnectionExecutor.establish_connection` (`modules/gateway/src/capabilities_connection.py`) — when `socket.create_connection` succeeded but handshake/auth failed, the socket was never closed, leaking file descriptors. Fixed by tracking socket in local variable and closing on all failure paths (ProtocolVersionMismatchError, AuthenticationError, generic Exception). Added `_safe_close_socket` helper method. Total violations: 606 (down by 28 from 634). All 453 tests pass, 0 regressions. Traces to **FR-GWY-001**.
 
 ---

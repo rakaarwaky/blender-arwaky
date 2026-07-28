@@ -77,7 +77,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
                 if candidate.is_dir():
                     return WorkspacePath(path=str(candidate), strategy="env_signal")
             except (OSError, ValueError):
-                pass
+                ...  # continue to next strategy
 
         # 3. Settings file parent (NEW)
         if self._config_path:
