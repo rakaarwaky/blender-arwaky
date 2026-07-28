@@ -15,6 +15,7 @@ from .taxonomy_job_constant import (
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
 )
+from .taxonomy_job_event import JobEvent
 
 __all__ = [
     "IJobAggregate",
@@ -29,4 +30,5 @@ __all__ = [
     "JOB_STATE_PENDING",
     "JOB_STATE_RUNNING",
     "JOB_STATE_TIMED_OUT",
+    "JobEvent",
 ]

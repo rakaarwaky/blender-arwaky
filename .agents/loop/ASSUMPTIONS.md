@@ -42,3 +42,9 @@
 | Linter Bugs (C51, 53)        | AES305 (noqa missing reason on clean files) & AES302/AES403 on capabilitiesjobmonitor.py = linter bugs. Do NOT refactor clean code to satisfy these flags. |
 | Signature Bypasses (AES304)  | type: ignore on protocol ABC signatures = intentional to accommodate type inheritance mismatches.                                                          |
 | Targeted Scan (C60)          | lint-arwaky-cli scan  = authoritative for per-file AES304 counts. Full-repo scan breakdown can be unreliable for individual file attribution.              |
+
+## Cycle 87
+
+- **DiagnosticsOrchestrator design**: DiagnosticsOrchestrator delegates to the unified `DiagnosticsCapability` class (implements all 5 FR-DIA protocols) rather than requiring separate capability instances — matches existing pattern where single capability covers multiple FRs.
+- **AES505 false positives**: All 7 AES505 violations confirmed as false positives — agents ARE correctly exported in __init__.py; linter reports at line:1:1 with empty entry_points config causing unconditional flags.
+- **AES504 shared utility**: Remaining AES504 on `shared/src/gateway/utility/utility_config_loader.py` is a false positive — pure utility function, not an agent orchestrator.

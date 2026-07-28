@@ -23,7 +23,7 @@ from modules.shared.src.common.taxonomy_core_vo import CapabilityRef, DomainRef,
 class CommandCatalogSurfaceHandler:
     """Surface handler for command catalog operations."""
 
-    _contract_ref: CommandCatalogPort
+    _contract_ref: CommandCatalogProtocol
     """Handler for command catalog queries and MCP registration."""
 
     @staticmethod

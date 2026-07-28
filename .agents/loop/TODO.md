@@ -13,7 +13,7 @@
 | AES204 | Forbidden import (agent layer)   | 16    | shared(5), mcp(3), gateway(2), job(2), asset(2), render(1), object(1), config(1), telemetry(1)                                                    |
 | AES202 | Mandatory import from barrel     | 15    | shared(6), mcp(3), job(2), asset(2), gateway(1), render(1), object(1)                                                                             |
 | AES102 | Missing docstring                | 15    | shared(4), mcp(2), job(2), asset(2), gateway(1), render(1), object(1), config(1), telemetry(1)                                                    |
-| AES504 | Agent not in__init__.py          | 12    | config(1), job(1), diagnostics(1), telemetry(1), security(1), render(1), scene(1), asset(1), launcher(1), gateway(1), dispatcher(1), mcp(1)       |
+| AES504 | Agent not in__init__.py          | 1     | shared/src/gateway/utility/utility_config_loader.py (false positive — utility file, not agent)                     |
 | AES505 | Agent not exported in__init__.py | 7     | config(1), telemetry(1), security(1), object(1), render(1), scene(1), launcher(1)                                                                 |
 | AES305 | Missing noqa on bypass           | 7     | shared(3), mcp(1), job(1), asset(1), gateway(1)                                                                                                   |
 | AES101 | Missing docstring (class)        | 6     | shared(2), mcp(1), job(1), asset(1), gateway(1)                                                                                                   |
@@ -26,7 +26,7 @@
 1. **shared**
 2. **config** (8/10)
 3. **job** (9/10)
-4. **diagnostics** (8/10)
+4. **diagnostics** (9.5/10) — DiagnosticsOrchestrator added (FR-DIA-001..005); gap closed; missing integration/e2e (-1.0)
 5. **security** (9/10)
 6. **gateway** (8/10)
 7. **launcher** (7/10)

@@ -1,3 +1,4 @@
+from . import utility
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionAdapter, CodeExecutionExecutor, TaskEntry
 from .capabilities_connection import BlenderConnection, ConnectionExecutor
@@ -5,20 +6,23 @@ from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_scene_queue import OperationQueue, OperationState, SceneQueueExecutor
 from .capabilities_transport import BlenderCommandAdapter, TransportExecutor
 from .root_gateway_container import GatewayContainer, create_gateway_feature
+from .utility.utility_config_loader import load_server_config
 
 __all__ = [
-    "GatewayOrchestrator",
-    "BlenderConnection",
-    "ConnectionExecutor",
-    "MaintenanceExecutor",
     "BlenderCommandAdapter",
-    "TransportExecutor",
+    "BlenderConnection",
+    "CodeExecutionAdapter",
+    "CodeExecutionExecutor",
+    "ConnectionExecutor",
+    "GatewayContainer",
+    "GatewayOrchestrator",
+    "MaintenanceExecutor",
     "OperationQueue",
     "OperationState",
     "SceneQueueExecutor",
-    "CodeExecutionAdapter",
-    "CodeExecutionExecutor",
     "TaskEntry",
-    "GatewayContainer",
+    "TransportExecutor",
     "create_gateway_feature",
+    "load_server_config",
+    "utility",
 ]

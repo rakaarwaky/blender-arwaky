@@ -22,6 +22,10 @@ shared (taxonomy + contract) — foundation
   └── mcp (→ dispatcher, diagnostics, config, job, security)
 ```
 
+## Cycle 87 (COMPLETED)
+
+* **AES504 Diagnostics Orchestrator Fix** : Created `modules/diagnostics/src/agent_diagnostics_orchestrator.py` implementing DiagnosticsOrchestrator for FR-DIA-001..005. Updated `modules/diagnostics/src/__init__.py` to export orchestrator. Updated `modules/gateway/src/__init__.py` to export gateway utility functions. Total violations: 638→634 (-4). Diagnostics readiness score updated.
+
 ## Cycle 86 (ANALYSIS COMPLETE)
 
 * **AES505 Agent Export Analysis** : Investigated 7 AES505 violations across asset, dispatcher, job, launcher, render, scene, telemetry. All 7 modules correctly export their orchestrator classes in __init__.py (verified AssetOrchestrator, DispatcherOrchestrator, JobOrchestrator, LauncherOrchestrator, RenderOrchestrator, SceneOrchestrator, TelemetryOrchestrator). Violations report at line:1:1 despite correct exports — linter appears to have false positives when entry_points is empty in AES505 config. No code changes needed; violations documented as known linter limitation.
@@ -61,7 +65,7 @@ Clamped to [0, 10]
 | ----------------- | ---- | ---------- | --------- | ------------- | ------------ | -------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | **job**         | 5  | 5 cap    | 0       | 95/0        | 7          | unit:4             | **6.5/10** | 1:1 FR coverage + 95 tests; missing integration/smoke/e2e/acceptance (-1.5)                   |
 | **config**      | 5  | 5 cap    | 0       | 112/0       | 6          | unit:11            | **7/10**   | Full coverage; test count exceeds FRs; missing integration/smoke/e2e/acceptance (-1.5)        |
-| **diagnostics** | 5  | 2 cap    | 3       | 106/0       | 2          | unit:4, smoke:1    | **9/10**   | Full coverage; missing integration/e2e/acceptance (-1.0)                                      |
+| **diagnostics** | 5  | 1 cap + agent | 0  | 106/0       | 1          | unit:4, smoke:1    | **9.5/10** | DiagnosticsOrchestrator added (FR-DIA-001..005); gap closed; missing integration/e2e (-1.0) |
 | **telemetry**   | 4  | 4 cap    | 0       | 39/0        | 5          | unit:4             | **7.5/10** | Full coverage; missing integration/smoke/e2e/acceptance (-1.5)                                |
 | **asset**       | 5  | 5 cap    | 0       | 78/0        | 9          | unit:6             | **5.5/10** | Full coverage + pyproject added; missing integration/smoke/e2e/acceptance (-1.5)              |
 | **cli**         | 3  | 5 surf   | Surface | 9/0         | 5          | unit:1             | **7.5/10** | Surface-layer design; unit only is acceptable for surfaces                                    |

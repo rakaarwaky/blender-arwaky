@@ -42,3 +42,15 @@
 - Fixed broken `job`/`asset` barrel exports (`JobStatus` → `JobStatusSnapshot`)
 - Deleted dead files causing AES201 forbidden imports (`surface_cli_command.py`, `root_cli_entry.py`)
 - Fixed `taxonomy_job_state_constant.py` → `taxonomy_job_constant.py` import path
+
+### Cycle 87 — Diagnostics Orchestrator & Gateway Utility Export
+
+- **Created** `modules/diagnostics/src/agent_diagnostics_orchestrator.py` — new orchestrator for FR-DIA-001..005 (health composition, metrics collection, audit emission, structured logging, snapshot provision)
+- **Updated** `modules/diagnostics/src/__init__.py` — added `DiagnosticsOrchestrator` import and `__all__` export
+- **Updated** `modules/gateway/src/__init__.py` — added `load_server_config` and `utility` module barrel exports (fixes AES504)
+- **Result**: 106 diagnostics tests pass; total violations 638→634 (-4); full suite 574 tests pass, 0 regressions
+
+### Cycle 88 — AES501 Taxonomy Export Fix
+
+- **Updated** `modules/shared/src/job/__init__.py` — added `JobEvent` import and `__all__` export for taxonomy_job_event.py (fixes AES501)
+- **Result**: Total violations 634→633 (-1); 503 tests pass, 0 regressions

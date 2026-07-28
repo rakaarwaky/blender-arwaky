@@ -59,7 +59,7 @@ from .asset.taxonomy_asset_vo import (
 )
 
 # Protocols (inbound behavior interfaces — Capabilities implement these)
-from .common.contract_command_catalog_protocol import CommandCatalogPort
+from .common.contract_command_catalog_protocol import CommandCatalogProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.taxonomy_app_config_vo import ApplicationConfig
@@ -566,7 +566,7 @@ __all__ = [
     "IAssetAggregate",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
-    "CommandCatalogPort",
+    "CommandCatalogProtocol",
     "SceneInspectionPort",
     "TelemetryClassificationPort",
     "TelemetryEnrichmentPort",

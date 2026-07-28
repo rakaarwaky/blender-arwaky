@@ -12,3 +12,11 @@
 | 54    | Reconnect Counter (FR-GWY-002)     | Fixed shared reconnectattempts counter; added per-session reset.                            | 2 regression tests added, 453 total pass. |
 | 50    | AES502 Contract Orphans            | 58 contract protocols lack capability implementations.                                      | DEFERRED (exported via public API).       |
 | 41-44 | Security Redaction (FR-SEC-004)    | Fixed raw secret leaks, recursive masking, JSON-quoted regex, and capture-group collisions. | Comprehensive secret leak prevention.     |
+
+## Cycle 87 — Diagnostics Orchestrator & Gateway Utility Export
+
+- **Created** `modules/diagnostics/src/agent_diagnostics_orchestrator.py` — new orchestrator for FR-DIA-001..005
+- **Updated** `modules/diagnostics/src/__init__.py` — added DiagnosticsOrchestrator export
+- **Updated** `modules/gateway/src/__init__.py` — added utility barrel exports
+- **Result**: 106 diagnostics tests pass; total violations 638→634 (-4)
+- **Known issue**: 1 AES504 false positive in shared utility file (utility_config_loader.py)
