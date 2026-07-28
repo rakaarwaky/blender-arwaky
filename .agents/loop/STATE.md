@@ -4,7 +4,7 @@
 
 - **State:** running
 - **Started:** 2026-07-29
-- **Interval:** every 30 minutes
+- **Interval:** every 15 minutes
 
 ## How to Stop
 
