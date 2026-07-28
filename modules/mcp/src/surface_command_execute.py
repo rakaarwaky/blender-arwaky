@@ -3,13 +3,16 @@ MCP Tool 1: execute_command — Thin wrapper delegating execution directly to th
 
 FR-MCP-001: Expose MCP Tools — register_execute_command registers tool with MCP
 FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.execute_action routes to dispatcher
-FR-MCP-003: Format MCP Responses — Prompt type wraps JSON response
+FR-MCP-003: Format MCP Responses — unified result envelope returned from the orchestrator
 
 Direct delegation to the Agent container via its aggregate contract (AES compliant).
+execute_action is a synchronous facade (FR-DSP-004); the tool wrapper is async for
+MCP protocol compatibility but must NOT await the sync facade call.
 """
 
 import json
 import logging
+from typing import Any
 
 from modules.mcp.src.container import get_container
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
@@ -28,7 +31,7 @@ class CommandExecuteHandler:
         async def execute_command(
             action: ActionName,
             args: Details | None = None,
-        ) -> Prompt:
+        ) -> Any:
             """
             Execute ANY BlenderArwaky action via Agent aggregate contract.
 
@@ -37,14 +40,15 @@ class CommandExecuteHandler:
                 args: Dictionary of arguments for the action
 
             Returns:
-                JSON string result from execution
+                Unified result envelope from execution
             """
-
             if args is None:
                 args = {}
             try:
                 orchestrator = get_container().core_agent_orchestrator
-                result = await orchestrator.execute_action(action, args)
+                # FR-MCP-002: route to the dispatcher aggregate facade.
+                # execute_action is synchronous (FR-DSP-004) — do NOT await it.
+                result = orchestrator.execute_action(action, args)
                 return result
             except Exception as e:
                 logger.error(f"Agent execution failed for '{action}': {e}", exc_info=True)
