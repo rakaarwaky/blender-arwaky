@@ -97,3 +97,9 @@ shared (taxonomy + contract) — foundation for all modules
 | 🟡#5     | **security / launcher / object** | Full cap coverage but critically undertested (1 test each) |
 
 ---
+
+## Cycle 57 — Gateway Socket Leak Fix (COMPLETED)
+
+* [X] Fixed socket leak in `ConnectionExecutor.establish_connection` (`modules/gateway/src/capabilities_connection.py`) — when `socket.create_connection` succeeded but handshake/auth failed, the socket was never closed, leaking file descriptors. Fixed by tracking socket in local variable and closing on all failure paths (ProtocolVersionMismatchError, AuthenticationError, generic Exception). Added `_safe_close_socket` helper method. Total violations: 606 (down by 28 from 634). All 453 tests pass, 0 regressions. Traces to **FR-GWY-001**.
+
+---
