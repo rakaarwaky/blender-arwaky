@@ -6,6 +6,9 @@ status check, and state persistence via individual protocol delegation.
 
 import logging
 
+from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
+    LauncherOperateAggregate,
+)
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import (
     LocateRegisterProtocol,
@@ -80,9 +83,12 @@ class LauncherOrchestrator:
         if persisted is not None and persisted.process_id is not None:
             logger.info("Blender already running (restored pid=%d)", persisted.process_id)
             return LaunchOutcomeVO(
-                success=True, process_id=persisted.process_id, ready=True,
+                success=True,
+                process_id=persisted.process_id,
+                ready=True,
                 bridge_endpoint=persisted.bridge_endpoint,
-                duration_ms=0.0, launch_method="existing",
+                duration_ms=0.0,
+                launch_method="existing",
             )
 
         logger.info("Launching Blender (mode=%s)", mode)
@@ -90,10 +96,12 @@ class LauncherOrchestrator:
 
         # Update runtime state after launch
         if result.success:
-            self._persist_state.persist(RuntimeStateVO(
-                process_id=result.process_id,
-                bridge_endpoint=result.bridge_endpoint,
-            ))
+            self._persist_state.persist(
+                RuntimeStateVO(
+                    process_id=result.process_id,
+                    bridge_endpoint=result.bridge_endpoint,
+                )
+            )
 
         return result
 

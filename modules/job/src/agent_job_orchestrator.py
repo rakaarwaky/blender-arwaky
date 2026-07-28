@@ -6,14 +6,14 @@ Wires capabilities together per FR-JOB requirements.
 
 import logging
 
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
-
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
     Progress,
     ResultUrl,
 )
+from modules.shared.src.job.contract_job_aggregate import JobTrackerProtocol
+from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -30,6 +30,7 @@ class JobOrchestrator:
     def track_new_task(self, operation_type: str, metadata: dict | None = None) -> tuple[JobId, JobStatus]:
         """Register a new background task. Returns unique tracking ID."""
         import uuid
+
         job_id = JobId(str(uuid.uuid4()))
 
         running = sum(1 for j in self._jobs.values() if j.status.value in ("RUNNING", "PENDING"))
@@ -86,6 +87,7 @@ class JobOrchestrator:
     def get_task_status(self, job_id: JobId) -> JobStatus | None:
         """Retrieve current state snapshot of a task (read-only)."""
         import copy
+
         status = self._jobs.get(str(job_id))
         if status is None:
             return None

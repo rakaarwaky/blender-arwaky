@@ -6,6 +6,12 @@ Coordinates MCP server lifecycle, tool registration, and AI agent communication.
 import logging
 from typing import Any
 
+from modules.shared.src.mcp.contract_mcp_aggregate import (
+    ServerDiscoveryProtocol,
+    ServerExecuteProtocol,
+    ServerHealthProtocol,
+)
+
 logger = logging.getLogger("BlenderMCPServer")
 
 

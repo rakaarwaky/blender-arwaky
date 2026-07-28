@@ -1,18 +1,24 @@
-"""Aggregate contract for the mcp feature.
+"""MCP domain contract: mcp aggregate (ABC).
 
-Aggregates all protocol contracts into a single unified interface.
+Agent implements this aggregate. Surface layers depend on it.
+Facade for MCP server lifecycle: start, register, shutdown.
 """
 
-from .contract_mcp_tool_exposure_protocol import McpToolExposureProtocol
-from .contract_discovery_protocol import ServerDiscoveryProtocol
-from .contract_execute_protocol import ServerExecuteProtocol
-from .contract_health_protocol import ServerHealthProtocol
-from .contract_response_protocol import ServerResponseProtocol
+from __future__ import annotations
 
-__all__ = [
-    "McpToolExposureProtocol",
-    "ServerDiscoveryProtocol",
-    "ServerExecuteProtocol",
-    "ServerHealthProtocol",
-    "ServerResponseProtocol",
-]
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class IMcpAggregate(ABC):
+    @abstractmethod
+    def start(self) -> None:
+        ...
+
+    @abstractmethod
+    def register_tools(self, mcp: Any) -> None:
+        ...
+
+    @abstractmethod
+    def shutdown(self) -> None:
+        ...

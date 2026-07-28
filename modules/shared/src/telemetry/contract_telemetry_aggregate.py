@@ -1,24 +1,41 @@
-"""Aggregate contract for the telemetry feature.
+"""Telemetry domain contract: telemetry aggregate (ABC).
 
-Aggregates all protocol contracts into a single unified interface.
+Agent implements this aggregate. Surface layers depend on it.
+Facade for telemetry operations: record, classify, enrich, session.
 """
 
-from .contract_telemetry_classification import TelemetryClassificationPort
-from .contract_telemetry_classification_protocol import TelemetryClassificationProtocol
-from .contract_telemetry_enrichment import TelemetryEnrichmentPort
-from .contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
-from .contract_telemetry_recording import TelemetryRecordingPort
-from .contract_telemetry_recording_protocol import TelemetryRecordingProtocol
-from .contract_telemetry_session_management import TelemetrySessionManagementPort
-from .contract_telemetry_session_protocol import TelemetrySessionProtocol
+from __future__ import annotations
 
-__all__ = [
-    "TelemetryClassificationPort",
-    "TelemetryClassificationProtocol",
-    "TelemetryEnrichmentPort",
-    "TelemetryEnrichmentProtocol",
-    "TelemetryRecordingPort",
-    "TelemetryRecordingProtocol",
-    "TelemetrySessionManagementPort",
-    "TelemetrySessionProtocol",
-]
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class ITelemetryAggregate(ABC):
+    @abstractmethod
+    def record_startup_event(self) -> None:
+        ...
+
+    @abstractmethod
+    def record_action_execution(
+        self,
+        action_name: str,
+        success: bool,
+        duration_ms: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def record_system_error(self, error_category: str, context: str) -> None:
+        ...
+
+    @abstractmethod
+    def get_session_id(self) -> str:
+        ...
+
+    @abstractmethod
+    def initialize_session(self) -> None:
+        ...
+
+    @abstractmethod
+    def get_environment_metadata(self) -> dict[str, Any]:
+        ...

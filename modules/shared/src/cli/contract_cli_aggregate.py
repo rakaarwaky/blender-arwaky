@@ -1,16 +1,28 @@
-"""Aggregate contract for the cli feature.
+"""CLI domain contract: cli aggregate (ABC).
 
-Aggregates all protocol contracts into a single unified interface.
+Agent implements this aggregate. Surface layers depend on it.
+Facade for CLI lifecycle operations: init, run, close, status.
 """
 
-from .contract_cli_command_protocol import CliCommandProtocol
-from .contract_cli_error_protocol import CliErrorProtocol
-from .contract_cli_lifecycle_protocol import CliLifecycleProtocol
-from .contract_cli_render_protocol import CliRenderProtocol
+from __future__ import annotations
 
-__all__ = [
-    "CliCommandProtocol",
-    "CliErrorProtocol",
-    "CliLifecycleProtocol",
-    "CliRenderProtocol",
-]
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class ICliAggregate(ABC):
+    @abstractmethod
+    async def init(self, config_path: str | None = None) -> dict[str, Any]:
+        ...
+
+    @abstractmethod
+    async def run(self, extra_args: list[str] | None = None) -> dict[str, Any]:
+        ...
+
+    @abstractmethod
+    async def close(self) -> dict[str, Any]:
+        ...
+
+    @abstractmethod
+    async def status(self) -> dict[str, Any]:
+        ...

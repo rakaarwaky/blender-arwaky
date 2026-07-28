@@ -1,14 +1,21 @@
-"""Aggregate contract for the scene feature.
+"""Scene domain contract: scene aggregate (ABC).
 
-Aggregates all protocol contracts into a single unified interface.
+Agent implements this aggregate. Surface layers depend on it.
+Facade for scene operations: inspect, cleanup.
 """
 
-from .contract_scene_cleanup_protocol import SceneCleanupProtocol
-from .contract_scene_inspection import SceneInspectionPort
-from .contract_scene_operate_protocol import SceneOperateProtocol
+from __future__ import annotations
 
-__all__ = [
-    "SceneCleanupProtocol",
-    "SceneInspectionPort",
-    "SceneOperateProtocol",
-]
+from abc import ABC, abstractmethod
+
+from .taxonomy_scene_command_vo import SceneCleanupVO, SceneInspectionVO
+
+
+class ISceneAggregate(ABC):
+    @abstractmethod
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
+        ...
+
+    @abstractmethod
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
+        ...
