@@ -95,3 +95,5 @@ shared (taxonomy + contract) — foundation for all modules
 | 🔴#3     | **diagnostics**                  | 3 capabilities missing (FR-DIA-002, 003, 004, 005)         |
 | 🟡#4     | **render**                       | FR-RND-001 not standalone — needs dedicated capability    |
 | 🟡#5     | **security / launcher / object** | Full cap coverage but critically undertested (1 test each) |
+
+---
