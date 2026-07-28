@@ -53,6 +53,8 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
 
     # ─── Block 1: definition + constructor ─────────────────────
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+        if code_executor is None:
+            raise ValueError("code_executor must be provided")
         self._code_executor = code_executor
 
     # ─── Block 2: protocol methods only ───────────────────────
@@ -202,7 +204,8 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
         )
 
     async def _execute_code(self, code: PythonCode) -> Prompt:
-        return await self._code_executor.execute_python(code)
+        result = await self._code_executor.execute_blender_code(code)
+        return Prompt(result.output if hasattr(result, 'output') else str(result))
 
     def _failure(self, request: SceneCleanupVO, message: Prompt) -> SceneCleanupVO:
         return SceneCleanupVO(

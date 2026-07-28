@@ -89,10 +89,8 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
     # ─── Block 3: dunders / factories / helpers ───────────────
     async def _execute_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
-        if self._code_executor is None:
-            raise ValueError("code_executor must be provided")
-
-        return await self._code_executor.execute_code(code, timeout=30.0)
+        result = await self._code_executor.execute_blender_code(code)
+        return result.output if hasattr(result, 'output') else str(result)
 
     def __repr__(self) -> str:
         return "SceneInspectionExecutor()"
