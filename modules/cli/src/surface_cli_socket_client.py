@@ -24,10 +24,20 @@ class BlenderSocketClient:
         self._sock: socket.socket | None = None
 
     def connect(self) -> None:
-        """Connect to Blender addon."""
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.settimeout(self.timeout)
-        self._sock.connect((self.host, self.port))
+        """Connect to Blender addon.
+
+        Raises ConnectionError on network failures, timeout, or refused connections.
+        """
+        try:
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.settimeout(self.timeout)
+            self._sock.connect((self.host, self.port))
+        except TimeoutError as err:
+            raise ConnectionError(f"Connection to {self.host}:{self.port} timed out ({self.timeout}s)") from err
+        except ConnectionRefusedError as e:
+            raise ConnectionError(f"Connection refused at {self.host}:{self.port}") from e
+        except OSError as e:
+            raise ConnectionError(f"Network error connecting to {self.host}:{self.port}: {e}") from e
 
     def disconnect(self) -> None:
         """Disconnect from Blender addon."""
@@ -52,9 +62,12 @@ class BlenderSocketClient:
         command = {"type": action, "params": params or {}}
 
         # Send with length prefix
-        data = json.dumps(command).encode("utf-8")
-        header = struct.pack("!I", len(data))
-        self._sock.sendall(header + data)
+        try:
+            data = json.dumps(command).encode("utf-8")
+            header = struct.pack("!I", len(data))
+            self._sock.sendall(header + data)
+        except OSError as e:
+            raise ConnectionError(f"Failed to send command: {e}") from e
 
         # Receive response
         return self._receive_response()
@@ -76,15 +89,21 @@ class BlenderSocketClient:
         return json.loads(body.decode("utf-8"))
 
     def _recv_exact(self, n: int) -> bytes:
-        """Receive exactly n bytes."""
+        """Receive exactly n bytes.
+
+        Raises ConnectionError on socket errors or premature connection closure.
+        """
         if not self._sock:
             raise ConnectionError("Not connected to Blender")
 
         data = b""
         while len(data) < n:
-            chunk = self._sock.recv(n - len(data))
+            try:
+                chunk = self._sock.recv(n - len(data))
+            except OSError as e:
+                raise ConnectionError(f"Receive error after {len(data)}/{n} bytes: {e}") from e
             if not chunk:
-                raise ConnectionError("Connection closed")
+                raise ConnectionError("Connection closed prematurely")
             data += chunk
         return data
 

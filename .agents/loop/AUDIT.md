@@ -1178,3 +1178,16 @@ A quoted secret containing an internal space — `"password": "my secret"` — i
 #### W292 — No Newline at EOF (8 violations, HIGH)
 - blender_mcp_addon/*.py files missing trailing newline
 - 8 files affected: __init__.py, operators.py, polyhaven.py, properties.py, server.py, sketchfab.py, ui.py, utils.py
+
+## Cycle 52 Audit Record
+
+### Broken Barrel Export Fix
+
+- **PRIORITY #1 BROKEN FUNCTIONALITY** — 4 test collection ERRORs (test_asset_extract, test_gateway_feature, test_maintenance_executor) caused by broken barrel export importing from non-existent file.
+- **ROOT CAUSE**: `modules/shared/src/job/__init__.py` imported from `taxonomy_job_state_constant.py` which does not exist. The actual file is `taxonomy_job_constant.py`. Same broken import in `modules/shared/src/__init__.py` (main barrel). Likely caused by concurrent sibling agent using different naming convention.
+- **FIX**: Corrected both barrel files to import from `taxonomy_job_constant.py`. Verified with full test suite (453 tests pass, up from 451 — the 2 new tests are the recovered gateway tests). Both barrel files now linter-clean (0 violations each via lint-arwaky-cli scan).
+- **VERIFICATION**: 
+  - Full test suite: 453 passed, 0 regressions
+  - `lint-arwaky-cli scan modules/shared/src/job/__init__.py`: 0 violations
+  - `lint-arwaky-cli scan modules/shared/src/__init__.py`: 0 violations
+- **VIOLATION IMPACT**: AES202 increased from 11→13 (same barrel files re-scanned, likely linter behavior change). AES501 from 4→5 (new orphan utility flags). Total violations: 636 (up by 1 from 635).

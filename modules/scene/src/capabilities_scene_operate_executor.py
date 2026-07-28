@@ -262,7 +262,29 @@ class SceneOperateExecutor(SceneOperateProtocol):
         return code
 
     def _parse_scene_info(self, result: str) -> SceneStateSummaryVO:
-        """Parse inspection result into SceneStateSummaryVO."""
+        """Parse inspection result into SceneStateSummaryVO.
+
+        Guards against None or non-string result types before JSON parsing.
+        """
+        # Type guard — Blender code execution may return unexpected types
+        if result is None:
+            logger.warning("Scene info result is None; returning empty state")
+            return SceneStateSummaryVO(
+                scene_name="",
+                total_object_count=ObjectCount(0),
+                visible_object_count=ObjectCount(0),
+                hidden_object_count=ObjectCount(0),
+            )
+
+        if not isinstance(result, str):
+            logger.warning("Scene info result is non-string type %s; returning empty state", type(result).__name__)
+            return SceneStateSummaryVO(
+                scene_name="",
+                total_object_count=ObjectCount(0),
+                visible_object_count=ObjectCount(0),
+                hidden_object_count=ObjectCount(0),
+            )
+
         try:
             import json
 

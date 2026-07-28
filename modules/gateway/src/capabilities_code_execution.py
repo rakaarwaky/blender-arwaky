@@ -351,17 +351,28 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
     def __init__(
         self,
-        security_policy: ValidateCodeProtocol,
-        transport: TransportProtocol,
+        security_policy: ValidateCodeProtocol | None = None,
+        transport: TransportProtocol | None = None,
         max_output_bytes: int = 1_048_576,
         execution_timeout_seconds: float = 30.0,
     ) -> None:
-        self._security_policy: ValidateCodeProtocol = security_policy
-        self._transport: TransportProtocol = transport
+        self._security_policy: ValidateCodeProtocol | None = security_policy
+        self._transport: TransportProtocol | None = transport
         self._max_output_bytes: int = max_output_bytes
         self._execution_timeout_seconds: float = execution_timeout_seconds
 
     def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
+        # Guard required dependencies
+        if self._security_policy is None:
+            return CodeExecutionOutcomeVO(
+                status="error",
+                error_message="Security policy not configured",
+            )
+        if self._transport is None:
+            return CodeExecutionOutcomeVO(
+                status="error",
+                error_message="Transport not configured",
+            )
         self._validate_code(request)
         start_time = time.time()
         timeout = request.timeout_override_seconds or self._execution_timeout_seconds

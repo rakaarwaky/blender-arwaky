@@ -1,27 +1,29 @@
 # modules/shared/src/job/contract_job_protocol.py
+"""Job domain protocols — 5 protocols, one per FR."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-from typing import Any
 
-from ..common.taxonomy_core_vo import JobId
+from ..common.taxonomy_core_vo import JobId, JobState, Timestamp
 from .taxonomy_job_vo import (
+    CancelTaskCommand,
     CancellationReason,
     CancellationResult,
-    CancelTaskCommand,
-    CapacityStatus,
-    CleanupSummary,
+    CapacityDecision,
+    CleanupDecision,
     CompleteTaskCommand,
     CreateTaskCommand,
     FailTaskCommand,
+    JobPolicy,
     JobStatusSnapshot,
     ProgressUpdateCommand,
 )
 
 
-class IJobRegistry(ABC):
-    """Protocol contract for job state management capability."""
+# ─── FR-JOB-001 ──────────────────────────────────────────────────────────────
+
+class IJobLifecycle(ABC):
+    """Track and update task lifecycle."""
 
     @abstractmethod
     def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot: ...
@@ -39,27 +41,64 @@ class IJobRegistry(ABC):
     def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult: ...
+    def apply_cancel(self, job_id: JobId, reason: CancellationReason | None) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def get_snapshot(self, job_id: JobId) -> JobStatusSnapshot: ...
+    def apply_timeout(self, job_id: JobId) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def cleanup_expired(self) -> CleanupSummary: ...
+    def get_record(self, job_id: JobId) -> JobStatusSnapshot: ...
 
     @abstractmethod
-    def capacity_status(self) -> CapacityStatus: ...
-
-
-class ICancellationSignaler(ABC):
-    """Protocol contract for signaling job cancellation to the executor."""
+    def list_terminal(self) -> tuple[JobStatusSnapshot, ...]: ...
 
     @abstractmethod
-    def signal(self, job_id: JobId, reason: CancellationReason | None) -> bool: ...
-
-
-class IJobEventPublisher(ABC):
-    """Protocol contract for publishing job lifecycle events."""
+    def list_running(self) -> tuple[JobStatusSnapshot, ...]: ...
 
     @abstractmethod
-    def publish(self, event: str, payload: Mapping[str, Any]) -> None: ...
+    def delete_records(self, job_ids: tuple[JobId, ...]) -> int: ...
+
+    @abstractmethod
+    def active_count(self) -> int: ...
+
+
+# ─── FR-JOB-002 ──────────────────────────────────────────────────────────────
+
+class IJobMonitor(ABC):
+    """Monitor task status — project safe read models."""
+
+    @abstractmethod
+    def project(self, snapshot: JobStatusSnapshot) -> JobStatusSnapshot: ...
+
+
+# ─── FR-JOB-003 ──────────────────────────────────────────────────────────────
+
+class IJobCancellation(ABC):
+    """Cancel a task — evaluate cancellation eligibility."""
+
+    @abstractmethod
+    def evaluate(self, command: CancelTaskCommand, current_state: JobState) -> CancellationResult: ...
+
+
+# ─── FR-JOB-004 ──────────────────────────────────────────────────────────────
+
+class IJobCleanup(ABC):
+    """Automatic task record cleanup — resolve purge decisions."""
+
+    @abstractmethod
+    def resolve(
+        self,
+        terminal: tuple[JobStatusSnapshot, ...],
+        running: tuple[JobStatusSnapshot, ...],
+        now: Timestamp,
+        policy: JobPolicy,
+    ) -> CleanupDecision: ...
+
+
+# ─── FR-JOB-005 ──────────────────────────────────────────────────────────────
+
+class IJobCapacity(ABC):
+    """Enforce background capacity — evaluate submission eligibility."""
+
+    @abstractmethod
+    def evaluate(self, active_count: int, policy: JobPolicy) -> CapacityDecision: ...

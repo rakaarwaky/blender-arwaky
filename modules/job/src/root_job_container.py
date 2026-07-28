@@ -1,4 +1,8 @@
 # modules/job/src/root_job_container.py
+"""Root: Job feature composition container.
+
+Wires 5 capabilities to 5 protocols, assembles the agent.
+"""
 from __future__ import annotations
 
 import logging
@@ -6,33 +10,28 @@ import time
 from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import Timestamp
-from modules.shared.src.job.contract_job_protocol import (
-    ICancellationSignaler,
-    IJobEventPublisher,
-)
 from modules.shared.src.job.taxonomy_job_vo import JobPolicy
 
 from .agent_job_orchestrator import JobOrchestrator
-from .capabilities_job_registry import InMemoryJobRegistry
+from .capabilities_job_checker import JobCapacityChecker
+from .capabilities_job_evaluator import JobCancellationEvaluator
+from .capabilities_job_monitor import JobStatusMonitor
+from .capabilities_job_repository import InMemoryJobLifecycleRepository
+from .capabilities_job_resolver import JobCleanupResolver
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class JobContainer:
-    """Dependency injection container for the job feature module."""
+    """Composition root for the job feature module."""
 
     def __init__(
         self,
         policy: JobPolicy | None = None,
-        cancellation_signaler: ICancellationSignaler | None = None,
-        event_publisher: IJobEventPublisher | None = None,
         clock: Callable[[], Timestamp] | None = None,
     ) -> None:
         self._policy = policy or JobPolicy()
-        self._cancellation_signaler = cancellation_signaler
-        self._event_publisher = event_publisher
         self._clock = clock
-
         self._orchestrator: JobOrchestrator | None = None
         self._wired: bool = False
 
@@ -44,17 +43,22 @@ class JobContainer:
 
         clock = self._clock or (lambda: Timestamp(time.time()))
 
-        registry = InMemoryJobRegistry(
+        lifecycle = InMemoryJobLifecycleRepository(policy=self._policy, clock=clock)
+        monitor = JobStatusMonitor()
+        cancellation = JobCancellationEvaluator()
+        cleanup = JobCleanupResolver()
+        capacity = JobCapacityChecker()
+
+        self._orchestrator = JobOrchestrator(
+            lifecycle=lifecycle,
+            monitor=monitor,
+            cancellation=cancellation,
+            cleanup=cleanup,
+            capacity=capacity,
             policy=self._policy,
-            clock=clock,
-            cancellation_signaler=self._cancellation_signaler,
-            event_publisher=self._event_publisher,
         )
-
-        self._orchestrator = JobOrchestrator(registry)
         self._wired = True
-
-        logger.info("Job feature module wired successfully")
+        logger.info("Job feature module wired: 5 capabilities composed")
 
     @property
     def agent(self) -> JobOrchestrator:
@@ -65,15 +69,8 @@ class JobContainer:
 
 def create_job_feature(
     policy: JobPolicy | None = None,
-    cancellation_signaler: ICancellationSignaler | None = None,
-    event_publisher: IJobEventPublisher | None = None,
     clock: Callable[[], Timestamp] | None = None,
 ) -> JobOrchestrator:
-    container = JobContainer(
-        policy=policy,
-        cancellation_signaler=cancellation_signaler,
-        event_publisher=event_publisher,
-        clock=clock,
-    )
+    container = JobContainer(policy=policy, clock=clock)
     container.wire()
     return container.agent

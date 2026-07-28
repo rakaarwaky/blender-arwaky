@@ -185,9 +185,16 @@ class BlenderConnection(IBlenderConnectionProtocol):
             logger.info("Disconnected from Blender (state=%s)", CONNECTION_STATE_CLOSED)
 
     async def is_connected(self) -> bool:
-        if self._writer is None or self._writer.closed:
-            raise ConnectionClosedError(details={"reason": "writer_closed"})
-        return True
+        """Check connection status.
+
+        Returns False instead of raising when writer is unavailable,
+        allowing callers to handle gracefully without ConnectionClosedError.
+        """
+        try:
+            return not (self._writer is None or self._writer.closed)
+        except Exception as e:
+            logger.debug("is_connected check failed: %s", e)
+            return False
 
     async def send_command(
         self,
@@ -208,8 +215,11 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 payload["params"] = params
             json_bytes = json.dumps(payload).encode("utf-8")
             header = struct.pack("!I", len(json_bytes))
-            self._writer.write(header + json_bytes)
-            await self._writer.drain()
+            try:
+                self._writer.write(header + json_bytes)
+                await self._writer.drain()
+            except (BrokenPipeError, OSError) as e:
+                raise ConnectionClosedError(details={"reason": "drain_failed", "error": str(e)}) from e
             response = await self._receive_response(timeout_ms)
             resp_dict = json.loads(response.decode("utf-8"))
             if resp_dict.get("status") == "error":

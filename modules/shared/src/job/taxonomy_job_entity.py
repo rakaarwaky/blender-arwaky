@@ -1,4 +1,5 @@
-# modules/shared/src/job/taxonomy_job_status_entity.py
+# modules/shared/src/job/taxonomy_job_entity.py
+"""Job domain entity — stateful domain concept with identity."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,7 +12,7 @@ from ..common.taxonomy_core_vo import (
     ResultUrl,
     Timestamp,
 )
-from .taxonomy_job_state_constant import (
+from .taxonomy_job_constant import (
     ACTIVE_JOB_STATES,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
@@ -29,30 +30,21 @@ from .taxonomy_job_vo import (
 
 @dataclass
 class JobRecord:
-    """
-    Mutable internal job record.
-
-    This is an internal state holder, not a public read model.
-    Business rules should be applied by capabilities, not by direct mutation.
-    """
+    """Mutable internal job record. State holder, not a public read model."""
 
     job_id: JobId
     operation_type: OperationType
     created_at: Timestamp
     updated_at: Timestamp
-
     correlation_id: CorrelationId | None = None
     metadata: dict[str, str] = field(default_factory=dict)
-
     state: JobState = JOB_STATE_PENDING
     progress: Progress = Progress(0.0)
     progress_message: ProgressMessage | None = None
-
     result_url: ResultUrl | None = None
     error: ErrorString | None = None
     error_category: ErrorCategory | None = None
     cancellation_reason: CancellationReason | None = None
-
     started_at: Timestamp | None = None
     finished_at: Timestamp | None = None
     last_progress_at: Timestamp | None = None

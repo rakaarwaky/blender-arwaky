@@ -259,7 +259,7 @@ from .gateway.taxonomy_gateway_vo import (
 )
 
 # === Job domain exports ===
-from .job.taxonomy_job_state_constant import (
+from .job.taxonomy_job_constant import (
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,

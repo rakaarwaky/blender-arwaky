@@ -84,3 +84,32 @@ def test_reconnect_without_hook_keeps_legacy_connected_behavior():
     executor = MaintenanceExecutor()
     status = executor.attempt_reconnect()
     assert status.state == ConnectionState.CONNECTED
+
+
+def test_reconnect_counter_resets_after_exhaustion():
+    executor = MaintenanceExecutor(
+        max_retries=2,
+        reconnect_fn=lambda: _FakeOutcome(ConnectionState.FAILED, "down"),
+    )
+    assert executor.attempt_reconnect().reconnect_attempts == 1
+    assert executor.attempt_reconnect().reconnect_attempts == 2  # session exhausted
+    # A later connection drop starts a fresh session at 1, not 3.
+    assert executor.attempt_reconnect().reconnect_attempts == 1
+
+
+def test_reconnect_counter_resets_after_recovery():
+    states = iter(
+        [
+            ConnectionState.FAILED,
+            ConnectionState.CONNECTED,
+            ConnectionState.CONNECTED,
+        ]
+    )
+    executor = MaintenanceExecutor(
+        max_retries=3,
+        reconnect_fn=lambda: _FakeOutcome(next(states)),
+    )
+    assert executor.attempt_reconnect().reconnect_attempts == 1  # FAILED
+    assert executor.attempt_reconnect().reconnect_attempts == 2  # recovered
+    # Connection drops again — new session must restart at 1, not inherit 2.
+    assert executor.attempt_reconnect().reconnect_attempts == 1

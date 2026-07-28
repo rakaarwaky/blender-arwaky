@@ -4,6 +4,7 @@ NOTE: This surface utility delegates process lifecycle to launcher feature (FR-L
 The CLI surface layer does not own business logic — it translates terminal input to aggregate calls.
 """
 
+import contextlib
 import os
 import signal
 import subprocess
@@ -12,7 +13,10 @@ import time
 
 
 def find_blender() -> str:
-    """Find Blender executable path."""
+    """Find Blender executable path.
+
+    Raises FileNotFoundError with helpful message if Blender cannot be located.
+    """
     # Check environment variable first
     env_path = os.environ.get("BLENDER_EXECUTABLE")
     if env_path and os.path.exists(env_path):
@@ -43,7 +47,10 @@ def find_blender() -> str:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
-    raise FileNotFoundError("Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.")
+    raise FileNotFoundError(
+        "Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.\n"
+        "Common paths checked: /usr/bin/blender, /usr/local/bin/blender, PATH"
+    )
 
 
 def launch_blender(
@@ -102,15 +109,24 @@ bpy.ops.preferences.addon_enable(module='blender_mcp_addon')
         )
 
     # Launch process
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.DEVNULL if mode == "headless" else None,
-        stderr=subprocess.DEVNULL if mode == "headless" else None,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
-    )
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL if mode == "headless" else None,
+            stderr=subprocess.DEVNULL if mode == "headless" else None,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
+        )
+    except OSError as e:
+        raise RuntimeError(f"Failed to launch Blender process: {e}") from e
 
     # Wait for addon to start (poll port)
-    _wait_for_addon(port, timeout=30)
+    try:
+        _wait_for_addon(port, timeout=30)
+    except TimeoutError as e:
+        # Kill the process if addon failed to start
+        with contextlib.suppress(Exception):
+            process.kill()
+        raise RuntimeError(f"Blender addon not ready on port {port} after 30s") from e
 
     return process.pid
 

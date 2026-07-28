@@ -55,6 +55,14 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         logger.debug("Heartbeat sent")
 
     def attempt_reconnect(self) -> ConnectionStatusVO:
+        # Reset the attempt counter when a new reconnect session begins:
+        # either the previous session succeeded (state CONNECTED) or the
+        # previous session already exhausted its retries. Without this reset
+        # the counter accumulates across sessions, so a later connection drop
+        # reports a stale, inflated attempt count or hits premature "exhaustion"
+        # on its very first attempt (FR-GWY-002).
+        if self._state == ConnectionState.CONNECTED or self._reconnect_attempts >= self._max_retries:
+            self._reconnect_attempts = 0
         self._reconnect_attempts += 1
         self._state = ConnectionState.RECONNECTING
         logger.warning(
