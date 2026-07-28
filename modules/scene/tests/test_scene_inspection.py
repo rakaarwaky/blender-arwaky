@@ -25,7 +25,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
 )
 from modules.shared.src.gateway.contract_code_execution_protocol import ICodeExecutionProtocol
-from modules.shared.scene.taxonomy_scene_vo import (
+from modules.shared.src.scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
 )
