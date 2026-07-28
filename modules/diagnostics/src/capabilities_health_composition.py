@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import DurationMs
 from modules.shared.src.diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
 from modules.shared.src.diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
 from modules.shared.src.diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
@@ -170,9 +171,7 @@ class DiagnosticsCapability(
             snapshot["audit_summary"] = {
                 "total_records": len(self._audit_records),
                 "recent_categories": (
-                    [r["category"] for r in self._audit_records[-10:]]
-                    if self._audit_records
-                    else []
+                    [r["category"] for r in self._audit_records[-10:]] if self._audit_records else []
                 ),
             }
 

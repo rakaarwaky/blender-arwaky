@@ -20,7 +20,7 @@ from .taxonomy_launcher_vo import (
 )
 
 
-class LauncherOperateAggregate(ABC):
+class ILauncherOperateAggregate(ABC):
     """Aggregate facade for all launcher operations.
 
     The Agent orchestrator implements this interface.

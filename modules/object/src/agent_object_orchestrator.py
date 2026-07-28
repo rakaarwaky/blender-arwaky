@@ -16,7 +16,7 @@ from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModi
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
-from modules.shared.src.object.contract_object_operate_aggregate import ObjectOperateAggregate
+from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.contract_set_transform_protocol import SetObjectTransformProtocol
@@ -33,7 +33,7 @@ from modules.shared.src.object.taxonomy_object_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ObjectOrchestrator(ObjectOperateAggregate):
+class ObjectOrchestrator(IObjectOperateAggregate):
     """Orchestrates object operations through 7 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────

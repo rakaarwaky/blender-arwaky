@@ -14,7 +14,7 @@ Structure:
 
 import logging
 
-from modules.shared.src.object.contract_object_operate_aggregate import ObjectOperateAggregate
+from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
 
 # Lazy imports to avoid circular deps — resolved at wiring time
 from .agent_object_orchestrator import ObjectOrchestrator

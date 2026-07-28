@@ -7,7 +7,7 @@ status check, and state persistence via individual protocol delegation.
 import logging
 
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
-    LauncherOperateAggregate,
+    ILauncherOperateAggregate,
 )
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import (

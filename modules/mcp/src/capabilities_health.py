@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.common.taxonomy_core_vo import SuccessFlag
 from modules.shared.src.mcp.contract_health_protocol import ServerHealthProtocol
 
 logger = logging.getLogger("BlenderMCPServer")

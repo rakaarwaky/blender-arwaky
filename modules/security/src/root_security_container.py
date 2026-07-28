@@ -14,7 +14,7 @@ Structure:
 
 import logging
 
-from modules.shared.src.security.contract_security_operate_aggregate import SecurityOperateAggregate
+from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_security_orchestrator import SecurityOrchestrator

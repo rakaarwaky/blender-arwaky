@@ -13,7 +13,7 @@ import logging
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.contract_extract_archive_protocol import ExtractArchiveProtocol
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-from modules.shared.src.security.contract_security_operate_aggregate import SecurityOperateAggregate
+from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -27,7 +27,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class SecurityOrchestrator(SecurityOperateAggregate):
+class SecurityOrchestrator(ISecurityOperateAggregate):
     """Orchestrates security operations through 5 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────

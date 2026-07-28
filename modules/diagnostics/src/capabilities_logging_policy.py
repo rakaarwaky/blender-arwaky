@@ -1,5 +1,6 @@
 # Temporary stub - FR-DIA-004 implementation pending
 import logging
+from modules.shared.src.common.taxonomy_core_vo import ToolName
 from modules.shared.src.diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
 
 

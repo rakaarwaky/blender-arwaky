@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-class CameraConfigAggregate(ABC):
+class ICameraConfigAggregate(ABC):
     """Aggregate facade for camera configuration operations.
 
     FR-RND-003: Configures camera optical properties including lens, framing,
@@ -51,7 +51,7 @@ class CameraConfigAggregate(ABC):
         ...
 
 
-class HdriConfigAggregate(ABC):
+class IHdriConfigAggregate(ABC):
     """Aggregate facade for HDRI lighting configuration operations.
 
     FR-RND-004: Applies HDRI-based environment lighting using a locally
@@ -83,7 +83,7 @@ class HdriConfigAggregate(ABC):
         ...
 
 
-class RenderOperateAggregate(ABC):
+class IRenderOperateAggregate(ABC):
     """Aggregate facade for scene render operations.
 
     FR-RND-002: Renders the scene to an image artifact at a validated output
@@ -112,7 +112,7 @@ class RenderOperateAggregate(ABC):
         ...
 
 
-class ViewportCaptureAggregate(ABC):
+class IViewportCaptureAggregate(ABC):
     """Aggregate facade for viewport screenshot capture operations.
 
     FR-RND-001: Captures the current viewport as an image artifact at a

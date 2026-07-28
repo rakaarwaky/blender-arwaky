@@ -9,6 +9,7 @@ FR-JOB-003: Cancel a Task
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString, JobId
+from modules.shared.src.job.contract_job_cancel_protocol import JobCancelProtocol
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")

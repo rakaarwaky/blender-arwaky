@@ -12,7 +12,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Progress,
     ResultUrl,
 )
-from modules.shared.src.job.contract_job_aggregate import JobTrackerProtocol
+from modules.shared.src.job.contract_job_tracker_protocol import JobTrackerProtocol
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")

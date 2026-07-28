@@ -12,10 +12,10 @@ from typing import Any
 from modules.shared.src.render.contract_camera_config_protocol import CameraConfigProtocol
 from modules.shared.src.render.contract_hdri_config_protocol import HdriConfigProtocol
 from modules.shared.src.render.contract_render_aggregate import (
-    CameraConfigAggregate,
-    HdriConfigAggregate,
-    RenderOperateAggregate,
-    ViewportCaptureAggregate,
+    ICameraConfigAggregate,
+    IHdriConfigAggregate,
+    IRenderOperateAggregate,
+    IViewportCaptureAggregate,
 )
 from modules.shared.src.render.contract_render_operate_protocol import RenderOperateProtocol
 from modules.shared.src.render.taxonomy_render_vo import (

@@ -8,6 +8,8 @@ FR-JOB-004: Automatic Task Record Cleanup
 
 import logging
 
+from modules.shared.src.common.taxonomy_core_vo import DurationMs
+from modules.shared.src.job.contract_job_cleanup_protocol import JobCleanupProtocol
 from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
 
 logger = logging.getLogger("BlenderMCPServer")
