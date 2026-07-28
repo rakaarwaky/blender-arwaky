@@ -111,11 +111,9 @@ Common flags:
 Meaning:
 
 - <path></path> defaults to current directory.
-- --format choices: text, json, sarif, junit.
 - --filter filters violations by AES rule ID, example: AES201.
 - -o, --output-dir saves report files.
 - --member targets a single workspace member by module name and is valid only for orphan.
-- external uses ruff.
 
 QUALITY PRIORITIES
 ==================
