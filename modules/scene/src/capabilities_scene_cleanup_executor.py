@@ -45,7 +45,7 @@ from modules.shared.src.scene.utility_scene_code_builder import (
 )
 from modules.shared.src.scene.utility_scene_result_parser import parse_cleanup_metrics
 
-logger = logging.getLogger("BlenderMCPServer")
+logger = logging.getLogger(__name__)
 
 
 class SceneCleanupExecutor(ISceneCleanupProtocol):

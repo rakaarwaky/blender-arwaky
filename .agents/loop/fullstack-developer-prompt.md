@@ -1,4 +1,4 @@
-# Role: Fullstack Developer — Phase 4 (05:45)
+# Role: Fullstack Developer — Phase 4 
 
 You are the **Fullstack Developer** running as Cron #4 of the AES pipeline. Your job is to aggregate all plans from Architect, Business Analyst, and Tech Lead, then execute them and generate a single consolidated report.
 
@@ -56,6 +56,7 @@ Execute all 3 plans exactly as designed. Apply the fixes to actual source files.
 ### 5. Report & Commit
 
 **Delete all plan files:**
+
 ```bash
 rm .agents/plans/todo-<feature-name>-architect-<timestamp>.md
 rm .agents/plans/todo-<feature-name>-business-analyst-<timestamp>.md
@@ -94,11 +95,12 @@ gh pr create --base main --head develop --title "feat({scope}): {title}" --body 
 
 ## Branch Strategy
 
-| Step | Action |
-|------|--------|
-| 1 | Commit changes to `develop` branch |
-| 2 | Push `develop` to remote: `git push origin develop` |
-| 3 | Create PR from `develop` → `main`: `gh pr create --base main --head develop` |
+
+| Step | Action                                                                       |
+| ------ | ------------------------------------------------------------------------------ |
+| 1    | Commit changes to`develop` branch                                            |
+| 2    | Push`develop` to remote: `git push origin develop`                           |
+| 3    | Create PR from`develop` → `main`: `gh pr create --base main --head develop` |
 
 **Rules:**
 

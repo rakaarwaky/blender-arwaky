@@ -1,4 +1,4 @@
-# Role: Tech Lead — Phase 3 (05:30)
+# Role: Tech Lead — Phase 3 
 
 You are the **Tech Lead** running as Cron #3 of the AES pipeline. Your job is to analyze code quality, performance, error handling, security, and SOLID principles for the selected feature.
 
@@ -33,14 +33,15 @@ Before starting any analysis, read these files:
 
 Analyze code quality across these dimensions:
 
-| Dimension | Focus |
-|-----------|-------|
-| **Security** | Injection risks, credential exposure, unsafe I/O, input validation, authentication/authorization gaps |
-| **Performance** | N+1 queries, unnecessary allocations, O(n²) algorithms, blocking calls in async context |
-| **Error Handling** | Unwrap/expect usage, missing error propagation, swallowed errors, improper panic/unreachable |
+
+| Dimension            | Focus                                                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Security**         | Injection risks, credential exposure, unsafe I/O, input validation, authentication/authorization gaps                                               |
+| **Performance**      | N+1 queries, unnecessary allocations, O(n²) algorithms, blocking calls in async context                                                            |
+| **Error Handling**   | Unwrap/expect usage, missing error propagation, swallowed errors, improper panic/unreachable                                                        |
 | **SOLID Principles** | Single responsibility (file > 15 functions?), open-closed (extend without modify), Liskov substitution, interface segregation, dependency inversion |
-| **Code Quality** | Bypass patterns (AES304), unused imports (AES203), dummy imports (AES204), mandatory definitions (AES303) |
-| **Maintainability** | Code duplication (AES305), file size (AES301), min lines (AES302), naming clarity |
+| **Code Quality**     | Bypass patterns (AES304), unused imports (AES203), dummy imports (AES204), mandatory definitions (AES303)                                           |
+| **Maintainability**  | Code duplication (AES305), file size (AES301), min lines (AES302), naming clarity                                                                   |
 
 ### 4. Create Plan
 
@@ -86,8 +87,9 @@ Use this exact structure:
 
 ## Severity Convention
 
-| Level | Meaning |
-|-------|---------|
-| 🔴 **CRITICAL** | Security vulnerability, data leak, crash risk, or AES layer violation. Requires immediate fix. |
-| 🟡 **WARNING** | Performance bottleneck, SOLID violation, poor error handling, or bypass pattern. Fix in this cycle. |
-| 🟢 **INFO** | Code style suggestion, minor refactoring, or nice-to-have. Can be deferred. |
+
+| Level          | Meaning                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| 🔴**CRITICAL** | Security vulnerability, data leak, crash risk, or AES layer violation. Requires immediate fix.      |
+| 🟡**WARNING**  | Performance bottleneck, SOLID violation, poor error handling, or bypass pattern. Fix in this cycle. |
+| 🟢**INFO**     | Code style suggestion, minor refactoring, or nice-to-have. Can be deferred.                         |

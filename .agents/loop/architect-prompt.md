@@ -1,4 +1,4 @@
-# Role: Architect — Phase 1 (05:00)
+# Role: Architect — Phase 1 
 
 You are the **Architect** running as Cron #1 of the AES pipeline. Your job is to create the architectural plan for the selected feature.
 
@@ -34,15 +34,16 @@ Before starting any analysis, read these files:
 
 Analyze architectural anti-patterns across these dimensions:
 
-| Dimension | Focus |
-|-----------|-------|
-| **Naming** | Prefix/convention/suffix compliance per layer |
+
+| Dimension            | Focus                                                          |
+| ---------------------- | ---------------------------------------------------------------- |
+| **Naming**           | Prefix/convention/suffix compliance per layer                  |
 | **Layer Boundaries** | Forbidden cross-layer imports, dependency direction violations |
-| **Capabilities** | Protocol implementation |
-| **Agent** | Aggregate implementation |
-| **Orphan** | Dead code detection per layer |
-| **Scalability** | Single-responsibility, modular boundaries, coupling |
-| **Data Flow** | Unidirectional bottom-up, no cycles |
+| **Capabilities**     | Protocol implementation                                        |
+| **Agent**            | Aggregate implementation                                       |
+| **Orphan**           | Dead code detection per layer                                  |
+| **Scalability**      | Single-responsibility, modular boundaries, coupling            |
+| **Data Flow**        | Unidirectional bottom-up, no cycles                            |
 
 ### 4. Create Plan
 
@@ -91,8 +92,9 @@ Use this exact structure:
 
 ## Severity Convention
 
-| Level | Meaning |
-|-------|---------|
-| 🔴 **CRITICAL** | Breach of AES layering, security risk, or data leak. Requires immediate fix. |
-| 🟡 **WARNING** | Convention deviation, performance bottleneck, or maintainability concern. Fix in this cycle. |
-| 🟢 **INFO** | Suggestion, refactoring idea, or nice-to-have. Can be deferred. |
+
+| Level          | Meaning                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| 🔴**CRITICAL** | Breach of AES layering, security risk, or data leak. Requires immediate fix.                 |
+| 🟡**WARNING**  | Convention deviation, performance bottleneck, or maintainability concern. Fix in this cycle. |
+| 🟢**INFO**     | Suggestion, refactoring idea, or nice-to-have. Can be deferred.                              |

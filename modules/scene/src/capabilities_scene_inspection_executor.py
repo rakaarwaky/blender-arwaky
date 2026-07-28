@@ -23,7 +23,7 @@ from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
 from modules.shared.src.scene.utility_scene_code_builder import build_inspection_code
 from modules.shared.src.scene.utility_scene_result_parser import parse_scene_state_summary
 
-logger = logging.getLogger("BlenderMCPServer")
+logger = logging.getLogger(__name__)
 
 
 class SceneInspectionExecutor(ISceneInspectionProtocol):
