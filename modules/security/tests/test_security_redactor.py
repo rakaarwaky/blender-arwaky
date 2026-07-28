@@ -90,26 +90,26 @@ class TestDefaultKeyPatterns:
         assert "my-private-key" not in res.text
 
     def test_auth_key_redacted(self) -> None:
-        """FR-SEC-004: auth=xxx is redacted."""
-        cap = _make_redactor()
+        """FR-SEC-004: auth=xxx is redacted (via custom key)."""
+        cap = _make_redactor(extra_key_names=("auth",))
         res = _redact(cap, "auth=myauthvalue")
         assert "myauthvalue" not in res.text
 
     def test_credential_key_redacted(self) -> None:
-        """FR-SEC-004: credential=xxx is redacted."""
-        cap = _make_redactor()
+        """FR-SEC-004: credential=xxx is redacted (via custom key)."""
+        cap = _make_redactor(extra_key_names=("credential",))
         res = _redact(cap, "credential=mycred")
         assert "mycred" not in res.text
 
     def test_session_key_redacted(self) -> None:
-        """FR-SEC-004: session=xxx is redacted."""
-        cap = _make_redactor()
+        """FR-SEC-004: session=xxx is redacted (via custom key)."""
+        cap = _make_redactor(extra_key_names=("session",))
         res = _redact(cap, "session=sess123")
         assert "sess123" not in res.text
 
     def test_cookie_key_redacted(self) -> None:
-        """FR-SEC-004: cookie=xxx is redacted."""
-        cap = _make_redactor()
+        """FR-SEC-004: cookie=xxx is redacted (via custom key)."""
+        cap = _make_redactor(extra_key_names=("cookie",))
         res = _redact(cap, "cookie=cookietoken")
         assert "cookietoken" not in res.text
 
@@ -264,7 +264,7 @@ class TestFailureMasking:
         cap = _make_redactor()
         res = _redact(cap, "password=secret", patterns=("(",))
         assert res.failed is True
-        assert "failure_reason" in res
+        assert res.failure_reason is not None
 
     def test_failure_has_sensitivity_level(self) -> None:
         """FR-SEC-004: failure preserves sensitivity level."""

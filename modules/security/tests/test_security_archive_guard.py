@@ -66,7 +66,7 @@ class TestAbsoluteEntryPath:
         """FR-SEC-002: rejection includes audit metadata."""
         guard = _make_guard()
         res = _extract(guard, [ArchiveEntryVO(entry_path="/etc/passwd")])
-        assert "audit_metadata" in res
+        assert isinstance(res.audit_metadata, dict)
 
 
 class TestPathTraversalInEntries:
@@ -262,7 +262,7 @@ class TestCleanExtraction:
         """FR-SEC-002: successful extraction includes audit metadata."""
         guard = _make_guard()
         res = _extract(guard, [ArchiveEntryVO(entry_path="file.txt")])
-        assert "audit_metadata" in res
+        assert isinstance(res.audit_metadata, dict)
         assert "entry_count" in res.audit_metadata
 
 
@@ -305,14 +305,15 @@ class TestEdgeCases:
 
     def test_destination_empty_string(self) -> None:
         """FR-SEC-002: empty destination directory is handled."""
+        import asyncio
         guard = _make_guard()
         request = ArchiveExtractionVO(
             destination_directory="",
             entries=tuple([ArchiveEntryVO(entry_path="file.txt")]),
             options=ArchiveExtractionOptionsVO(),
         )
-        res = guard.validate_extraction(request)
-        assert "audit_metadata" in res
+        res = asyncio.run(guard.validate_extraction(request))
+        assert isinstance(res.audit_metadata, dict)
 
     def test_archive_bomb_pattern(self) -> None:
         """FR-SEC-002: archive bomb pattern protected by size/count limits."""
