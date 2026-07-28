@@ -176,3 +176,19 @@ class AssetImportBlenderVO:
     license_summary: str | None = None
     message: str = ""
     error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class SearchResultVO:
+    """Asset search result — normalized aggregated results with provider status.
+
+    FR-AST-001: Unified search across providers returns normalized,
+    aggregated results with provider status summary and warnings.
+    Input: query (set via caller). Output: assets, total, provider_status, warnings.
+    """
+
+    # Output
+    assets: list[AssetMetadataItem] = field(default_factory=list)
+    total: AssetCount | None = None
+    provider_status: dict[str, str] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)

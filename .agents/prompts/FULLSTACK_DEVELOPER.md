@@ -92,5 +92,6 @@ gh pr create --base main --head develop --title "feat({scope}): {title}" --body 
 **Rules:**
 
 - Never commit directly to `main`
+- never create new brach alwsy use develop branch
 - Always create PR from `develop` to `main`
 - Do NOT delete `develop` branch after merge to `main`

@@ -19,8 +19,21 @@ logger = logging.getLogger("BlenderMCPServer")
 class AssetContainer:
     """DI container that wires asset capabilities to the agent orchestrator."""
 
-    def __init__(self, connection: object) -> None:
+    def __init__(
+        self,
+        connection: object,
+        security_validator: object | None = None,
+        security_supervisor: object | None = None,
+        job_scheduler: object | None = None,
+        config_getter: object | None = None,
+        gateway_client: object | None = None,
+    ) -> None:
         self._connection = connection
+        self._security_validator = security_validator
+        self._security_supervisor = security_supervisor
+        self._job_scheduler = job_scheduler
+        self._config_getter = config_getter
+        self._gateway_client = gateway_client
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
@@ -40,9 +53,18 @@ class AssetContainer:
             from .capabilities_asset_search import AssetSearchCapability
 
             search = AssetSearchCapability(self._connection)
-            download = AssetDownloadCapability()
-            extract = AssetExtractCapability()
-            import_ = AssetImportCapability()
+            download = AssetDownloadCapability(
+                security_validator=self._security_validator,
+                job_scheduler=self._job_scheduler,
+                config_getter=self._config_getter,
+            )
+            extract = AssetExtractCapability(
+                security_supervisor=self._security_supervisor,
+            )
+            import_ = AssetImportCapability(
+                gateway_client=self._gateway_client,
+                config_getter=self._config_getter,
+            )
             metadata = AssetProviderMetadataCapability()
 
             self._orchestrator = AssetOrchestrator(

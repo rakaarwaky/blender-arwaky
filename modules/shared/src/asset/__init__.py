@@ -29,6 +29,7 @@ from .taxonomy_asset_vo import (
     AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
+    SearchResultVO,
 )
 
 __all__ = [
@@ -48,6 +49,7 @@ __all__ = [
     "AssetImportBlenderVO",
     "ImportGlbVO",
     "ExportModelVO",
+    "SearchResultVO",
     "create_asset_id",
     "create_provider_name",
     "AssetSearchProtocol",
