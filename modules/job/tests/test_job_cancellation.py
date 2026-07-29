@@ -33,9 +33,13 @@ from modules.shared.src.job.taxonomy_job_vo import (
 
 
 def _make_cancel_command(
-    job_id: JobId = JobId("test-1"),
-    reason: CancellationReason | None = CancellationReason("User requested"),
+    job_id: JobId | None = None,
+    reason: CancellationReason | None = None,
 ) -> CancelTaskCommand:
+    if job_id is None:
+        job_id = JobId("test-1")
+    if reason is None:
+        reason = CancellationReason("User requested")
     """Build a CancelTaskCommand with defaults."""
     return CancelTaskCommand(job_id=job_id, reason=reason)
 

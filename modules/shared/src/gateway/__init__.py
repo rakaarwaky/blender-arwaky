@@ -1,4 +1,3 @@
-from . import utility_socket_client
 from .contract_code_execution_protocol import CodeExecutionProtocol
 from .contract_connection_protocol import ConnectionProtocol
 from .contract_maintenance_protocol import ConnectionMaintenanceProtocol

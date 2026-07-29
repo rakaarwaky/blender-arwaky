@@ -20,7 +20,7 @@ from typing import Any
 try:
     import yaml
 except ImportError:  # pragma: no cover
-    yaml = None  # type: ignore[assignment]
+    yaml = None
 
 from modules.shared.src.gateway.taxonomy_gateway_error import ConnectionConfigError
 from modules.shared.src.gateway.taxonomy_gateway_vo import ServerConfig
@@ -179,7 +179,7 @@ def _validate_and_build(config_dict: dict[str, Any]) -> ServerConfig:
     if not isinstance(port, int) or port < 1 or port > 65535:
         raise ConnectionConfigError(
             message=f"Port must be between 1 and 65535, got {port}",
-            details={"value": port},
+            details={"value": str(port)},
         )
 
     # Validate numeric fields

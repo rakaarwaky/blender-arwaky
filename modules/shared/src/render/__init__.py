@@ -2,13 +2,6 @@
 
 from __future__ import annotations
 
-# ─── Taxonomy Module Barrel Exports ──────────────────────
-from . import (
-    taxonomy_render_constant,
-    taxonomy_render_error,
-    taxonomy_render_event,
-    taxonomy_render_vo,
-)
 from .contract_render_aggregate import IRenderAggregate
 from .contract_render_camera_config_protocol import IRenderCameraConfigProtocol
 from .contract_render_hdri_config_protocol import IRenderHdriConfigProtocol

@@ -317,11 +317,6 @@ from .object.taxonomy_object_vo import (
     SetMaterialVO,
     SetObjectTransformVO,
 )
-from .render.contract_render_camera_config_protocol import IRenderCameraConfigProtocol
-from .render.contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
-from .render.contract_render_scene_image_protocol import IRenderSceneImageProtocol
-from .render.contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
-
 # === Render domain exports ===
 from .render.taxonomy_render_vo import (
     CameraConfigVO,
@@ -331,8 +326,6 @@ from .render.taxonomy_render_vo import (
 )
 
 # Protocols (business behavior contracts)
-from .scene.contract_scene_cleanup_protocol import ISceneCleanupProtocol
-from .scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
 from .scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,

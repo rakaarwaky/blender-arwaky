@@ -7,6 +7,8 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from modules.shared.src.common.taxonomy_core_vo import ErrorMessage, ErrorString
 
 
@@ -48,10 +50,10 @@ class ServerError(Exception):
     def __init__(self, code: ErrorString, message: ErrorMessage, _details: dict | None = None) -> None:
         self.code = code
         self.message = message
-        self.details = _details or {}  # type: ignore[dict-item]
+        self.details = dict(_details) if _details else {}
         super().__init__(f"[{code}] {message}")
 
-    def to_mcp_format(self) -> dict:  # noqa: ANN004
+    def to_mcp_format(self) -> dict[str, object]:
         """Serialize error for MCP response."""
         return {
             "code": self.code,
@@ -66,7 +68,7 @@ class ServerError(Exception):
 class SecurityViolationError(ServerError):
     """Raised when user-provided code contains blocked patterns or violates sandbox policy."""
 
-    def __init__(self, message: str = "Security violation", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Security violation", _details: dict | None = None) -> None:
         super().__init__("security_violation", message, _details)
 
 
@@ -76,14 +78,14 @@ class SecurityViolationError(ServerError):
 class ExecutionTimeoutError(ServerError):
     """Raised when code execution exceeds the configured timeout."""
 
-    def __init__(self, timeout_ms: float = 30_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, timeout_ms: float = 30_000.0, _details: dict | None = None) -> None:
         super().__init__("execution_timeout", f"Execution exceeded {timeout_ms}ms", {"timeout_ms": timeout_ms})
 
 
 class CommandTimeoutError(ServerError):
     """Raised when a command response exceeds the configured timeout."""
 
-    def __init__(self, action: str = "", timeout_ms: float = 5_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, action: str = "", timeout_ms: float = 5_000.0, _details: dict | None = None) -> None:
         super().__init__(
             "command_timeout",
             f"Command '{action}' timed out after {timeout_ms}ms",
@@ -101,7 +103,7 @@ class TooManyPendingOperationsError(ServerError):
     Error code: 'too_many_pending_operations'
     """
 
-    def __init__(self, max_depth: int = 50, request_id: str | None = None, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, max_depth: int = 50, request_id: str | None = None, _details: dict | None = None) -> None:
         super().__init__(
             "too_many_pending_operations",
             f"Queue full (depth={max_depth})",
@@ -116,7 +118,7 @@ class OperationWaitTimeoutError(ServerError):
     Error code: 'operation_wait_timeout'
     """
 
-    def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, _details: dict | None = None) -> None:
         super().__init__(
             "operation_wait_timeout",
             f"Operation wait timeout for {request_id}",
@@ -130,7 +132,7 @@ class OperationWaitTimeoutError(ServerError):
 class TaskNotFoundError(ServerError):
     """Raised when polling an unknown or expired async task."""
 
-    def __init__(self, task_id: str = "", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, task_id: str = "", _details: dict | None = None) -> None:
         super().__init__("task_not_found", f"Task not found: {task_id}", {"task_id": task_id})
 
 
@@ -140,14 +142,14 @@ class TaskNotFoundError(ServerError):
 class ConnectionConfigError(ServerError):
     """Raised when connection factory receives invalid configuration."""
 
-    def __init__(self, message: str = "Connection config error", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Connection config error", _details: dict | None = None) -> None:
         super().__init__("connection_config_error", message, _details)
 
 
 class AuthenticationError(ServerError):
     """Raised when connection authentication fails."""
 
-    def __init__(self, message: str = "Authentication failed", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Authentication failed", _details: dict | None = None) -> None:
         super().__init__("authentication_failed", message, _details)
 
 
@@ -158,7 +160,7 @@ class VersionMismatchError(ServerError):
     Error code: 'version_mismatch'
     """
 
-    def __init__(self, expected: str = "", actual: str = "", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, expected: str = "", actual: str = "", _details: dict | None = None) -> None:
         super().__init__(
             "version_mismatch",
             f"Expected major version {expected}, got {actual}",
@@ -169,14 +171,14 @@ class VersionMismatchError(ServerError):
 class ConnectionClosedError(ServerError):
     """Raised when an operation is rejected after graceful disconnect."""
 
-    def __init__(self, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, _details: dict | None = None) -> None:
         super().__init__("connection_closed", "Connection already closed", _details)
 
 
 class BlenderConnectionExhausted(ServerError):  # noqa: N818
     """Raised after all reconnect attempts have been exhausted."""
 
-    def __init__(self, attempts: int = 3, _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, attempts: int = 3, _details: dict | None = None) -> None:
         super().__init__(
             "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
         )
@@ -185,7 +187,7 @@ class BlenderConnectionExhausted(ServerError):  # noqa: N818
 class BlenderConnectionFailure(ServerError):  # noqa: N818
     """Raised when connection is lost or unavailable."""
 
-    def __init__(self, message: str = "Blender connection failure", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Blender connection failure", _details: dict | None = None) -> None:
         super().__init__("blender_connection_failure", message, _details)
 
 
@@ -197,7 +199,7 @@ class ValidationError(ServerError):
 
     def __init__(
         self, message: str = "Validation error", code: str = "validation_error", _details: dict | None = None
-    ) -> None:  # noqa: ANN004
+    ) -> None:
         super().__init__(code, message, _details)
 
 
@@ -207,19 +209,19 @@ class ValidationError(ServerError):
 class ProviderError(ServerError):
     """Raised when Blender addon returns a command-specific failure."""
 
-    def __init__(self, message: str = "Provider error", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Provider error", _details: dict | None = None) -> None:
         super().__init__("provider_error", message, _details)
 
 
 class ExecutionError(ServerError):
     """Raised when Blender code execution returns a runtime failure."""
 
-    def __init__(self, message: str = "Execution error", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Execution error", _details: dict | None = None) -> None:
         super().__init__("execution_error", message, _details)
 
 
 class AdapterSurfaceError(ServerError):
     """Raised when an unexpected adapter surface failure occurs."""
 
-    def __init__(self, message: str = "Adapter surface error", _details: dict | None = None) -> None:  # noqa: ANN004
+    def __init__(self, message: str = "Adapter surface error", _details: dict | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)

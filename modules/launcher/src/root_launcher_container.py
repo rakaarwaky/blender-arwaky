@@ -54,7 +54,7 @@ class LauncherContainer:
         return proc.returncode, proc.stdout
 
     @staticmethod
-    def _real_spawn(executable: str, mode: str, readiness_timeout_seconds: float) -> int:  # noqa: ARG004 (interface signature match; timeout handled by readiness probe)
+    def _real_spawn(executable: str, mode: str, _readiness_timeout_seconds: float) -> int:
         args = [executable]
         if mode == "headless":
             args += ["--background", "--python-exit-code", "1"]

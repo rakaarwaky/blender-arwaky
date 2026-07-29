@@ -62,7 +62,7 @@ class MockCodeExecutor:
             "skipped_refs": [],
         }
 
-    async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+    async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
         """Return mock result based on whether code contains 'print(result)'."""
         if "removed_count" in code or "preserved_count" in code:
             # Cleanup code
@@ -114,7 +114,7 @@ async def test_fr_scn_001_handles_empty_scene():
     import json
 
     class EmptyExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "EmptyScene",
@@ -215,7 +215,7 @@ async def test_fr_scn_001_hidden_objects_included_when_requested():
     import json
 
     class HiddenObjectsExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "Scene",
@@ -254,7 +254,7 @@ async def test_fr_scn_001_object_type_filter():
     import json
 
     class FilteredExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "Scene",
@@ -291,7 +291,7 @@ async def test_fr_scn_001_correlation_id_propagated():
     import json
 
     class CorrelatedExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "Scene",
@@ -325,7 +325,7 @@ async def test_fr_scn_001_correlation_id_propagated():
 async def test_fr_scn_001_none_result_returns_empty_summary():
     """Test that None result from executor is handled gracefully."""
     class NoneResultExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> None:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> None:
             return None
 
     executor = SceneInspectionExecutor(NoneResultExecutor())
@@ -341,7 +341,7 @@ async def test_fr_scn_001_none_result_returns_empty_summary():
 async def test_fr_scn_001_non_string_result_returns_empty_summary():
     """Test that non-string result from executor is handled gracefully."""
     class NonStringResultExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> dict[str, Any]:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> dict[str, Any]:
             return {"invalid": True}
 
     executor = SceneInspectionExecutor(NonStringResultExecutor())
@@ -359,7 +359,7 @@ async def test_fr_scn_001_json_parse_error_returns_empty_state():
     import json
 
     class MalformedJSONExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"scene_name": "Scene", "total_object_count": 0})
 
     executor = SceneInspectionExecutor(MalformedJSONExecutor())
@@ -379,7 +379,7 @@ async def test_fr_scn_002_cleanup_with_custom_preservation_list():
     import json
 
     class CustomPreservationExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "removed_count": 1,
@@ -411,7 +411,7 @@ async def test_fr_scn_002_cleanup_malformed_json_returns_empty():
     import json
 
     class MalformedCleanupExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"removed_count": 0, "preserved_count": 0})
 
     executor = SceneCleanupExecutor(MalformedCleanupExecutor())
@@ -428,7 +428,7 @@ async def test_fr_scn_002_dry_run_with_no_removable_objects():
     import json
 
     class EmptySceneExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "removed_count": 0,
@@ -455,7 +455,7 @@ async def test_fr_scn_001_summarized_detail_level():
     import json
 
     class SummarizedExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "Scene",
@@ -564,7 +564,7 @@ async def test_fr_scn_002_cleanup_with_invalid_child_policy():
     import json
 
     class MockExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"removed_count": 0, "preserved_count": 0})
 
     executor = SceneCleanupExecutor(MockExecutor())
@@ -581,7 +581,7 @@ async def test_fr_scn_002_cleanup_with_invalid_dependent_policy():
     import json
 
     class MockExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"removed_count": 0, "preserved_count": 0})
 
     executor = SceneCleanupExecutor(MockExecutor())
@@ -598,7 +598,7 @@ async def test_fr_scn_002_cleanup_preserves_cameras_and_lights():
     import json
 
     class CameraLightPreservationExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "removed_count": 1,
@@ -626,7 +626,7 @@ async def test_fr_scn_001_inspection_message_on_success():
     import json
 
     class SuccessExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps(
                 {
                     "scene_name": "Scene",
@@ -662,7 +662,7 @@ async def test_fr_scn_002_cleanup_failure_message():
     import json
 
     class FailureExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"error": "Cleanup failed"})
 
     executor = SceneCleanupExecutor(FailureExecutor())
@@ -679,7 +679,7 @@ async def test_fr_scn_002_dry_run_failure_message():
     import json
 
     class DryRunFailureExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"error": "Dry-run failed"})
 
     executor = SceneCleanupExecutor(DryRunFailureExecutor())
@@ -716,7 +716,7 @@ async def test_fr_scn_001_inspection_with_all_fields():
     import json
 
     class AllFieldsExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"scene_name": "Scene", "total_object_count": 0})
 
     executor = SceneInspectionExecutor(AllFieldsExecutor())
@@ -741,7 +741,7 @@ async def test_fr_scn_002_cleanup_all_modes():
     import json
 
     class ModeExecutor:
-        async def execute_blender_code(self, code: str, request_id: str | None = None) -> str:  # type: ignore[return-value]
+        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
             return json.dumps({"removed_count": 0, "preserved_count": 0})
 
     for mode_str in ["all", "objects", "meshes"]:

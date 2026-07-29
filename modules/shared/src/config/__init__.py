@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-# ─── Taxonomy Module Barrel Exports ────────────────────────
-from . import taxonomy_config_constant, taxonomy_config_error, taxonomy_config_event, taxonomy_config_vo
-
 # ─── Contracts (Protocols) ─────────────────────────────────────
 from .contract_config_aggregate import IConfigAggregate
 from .contract_redaction_rules_protocol import IRedactionRulesProtocol

@@ -17,9 +17,11 @@ import time
 import uuid
 from typing import Any, Protocol
 
-logger = logging.getLogger(__name__)
-
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
+from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
+from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
+
+logger = logging.getLogger(__name__)
 from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
 

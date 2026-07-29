@@ -291,9 +291,9 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
             if target == JOB_STATE_COMPLETED:
                 record.progress = Progress(100.0)
-                record.result_url = result_url  # type: ignore[assignment]
+                record.result_url = str(result_url) if result_url is not None else None
                 if progress_message is not None:
-                    record.progress_message = progress_message  # type: ignore[assignment]
+                    record.progress_message = str(progress_message) if progress_message is not None else None
 
             if target == JOB_STATE_FAILED:
                 record.error = error or ErrorString("Unknown error")

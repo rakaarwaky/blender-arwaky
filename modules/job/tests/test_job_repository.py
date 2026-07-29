@@ -7,6 +7,8 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from modules.job.src.capabilities_job_checker import JobCapacityChecker
