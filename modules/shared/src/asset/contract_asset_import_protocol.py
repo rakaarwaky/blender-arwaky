@@ -15,6 +15,10 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     FilePath,
+    AssetCollectionName,
+    AssetFormatHint,
+    ScaleNormalization,
+    DuplicatePolicy,
 )
 
 
@@ -32,10 +36,10 @@ class AssetImportProtocol(ABC):
         self,
         file_path: FilePath,
         asset_type: AssetType,
-        target_collection: str | None = None,
-        scale_normalization: bool = False,
-        duplicate_policy: str = "rename",
-        format_hint: str | None = None,
+        target_collection: AssetCollectionName | None = None,
+        scale_normalization: ScaleNormalization = ScaleNormalization(False),
+        duplicate_policy: DuplicatePolicy = DuplicatePolicy("rename"),
+        format_hint: AssetFormatHint | None = None,
     ) -> dict[str, Any]:
         """Import a locally available asset file into Blender.
 

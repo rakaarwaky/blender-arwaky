@@ -38,6 +38,7 @@ from modules.shared.src.scene.taxonomy_scene_event import (
 from modules.shared.src.scene.taxonomy_scene_vo import (
     ObjectCount,
     SceneCleanupMetricsVO,
+    SceneCleanupPolicyVO,
     SceneCleanupVO,
 )
 from modules.shared.src.scene.utility_scene_code_builder import build_cleanup_code
@@ -78,7 +79,17 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             return self._failure(request, pre_flight_error.to_prompt())
 
         try:
-            policy = SceneCleanupPolicy.from_request(request)
+            preservation = set(request.preservation_list)
+            policy = SceneCleanupPolicyVO(
+                mode=request.mode,
+                preserve_cameras=True,  # FR-SCN-002: cameras are always protected regardless of preservation list
+                preserve_lights="light" in preservation,
+                include_hidden_objects=request.include_hidden_objects,
+                child_handling_policy=request.child_handling_policy,
+                dependent_handling_policy=request.dependent_handling_policy,
+                protect_active_camera=True,
+                protect_sole_camera=True,
+            )
             code = build_cleanup_code(policy, request.dry_run)
 
             raw = await self._execute_code(code)
@@ -258,55 +269,3 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
 
     def __repr__(self) -> str:
         return "SceneCleanupExecutor()"
-
-
-class SceneCleanupPolicy:
-    """Frozen data carrier for resolved cleanup policy.
-
-    Extracted from executor to satisfy SRP — contains no I/O or business logic
-    beyond simple data resolution from request VOs.
-    """
-
-    def __init__(
-        self,
-        mode: str,
-        preserve_cameras: bool,
-        preserve_lights: bool,
-        include_hidden_objects: bool,
-        child_handling_policy: str,
-        dependent_handling_policy: str,
-        protect_active_camera: bool,
-        protect_sole_camera: bool,
-    ) -> None:
-        self.mode = mode
-        self.preserve_cameras = preserve_cameras
-        self.preserve_lights = preserve_lights
-        self.include_hidden_objects = include_hidden_objects
-        self.child_handling_policy = child_handling_policy
-        self.dependent_handling_policy = dependent_handling_policy
-        self.protect_active_camera = protect_active_camera
-        self.protect_sole_camera = protect_sole_camera
-
-    @classmethod
-    def from_request(cls, request: SceneCleanupVO) -> SceneCleanupPolicy:
-        """Resolve policy from cleanup request."""
-        preservation = set(request.preservation_list)
-        return cls(
-            mode=request.mode,
-            preserve_cameras=cls._should_preserve_camera(preservation),
-            preserve_lights=cls._should_preserve_light(preservation),
-            include_hidden_objects=request.include_hidden_objects,
-            child_handling_policy=request.child_handling_policy,
-            dependent_handling_policy=request.dependent_handling_policy,
-            protect_active_camera=True,
-            protect_sole_camera=True,
-        )
-
-    @staticmethod
-    def _should_preserve_camera(_preservation: set[str]) -> bool:
-        # FR-SCN-002: cameras are always protected regardless of preservation list
-        return True
-
-    @staticmethod
-    def _should_preserve_light(preservation: set[str]) -> bool:
-        return "light" in preservation

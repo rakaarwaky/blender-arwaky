@@ -132,6 +132,16 @@ ScaleFactor = NewType("ScaleFactor", float)
 ImageBytes = NewType("ImageBytes", bytes)
 BBoxIntegers = NewType("BBoxIntegers", list[int])
 
+# ============================================================
+# ASSET-SPECIFIC VOs (for AES 402 contract protocol compliance)
+# ============================================================
+
+AssetCollectionName = NewType("AssetCollectionName", str)
+AssetFormatHint = NewType("AssetFormatHint", str | None)
+ScaleNormalization = NewType("ScaleNormalization", bool)
+DuplicatePolicy = NewType("DuplicatePolicy", str)
+ResolutionPreference = NewType("ResolutionPreference", str | None)
+
 # Server-specific VOs for request correlation
 RequestId = NewType("RequestId", str)
 QueueWaitMs = NewType("QueueWaitMs", float)

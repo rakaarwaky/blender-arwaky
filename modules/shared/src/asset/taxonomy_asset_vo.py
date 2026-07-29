@@ -9,7 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from modules.shared.src.common.taxonomy_core_vo import (
+    AssetCollectionName,
     AssetCount,
+    AssetFormatHint,
     AssetId,
     AssetName,
     AssetType,
@@ -18,11 +20,22 @@ from modules.shared.src.common.taxonomy_core_vo import (
     MaxSize,
     ObjectName,
     ProviderName,
+    ScaleNormalization,
     SearchQuery,
     SuccessFlag,
     TagList,
     ThumbnailUrl,
 )
+
+# Re-export types for consumers (e.g., contract_asset_import_protocol.py)
+__all__ = [
+    "AssetCollectionName",
+    "AssetFormatHint",
+    "ScaleNormalization",
+]
+
+# Type alias for resolution preference strings (e.g., "low", "medium", "high")
+ResolutionPreference = str
 
 
 @dataclass(frozen=True)

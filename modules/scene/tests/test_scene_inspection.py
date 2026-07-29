@@ -10,13 +10,18 @@ Unified VO (merged request + response) — no split classes.
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import pytest
 
 from modules.scene.src.capabilities_scene_cleanup_executor import SceneCleanupExecutor
 from modules.scene.src.capabilities_scene_inspection_executor import SceneInspectionExecutor
+
+# Import fixtures and helpers from fixtures.py
+from modules.scene.tests.fixtures import (
+    _empty_scene_result,
+    _make_executor,
+)
 from modules.shared.src.common.taxonomy_core_vo import (
     CleanupMode,
     ObjectCount,
@@ -28,58 +33,13 @@ from modules.shared.src.scene.taxonomy_scene_vo import (
     SceneStateSummaryVO,
 )
 
-# ─── Mock Code Executor ──────────────────────────────────────
-
-
-class MockCodeExecutor:
-    """Mock code executor implementing ICodeExecutionProtocol for testing scene operations."""
-
-    def __init__(self, inspection_result: dict | None = None, cleanup_result: dict | None = None) -> None:
-        self._inspection_result = inspection_result or {
-            "scene_name": "Scene",
-            "total_object_count": 4,
-            "visible_object_count": 3,
-            "hidden_object_count": 1,
-            "object_type_counts": {"MESH": 2, "CAMERA": 1, "LIGHT": 1},
-            "cameras": [{"name": "Cam", "type": "perspective"}],
-            "lights": [{"name": "Lamp", "light_type": "point"}],
-            "active_camera_name": "Cam",
-            "active_object_name": "Cube",
-            "render_engine": "CYCLES",
-            "resolution_x": 1920,
-            "resolution_y": 1080,
-            "frame_start": 1,
-            "frame_end": 250,
-            "unit_system": "METRIC",
-            "collections": [{"name": "Collection", "object_count": 4}],
-        }
-        self._cleanup_result = cleanup_result or {
-            "removed_count": 2,
-            "preserved_count": 2,
-            "skipped_count": 0,
-            "removed_refs": ["Cube", "Sphere"],
-            "preserved_refs": ["Cam", "Lamp"],
-            "skipped_refs": [],
-        }
-
-    async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-        """Return mock result based on whether code contains 'print(result)'."""
-        if "removed_count" in _code or "preserved_count" in _code:
-            # Cleanup code
-            return json.dumps(self._cleanup_result)
-        else:
-            # Inspection code
-            return json.dumps(self._inspection_result)
-
-
 # ─── FR-SCN-001: Inspect Scene State ─────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_fr_scn_001_returns_scene_state_summary():
     """Test that scene inspection returns comprehensive state summary."""
-    mock = MockCodeExecutor()
-    executor = SceneInspectionExecutor(mock)
+    executor = SceneInspectionExecutor(_make_executor())
 
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
@@ -98,8 +58,7 @@ async def test_fr_scn_001_returns_scene_state_summary():
 @pytest.mark.asyncio
 async def test_fr_scn_001_handles_detail_level():
     """Test that inspection respects detail level setting."""
-    mock = MockCodeExecutor()
-    executor = SceneInspectionExecutor(mock)
+    executor = SceneInspectionExecutor(_make_executor())
 
     request = SceneInspectionVO(detail_level="detailed")
     result = await executor.get_scene_info(request)
@@ -111,32 +70,7 @@ async def test_fr_scn_001_handles_detail_level():
 @pytest.mark.asyncio
 async def test_fr_scn_001_handles_empty_scene():
     """Test that inspection handles empty scene gracefully."""
-    import json
-
-    class EmptyExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "EmptyScene",
-                    "total_object_count": 0,
-                    "visible_object_count": 0,
-                    "hidden_object_count": 0,
-                    "object_type_counts": {},
-                    "cameras": [],
-                    "lights": [],
-                    "active_camera_name": "",
-                    "active_object_name": "",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [],
-                }
-            )
-
-    executor = SceneInspectionExecutor(EmptyExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result=_empty_scene_result()))
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
@@ -151,8 +85,7 @@ async def test_fr_scn_001_handles_empty_scene():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_with_preservation():
     """Test that cleanup preserves cameras and lights by default."""
-    mock = MockCodeExecutor()
-    executor = SceneCleanupExecutor(mock)
+    executor = SceneCleanupExecutor(_make_executor())
 
     request = SceneCleanupVO(
         mode=CleanupMode("all"),
@@ -172,8 +105,7 @@ async def test_fr_scn_002_cleanup_with_preservation():
 @pytest.mark.asyncio
 async def test_fr_scn_002_dry_run_does_not_mutate():
     """Test that dry-run cleanup returns preview without modifying scene."""
-    mock = MockCodeExecutor()
-    executor = SceneCleanupExecutor(mock)
+    executor = SceneCleanupExecutor(_make_executor())
 
     request = SceneCleanupVO(
         mode=CleanupMode("all"),
@@ -192,8 +124,7 @@ async def test_fr_scn_002_dry_run_does_not_mutate():
 @pytest.mark.asyncio
 async def test_fr_scn_002_confirmation_required():
     """Test that destructive cleanup requires confirmation."""
-    mock = MockCodeExecutor()
-    executor = SceneCleanupExecutor(mock)
+    executor = SceneCleanupExecutor(_make_executor())
 
     request = SceneCleanupVO(
         mode=CleanupMode("all"),
@@ -212,32 +143,26 @@ async def test_fr_scn_002_confirmation_required():
 @pytest.mark.asyncio
 async def test_fr_scn_001_hidden_objects_included_when_requested():
     """Test that hidden objects are included when explicitly requested."""
-    import json
+    hidden_result = {
+        "scene_name": "Scene",
+        "total_object_count": 5,
+        "visible_object_count": 3,
+        "hidden_object_count": 2,
+        "object_type_counts": {"MESH": 3, "CAMERA": 1, "LIGHT": 1},
+        "cameras": [{"name": "Cam", "type": "perspective"}],
+        "lights": [{"name": "Lamp", "light_type": "point"}],
+        "active_camera_name": "Cam",
+        "active_object_name": "Cube",
+        "render_engine": "CYCLES",
+        "resolution_x": 1920,
+        "resolution_y": 1080,
+        "frame_start": 1,
+        "frame_end": 250,
+        "unit_system": "METRIC",
+        "collections": [{"name": "Collection", "object_count": 5}],
+    }
 
-    class HiddenObjectsExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "Scene",
-                    "total_object_count": 5,
-                    "visible_object_count": 3,
-                    "hidden_object_count": 2,
-                    "object_type_counts": {"MESH": 3, "CAMERA": 1, "LIGHT": 1},
-                    "cameras": [{"name": "Cam", "type": "perspective"}],
-                    "lights": [{"name": "Lamp", "light_type": "point"}],
-                    "active_camera_name": "Cam",
-                    "active_object_name": "Cube",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [{"name": "Collection", "object_count": 5}],
-                }
-            )
-
-    executor = SceneInspectionExecutor(HiddenObjectsExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result=hidden_result))
     request = SceneInspectionVO(include_hidden_objects=True)
     result = await executor.get_scene_info(request)
 
@@ -251,32 +176,26 @@ async def test_fr_scn_001_hidden_objects_included_when_requested():
 @pytest.mark.asyncio
 async def test_fr_scn_001_object_type_filter():
     """Test that object type filter is applied correctly."""
-    import json
+    camera_result = {
+        "scene_name": "Scene",
+        "total_object_count": 1,
+        "visible_object_count": 1,
+        "hidden_object_count": 0,
+        "object_type_counts": {"CAMERA": 1},
+        "cameras": [{"name": "Cam", "type": "perspective"}],
+        "lights": [],
+        "active_camera_name": "Cam",
+        "active_object_name": "Cam",
+        "render_engine": "CYCLES",
+        "resolution_x": 1920,
+        "resolution_y": 1080,
+        "frame_start": 1,
+        "frame_end": 250,
+        "unit_system": "METRIC",
+        "collections": [{"name": "Collection", "object_count": 1}],
+    }
 
-    class FilteredExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "Scene",
-                    "total_object_count": 1,
-                    "visible_object_count": 1,
-                    "hidden_object_count": 0,
-                    "object_type_counts": {"CAMERA": 1},
-                    "cameras": [{"name": "Cam", "type": "perspective"}],
-                    "lights": [],
-                    "active_camera_name": "Cam",
-                    "active_object_name": "Cam",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [{"name": "Collection", "object_count": 1}],
-                }
-            )
-
-    executor = SceneInspectionExecutor(FilteredExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result=camera_result))
     request = SceneInspectionVO(object_type_filter=("CAMERA",))
     result = await executor.get_scene_info(request)
 
@@ -288,32 +207,26 @@ async def test_fr_scn_001_object_type_filter():
 @pytest.mark.asyncio
 async def test_fr_scn_001_correlation_id_propagated():
     """Test that correlation ID is propagated through inspection."""
-    import json
+    empty_result = {
+        "scene_name": "Scene",
+        "total_object_count": 0,
+        "visible_object_count": 0,
+        "hidden_object_count": 0,
+        "object_type_counts": {},
+        "cameras": [],
+        "lights": [],
+        "active_camera_name": "",
+        "active_object_name": "",
+        "render_engine": "CYCLES",
+        "resolution_x": 1920,
+        "resolution_y": 1080,
+        "frame_start": 1,
+        "frame_end": 250,
+        "unit_system": "METRIC",
+        "collections": [],
+    }
 
-    class CorrelatedExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "Scene",
-                    "total_object_count": 0,
-                    "visible_object_count": 0,
-                    "hidden_object_count": 0,
-                    "object_type_counts": {},
-                    "cameras": [],
-                    "lights": [],
-                    "active_camera_name": "",
-                    "active_object_name": "",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [],
-                }
-            )
-
-    executor = SceneInspectionExecutor(CorrelatedExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result=empty_result))
     request = SceneInspectionVO(correlation_id="test-correlation-123")
     result = await executor.get_scene_info(request)
 
@@ -324,6 +237,7 @@ async def test_fr_scn_001_correlation_id_propagated():
 @pytest.mark.asyncio
 async def test_fr_scn_001_none_result_returns_empty_summary():
     """Test that None result from executor is handled gracefully."""
+
     class NoneResultExecutor:
         async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> None:
             return None
@@ -340,6 +254,7 @@ async def test_fr_scn_001_none_result_returns_empty_summary():
 @pytest.mark.asyncio
 async def test_fr_scn_001_non_string_result_returns_empty_summary():
     """Test that non-string result from executor is handled gracefully."""
+
     class NonStringResultExecutor:
         async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> dict[str, Any]:
             return {"invalid": True}
@@ -356,13 +271,7 @@ async def test_fr_scn_001_non_string_result_returns_empty_summary():
 @pytest.mark.asyncio
 async def test_fr_scn_001_json_parse_error_returns_empty_state():
     """Test that malformed JSON returns error state."""
-    import json
-
-    class MalformedJSONExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"scene_name": "Scene", "total_object_count": 0})
-
-    executor = SceneInspectionExecutor(MalformedJSONExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0}))
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
@@ -376,22 +285,16 @@ async def test_fr_scn_001_json_parse_error_returns_empty_state():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_with_custom_preservation_list():
     """Test cleanup with custom preservation list."""
-    import json
+    custom_result = {
+        "removed_count": 1,
+        "preserved_count": 3,
+        "skipped_count": 0,
+        "removed_refs": ["Cube"],
+        "preserved_refs": ["Cam", "Lamp", "Sphere"],
+        "skipped_refs": [],
+    }
 
-    class CustomPreservationExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "removed_count": 1,
-                    "preserved_count": 3,
-                    "skipped_count": 0,
-                    "removed_refs": ["Cube"],
-                    "preserved_refs": ["Cam", "Lamp", "Sphere"],
-                    "skipped_refs": [],
-                }
-            )
-
-    executor = SceneCleanupExecutor(CustomPreservationExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result=custom_result))
     request = SceneCleanupVO(
         mode=CleanupMode("all"),
         preservation_list=("camera", "light", "mesh"),
@@ -408,13 +311,7 @@ async def test_fr_scn_002_cleanup_with_custom_preservation_list():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_malformed_json_returns_empty():
     """Test that malformed JSON from cleanup returns error."""
-    import json
-
-    class MalformedCleanupExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"removed_count": 0, "preserved_count": 0})
-
-    executor = SceneCleanupExecutor(MalformedCleanupExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result={"removed_count": 0, "preserved_count": 0}))
     request = SceneCleanupVO(mode=CleanupMode("all"), confirmation=True)
     result = await executor.cleanup_scene(request)
 
@@ -425,22 +322,16 @@ async def test_fr_scn_002_cleanup_malformed_json_returns_empty():
 @pytest.mark.asyncio
 async def test_fr_scn_002_dry_run_with_no_removable_objects():
     """Test dry-run with no removable objects returns empty preview."""
-    import json
+    empty_cleanup = {
+        "removed_count": 0,
+        "preserved_count": 0,
+        "skipped_count": 0,
+        "removed_refs": [],
+        "preserved_refs": [],
+        "skipped_refs": [],
+    }
 
-    class EmptySceneExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "removed_count": 0,
-                    "preserved_count": 0,
-                    "skipped_count": 0,
-                    "removed_refs": [],
-                    "preserved_refs": [],
-                    "skipped_refs": [],
-                }
-            )
-
-    executor = SceneCleanupExecutor(EmptySceneExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result=empty_cleanup))
     request = SceneCleanupVO(mode=CleanupMode("all"), dry_run=True)
     result = await executor.cleanup_scene(request)
 
@@ -452,32 +343,26 @@ async def test_fr_scn_002_dry_run_with_no_removable_objects():
 @pytest.mark.asyncio
 async def test_fr_scn_001_summarized_detail_level():
     """Test that summarized detail level reduces response size."""
-    import json
+    large_result = {
+        "scene_name": "Scene",
+        "total_object_count": 100,
+        "visible_object_count": 90,
+        "hidden_object_count": 10,
+        "object_type_counts": {"MESH": 80, "CAMERA": 5, "LIGHT": 15},
+        "cameras": [{"name": "Cam", "type": "perspective"}],
+        "lights": [{"name": "Lamp", "light_type": "point"}],
+        "active_camera_name": "Cam",
+        "active_object_name": "Cube",
+        "render_engine": "CYCLES",
+        "resolution_x": 1920,
+        "resolution_y": 1080,
+        "frame_start": 1,
+        "frame_end": 250,
+        "unit_system": "METRIC",
+        "collections": [{"name": "Collection", "object_count": 100}],
+    }
 
-    class SummarizedExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "Scene",
-                    "total_object_count": 100,
-                    "visible_object_count": 90,
-                    "hidden_object_count": 10,
-                    "object_type_counts": {"MESH": 80, "CAMERA": 5, "LIGHT": 15},
-                    "cameras": [{"name": "Cam", "type": "perspective"}],
-                    "lights": [{"name": "Lamp", "light_type": "point"}],
-                    "active_camera_name": "Cam",
-                    "active_object_name": "Cube",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [{"name": "Collection", "object_count": 100}],
-                }
-            )
-
-    executor = SceneInspectionExecutor(SummarizedExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result=large_result))
     request = SceneInspectionVO(detail_level="summarized")
     result = await executor.get_scene_info(request)
 
@@ -561,13 +446,7 @@ async def test_scene_orchestrator_cleanup_scene():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_with_invalid_child_policy():
     """Test cleanup with invalid child handling policy."""
-    import json
-
-    class MockExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"removed_count": 0, "preserved_count": 0})
-
-    executor = SceneCleanupExecutor(MockExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result={"removed_count": 0, "preserved_count": 0}))
     request = SceneCleanupVO(mode=CleanupMode("all"), child_handling_policy="invalid", confirmation=True)
     result = await executor.cleanup_scene(request)
 
@@ -578,13 +457,7 @@ async def test_fr_scn_002_cleanup_with_invalid_child_policy():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_with_invalid_dependent_policy():
     """Test cleanup with invalid dependent handling policy."""
-    import json
-
-    class MockExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"removed_count": 0, "preserved_count": 0})
-
-    executor = SceneCleanupExecutor(MockExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result={"removed_count": 0, "preserved_count": 0}))
     request = SceneCleanupVO(mode=CleanupMode("all"), dependent_handling_policy="invalid", confirmation=True)
     result = await executor.cleanup_scene(request)
 
@@ -595,22 +468,16 @@ async def test_fr_scn_002_cleanup_with_invalid_dependent_policy():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_preserves_cameras_and_lights():
     """Test cleanup preserves cameras and lights by default."""
-    import json
+    camera_light_result = {
+        "removed_count": 1,
+        "preserved_count": 2,
+        "skipped_count": 0,
+        "removed_refs": ["Cube"],
+        "preserved_refs": ["Cam", "Lamp"],
+        "skipped_refs": [],
+    }
 
-    class CameraLightPreservationExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "removed_count": 1,
-                    "preserved_count": 2,
-                    "skipped_count": 0,
-                    "removed_refs": ["Cube"],
-                    "preserved_refs": ["Cam", "Lamp"],
-                    "skipped_refs": [],
-                }
-            )
-
-    executor = SceneCleanupExecutor(CameraLightPreservationExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result=camera_light_result))
     request = SceneCleanupVO(mode=CleanupMode("objects"), confirmation=True)
     result = await executor.cleanup_scene(request)
 
@@ -623,32 +490,24 @@ async def test_fr_scn_002_cleanup_preserves_cameras_and_lights():
 @pytest.mark.asyncio
 async def test_fr_scn_001_inspection_message_on_success():
     """Test that successful inspection includes message."""
-    import json
-
-    class SuccessExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps(
-                {
-                    "scene_name": "Scene",
-                    "total_object_count": 0,
-                    "visible_object_count": 0,
-                    "hidden_object_count": 0,
-                    "object_type_counts": {},
-                    "cameras": [],
-                    "lights": [],
-                    "active_camera_name": "",
-                    "active_object_name": "",
-                    "render_engine": "CYCLES",
-                    "resolution_x": 1920,
-                    "resolution_y": 1080,
-                    "frame_start": 1,
-                    "frame_end": 250,
-                    "unit_system": "METRIC",
-                    "collections": [],
-                }
-            )
-
-    executor = SceneInspectionExecutor(SuccessExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result={
+        "scene_name": "Scene",
+        "total_object_count": 0,
+        "visible_object_count": 0,
+        "hidden_object_count": 0,
+        "object_type_counts": {},
+        "cameras": [],
+        "lights": [],
+        "active_camera_name": "",
+        "active_object_name": "",
+        "render_engine": "CYCLES",
+        "resolution_x": 1920,
+        "resolution_y": 1080,
+        "frame_start": 1,
+        "frame_end": 250,
+        "unit_system": "METRIC",
+        "collections": [],
+    }))
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
@@ -659,13 +518,7 @@ async def test_fr_scn_001_inspection_message_on_success():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_failure_message():
     """Test that cleanup failure includes error message."""
-    import json
-
-    class FailureExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"error": "Cleanup failed"})
-
-    executor = SceneCleanupExecutor(FailureExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result={"error": "Cleanup failed"}))
     request = SceneCleanupVO(mode=CleanupMode("all"), confirmation=True)
     result = await executor.cleanup_scene(request)
 
@@ -676,13 +529,7 @@ async def test_fr_scn_002_cleanup_failure_message():
 @pytest.mark.asyncio
 async def test_fr_scn_002_dry_run_failure_message():
     """Test that dry-run failure includes error message."""
-    import json
-
-    class DryRunFailureExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"error": "Dry-run failed"})
-
-    executor = SceneCleanupExecutor(DryRunFailureExecutor())
+    executor = SceneCleanupExecutor(_make_executor(cleanup_result={"error": "Dry-run failed"}))
     request = SceneCleanupVO(mode=CleanupMode("all"), dry_run=True)
     result = await executor.cleanup_scene(request)
 
@@ -713,13 +560,7 @@ async def test_scene_cleanup_executor_no_code_executor_raises():
 @pytest.mark.asyncio
 async def test_fr_scn_001_inspection_with_all_fields():
     """Test inspection request preserves all input fields."""
-    import json
-
-    class AllFieldsExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"scene_name": "Scene", "total_object_count": 0})
-
-    executor = SceneInspectionExecutor(AllFieldsExecutor())
+    executor = SceneInspectionExecutor(_make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0}))
     request = SceneInspectionVO(
         detail_level="detailed",
         include_hidden_objects=True,
@@ -738,17 +579,12 @@ async def test_fr_scn_001_inspection_with_all_fields():
 @pytest.mark.asyncio
 async def test_fr_scn_002_cleanup_all_modes():
     """Test cleanup with all supported modes (all, objects, meshes)."""
-    import json
-
-    class ModeExecutor:
-        async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
-            return json.dumps({"removed_count": 0, "preserved_count": 0})
+    empty_result = {"removed_count": 0, "preserved_count": 0}
 
     for mode_str in ["all", "objects", "meshes"]:
-        executor = SceneCleanupExecutor(ModeExecutor())
+        executor = SceneCleanupExecutor(_make_executor(cleanup_result=empty_result))
         request = SceneCleanupVO(mode=CleanupMode(mode_str), confirmation=True)
         result = await executor.cleanup_scene(request)
 
         assert isinstance(result, SceneCleanupVO)
         assert result.mode == CleanupMode(mode_str)
-

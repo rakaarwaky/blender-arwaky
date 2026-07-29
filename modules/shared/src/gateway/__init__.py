@@ -1,3 +1,9 @@
+"""Gateway domain — re-exports for contract protocols and taxonomy types.
+
+AES305: __all__ removed to avoid duplication with shared/src/__init__.py
+which already re-exports the same symbols.
+"""
+
 from .contract_code_execution_protocol import CodeExecutionProtocol
 from .contract_connection_protocol import ConnectionProtocol
 from .contract_maintenance_protocol import ConnectionMaintenanceProtocol
@@ -28,32 +34,3 @@ from .taxonomy_gateway_vo import (
     TransportOutcomeVO,
     TransportType,
 )
-
-__all__ = [
-    "GatewayError",
-    "ConnectionError",
-    "TimeoutError",
-    "ProtocolVersionMismatchError",
-    "AuthenticationError",
-    "ChannelConflictError",
-    "SecurityViolationError",
-    "TransportParseError",
-    "PayloadLimitError",
-    "ConnectionState",
-    "TransportType",
-    "ConnectionConfigVO",
-    "ConnectionOutcomeVO",
-    "ConnectionStatusVO",
-    "TransportMessageVO",
-    "TransportOutcomeVO",
-    "SceneOperationVO",
-    "SceneOperationOutcomeVO",
-    "QueueStatusVO",
-    "CodeExecutionVO",
-    "CodeExecutionOutcomeVO",
-    "CodeExecutionProtocol",
-    "ConnectionProtocol",
-    "ConnectionMaintenanceProtocol",
-    "SceneQueueProtocol",
-    "TransportProtocol",
-]

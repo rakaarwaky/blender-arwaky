@@ -22,6 +22,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.shared.src.common.taxonomy_domain_error import (
     ProviderError,
+    ValidationError,
 )
 from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
 from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
@@ -222,9 +223,9 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         Raises NotImplementedError when the size query adapter
         is not wired into the container.
         """
-        raise NotImplementedError(
-            "AssetDownloadCapability._estimate_download_size requires "
-            "a wired size query adapter; configure via AssetContainer constructor.",
+        raise ValidationError(
+            "AssetDownloadCapability._estimate_download_size is not yet implemented; "
+            "a wired size query adapter in AssetContainer is required for this feature.",
         )
 
     async def _submit_background_download(self, _provider: ProviderName, _asset_id: AssetId, _cache_path: str) -> str:
@@ -234,9 +235,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         in the container. Callers must ensure job_scheduler is provided.
         """
         if self.job_scheduler is None:
-            raise NotImplementedError(
-                "Background download requires a wired job_scheduler; "
-                "configure via AssetContainer constructor."
+            raise ValidationError(
+                "Background download requires a wired job_scheduler in AssetContainer."
             )
         return await self.job_scheduler.submit_download(
             provider=_provider, asset_id=_asset_id, cache_path=_cache_path
