@@ -2,22 +2,18 @@
 
 ## Purpose
 
-Manages search, download, cache, extraction, and import of external assets for **blender-arwaky**.
-
-This feature is the single authority for everything that enters the project from outside: discovering assets across providers, acquiring files safely into a local cache, extracting archives under security supervision, and importing acquired files into Blender as usable objects. Provider-specific behavior is isolated behind internal provider adapters so that the rest of the system sees one consistent asset surface.
-
-The asset feature brings files in. It does not manipulate imported objects, light scenes with them, or track long-running work — those responsibilities belong to object, render, and job features respectively.
+Single authority for everything entering blender-arwaky from outside: search providers, download to local cache, extract archives under security supervision, import into Blender. Provider-specific behavior isolated behind internal adapters. Does not manipulate imported objects, light scenes, or track work — those belong to object, render, job features.
 
 ## Scope
 
-- Provider search through one unified operation
-- Provider authentication usage with safe credential handling
+- Provider search (single unified operation)
+- Provider authentication with safe credential handling
 - Asset metadata normalization across providers
 - Download to local cache with integrity verification
 - Cache reuse and eviction policy
 - Overwrite policy for cached artifacts
 - Resolution preference for multi-resolution providers
-- Safe archive extraction delegated to security policy feature
+- Safe archive extraction delegated to security policy
 - Asset import into Blender with object reference handoff
 - License and attribution metadata preservation
 - Background download coordination through job feature
@@ -25,287 +21,138 @@ The asset feature brings files in. It does not manipulate imported objects, ligh
 
 ## Out of Scope
 
-- Object manipulation after import, owned by object feature
-- Scene cleanup, owned by scene feature
-- HDRI lighting setup, owned by render feature
-- Render output, owned by render feature
-- Path traversal protection, owned by security policy feature
-- Background task lifecycle, owned by job feature
-- Settings loading, owned by config feature
-- Asset marketplace purchase or checkout flows
-- Final licensing compliance decisions
-- Cloud asset storage synchronization
+Object manipulation, scene cleanup, HDRI lighting setup, render output, path traversal protection, background task lifecycle, settings loading, marketplace purchase flows, licensing compliance decisions, cloud asset storage sync.
 
 ## Depends On
 
-- config feature for cache location, provider enablement, overwrite policy, and size limits
-- security policy feature for path validation and archive extraction safety
-- job feature for large download tracking and capacity enforcement
-- gateway feature for import command transport into Blender
+config (cache location, provider enablement, overwrite policy, size limits), security policy (path validation, archive extraction safety), job (large download tracking, capacity), gateway (import command transport to Blender).
 
 ## Provides To
 
-- dispatcher feature
-- render feature, which consumes local HDRI file references for lighting setup
+dispatcher, render (local HDRI file references for lighting).
 
 ## Functional Requirements
 
 ### FR-AST-001: Search Assets Across Providers
 
-Asset provides one search operation. Provider-specific behavior handled by internal provider adapter.
-
-- **Description**: Query enabled providers through one unified search operation and return normalized, aggregated results
-- **Input**: Search request concept containing text query, optional provider filter, optional asset type filter, optional category filter, optional result limit, optional pagination cursor
-- **Output**: Search result concept containing normalized asset metadata list, provider status summary, pagination metadata, and warnings
-- **Business Rules**:
-  - Callers see one search operation regardless of how many providers are enabled
-  - Provider-specific request shaping, authentication, and response parsing live inside provider adapters, never in calling features
-  - Each enabled provider is queried independently with its own timeout
-  - Provider failure must not block other providers; failures are logged and skipped
-  - Partial results must be returned when at least one provider succeeds
-  - All provider results must be normalized into the common asset metadata shape before aggregation
-  - Search should support provider filter, asset type filter, and category filter
-  - Marketplace-style providers should filter to downloadable assets by default
-  - Provider authentication uses stored credentials; credentials must never appear in results, logs, or events
-  - Rate limit responses must be surfaced as provider warnings or provider errors depending on severity
-  - Pagination remains provider-specific; aggregated results preserve provider pagination metadata when available
-  - Duplicate assets from different providers may be deduplicated when identity equivalence can be safely determined
-  - Empty query may return curated or default results when provider supports it, otherwise return empty result
-  - Provider enablement comes from configuration; disabled providers are excluded with warning
-- **Edge Cases**: All providers fail, empty query, no providers registered, provider disabled, provider timeout, rate limit exceeded, malformed provider response, missing authentication for provider, no results, partial pagination cursor, oversized result set, duplicate assets across providers
-- **Error Handling**: Provider error recorded per failed provider with aggregated summary when all fail; validation error for malformed search parameters; authentication error when provider credentials missing or invalid; partial results returned whenever possible
+- **Description**: Query enabled providers through one unified search, return normalized aggregated results
+- **Input**: Search request (text query, optional provider/asset type/category filter, result limit, pagination cursor)
+- **Output**: Search result (normalized asset metadata list, provider status summary, pagination metadata, warnings)
+- **Rules**: 1 search operation regardless of provider count. Provider adapters encapsulate request shaping, auth, parsing. Each enabled provider queried independently with own timeout. Provider failure non-blocking; partial results returned when ≥1 provider succeeds. Results normalized to common shape before aggregation. Duplicate assets deduplicated when equivalence is safely determinable. Empty query returns curated/default results if provider supports. Disabled providers excluded with warning. Marketplace providers filter to downloadable by default. Rate limits surfaced as warning/error. Pagination provider-specific. Credentials never in results/logs/events.
+- **Edge Cases**: All providers fail, empty query, no providers registered, provider disabled/timeout/rate-limited/malformed response, missing auth, no results, partial pagination cursor, oversized result set, duplicates across providers
+- **Error Handling**: Per-provider error with aggregated summary when all fail; validation error for malformed params; auth error for missing/invalid credentials; partial results whenever possible
 
 ### FR-AST-002: Download Asset to Cache
 
-Asset downloads file to cache. Asset uses security for path validation. Asset uses job for large downloads.
-
-- **Description**: Acquire an asset file from its provider into the local cache with integrity verification and background coordination for large transfers
-- **Input**: Download request concept containing provider identifier, asset identifier, asset type, resolution preference, overwrite policy, and background execution policy
-- **Output**: Download result concept containing success indicator, local artifact reference, downloaded size, cache status, integrity status, and message; or task reference when submitted as background download
-- **Business Rules**:
-  - Cache location must come from configuration; asset feature must never invent storage locations
-  - Cache location and destination paths must be validated through security policy feature
-  - Existing cached artifact follows configured overwrite policy:
-    - reuse cached artifact
-    - overwrite existing artifact
-    - create unique variant
-  - Valid cached artifact satisfying request must be reused without network access
-  - Corrupted or integrity-failed cached artifact must trigger re-download or surface cache error according to policy
-  - Downloaded artifact should be verified for existence, non-empty size, and checksum when provider supplies one
-  - Download should write to temporary artifact first and finalize atomically so partial files are never served as valid cache entries
-  - Maximum download size must be enforced from configuration
-  - Resolution preference applies when provider offers multiple asset resolutions
-  - Expected large downloads must be submitted through job feature and return task reference
-  - Capacity exhaustion from job feature propagates as capacity error without partial cache side effects
-  - Provider credentials must be handled safely and never logged or echoed in results
-  - License and attribution metadata should be recorded alongside artifact when available
-  - Download operation must not import asset; import is a separate operation
-  - Concurrent downloads of the same asset should resolve to one transfer where detectable
-- **Edge Cases**: Asset not found, provider download unavailable, download timeout, permission denied destination, cache full, corrupted cached artifact, integrity checksum mismatch, rate limit exceeded, authentication failure, oversized asset, network interruption, concurrent download of same asset, resolution unavailable falling back to nearest available
-- **Error Handling**: Asset not found error when identifier cannot be resolved; provider error for remote failure; security violation error delegated from security policy feature; capacity error delegated from job feature; cache error for unreadable or unwritable cache state; timeout error for exceeded download duration
+- **Description**: Acquire asset file from provider into local cache with integrity verification, background coordination for large transfers
+- **Input**: Download request (provider ID, asset ID, type, resolution preference, overwrite policy, background execution policy)
+- **Output**: Download result (success, local artifact ref, size, cache status, integrity status) or task reference for background
+- **Rules**: Cache location from config, validated by security. Overwrite policy: reuse/overwrite/create_unique. Valid cached artifact reused without network. Corrupted artifact → re-download or cache error. Integrity verification when checksum available. Atomic write (temp → final). Max download size enforced. Resolution preference when offered. Large downloads → job feature, task reference returned. Capacity exhaustion → capacity error, no partial cache side-effects. Credentials never logged. License/attribution recorded. Download ≠ import. Concurrent same-asset downloads resolve to one transfer.
+- **Edge Cases**: Asset not found, provider unavailable, timeout, permission denied, cache full, corrupted artifact, checksum mismatch, rate limit, auth failure, oversized asset, network interruption, concurrent download of same asset, resolution unavailable
+- **Error Handling**: Asset not found, provider error, security violation (delegated), capacity error (delegated), cache error, timeout error
 
 ### FR-AST-003: Extract Asset Archive
 
-Asset uses security for extraction. Asset must not implement path traversal protection itself.
-
-- **Description**: Extract downloaded archive artifacts under security policy supervision, never implementing traversal protection locally
-- **Input**: Extraction request concept containing local artifact reference, extraction destination within allowed directories, and extraction options
-- **Output**: Extraction result concept containing success indicator, extracted file references, rejected entry summary, and message
-- **Business Rules**:
-  - All archive safety decisions are delegated to security policy feature:
-    - entry path validation
-    - traversal and escape rejection
-    - depth, size, and entry count limits
-    - symbolic link and hard link policy
-  - Asset feature must not implement its own path traversal protection
-  - Extraction destination must be validated through security policy feature before any entry is written
-  - Extraction proceeds only after security approval of the extraction plan
-  - Rejected entries must be reported in result without exposing unsafe target paths in raw form
-  - Already-extracted and valid artifact may be reused without re-extraction when extraction cache policy allows
-  - Partial extraction must be cleaned up on failure so corrupt or incomplete trees are not mistaken for valid cache content
-  - Supported archive formats depend on runtime capability; unsupported formats produce clear validation error
-  - Extracted file references must be returned for downstream import operations
-  - Extraction of nested archives follows the same security supervision as top-level extraction
-- **Edge Cases**: Archive entry outside destination, nested archive, archive bomb pattern, excessive entry count, excessive extracted size, symbolic link entry, hard link entry, invalid entry encoding, duplicate entry names, unsupported archive format, permission denied destination, partial extraction after failure, disk full
-- **Error Handling**: Archive safety error delegated from security policy feature for depth, size, count, or link violations; security violation error delegated for path escape attempts; cache error for unwritable extraction destination; validation error for unsupported or malformed archive
+- **Description**: Extract downloaded archives under security policy supervision. Must not implement traversal protection locally.
+- **Input**: Extraction request (artifact ref, destination, options)
+- **Output**: Extraction result (success, extracted file refs, rejected entry summary)
+- **Rules**: All archive safety decisions delegated to security: entry path validation, traversal/escape rejection, depth/size/entry count limits, symlink/hardlink policy. Asset never implements own traversal protection. Destination validated by security before any write. Plan-level approval. Rejected entries reported without exposing unsafe paths. Already-extracted valid artifact reused. Partial extraction cleaned up on failure. Unsupported format → validation error. Nested archives follow same supervision.
+- **Edge Cases**: Entry outside destination, nested archive, archive bomb, excessive count/size, symlink/hardlink, invalid encoding, duplicate names, unsupported format, permission denied, partial extraction after failure, disk full
+- **Error Handling**: Archive safety error (delegated), security violation (delegated), cache error, validation error
 
 ### FR-AST-004: Import Asset into Blender
 
-Asset imports file into Blender. Asset returns object reference. After import, object manipulation is responsibility of object feature.
-
-- **Description**: Import a locally available asset file into Blender and return the resulting object references, stopping at the handoff boundary
-- **Input**: Import request concept containing local file reference, asset type, optional target collection, scale normalization policy, duplicate handling policy, and format hint
-- **Output**: Import result concept containing success indicator, imported object references, imported asset metadata summary including license attribution, and message
-- **Business Rules**:
-  - File must exist locally before import; missing local file must direct caller toward download operation rather than failing obscurely
-  - Import command is transported through gateway feature; asset feature never talks to Blender directly
-  - Supported import formats depend on runtime capability and asset type
-  - Scale normalization policy may normalize imported model to expected scene units
-  - Duplicate handling policy may be one of:
-    - rename imported object
-    - reuse existing imported asset
-    - replace existing asset
-    - reject duplicate import
-  - Imported object should be added to active scene and target collection when specified
-  - Result must return canonical object references after successful import
-  - Asset feature responsibility ends at object reference handoff; all subsequent manipulation belongs to object feature
-  - Expected long-running imports may be submitted through job feature when supported
-  - License and attribution metadata must be preserved in import result when available
-  - Import failure must be distinguished clearly from download or extraction failure
-  - Missing texture or dependency files should be reported as warnings when import still succeeds
-- **Edge Cases**: Unsupported format, corrupted file, missing local file, import failure inside Blender, target collection missing, duplicate asset, oversized scene content, missing texture dependencies, format version mismatch, linked asset data conflict, import timeout
-- **Error Handling**: Asset import error for Blender-side import failure; asset not found error for missing local file with download guidance; validation error for unsupported format or invalid import parameters; scene state error for missing target collection; timeout error delegated from gateway for exceeded import duration
+- **Description**: Import locally available asset file into Blender, return object references. Object manipulation after handoff belongs to object feature.
+- **Input**: Import request (file ref, asset type, target collection, scale normalization policy, duplicate handling policy, format hint)
+- **Output**: Import result (success, object refs, metadata summary including license attribution)
+- **Rules**: File must exist locally first → missing file directs caller to download. Import via gateway (never direct Blender talk). Scale normalization optional. Duplicate handling: rename/reuse/replace/reject. Object added to active scene + target collection if specified. Feature responsibility ends at object ref handoff. Long-running imports may use job feature. License/attribution preserved. Import failure distinguished from download/extraction failure. Missing texture dependencies → warnings when import succeeds.
+- **Edge Cases**: Unsupported format, corrupted file, missing local file, import failure in Blender, missing target collection, duplicate asset, oversized scene, missing texture dependencies, format version mismatch, linked data conflict, timeout
+- **Error Handling**: Import error (Blender-side), asset not found with download guidance, validation error, scene state error, timeout error (delegated)
 
 ### FR-AST-005: Manage Provider Metadata
 
-Asset normalizes metadata: name, provider, type, categories, preview, license, download availability.
-
-- **Description**: Normalize provider-specific asset descriptions into one consistent metadata shape consumed across the system
-- **Input**: Raw provider asset description concept
-- **Output**: Normalized asset metadata concept
-- **Business Rules**:
-  - Normalized metadata must include at least:
-    - asset name
-    - provider identifier
-    - asset identifier
-    - asset type
-    - categories when available
-    - preview or thumbnail reference when available
-    - license summary when available
-    - download availability flag
-  - Missing optional fields must fall back to safe empty values, never absent structure
-  - License information is informational and does not constitute legal clearance
-  - Attribution requirements from provider must be preserved when present
-  - Preview references must not embed credentials or signed locations in results
-  - Pagination cursors must remain opaque to callers
-  - Provider capability metadata should describe supported asset types, pagination behavior, and authentication requirements
-  - Cached metadata may be reused within configured freshness window to reduce provider load
-  - Stale metadata affecting download availability should be refreshed before download when policy requires
-  - Provider-specific extra fields may be preserved in extension container without breaking the common shape
-  - Metadata handling must never expose provider secrets or user credentials
-- **Edge Cases**: Missing required fields, unknown license, preview unavailable, provider-specific extra fields, conflicting metadata between providers for equivalent asset, stale cached metadata, metadata cache expired, provider changed schema
-- **Error Handling**: Provider error when raw metadata cannot be retrieved; validation error when raw metadata cannot be normalized safely; stale metadata refreshed or flagged rather than silently served
+- **Description**: Normalize provider-specific asset descriptions into one consistent metadata shape
+- **Input**: Raw provider asset description
+- **Output**: Normalized asset metadata
+- **Rules**: Normalized shape: name, provider ID, asset ID, type, categories, preview/thumbnail ref, license summary, download availability flag. Missing optional fields → safe empty values, never absent. License info is informational only. Attribution preserved. Preview refs never embed credentials. Pagination cursors opaque. Provider capability metadata describes supported types/pagination/auth. Cache within freshness window. Stale metadata refreshed before download. Provider extra fields preserved in extension container without breaking common shape. No secrets exposed.
+- **Edge Cases**: Missing required fields, unknown license, preview unavailable, provider-specific extras, conflicting metadata across providers, stale cache, schema changed
+- **Error Handling**: Provider error on retrieval failure; validation error when normalization unsafe; stale metadata refreshed/flagged
 
 ## Boundary: Asset vs Object
 
-- Asset feature owns acquisition and import:
-
-  - provider search
-  - download and caching
-  - extraction
-  - import producing object references
-- Object feature owns manipulation of existing objects:
-
-  - transform, material, modifier, deletion
-  - single object operations after import is complete
-
-Conceptual separation:
-
-- Asset acquisition and import is requested through the asset feature import operation, which produces object references
-- Subsequent positioning, material assignment, or modifier work is requested through the object feature operations using those object references
-
-The asset feature hands objects into the scene. The object feature takes over from there.
+Asset owns acquisition+import (search, download, cache, extraction, import → object refs). Object owns manipulation of existing objects (transform, material, modifier, deletion). Asset hands objects into scene; object takes over.
 
 ## Boundary: Asset vs Render
 
-- Asset feature owns HDRI file acquisition:
-
-  - search, download, cache, and local file availability
-- Render feature owns HDRI lighting configuration:
-
-  - world environment setup, strength, rotation, background visibility
-
-Conceptual separation:
-
-- HDRI file acquisition is requested through the asset feature download operation, which produces a local file reference
-- HDRI lighting configuration is then requested through the render feature lighting operation using that local file reference and lighting settings
-
-The asset feature never touches scene lighting. The render feature never downloads files.
+Asset owns HDRI file acquisition (search, download, cache, local file). Render owns HDRI lighting config (world env, strength, rotation, background visibility). Asset never touches scene lighting; render never downloads files.
 
 ## Error Categories
 
-- asset not found error — asset not found in any provider, or local file missing when import expected
-- asset import error — import into Blender failed after successful acquisition
-- provider error — provider API failure, timeout, or malformed response
-- security violation error — path validation or archive safety failed, delegated through security policy feature
-- capacity error — download capacity exceeded, delegated through job feature
-- cache error — cache unreadable, unwritable, corrupted, or full
-- archive safety error — extraction limits violated, delegated from security policy feature
-- authentication error — provider credentials missing or invalid
-- timeout error — download or import exceeded configured duration
-- validation error — malformed search, download, extraction, or import parameters
+| Category | Description |
+|---|---|
+| asset not found | Not in any provider, or local file missing at import |
+| asset import error | Blender import failed after successful acquisition |
+| provider error | API failure, timeout, malformed response |
+| security violation | Path/archive validation failed (delegated) |
+| capacity error | Download capacity exceeded (delegated) |
+| cache error | Unreadable, unwritable, corrupted, full |
+| archive safety error | Extraction limits violated (delegated) |
+| authentication error | Provider credentials missing/invalid |
+| timeout error | Download/import exceeded configured duration |
+| validation error | Malformed search/download/extraction/import params |
 
 ## Events
 
-- asset searched event — search completed with result count and provider status summary
-- asset downloaded event — file downloaded to cache with size, resolution, and integrity status
-- asset cache hit event — valid cached artifact served without network access
-- archive extracted event — extraction completed with extracted and rejected entry counts
-- asset imported event — asset imported into Blender with object reference count
-- provider degraded event — provider failed or rate-limited while others continued
+- asset searched (result count + provider status)
+- asset downloaded (size, resolution, integrity)
+- asset cache hit (reused without network)
+- archive extracted (entry counts)
+- asset imported (object ref count)
+- provider degraded (failed/rate-limited while others continued)
 
-Event payloads should include:
-
-- event category
-- provider identifier and asset identifier
-- asset type
-- size and duration metadata
-- cache status where applicable
-- tracking identifier when available
-- error category when failed
-
-Event payloads must avoid:
-
-- provider credentials and signed locations
-- full filesystem paths beyond redacted form
-- raw provider response payloads
-- license legal text beyond summary indicator
+Payloads include category, provider ID, asset ID, type, size, duration, cache status, tracking ID, error category. Never: credentials, signed locations, full paths, raw provider responses, license legal text.
 
 ## Configuration Keys
 
-
-| Configuration Concept         | Description                                                               | Typical Default                             |
-| ------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
-| Local cache directory         | Validated directory where downloaded and extracted artifacts reside       | Application-managed cache directory         |
-| Overwrite policy              | Handling of existing cached artifact: reuse, overwrite, or unique variant | Reuse cached artifact                       |
-| Enabled provider list         | Providers active for search and download                                  | All supported providers enabled             |
-| Maximum download size         | Upper bound for single asset download                                     | Conservative size limit                     |
-| Resolution preference         | Preferred asset resolution when provider offers multiple                  | Highest available within size limit         |
-| Cache eviction policy         | How excess or stale cache entries are removed                             | Oldest terminal entries first with size cap |
-| Default result limit          | Default number of search results per provider                             | Conservative result count                   |
-| Provider timeout              | Maximum wait per provider request                                         | Conservative request limit                  |
-| Integrity verification        | Whether checksum or size verification applies after download              | Enabled when provider supplies checksum     |
-| Extraction destination policy | Where extracted content may reside relative to cache                      | Inside validated cache subtree              |
+| Key | Description | Default |
+|---|---|---|
+| local_cache_directory | Where artifacts reside | App-managed cache dir |
+| overwrite_policy | reuse/overwrite/create_unique | reuse |
+| enabled_providers | Active for search+download | All supported |
+| maximum_download_size | Single asset upper bound | Conservative |
+| resolution_preference | Preferred when multiple offered | Highest within size limit |
+| cache_eviction_policy | How excess entries removed | Oldest terminal first, size cap |
+| default_result_limit | Search results per provider | Conservative count |
+| provider_timeout | Max wait per provider request | Conservative |
+| integrity_verification | Checksum/size check after download | Enabled when checksum available |
+| extraction_destination_policy | Where extracted content may reside | Inside validated cache subtree |
 
 ## QA Checklist
 
-- [ ]  Search returns normalized results from all enabled providers in common shape
-- [ ]  Single search operation used regardless of provider count
-- [ ]  Provider-specific behavior contained inside provider adapters
-- [ ]  Single provider failure returns partial results from remaining providers
-- [ ]  All providers failure returns empty result with aggregated provider error summary
-- [ ]  Provider credentials never appear in results, logs, or events
-- [ ]  Marketplace-style providers filter to downloadable assets by default
-- [ ]  Rate limit surfaced as provider warning or provider error
-- [ ]  Download uses security for path validation before write
-- [ ]  Download writes temporary artifact and finalizes atomically
-- [ ]  Valid cached artifact reused without network access
-- [ ]  Corrupted cached artifact triggers re-download or cache error
-- [ ]  Integrity checksum verified when provider supplies one
-- [ ]  Maximum download size enforced
-- [ ]  Large downloads tracked via job feature with task reference returned
-- [ ]  Capacity exhaustion surfaces as capacity error without partial cache entry
-- [ ]  Archive extraction uses security policy feature, not own traversal implementation
-- [ ]  Extraction destination validated before any entry written
-- [ ]  Rejected archive entries reported without exposing unsafe paths
-- [ ]  Partial extraction cleaned up on failure
-- [ ]  Nested archives follow same security supervision
-- [ ]  Import returns object references after successful import
-- [ ]  Import distinguishes import failure from download and extraction failure
-- [ ]  Missing local file at import directs caller toward download operation
-- [ ]  Duplicate import handled according to configured policy
-- [ ]  Scale normalization applied when policy enabled
-- [ ]  License and attribution metadata preserved through download and import
-- [ ]  Post-import manipulation delegated to object feature, not duplicated
-- [ ]  HDRI download separate from render lighting setup
-- [ ]  Search, download, cache hit, extraction, import, and provider degradation events emitted
+- [ ] Search returns normalized results from all enabled providers
+- [ ] Single search operation regardless of provider count
+- [ ] Provider adapters encapsulate all provider-specific behavior
+- [ ] Single provider failure → partial results from remaining providers
+- [ ] All providers fail → empty result with aggregated error
+- [ ] Credentials never in results/logs/events
+- [ ] Traversal protection: download uses security for path validation
+- [ ] Atomic write (temp → final)
+- [ ] Valid cached artifact reused without network
+- [ ] Corrupted artifact → re-download or error
+- [ ] Integrity verified when checksum available
+- [ ] Max download size enforced
+- [ ] Large downloads tracked via job with task ref returned
+- [ ] Capacity exhaustion → capacity error, no partial cache
+- [ ] Archive extraction uses security, not own traversal
+- [ ] Destination validated before any write
+- [ ] Rejected entries reported without exposing unsafe paths
+- [ ] Partial extraction cleaned up on failure
+- [ ] Nested archives follow same supervision
+- [ ] Import returns object refs
+- [ ] Import failure distinguished from download/extraction failure
+- [ ] Missing local file directs toward download
+- [ ] Duplicate import handled per configured policy
+- [ ] License/attribution preserved through download and import
+- [ ] Post-import manipulation delegated to object feature
+- [ ] HDRI download separate from render lighting setup
+- [ ] All 6 events emitted
