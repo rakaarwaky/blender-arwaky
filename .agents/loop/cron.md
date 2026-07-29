@@ -25,6 +25,7 @@ prompt: "Read .agents/loop/fullstack-developer-prompt.md and execute it as the F
 recurring: true
 durable: true
 ```
+
 ### Cron #3 — Business Analyst
 
 ```
