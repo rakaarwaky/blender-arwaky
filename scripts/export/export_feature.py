@@ -37,6 +37,7 @@ IMPORTANT_FILES = {
     "README.md",
     "FRD.md",
     "ARCHITECTURE.md",
+    "RULES_AES.md",
 }
 
 EXCLUDED_DIR_NAMES = {
