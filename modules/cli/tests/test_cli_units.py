@@ -23,9 +23,9 @@ SRC = os.path.join(os.path.dirname(__file__), "..", "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-import surface_cli_blender_manager as bm_mod  # noqa: E402
-import surface_cli_registry as registry_mod  # noqa: E402
-import surface_cli_socket_client as socket_mod  # noqa: E402
+import utility_cli_blender_process as bm_mod  # noqa: E402
+import utility_cli_registry as registry_mod  # noqa: E402
+import utility_cli_socket_client as socket_mod  # noqa: E402
 
 
 # ── Registry ────────────────────────────────────────────────────────────────
