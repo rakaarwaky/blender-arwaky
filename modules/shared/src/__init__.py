@@ -205,14 +205,7 @@ from .config.taxonomy_config_vo import (
     SettingsSnapshot,
     WorkspacePath,
 )
-from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
 from .diagnostics.contract_diagnostics_aggregate import IDiagnosticsAggregate
-from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
-
-# Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
-from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
-from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
-from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
 
 # === Dispatcher domain exports ===
 from .dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
@@ -579,11 +572,6 @@ __all__ = [
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
     "TelemetrySessionProtocol",
-    "HealthCompositionProtocol",
-    "MetricsCollectionProtocol",
-    "AuditEmissionProtocol",
-    "LoggingPolicyProtocol",
-    "DiagnosticsSnapshotProtocol",
     "IDiagnosticsAggregate",
     "IConfigAggregate",
     "ISettingsLoaderProtocol",
