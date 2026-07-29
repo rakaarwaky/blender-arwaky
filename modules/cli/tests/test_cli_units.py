@@ -13,6 +13,7 @@ plan/report.
 """
 
 import importlib.util as _importlib_util
+import sys
 import os
 import struct
 from unittest import mock
@@ -21,19 +22,25 @@ import pytest
 
 _ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 
-_spec = _importlib_util.spec_from_file_location(
-    "utility_blender_process",
-    os.path.join(_ROOT, "shared", "src", "launcher", "utility_blender_process.py"),
-)
-bm_mod = _importlib_util.module_from_spec(_spec)
-_spec.loader.exec_module(bm_mod)
 
-_spec = _importlib_util.spec_from_file_location(
-    "utility_runtime_registry",
-    os.path.join(_ROOT, "shared", "src", "launcher", "utility_runtime_registry.py"),
+def _load_module(name: str, path: str) -> object:
+    """Load a module from a file path, registering it in sys.modules."""
+    spec = _importlib_util.spec_from_file_location(name, path)
+    mod = _importlib_util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+bm_mod = _load_module(
+    "cli.utility_cli_process",
+    os.path.join(_ROOT, "cli", "src", "utility_cli_process.py"),
 )
-registry_mod = _importlib_util.module_from_spec(_spec)
-_spec.loader.exec_module(registry_mod)
+
+registry_mod = _load_module(
+    "cli.utility_cli_registry",
+    os.path.join(_ROOT, "cli", "src", "utility_cli_registry.py"),
+)
 
 _spec = _importlib_util.spec_from_file_location(
     "utility_socket_client",

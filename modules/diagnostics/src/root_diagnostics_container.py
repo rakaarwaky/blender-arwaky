@@ -9,6 +9,7 @@ This file is the composition root for the diagnostics feature.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 
 from modules.diagnostics.src.agent_diagnostics_orchestrator import DiagnosticsOrchestrator
 from modules.diagnostics.src.capabilities_audit_emission import (
@@ -23,6 +24,16 @@ from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProv
 logger = logging.getLogger("BlenderMCPServer")
 
 
+@dataclass(frozen=True)
+class DiagnosticsConfigVO:
+    """Diagnostics configuration resolved from config feature."""
+
+    health_probe_timeout_seconds: float = 5.0
+    freshness_tolerance_seconds: float = 10.0
+    audit_max_buffer_size: int = 1000
+    logging_max_buffer_size: int = 10000
+
+
 class DiagnosticsContainer:
     """Dependency injection container for the diagnostics feature module.
 
@@ -30,7 +41,8 @@ class DiagnosticsContainer:
     SnapshotProvisioner, and InMemoryEventBus into the DiagnosticsOrchestrator.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: DiagnosticsConfigVO | None = None) -> None:
+        self._config = config or DiagnosticsConfigVO()
         self._orchestrator: DiagnosticsOrchestrator | None = None
         self._event_bus: InMemoryEventBus | None = None
         self._wired: bool = False
@@ -45,8 +57,8 @@ class DiagnosticsContainer:
         self._event_bus = InMemoryEventBus()
         health_composer = HealthComposer()
         metrics_collector = MetricsCollector()
-        audit_emitter = AuditEmitter()
-        logging_policy = LoggingPolicy()
+        audit_emitter = AuditEmitter(max_buffer_size=self._config.audit_max_buffer_size)
+        logging_policy = LoggingPolicy(max_buffer_size=self._config.logging_max_buffer_size)
         snapshot_provisioner = SnapshotProvisioner(
             health_provider=health_composer,
             metrics_provider=metrics_collector,
@@ -82,8 +94,10 @@ class DiagnosticsContainer:
         return self._event_bus
 
 
-def create_diagnostics_feature() -> DiagnosticsOrchestrator:
+def create_diagnostics_feature(
+    config: DiagnosticsConfigVO | None = None,
+) -> DiagnosticsOrchestrator:
     """Factory function to create and wire the diagnostics feature module."""
-    container = DiagnosticsContainer()
+    container = DiagnosticsContainer(config=config)
     container.wire()
     return container.agent

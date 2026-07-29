@@ -1,8 +1,10 @@
-"""Runtime registry — tracks active Blender instance state via registry.json.
+"""CLI registry — tracks active Blender instance state via registry.json.
 
-Shared utility between CLI surface and launcher feature.
-Persists active entity, PID, and port with thread-safe singleton access.
+Shared utility between CLI surface commands. Manages active entity, PID,
+and port with thread-safe singleton access.
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -17,6 +19,7 @@ DEFAULT_PORT = 9876
 @dataclass
 class RegistryState:
     """State of the active Blender instance."""
+
     active_entity: str | None = None
     port: int = DEFAULT_PORT
     pid: int | None = None

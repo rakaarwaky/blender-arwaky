@@ -9,8 +9,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
-
 
 class IDiagnosticsAggregate(ABC):
     """Aggregate facade for diagnostics operations.
@@ -26,8 +24,7 @@ class IDiagnosticsAggregate(ABC):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-        source_tool: ToolName | None = None,
-    ) -> Details: ...
+    ) -> Any: ...
 
     @abstractmethod
     async def get_snapshot(

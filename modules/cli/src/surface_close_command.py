@@ -3,8 +3,9 @@
 from typing import Any
 
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-from modules.shared.src.launcher.utility_blender_process import is_running, kill_blender
-from modules.shared.src.launcher.utility_runtime_registry import Registry
+
+from .utility_cli_process import is_running, kill_blender
+from .utility_cli_registry import Registry
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:

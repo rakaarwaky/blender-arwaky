@@ -12,11 +12,13 @@ from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
 from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
 from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
 from modules.diagnostics.src.root_diagnostics_container import (
+    DiagnosticsConfigVO,
     DiagnosticsContainer,
     create_diagnostics_feature,
 )
 
 __all__ = [
+    "DiagnosticsConfigVO",
     "HealthComposer",
     "MetricsCollector",
     "AuditEmitter",

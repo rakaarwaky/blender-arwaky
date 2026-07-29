@@ -15,6 +15,7 @@ import logging
 import os
 import signal
 import subprocess
+import time
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
@@ -111,6 +112,9 @@ class LauncherContainer:
             bridge_probe=self._real_probe,
             persisted_state_resolver=lambda: None,
         )
+
+        # Track launch time for uptime calculation (FR-LAU-004)
+        status_cap.mark_launched(time.monotonic())
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,

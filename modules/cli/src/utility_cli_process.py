@@ -1,8 +1,9 @@
-"""Blender process lifecycle — launch, find, kill, check.
+"""CLI process helpers — launch, find, kill, check Blender process.
 
-Shared utility between CLI surface and launcher feature.
-Delegates to launcher feature contracts (FR-LAU-001..004).
+Shared utility between CLI surface commands. Stateless functions only.
 """
+
+from __future__ import annotations
 
 import contextlib
 import os

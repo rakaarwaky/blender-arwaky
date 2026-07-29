@@ -84,11 +84,13 @@ class ExecutableLocator(LocateRegisterProtocol):
         return order
 
     def _validate(self, path: str) -> ExecutableReferenceVO:
-        if not os.path.isfile(path) or not os.access(path, os.X_OK):
-            raise ExecutableValidationError(f"Not an executable file: {path}")
-        version = self._detect_version(path)
+        # Resolve symlinks for canonical path (FR-LAU-001: normalized + symlink-safe)
+        canonical = os.path.realpath(path)
+        if not os.path.isfile(canonical) or not os.access(canonical, os.X_OK):
+            raise ExecutableValidationError(f"Not an executable file: {canonical}")
+        version = self._detect_version(canonical)
         compat = self._check_compatibility(version)
-        return ExecutableReferenceVO(path=path, version_summary=version, compatibility=compat)
+        return ExecutableReferenceVO(path=canonical, version_summary=version, compatibility=compat)
 
     def _detect_version(self, path: str) -> str:
         if self._runner is None:
