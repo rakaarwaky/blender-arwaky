@@ -7,10 +7,9 @@ settings value retrieval with safe copy semantics.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigPath
-from .taxonomy_config_vo import SettingsSnapshot
+from .taxonomy_config_vo import SettingsSnapshot, SettingsValue
 
 
 class ISettingsRetrieverProtocol(ABC):
@@ -21,8 +20,8 @@ class ISettingsRetrieverProtocol(ABC):
         self,
         snapshot: SettingsSnapshot,
         path: ConfigPath,
-        default: Any = None,
-    ) -> Any:
+        default: SettingsValue = None,
+    ) -> SettingsValue:
         """Retrieve a value by dot-separated path. Returns deep copy to prevent mutation."""
         ...
 

@@ -7,9 +7,8 @@ patterns and redaction rules used by consuming features for masking.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from .taxonomy_config_vo import RedactionRule
+from .taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
 class IRedactionRulesProtocol(ABC):
@@ -21,11 +20,11 @@ class IRedactionRulesProtocol(ABC):
         ...
 
     @abstractmethod
-    def redact_value(self, key: str, value: Any) -> Any:
+    def redact_value(self, key: str, value: SettingsValue) -> SettingsValue:
         """Redact a value if its key matches a sensitive pattern."""
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact all sensitive values in a dictionary."""
         ...

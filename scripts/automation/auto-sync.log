@@ -14,3 +14,7 @@
 [2026-07-29 22:32:02] Merge dengan strategi 'theirs' (remote menang saat conflict)...
 [2026-07-29 22:32:03] ERROR: ❌ Merge gagal meski pakai theirs. Perlu bantuan manual.
 [2026-07-29 22:33:27] WARNING: Ada uncommitted changes. Script di-skip.
+[2026-07-29 22:33:35] Trigger aktif! Local ahead: 2 | behind: 3
+[2026-07-29 22:33:35] WARNING: Local & remote diverge!
+[2026-07-29 22:33:35] Merge dengan strategi 'theirs' (remote menang saat conflict)...
+[2026-07-29 22:34:00] WARNING: Ada uncommitted changes. Script di-skip.

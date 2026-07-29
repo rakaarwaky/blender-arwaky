@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
@@ -61,6 +62,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
+            timestamp=time.time(),
         )
 
 # ─── Block 3: Resolution Strategy ─────────────────────────

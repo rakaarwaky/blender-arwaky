@@ -11,11 +11,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
-from .taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
+from .taxonomy_config_vo import (
+    EventPayload,
+    RedactionRule,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSnapshot,
+    SettingsValue,
+    WorkspacePath,
+)
 
 
 class IConfigAggregate(ABC):
@@ -30,7 +37,7 @@ class IConfigAggregate(ABC):
     def load(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings and return immutable snapshot."""
         ...
@@ -48,7 +55,7 @@ class IConfigAggregate(ABC):
     # ─── Retrieval (FR-CFG-002) ────────────────────────────────
 
     @abstractmethod
-    def get(self, path: ConfigPath = "", default: Any = None) -> Any:
+    def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path from current snapshot."""
         ...
 
@@ -94,7 +101,7 @@ class IConfigAggregate(ABC):
     # ─── Events (T-09) ─────────────────────────────────────────
 
     @abstractmethod
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return recent config domain events, oldest → newest."""
         ...
 
@@ -106,6 +113,6 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact sensitive values in a dictionary."""
         ...
