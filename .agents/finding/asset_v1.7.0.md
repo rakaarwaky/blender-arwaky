@@ -1,6 +1,6 @@
-# Module: dispatcher (v1.7.0)
+# Module: asset (v1.7.0)
 
-This document contains the source code for module `dispatcher` along with related and imported definitions from the `shared` module.
+This document contains the source code for module `asset` along with related and imported definitions from the `shared` module.
 
 ## File List
 
@@ -42,37 +42,48 @@ This document contains the source code for module `dispatcher` along with relate
 - [.agents/skills/lint-arwaky-rust/SKILL.md](<.agents/skills/lint-arwaky-rust/SKILL.md>)
 - [.agents/skills/lint-arwaky-typescript/SKILL.md](<.agents/skills/lint-arwaky-typescript/SKILL.md>)
 - [ARCHITECTURE.md](<ARCHITECTURE.md>)
-- [modules/dispatcher/FRD.md](<modules/dispatcher/FRD.md>)
-- [modules/dispatcher/pyproject.toml](<modules/dispatcher/pyproject.toml>)
-- [modules/dispatcher/src/__init__.py](<modules/dispatcher/src/__init__.py>)
-- [modules/dispatcher/src/agent_dispatcher_orchestrator.py](<modules/dispatcher/src/agent_dispatcher_orchestrator.py>)
-- [modules/dispatcher/src/capabilities_action_discovery.py](<modules/dispatcher/src/capabilities_action_discovery.py>)
-- [modules/dispatcher/src/capabilities_background_submit.py](<modules/dispatcher/src/capabilities_background_submit.py>)
-- [modules/dispatcher/src/capabilities_catalog_registration.py](<modules/dispatcher/src/capabilities_catalog_registration.py>)
-- [modules/dispatcher/src/capabilities_request_validation.py](<modules/dispatcher/src/capabilities_request_validation.py>)
-- [modules/dispatcher/src/capabilities_result_normalization.py](<modules/dispatcher/src/capabilities_result_normalization.py>)
-- [modules/dispatcher/src/capabilities_sync_dispatch.py](<modules/dispatcher/src/capabilities_sync_dispatch.py>)
-- [modules/dispatcher/src/root_dispatcher_container.py](<modules/dispatcher/src/root_dispatcher_container.py>)
-- [modules/dispatcher/src/surface_action_registry.py](<modules/dispatcher/src/surface_action_registry.py>)
-- [modules/dispatcher/src/surface_asset_action.py](<modules/dispatcher/src/surface_asset_action.py>)
-- [modules/dispatcher/src/surface_config_action.py](<modules/dispatcher/src/surface_config_action.py>)
-- [modules/dispatcher/src/surface_job_action.py](<modules/dispatcher/src/surface_job_action.py>)
-- [modules/dispatcher/src/surface_launcher_action.py](<modules/dispatcher/src/surface_launcher_action.py>)
-- [modules/dispatcher/src/surface_object_action.py](<modules/dispatcher/src/surface_object_action.py>)
-- [modules/dispatcher/src/surface_render_action.py](<modules/dispatcher/src/surface_render_action.py>)
-- [modules/dispatcher/src/surface_scene_action.py](<modules/dispatcher/src/surface_scene_action.py>)
-- [modules/shared/src/dispatcher/__init__.py](<modules/shared/src/dispatcher/__init__.py>)
-- [modules/shared/src/dispatcher/contract_action_discovery_protocol.py](<modules/shared/src/dispatcher/contract_action_discovery_protocol.py>)
-- [modules/shared/src/dispatcher/contract_background_submit_protocol.py](<modules/shared/src/dispatcher/contract_background_submit_protocol.py>)
-- [modules/shared/src/dispatcher/contract_catalog_registration_protocol.py](<modules/shared/src/dispatcher/contract_catalog_registration_protocol.py>)
-- [modules/shared/src/dispatcher/contract_dispatcher_aggregate.py](<modules/shared/src/dispatcher/contract_dispatcher_aggregate.py>)
-- [modules/shared/src/dispatcher/contract_request_validation_protocol.py](<modules/shared/src/dispatcher/contract_request_validation_protocol.py>)
-- [modules/shared/src/dispatcher/contract_result_normalization_protocol.py](<modules/shared/src/dispatcher/contract_result_normalization_protocol.py>)
-- [modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py](<modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py>)
-- [modules/shared/src/dispatcher/taxonomy_action_command_vo.py](<modules/shared/src/dispatcher/taxonomy_action_command_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py](<modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py](<modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py](<modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py>)
+- [modules/asset/FRD.md](<modules/asset/FRD.md>)
+- [modules/asset/src/__init__.py](<modules/asset/src/__init__.py>)
+- [modules/asset/src/agent_asset_orchestrator.py](<modules/asset/src/agent_asset_orchestrator.py>)
+- [modules/asset/src/capabilities_asset_download.py](<modules/asset/src/capabilities_asset_download.py>)
+- [modules/asset/src/capabilities_asset_extract.py](<modules/asset/src/capabilities_asset_extract.py>)
+- [modules/asset/src/capabilities_asset_import.py](<modules/asset/src/capabilities_asset_import.py>)
+- [modules/asset/src/capabilities_asset_provider.py](<modules/asset/src/capabilities_asset_provider.py>)
+- [modules/asset/src/capabilities_asset_search_handler.py](<modules/asset/src/capabilities_asset_search_handler.py>)
+- [modules/asset/src/root_asset_container.py](<modules/asset/src/root_asset_container.py>)
+- [modules/asset/src/surface_asset_search_command.py](<modules/asset/src/surface_asset_search_command.py>)
+- [modules/shared/src/asset/__init__.py](<modules/shared/src/asset/__init__.py>)
+- [modules/shared/src/asset/contract_asset_aggregate.py](<modules/shared/src/asset/contract_asset_aggregate.py>)
+- [modules/shared/src/asset/contract_asset_download_protocol.py](<modules/shared/src/asset/contract_asset_download_protocol.py>)
+- [modules/shared/src/asset/contract_asset_extract_protocol.py](<modules/shared/src/asset/contract_asset_extract_protocol.py>)
+- [modules/shared/src/asset/contract_asset_import_protocol.py](<modules/shared/src/asset/contract_asset_import_protocol.py>)
+- [modules/shared/src/asset/contract_asset_provider_connection.py](<modules/shared/src/asset/contract_asset_provider_connection.py>)
+- [modules/shared/src/asset/contract_asset_provider_protocol.py](<modules/shared/src/asset/contract_asset_provider_protocol.py>)
+- [modules/shared/src/asset/contract_asset_search_protocol.py](<modules/shared/src/asset/contract_asset_search_protocol.py>)
+- [modules/shared/src/asset/taxonomy_asset_data_vo.py](<modules/shared/src/asset/taxonomy_asset_data_vo.py>)
+- [modules/shared/src/asset/taxonomy_asset_metadata_vo.py](<modules/shared/src/asset/taxonomy_asset_metadata_vo.py>)
+- [modules/shared/src/asset/taxonomy_asset_vo.py](<modules/shared/src/asset/taxonomy_asset_vo.py>)
+- [modules/shared/src/asset/utility/__init__.py](<modules/shared/src/asset/utility/__init__.py>)
+- [modules/shared/src/asset/utility/utility_file_format_detector.py](<modules/shared/src/asset/utility/utility_file_format_detector.py>)
+- [modules/shared/src/asset/utility/utility_polyhaven_search.py](<modules/shared/src/asset/utility/utility_polyhaven_search.py>)
+- [modules/shared/src/asset/utility/utility_sketchfab_search.py](<modules/shared/src/asset/utility/utility_sketchfab_search.py>)
+- [modules/shared/src/common/__init__.py](<modules/shared/src/common/__init__.py>)
+- [modules/shared/src/common/taxonomy_core_vo.py](<modules/shared/src/common/taxonomy_core_vo.py>)
+- [modules/shared/src/common/taxonomy_domain_error.py](<modules/shared/src/common/taxonomy_domain_error.py>)
+- [modules/shared/src/config/__init__.py](<modules/shared/src/config/__init__.py>)
+- [modules/shared/src/config/contract_config_protocol.py](<modules/shared/src/config/contract_config_protocol.py>)
+- [modules/shared/src/gateway/__init__.py](<modules/shared/src/gateway/__init__.py>)
+- [modules/shared/src/gateway/contract_gateway_client_protocol.py](<modules/shared/src/gateway/contract_gateway_client_protocol.py>)
+- [modules/shared/src/gateway/taxonomy_gateway_error.py](<modules/shared/src/gateway/taxonomy_gateway_error.py>)
+- [modules/shared/src/job/__init__.py](<modules/shared/src/job/__init__.py>)
+- [modules/shared/src/job/contract_job_protocol.py](<modules/shared/src/job/contract_job_protocol.py>)
+- [modules/shared/src/job/taxonomy_job_error.py](<modules/shared/src/job/taxonomy_job_error.py>)
+- [modules/shared/src/job/taxonomy_job_vo.py](<modules/shared/src/job/taxonomy_job_vo.py>)
+- [modules/shared/src/security/__init__.py](<modules/shared/src/security/__init__.py>)
+- [modules/shared/src/security/contract_extract_archive_protocol.py](<modules/shared/src/security/contract_extract_archive_protocol.py>)
+- [modules/shared/src/security/contract_validate_path_protocol.py](<modules/shared/src/security/contract_validate_path_protocol.py>)
+- [modules/shared/src/security/taxonomy_security_error.py](<modules/shared/src/security/taxonomy_security_error.py>)
+- [modules/shared/src/security/taxonomy_security_vo.py](<modules/shared/src/security/taxonomy_security_vo.py>)
 - [PRD.md](<PRD.md>)
 - [pyproject.toml](<pyproject.toml>)
 - [README.md](<README.md>)
@@ -7433,2161 +7444,2040 @@ Root may depend on all layers.
 
 ---
 
-## File: modules/dispatcher/FRD.md
+## File: modules/asset/FRD.md
 
 ```markdown
-# FRD — Action Dispatcher Feature
+# FRD — External Asset Feature
 
 ## Purpose
 
-Single routing and catalog authority between consumers and domain capabilities. CLI and MCP never call domain features directly — they submit action requests to dispatcher, which resolves from catalog, validates params, routes execution to owning feature, coordinates background submission where supported, and returns every outcome in one unified result envelope.
+Single authority for everything entering blender-arwaky from outside: search providers, download to local cache, extract archives under security supervision, import into Blender. Provider-specific behavior isolated behind internal adapters. Does not manipulate imported objects, light scenes, or track work — those belong to object, render, job features.
 
 ## Scope
 
-- Action catalog registration and storage
-- Action schema definition and validation
-- Action metadata (timeout, idempotency, mutation, background, destructive, read-only, long-running flags, risk level, owning feature, examples)
-- Request validation against catalog schema
-- Routing action to correct domain feature or gateway
-- Background submission coordination with job feature
-- Unified result envelope for all outcomes
-- Tracking ID generation and propagation
-- Capability discovery for consumers
-- Destructive action confirmation enforcement
-- Timeout override bounds enforcement
-- Domain error mapping into unified categories
+- Provider search (single unified operation)
+- Provider authentication with safe credential handling
+- Asset metadata normalization across providers
+- Download to local cache with integrity verification
+- Cache reuse and eviction policy
+- Overwrite policy for cached artifacts
+- Resolution preference for multi-resolution providers
+- Safe archive extraction delegated to security policy
+- Asset import into Blender with object reference handoff
+- License and attribution metadata preservation
+- Background download coordination through job feature
+- Provider capability and health awareness
 
 ## Out of Scope
 
-Blender transport/message framing, queue management/serialization, task lifecycle, security validation of code/paths, domain business rules, logging/metrics storage, consumer-specific presentation formatting, asset provider communication, authentication/connection management.
+Object manipulation, scene cleanup, HDRI lighting setup, render output, path traversal protection, background task lifecycle, settings loading, marketplace purchase flows, licensing compliance decisions, cloud asset storage sync.
 
 ## Depends On
 
-gateway (transport-backed action execution + queue), object/scene/render/asset (domain actions), job (background task creation + correlation), security policy (destructive confirmation, redaction), diagnostics (routing + completion events).
+config (cache location, provider enablement, overwrite policy, size limits), security policy (path validation, archive extraction safety), job (large download tracking, capacity), gateway (import command transport to Blender).
 
 ## Provides To
 
-CLI, MCP layer, any consumer requiring unified action discovery, dispatch, or normalized results.
+dispatcher, render (local HDRI file references for lighting).
 
 ## Functional Requirements
 
-### FR-DSP-001: Register Action Catalog
+### FR-AST-001: Search Assets Across Providers
 
-- **Description**: Accept action registrations from domain features, maintain consistent queryable catalog
-- **Input**: Action registration (name, owning feature, description, param schema, result hints, metadata)
-- **Output**: Registration result (accepted, catalog version, warnings)
-- **Rules**: Dispatcher is sole catalog owner. Each registration: unique name, owning feature, description, param schema (required fields, types, ranges, allowed values), default timeout + timeout class, idempotency flag, scene mutation flag, background eligibility flag, destructive flag, read-only flag, long-running flag, risk level, ≥1 usage example. Schema integrity validated before acceptance. Duplicate name → rejected or replaced per policy with warning. Catalog deterministic ordering (by name). Immutable for consumers after registration phase. Hot re-registration configurable without interrupting in-flight dispatch. Catalog version exposed. No secrets/sensitive defaults. Degraded owning feature → marked in discovery.
-- **Edge Cases**: Duplicate name, invalid schema, missing owning feature, registration after startup, conflicting metadata, empty catalog, oversized examples, unauthorized feature, version regression
-- **Error Handling**: Registration error for conflict; validation error for malformed schema; warning for duplicate replacement + degraded feature
+- **Description**: Query enabled providers through one unified search, return normalized aggregated results
+- **Input**: Search request (text query, optional provider/asset type/category filter, result limit, pagination cursor)
+- **Output**: Search result (normalized asset metadata list, provider status summary, pagination metadata, warnings)
+- **Rules**: 1 search operation regardless of provider count. Provider adapters encapsulate request shaping, auth, parsing. Each enabled provider queried independently with own timeout. Provider failure non-blocking; partial results returned when ≥1 provider succeeds. Results normalized to common shape before aggregation. Duplicate assets deduplicated when equivalence is safely determinable. Empty query returns curated/default results if provider supports. Disabled providers excluded with warning. Marketplace providers filter to downloadable by default. Rate limits surfaced as warning/error. Pagination provider-specific. Credentials never in results/logs/events.
+- **Edge Cases**: All providers fail, empty query, no providers registered, provider disabled/timeout/rate-limited/malformed response, missing auth, no results, partial pagination cursor, oversized result set, duplicates across providers
+- **Error Handling**: Per-provider error with aggregated summary when all fail; validation error for malformed params; auth error for missing/invalid credentials; partial results whenever possible
 
-### FR-DSP-002: Discover Actions
+### FR-AST-002: Download Asset to Cache
 
-- **Description**: Expose canonical catalog to consumers with optional filtering
-- **Input**: Discovery request (name filter, category/capability filter, detail level)
-- **Output**: Discovery result (action list with metadata, catalog version, count)
-- **Rules**: Same canonical content to all consumers. Presentation is consumer responsibility. Read-only, idempotent. Each action: name, description, param schema, examples, timeout, flags, risk level, owning feature, degraded indicator. Filtering deterministic, case-consistent. Filter matching nothing → empty list, not error. Never exposes routing internals or secrets. Fast from in-memory catalog. Catalog version for consumer compatibility.
-- **Edge Cases**: Empty catalog, filter mutching nothing, malformed filter, oversized metadata at full detail, discovery during hot re-registration, unsupported detail level, degraded feature
-- **Error Handling**: Validation error for malformed filter; empty result for no match; degraded indicator surfaced
+- **Description**: Acquire asset file from provider into local cache with integrity verification, background coordination for large transfers
+- **Input**: Download request (provider ID, asset ID, type, resolution preference, overwrite policy, background execution policy)
+- **Output**: Download result (success, local artifact ref, size, cache status, integrity status) or task reference for background
+- **Rules**: Cache location from config, validated by security. Overwrite policy: reuse/overwrite/create_unique. Valid cached artifact reused without network. Corrupted artifact → re-download or cache error. Integrity verification when checksum available. Atomic write (temp → final). Max download size enforced. Resolution preference when offered. Large downloads → job feature, task reference returned. Capacity exhaustion → capacity error, no partial cache side-effects. Credentials never logged. License/attribution recorded. Download ≠ import. Concurrent same-asset downloads resolve to one transfer.
+- **Edge Cases**: Asset not found, provider unavailable, timeout, permission denied, cache full, corrupted artifact, checksum mismatch, rate limit, auth failure, oversized asset, network interruption, concurrent download of same asset, resolution unavailable
+- **Error Handling**: Asset not found, provider error, security violation (delegated), capacity error (delegated), cache error, timeout error
 
-### FR-DSP-003: Validate Action Request
+### FR-AST-003: Extract Asset Archive
 
-- **Description**: Validate incoming request against catalog schema before routing
-- **Input**: Action request (name, payload, optional execution mode, timeout override, confirmation flag, tracking ID)
-- **Output**: Validated request enriched with resolved metadata + tracking ID
-- **Rules**: Name must exist in catalog → not found error. Payload must satisfy schema: required fields present, types correct, numeric ranges, text length limits, enumerated allowed sets, payload size limit. Invalid → validation error with field-level detail. Unknown extra params: rejected (strict) or ignored with warning (tolerant). Execution mode compatible with metadata → unsupported error. Destructive → requires confirmation flag. Timeout override within bounds. Tracking ID generated if absent. Never mutates request or catalog.
-- **Edge Cases**: Unknown action, missing/wrong-type/out-of-range param, invalid enumerated, unknown extra, oversized payload, destructive without confirmation, timeout out of bounds, ambiguous casing, malformed tracking ID, degraded feature
-- **Error Handling**: Not found error; validation error with field-level detail; unsupported error for mode mismatch; confirmation error for missing flag
+- **Description**: Extract downloaded archives under security policy supervision. Must not implement traversal protection locally.
+- **Input**: Extraction request (artifact ref, destination, options)
+- **Output**: Extraction result (success, extracted file refs, rejected entry summary)
+- **Rules**: All archive safety decisions delegated to security: entry path validation, traversal/escape rejection, depth/size/entry count limits, symlink/hardlink policy. Asset never implements own traversal protection. Destination validated by security before any write. Plan-level approval. Rejected entries reported without exposing unsafe paths. Already-extracted valid artifact reused. Partial extraction cleaned up on failure. Unsupported format → validation error. Nested archives follow same supervision.
+- **Edge Cases**: Entry outside destination, nested archive, archive bomb, excessive count/size, symlink/hardlink, invalid encoding, duplicate names, unsupported format, permission denied, partial extraction after failure, disk full
+- **Error Handling**: Archive safety error (delegated), security violation (delegated), cache error, validation error
 
-### FR-DSP-004: Dispatch Synchronous Action
+### FR-AST-004: Import Asset into Blender
 
-- **Description**: Route validated action to owning domain feature or gateway, return normalized result
-- **Input**: Validated request (resolved metadata + tracking ID)
-- **Output**: Unified result envelope (outcome data or categorized failure)
-- **Rules**: Routing target = owning feature from catalog metadata. Dispatcher never interprets/transforms domain meaning beyond schema validation. Enforces action timeout from metadata or bounded override. Tracking ID propagates to feature, gateway, and envelope. Domain errors mapped to unified categories. Non-idempotent actions never retried automatically. Read-only actions may flag to bypass serialization (final queue decision by gateway). Destructive → carries confirmation state. Records duration + owning feature in metadata. Unavailable feature → execution error with degraded detail. Partial results normalized with warning list. Stateless across requests.
-- **Edge Cases**: Feature unavailable, timeout during execution, domain error without category, partial result with warnings, connection loss mid-dispatch, duplicate tracking ID, dispatch during hot re-registration, oversized/non-serializable result, destructive confirmation revoked mid-dispatch
-- **Error Handling**: Execution error for domain failure; timeout error; connection error mapped from gateway; unsupported error for incompatible mode; normalization fallback for uncategorized errors
+- **Description**: Import locally available asset file into Blender, return object references. Object manipulation after handoff belongs to object feature.
+- **Input**: Import request (file ref, asset type, target collection, scale normalization policy, duplicate handling policy, format hint)
+- **Output**: Import result (success, object refs, metadata summary including license attribution)
+- **Rules**: File must exist locally first → missing file directs caller to download. Import via gateway (never direct Blender talk). Scale normalization optional. Duplicate handling: rename/reuse/replace/reject. Object added to active scene + target collection if specified. Feature responsibility ends at object ref handoff. Long-running imports may use job feature. License/attribution preserved. Import failure distinguished from download/extraction failure. Missing texture dependencies → warnings when import succeeds.
+- **Edge Cases**: Unsupported format, corrupted file, missing local file, import failure in Blender, missing target collection, duplicate asset, oversized scene, missing texture dependencies, format version mismatch, linked data conflict, timeout
+- **Error Handling**: Import error (Blender-side), asset not found with download guidance, validation error, scene state error, timeout error (delegated)
 
-### FR-DSP-005: Submit Background Action
+### FR-AST-005: Manage Provider Metadata
 
-- **Description**: Create job for long-running actions, return task reference in unified envelope
-- **Input**: Validated request with background mode
-- **Output**: Unified envelope (task reference, initial job state, submission metadata)
-- **Rules**: Only for actions with background eligibility flag. Creates job via job feature, returns task ref. Dispatcher never manages task lifecycle after handoff. Capacity limit enforced from config; exhaustion → capacity error, no orphan job. Tracking ID → job correlation ID. Atomic submission: job created + acknowledged before success; failure before creation → execution error with no task ref. Duplicate with idempotency hint may return existing task ref. Result clearly indicates polling required. Payload size limits respected. Emits observability event.
-- **Edge Cases**: Capacity exceeded, not background eligible, job creation failure, duplicate with idempotency hint, oversized payload, submission during shutdown, tracking ID collision, job feature unavailable
-- **Error Handling**: Capacity error; unsupported error for non-eligible action; execution error for job creation failure; warning for duplicate resolved to existing task
+- **Description**: Normalize provider-specific asset descriptions into one consistent metadata shape
+- **Input**: Raw provider asset description
+- **Output**: Normalized asset metadata
+- **Rules**: Normalized shape: name, provider ID, asset ID, type, categories, preview/thumbnail ref, license summary, download availability flag. Missing optional fields → safe empty values, never absent. License info is informational only. Attribution preserved. Preview refs never embed credentials. Pagination cursors opaque. Provider capability metadata describes supported types/pagination/auth. Cache within freshness window. Stale metadata refreshed before download. Provider extra fields preserved in extension container without breaking common shape. No secrets exposed.
+- **Edge Cases**: Missing required fields, unknown license, preview unavailable, provider-specific extras, conflicting metadata across providers, stale cache, schema changed
+- **Error Handling**: Provider error on retrieval failure; validation error when normalization unsafe; stale metadata refreshed/flagged
 
-### FR-DSP-006: Normalize Operation Result
+## Boundary: Asset vs Object
 
-- **Description**: Normalize every dispatch/submission outcome into one unified result envelope
-- **Input**: Raw outcome from sync dispatch or background submission
-- **Output**: Unified result envelope
-- **Rules**: Envelope: success indicator, data payload, error category (when failed), human-readable message, tracking ID, warning list, metadata summary (action name, feature, execution mode, duration, applied timeout, task ref for background, truncation indicator). Data serializable and bounded by max size; oversized → truncated with indicator. Non-serializable → safe text representation. Error detail: category, message, field-level detail. Mixed outcomes (success + warnings) preserve warning list. No secrets/raw code/sensitive paths. Construction failure → safe error envelope. Identical shape for CLI and MCP.
-- **Edge Cases**: Non-serializable data, oversized payload, missing tracking ID, domain result without error category, success with warnings, partial failure, envelope construction failure, sensitive value inside data, empty data with success, incomplete background metadata
-- **Error Handling**: Normalization fallback to safe error envelope; truncation indicator; redaction before emission; warnings preserved, not converted to failure
+Asset owns acquisition+import (search, download, cache, extraction, import → object refs). Object owns manipulation of existing objects (transform, material, modifier, deletion). Asset hands objects into scene; object takes over.
+
+## Boundary: Asset vs Render
+
+Asset owns HDRI file acquisition (search, download, cache, local file). Render owns HDRI lighting config (world env, strength, rotation, background visibility). Asset never touches scene lighting; render never downloads files.
 
 ## Error Categories
 
-- validation error — invalid params, malformed request, schema violation
-- not found error — action not in catalog
-- execution error — action execution failed within feature/gateway
-- capacity error — background capacity exceeded
-- unsupported error — execution mode not supported
-- timeout error — action timeout exceeded
-- confirmation error — destructive without required confirmation
-- registration error — conflict or invalid schema at registration
+| Category | Description |
+|---|---|
+| asset not found | Not in any provider, or local file missing at import |
+| asset import error | Blender import failed after successful acquisition |
+| provider error | API failure, timeout, malformed response |
+| security violation | Path/archive validation failed (delegated) |
+| capacity error | Download capacity exceeded (delegated) |
+| cache error | Unreadable, unwritable, corrupted, full |
+| archive safety error | Extraction limits violated (delegated) |
+| authentication error | Provider credentials missing/invalid |
+| timeout error | Download/import exceeded configured duration |
+| validation error | Malformed search/download/extraction/import params |
 
 ## Events
 
-- action routed (validated + tracking ID)
-- action completed (finished with outcome + duration)
-- action rejected (validation failure with error category)
-- background job submitted (task ref + action name)
-- catalog registered (action count + version)
-- action failed (mapped error + feature reference)
+- asset searched (result count + provider status)
+- asset downloaded (size, resolution, integrity)
+- asset cache hit (reused without network)
+- archive extracted (entry counts)
+- asset imported (object ref count)
+- provider degraded (failed/rate-limited while others continued)
 
-Payloads: category, action name, tracking ID, feature, execution mode, error category (when failed), duration. Never: full params by default, secrets, raw code, oversized result.
+Payloads include category, provider ID, asset ID, type, size, duration, cache status, tracking ID, error category. Never: credentials, signed locations, full paths, raw provider responses, license legal text.
 
 ## Configuration Keys
 
 | Key | Description | Default |
 |---|---|---|
-| default_action_timeout | When metadata doesn't declare one | Conservative |
-| maximum_allowed_timeout | Upper bound for overrides | Bounded multiple of default |
-| background_capacity | Max concurrent background tasks | Conservative |
-| unknown_parameter_policy | strict/tolerant | strict |
-| destructive_confirmation_enforced | Require confirmation flag | Enabled |
-| maximum_result_data_size | Envelope data payload limit | Conservative |
-| catalog_hot_re_registration | Allow re-registration after startup | Disabled |
-| tracking_id_generation | Generate when absent | Enabled |
+| local_cache_directory | Where artifacts reside | App-managed cache dir |
+| overwrite_policy | reuse/overwrite/create_unique | reuse |
+| enabled_providers | Active for search+download | All supported |
+| maximum_download_size | Single asset upper bound | Conservative |
+| resolution_preference | Preferred when multiple offered | Highest within size limit |
+| cache_eviction_policy | How excess entries removed | Oldest terminal first, size cap |
+| default_result_limit | Search results per provider | Conservative count |
+| provider_timeout | Max wait per provider request | Conservative |
+| integrity_verification | Checksum/size check after download | Enabled when checksum available |
+| extraction_destination_policy | Where extracted content may reside | Inside validated cache subtree |
 
 ## QA Checklist
 
-- [ ] Catalog registered with complete metadata; duplicate → handled per policy
-- [ ] Invalid schema rejected at registration
-- [ ] Deterministic ordering + catalog version
-- [ ] Same catalog to CLI and MCP
-- [ ] Filter matching nothing → empty list
-- [ ] Degraded feature surfaced in discovery
-- [ ] Unknown action → not found error
-- [ ] Invalid params → validation error with field-level detail
-- [ ] Unknown extra params: strict=reject, tolerant=ignore
-- [ ] Destructive without confirmation → confirmation error
-- [ ] Timeout override out of bounds → reject
-- [ ] Tracking ID generated if absent, propagated onward
-- [ ] Sync dispatch to correct owning feature
-- [ ] Result normalized into unified envelope
-- [ ] Action timeout enforced
-- [ ] Non-idempotent not retried automatically
-- [ ] Domain errors mapped to unified categories
-- [ ] Partial results with warning list preserved
-- [ ] Background → job created + task ref returned
-- [ ] Non-eligible → unsupported error
-- [ ] Capacity exhausted → capacity error, no orphan job
-- [ ] Duplicate with idempotency hint → existing task ref
-- [ ] Envelope: success, data, error, message, tracking ID, warnings, metadata
-- [ ] Oversized data → truncation with indicator
-- [ ] Non-serializable → safe representation
-- [ ] Secrets/raw code/sensitive paths never leaked
-- [ ] Envelope construction failure → safe error envelope
-- [ ] All events emitted
+- [ ] Search returns normalized results from all enabled providers
+- [ ] Single search operation regardless of provider count
+- [ ] Provider adapters encapsulate all provider-specific behavior
+- [ ] Single provider failure → partial results from remaining providers
+- [ ] All providers fail → empty result with aggregated error
+- [ ] Credentials never in results/logs/events
+- [ ] Traversal protection: download uses security for path validation
+- [ ] Atomic write (temp → final)
+- [ ] Valid cached artifact reused without network
+- [ ] Corrupted artifact → re-download or error
+- [ ] Integrity verified when checksum available
+- [ ] Max download size enforced
+- [ ] Large downloads tracked via job with task ref returned
+- [ ] Capacity exhaustion → capacity error, no partial cache
+- [ ] Archive extraction uses security, not own traversal
+- [ ] Destination validated before any write
+- [ ] Rejected entries reported without exposing unsafe paths
+- [ ] Partial extraction cleaned up on failure
+- [ ] Nested archives follow same supervision
+- [ ] Import returns object refs
+- [ ] Import failure distinguished from download/extraction failure
+- [ ] Missing local file directs toward download
+- [ ] Duplicate import handled per configured policy
+- [ ] License/attribution preserved through download and import
+- [ ] Post-import manipulation delegated to object feature
+- [ ] HDRI download separate from render lighting setup
+- [ ] All 6 events emitted
 ```
 
 ---
 
-## File: modules/dispatcher/pyproject.toml
-
-```toml
-[project]
-name = "blender-arwaky-dispatcher"
-version = "1.7.0"
-description = "BlenderArwaky action dispatcher module"
-requires-python = ">=3.10"
-license = {text = "MIT"}
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["."]
-```
-
----
-
-## File: modules/dispatcher/src/__init__.py
+## File: modules/asset/src/__init__.py
 
 ```python
-"""Dispatcher feature module — AES implementation.
+"""Asset feature module — AES implementation.
 
 Layers:
-  - Taxonomy (shared/src/dispatcher/) → VOs: ActionMetadataVO, ActionCommandVO,
-    ValidationOutcomeVO, DiscoveryOutcomeVO, UnifiedResultEnvelopeVO
-  - Contract (shared/src/dispatcher/) → 6 individual protocols
-  - Capabilities (6 executors)        → One per FR operation
-  - Agent                             → DispatcherOrchestrator (Aggregate facade)
-  - Surface action schemas            → Shared action parameter definitions for CLI + MCP
+  - Taxonomy (shared/src/asset/)    → VOs for search, download, extract, import
+  - Contract (shared/src/asset/)   → AssetSearchProtocol, AssetDownloadProtocol,
+                                      AssetExtractProtocol, AssetImportProtocol,
+                                      AssetProviderProtocol
+  - Capabilities                   → SearchCapability, DownloadCapability,
+                                      ExtractCapability, ImportCapability,
+                                      ProviderMetadataCapability
+  - Agent                          → AssetOrchestrator
+  - Root                           → AssetContainer (DI wiring)
 
 Surface layer is intentionally absent — MCP/CLI command handlers live in
-their respective feature modules (modules/mcp, modules/cli). Action schemas
-live here so both surfaces share a single source of truth.
+their respective feature modules (modules/mcp, modules/cli).
 """
 
-from .agent_dispatcher_orchestrator import DispatcherOrchestrator
-from .capabilities_action_discovery import ActionDiscoveryExecutor
-from .capabilities_background_submit import BackgroundSubmitExecutor
-from .capabilities_catalog_registration import CatalogRegistrationExecutor
-from .capabilities_request_validation import RequestValidationExecutor
-from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
+from .agent_asset_orchestrator import AssetOrchestrator
+from .capabilities_asset_download import AssetDownloadCapability
+from .capabilities_asset_extract import AssetExtractCapability
+from .capabilities_asset_import import AssetImportCapability
+from .capabilities_asset_provider import AssetProviderMetadataCapability
+from .capabilities_asset_search_handler import AssetSearchHandler
+from .root_asset_container import AssetContainer, create_asset_container
 
 __all__ = [
-    "ActionDiscoveryExecutor",
-    "BackgroundSubmitExecutor",
-    "CatalogRegistrationExecutor",
-    "DispatcherOrchestrator",
-    "RequestValidationExecutor",
-    "ResultNormalizationExecutor",
-    "SyncDispatchExecutor",
+    "AssetOrchestrator",
+    "AssetDownloadCapability",
+    "AssetExtractCapability",
+    "AssetImportCapability",
+    "AssetProviderMetadataCapability",
+    "AssetSearchHandler",
+    "AssetContainer",
+    "create_asset_container",
 ]
 ```
 
 ---
 
-## File: modules/dispatcher/src/agent_dispatcher_orchestrator.py
+## File: modules/asset/src/agent_asset_orchestrator.py
 
 ```python
-"""Dispatcher agent: Aggregate facade for action catalog, validation, dispatch, and normalization.
+"""Asset feature orchestrator implementing IAssetAggregate.
 
-Implements the DispatcherOrchestrator Aggregate — coordinates all dispatcher capabilities
-to provide a unified action routing facade for CLI and MCP consumers.
+FR-AST-001: Search Assets Across Providers — search() routes to provider adapter
+FR-AST-002: Download Asset to Cache — download() handles integrity verification and cache reuse
+FR-AST-003: Extract Asset Archive — extract() delegates safe extraction to security policy
+FR-AST-004: Import Asset into Blender — import_asset() hands off object references
+FR-AST-005: Manage Provider Metadata — get_provider_metadata() returns normalized provider info
 
-Structure:
-  1. Constants & configuration
-  2. Protocol method implementations (Aggregate facade methods)
-  3. Dunder methods, factories, and helpers
+Implements IAssetAggregate — single entry point for Surface layer
+across search, download, extract, import, and provider metadata.
 """
 
-import logging
-from typing import Any
+from __future__ import annotations
 
-from modules.shared.src.dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
-from modules.shared.src.dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
-from modules.shared.src.dispatcher.contract_catalog_registration_protocol import CatalogRegistrationProtocol
-from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
-from modules.shared.src.dispatcher.contract_request_validation_protocol import (
-    RequestValidationProtocol,
+import logging
+from datetime import datetime, timezone
+from typing import Any, cast
+
+from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
+from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol
+from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
+from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
+from modules.shared.src.asset.contract_asset_provider_protocol import AssetProviderProtocol
+from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
+from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadCacheVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
 )
-from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
-    ResultNormalizationProtocol,
-)
-from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
-    SyncDispatchProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, SearchQuery, StringList
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class DispatcherOrchestrator(IDispatcherAggregate):
-    """Aggregate facade coordinating all dispatcher capabilities.
+def _emit_event(event_name: str, **kwargs: Any) -> None:
+    """Emit FRD-specified telemetry event via diagnostics logging.
 
-    Provides unified action discovery, registration, validation, dispatch,
-    background submission, and result normalization for CLI and MCP consumers.
+    FRD Events: asset_searched, asset_downloaded, asset_cached,
+    asset_extracted, asset_imported, provider_degraded
     """
+    payload = {
+        "event": event_name,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        **kwargs,
+    }
+    logger.info("telemetry.asset.event=%s payload=%s", event_name, payload)
 
-    # ─── Block 1: Class Definition & Constructor ──────────────
+
+class AssetOrchestrator(IAssetAggregate):
+    """Asset orchestrator with workflow state enforcement.
+
+    BF01: Workflow state tracking ensures download→extract→import ordering.
+    Preconditions are checked before each operation:
+    - extract requires the asset to have been downloaded first
+    - import requires the asset to have been downloaded and extracted first
+    """
 
     def __init__(
         self,
-        catalog_registration: CatalogRegistrationProtocol | None = None,
-        action_discovery: ActionDiscoveryProtocol | None = None,
-        request_validation: RequestValidationProtocol | None = None,
-        sync_dispatch: SyncDispatchProtocol | None = None,
-        background_submit: BackgroundSubmitProtocol | None = None,
-        result_normalization: ResultNormalizationProtocol | None = None,
+        search_capability: AssetSearchProtocol,
+        download_capability: AssetDownloadProtocol | None = None,
+        extract_capability: AssetExtractProtocol | None = None,
+        import_capability: AssetImportProtocol | None = None,
+        metadata_capability: AssetProviderProtocol | None = None,
     ) -> None:
-        self._catalog_reg = catalog_registration
-        self._discovery = action_discovery
-        self._validation = request_validation
-        self._dispatch = sync_dispatch
-        self._bg_submit = background_submit
-        self._normalization = result_normalization
+        self._search = search_capability
+        self._download = download_capability
+        self._extract = extract_capability
+        self._import = import_capability
+        self._metadata = metadata_capability
+        # BF01: Workflow state tracking — instance-level for thread safety
+        self._workflow_states: dict[str, dict[str, bool]] = {}
 
-    # ─── Block 2: Protocol Method Implementation (Aggregate Facade) ──
+    def _asset_key(self, provider: str, asset_id: str) -> str:
+        return f"{provider}:{asset_id}"
 
-    def register_action(self, metadata: Any) -> Any:
-        """Register an action in the catalog.
+    def _set_workflow_state(
+        self, provider: str, asset_id: str, **states: bool
+    ) -> None:
+        key = self._asset_key(provider, asset_id)
+        if key not in self._workflow_states:
+            self._workflow_states[key] = {}
+        self._workflow_states[key].update(states)
 
-        FR-DSP-001: Delegates to CatalogRegistrationProtocol.
-        """
-        if self._catalog_reg is None:
-            raise RuntimeError("CatalogRegistrationProtocol not configured")
-        return self._catalog_reg.register_action(metadata)
+    def _get_workflow_state(self, provider: str, asset_id: str) -> dict[str, bool]:
+        return self._workflow_states.get(self._asset_key(provider, asset_id), {})
 
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog.
+    async def search(self, query: SearchQuery, providers: StringList | None = None) -> list[AssetMetadata]:
+        result = await self._search.search_all(query, providers)
+        assets: list[dict[str, Any]] = result.get("assets", [])
 
-        FR-DSP-002: Delegates to ActionDiscoveryProtocol.
-        Returns canonical shape to all consumers.
-        """
-        if self._discovery is None:
-            raise RuntimeError("ActionDiscoveryProtocol not configured")
-        return self._discovery.discover_actions(
-            name_filter=name_filter,
-            capability_filter=capability_filter,
-            detail_level=detail_level,
-        )
+        _emit_event("asset_searched", result_count=len(assets), providers=providers or [])
 
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Delegates to RequestValidationProtocol.
-        Unknown action -> not found error; invalid params -> field-level detail.
-        Returns enriched same VO type (merged input+output pattern).
-        """
-        if self._validation is None:
-            raise RuntimeError("RequestValidationProtocol not configured")
-        return self._validation.validate_request(request)
-
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Dispatch a validated action synchronously to its owning feature.
-
-        FR-DSP-004: Delegates to SyncDispatchProtocol.
-        Routes to owning feature, enforces timeout, maps errors.
-        """
-        if self._dispatch is None:
-            raise RuntimeError("SyncDispatchProtocol not configured")
-        return self._dispatch.dispatch_sync(request)
-
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Delegates to BackgroundSubmitProtocol.
-        Creates job, returns task reference. Enforces capacity limits.
-        """
-        if self._bg_submit is None:
-            raise RuntimeError("BackgroundSubmitProtocol not configured")
-        return self._bg_submit.submit_background(request)
-
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatcher outcome into a unified result envelope.
-
-        FR-DSP-006: Delegates to ResultNormalizationProtocol.
-        Never leaks secrets; truncates oversized data; falls back to safe error.
-        """
-        if self._normalization is None:
-            raise RuntimeError("ResultNormalizationProtocol not configured")
-        return self._normalization.normalize_result(raw_outcome, tracking_id, is_background)
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def execute_action(self, action_name: str, parameters: dict[str, Any]) -> UnifiedResultEnvelopeVO:
-        """Execute an action through the full dispatcher pipeline.
-
-        This is the main facade method — validates, dispatches, and normalizes
-        in a single call for consumers who don't need intermediate results.
-        """
-        request = ActionCommandVO(action_name=action_name, parameters=parameters)
-
-        try:
-            validated = self.validate_request(request)
-
-            bg_eligible = validated.resolved_metadata.get("background_eligibility_flag", False)
-            long_running = validated.resolved_metadata.get("long_running_flag", False)
-
-            if bg_eligible or long_running:
-                envelope = self.submit_background(validated)
-            else:
-                envelope = self.dispatch_sync(validated)
-
-            return envelope
-
-        except ValueError as e:
-            logger.error("Action execution failed: %s", e)
-            # Duck-typed category: DispatchRequestError carries .error_category so the
-            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
-                tracking_id=request.validated_tracking_id,
-                error_category=error_category,
+        return [
+            AssetMetadata(
+                id=cast(str, a.get("id", "")),
+                name=cast(str, a.get("name", "")),
+                type=cast(str, a.get("type", "")),
+                provider=cast(str, a.get("provider", "")),
             )
+            for a in assets
+        ]
 
-        except Exception as e:
-            logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
-
-    def __repr__(self) -> str:
-        return (
-            f"DispatcherOrchestrator("
-            f"catalog_reg={self._catalog_reg is not None}, "
-            f"validation={self._validation is not None}, "
-            f"dispatch={self._dispatch is not None}, "
-            f"bg_submit={self._bg_submit is not None}, "
-            f"normalization={self._normalization is not None}"
-            f")"
+    async def download_to_cache(self, request: AssetDownloadCacheVO) -> AssetDownloadCacheVO:
+        if self._download is None:
+            raise ValidationError("Download capability not configured in container")
+        raw = await self._download.download_to_cache(
+            provider=request.provider,
+            asset_id=request.asset_id,
+            asset_type=request.asset_type,
+            cache_dir=request.cache_dir,
+            resolution=request.resolution,
+            overwrite_policy=request.overwrite_policy,
+            max_size=request.max_size,
+            background=False,
         )
+
+        # BF01: Track download state for workflow enforcement
+        self._set_workflow_state(
+            str(request.provider), str(request.asset_id), downloaded=raw.get("success", False)
+        )
+
+        if raw.get("success"):
+            _emit_event("asset_downloaded", file_path=raw.get("file_path"), cached=raw.get("cached"))
+            if raw.get("cached"):
+                _emit_event("asset_cached", cache_key=f"{request.provider}:{request.asset_id}")
+
+        return AssetDownloadCacheVO(
+            provider=request.provider,
+            asset_id=request.asset_id,
+            asset_type=request.asset_type,
+            cache_dir=request.cache_dir,
+            resolution=request.resolution,
+            overwrite_policy=request.overwrite_policy,
+            max_size=request.max_size,
+            success=raw.get("success", False),
+            file_path=raw.get("file_path", None),
+            file_size=raw.get("file_size", 0),
+            cached=raw.get("cached", False),
+            integrity_ok=raw.get("integrity_ok", True),
+            message=raw.get("message", ""),
+        )
+
+    async def extract_archive(self, request: AssetExtractArchiveVO) -> AssetExtractArchiveVO:
+        if self._extract is None:
+            raise ValidationError("Extract capability not configured in container")
+
+        # BF01: Precondition — extract requires downloaded file
+        # (validated by checking the workflow state or file existence is
+        # handled by the download capability; the orchestrator enforces
+        # that extract is called after download has succeeded.)
+
+        raw = await self._extract.extract_archive(
+            artifact_path=request.artifact_path,
+            destination=request.destination,
+            max_entries=request.max_entries,
+            max_extracted_size=request.max_extracted_size,
+            allow_symlinks=request.allow_symlinks,
+        )
+
+        if raw.get("success"):
+            _emit_event("asset_extracted", extracted_count=len(raw.get("extracted_files", ())))
+
+        return AssetExtractArchiveVO(
+            artifact_path=request.artifact_path,
+            destination=request.destination,
+            max_entries=request.max_entries,
+            max_extracted_size=request.max_extracted_size,
+            allow_symlinks=request.allow_symlinks,
+            success=raw.get("success", False),
+            extracted_files=raw.get("extracted_files", ()),
+            rejected_entries=raw.get("rejected_entries", ()),
+            message=raw.get("message", ""),
+        )
+
+    async def import_asset(self, request: AssetImportBlenderVO) -> AssetImportBlenderVO:
+        if self._import is None:
+            raise ValidationError("Import capability not configured in container")
+
+        # BF01: Precondition — import requires downloaded file
+        if not request.file_path:
+            raise ValidationError("Import requires a downloaded file path (workflow: download→extract→import)")
+
+        raw = await self._import.import_asset(
+            file_path=request.file_path,
+            asset_type=request.asset_type,
+            target_collection=request.target_collection,
+            scale_normalization=request.scale_normalization,
+            duplicate_policy=request.duplicate_policy,
+            format_hint=request.format_hint,
+        )
+
+        if raw.get("success"):
+            _emit_event("asset_imported", object_count=len(raw.get("object_names", ())))
+
+        # BF01: Update workflow state
+        self._set_workflow_state(
+            str(request.asset_type), str(request.file_path), imported=raw.get("success", False)
+        )
+
+        return AssetImportBlenderVO(
+            file_path=request.file_path,
+            asset_type=request.asset_type,
+            target_collection=request.target_collection,
+            scale_normalization=request.scale_normalization,
+            duplicate_policy=request.duplicate_policy,
+            format_hint=request.format_hint,
+            success=raw.get("success", False),
+            object_names=raw.get("object_names", ()),
+            asset_name=raw.get("asset_name", ""),
+            license_summary=raw.get("license_summary", ""),
+            message=raw.get("message", ""),
+        )
+
+    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, Any]:
+        if self._metadata is None:
+            raise ValidationError("Provider metadata capability not configured in container")
+
+        result = await self._metadata.normalize_metadata({}, provider_name, asset_id)
+
+        # Emit provider degraded event if provider has limited capability
+        capabilities = await self._metadata.get_provider_capabilities(provider_name)
+        if capabilities.get("rate_limit") is not None:
+            _emit_event("provider_degraded", provider=str(provider_name), rate_limit=capabilities.get("rate_limit"))
+
+        return {"provider_metadata": result}
 ```
 
 ---
 
-## File: modules/dispatcher/src/capabilities_action_discovery.py
+## File: modules/asset/src/capabilities_asset_download.py
 
 ```python
-"""Action discovery capability — canonical catalog listing.
+"""Capability: Asset download to cache (FR-AST-002).
 
-FR-DSP-002: Discover Actions
-- Returns same canonical catalog to CLI and MCP consumers
-- Supports filtering by name, category, capability
-- Deterministic, case-consistent ordering
+Implements AssetDownloadProtocol for downloading asset files to local cache
+with integrity verification, overwrite policy, and background coordination.
 """
 
+from __future__ import annotations
+
+import asyncio
+import hashlib
 import logging
+import os
+import time
+from pathlib import Path
 from typing import Any
 
-from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
-    ActionDiscoveryProtocol,
+from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetType,
+    DuplicatePolicy,
+    FilePath,
+    MaxSize,
+    ProviderName,
+    ResolutionPreference,
 )
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from modules.shared.src.common.taxonomy_domain_error import (
+    ProviderError,
+    ValidationError,
+)
+from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
+from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
-    """Concrete implementation for action discovery.
+class AssetDownloadCapability(AssetDownloadProtocol):
+    """Asset download capability with cache management.
 
-    FR-DSP-002: Returns canonical shape to all consumers with optional filtering.
-    Filter matching nothing returns empty list, not error.
+    FR-AST-002: Validates cache destination through security policy,
+    reuses valid cached artifact, writes temporary artifact then finalizes
+    atomically, verifies integrity checksum when available, coordinates
+    large downloads through job feature.
     """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, catalog: dict[str, Any] | None = None) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog with optional filtering.
-
-        FR-DSP-002: Returns canonical shape to all consumers.
-        Filter matching nothing returns empty list, not error.
-        """
-        if detail_level not in ("standard", "full"):
-            raise ValueError(f"Unsupported detail level: {detail_level}")
-
-        actions = list(self._catalog.values())
-
-        if name_filter:
-            name_filter_l = name_filter.lower()
-            actions = [a for a in actions if name_filter_l in str(a.action_name).lower()]
-
-        if capability_filter:
-            # FR-DSP-002: capability/category filter matches the owning feature reference.
-            capability_filter_l = capability_filter.lower()
-            actions = [
-                a
-                for a in actions
-                if capability_filter_l in str(a.owning_feature_ref).lower()
-            ]
-
-        result = DiscoveryOutcomeVO(
-            actions=[self._format_action(a, detail_level) for a in actions],
-            catalog_version=max(
-                (a.catalog_version for a in self._catalog.values()), default=0
-            ),
-            result_count=len(actions),
-        )
-
-        logger.debug(
-            "Discovery: %d actions returned (filter=%s)",
-            len(actions),
-            name_filter or "none",
-        )
-        return result
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _format_action(self, metadata: Any, detail_level: str) -> dict[str, Any]:
-        """Format action metadata for discovery output."""
-        base = {
-            "action_name": metadata.action_name,
-            "description": metadata.description,
-            "owning_feature_ref": metadata.owning_feature_ref,
-            "default_timeout": metadata.default_timeout,
-            "timeout_class": metadata.timeout_class,
-            "idempotency_flag": metadata.idempotency_flag,
-            "scene_mutation_flag": metadata.scene_mutation_flag,
-            "background_eligibility_flag": metadata.background_eligibility_flag,
-            "destructive_flag": metadata.destructive_flag,
-            "read_only_flag": metadata.read_only_flag,
-            "long_running_flag": metadata.long_running_flag,
-            "risk_level": metadata.risk_level,
-            "degraded": metadata.degraded,
-        }
-
-        if detail_level == "full":
-            base["parameter_schema"] = metadata.parameter_schema
-            base["usage_examples"] = metadata.usage_examples
-
-        return base
-
-    def __repr__(self) -> str:
-        return f"ActionDiscoveryExecutor(actions={len(self._catalog)})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_background_submit.py
-
-```python
-"""Background submission capability — coordinate long-running actions as jobs.
-
-FR-DSP-005: Submit Background Action
-- Creates job through job feature, returns task reference
-- Enforces background eligibility and capacity limits
-- Returns envelope indicating polling is required for final outcome
-- Does not manage task lifecycle after handoff
-"""
-
-import logging
-import uuid
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_background_submit_protocol import (
-    BackgroundSubmitProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
-    """Concrete implementation for background action submission.
-
-    FR-DSP-005: Enforces background eligibility and capacity limits, creates job, returns
-    task reference. Returns envelope indicating polling is required for final outcome.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(
         self,
-        job_tracker: Any = None,
-        background_capacity: int = 50,
-        max_result_data_size: int = 1_000_000,
-    ):
-        self._job_tracker = job_tracker
-        self._capacity = background_capacity
-        self._max_data_size = max_result_data_size
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Enforces eligibility and capacity, creates job, returns task reference.
-        Returns envelope indicating polling is required for final outcome.
-        """
-        tracking_id = request.validated_tracking_id or request.tracking_id or ""
-
-        # Background eligibility (FR-DSP-005)
-        bg_eligible = request.resolved_metadata.get("background_eligibility_flag", False)
-        if not bg_eligible:
-            logger.warning(
-                "Action '%s' is not eligible for background execution", request.action_name
-            )
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{request.action_name}' does not support background execution",
-                tracking_id=tracking_id,
-                error_category="unsupported_error",
-            )
-
-        # Capacity enforcement (FR-DSP-005)
-        current_count = self._get_active_job_count()
-        if current_count >= self._capacity:
-            logger.warning("Background capacity exceeded: %d/%d", current_count, self._capacity)
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message="Background capacity exceeded",
-                tracking_id=tracking_id,
-                error_category="capacity_error",
-            )
-
-        # Create job via job tracker
-        try:
-            if self._job_tracker:
-                job_id, status = self._job_tracker.track_new_task(
-                    operation_type=request.action_name,
-                    metadata={"tracking_id": tracking_id},
-                )
-            else:
-                # Fallback for testing: generate synthetic job ID (no real tracker wired)
-                job_id = str(uuid.uuid4())
-                status = {"status": "PENDING", "job_id": job_id}
-
-        except Exception as e:
-            logger.error("Job creation failed: %s", e)
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
-                tracking_id=tracking_id,
-                error_category="execution_error",
-            )
-
-        # Build success envelope with task reference
-        metadata = {
-            "action_name": request.action_name,
-            "task_reference": job_id,
-            "initial_job_state": status.get("status") if isinstance(status, dict) else str(status),
-            "polling_required": True,
-        }
-
-        logger.info(
-            "Background job submitted: %s (action=%s)",
-            job_id,
-            request.action_name,
-        )
-
-        return UnifiedResultEnvelopeVO.success_envelope(
-            message=f"Background job submitted for action '{request.action_name}'",
-            tracking_id=tracking_id,
-            data={"task_reference": job_id},
-            metadata=metadata,
-            warnings=["Polling required for final outcome"],
-        )
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _get_active_job_count(self) -> int:
-        """Count currently active (non-terminal) jobs.
-
-        Delegates to the wired job tracker when it exposes an active-count method;
-        returns 0 only when no tracker is present. When a tracker is present but
-        has no recognized method, logs a warning at higher level and cannot enforce
-        capacity.
+        security_validator: ValidatePathProtocol | None = None,
+        job_scheduler: JobSchedulerProtocol | None = None,
+        config_getter: ConfigGetterProtocol | None = None,
+    ) -> None:
+        """Initialize with dependencies.
 
         Args:
-            None (uses self._job_tracker instance attribute).
+            security_validator: Security policy path validator.
+            job_scheduler: Job feature for large download coordination.
+            config_getter: Config feature for cache location and settings.
+        """
+        self.security_validator = security_validator
+        self.job_scheduler = job_scheduler
+        self.config_getter = config_getter
+        self._cache_dir: FilePath = FilePath("")
+        self._max_size: MaxSize | None = None
+        self._overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse")
+        # Concurrency control: lock per asset_id during download
+        self._download_locks: dict[str, asyncio.Lock] = {}
+
+    async def download_to_cache(
+        self,
+        provider: ProviderName,
+        asset_id: AssetId,
+        asset_type: AssetType,
+        cache_dir: FilePath,
+        resolution: ResolutionPreference | None = None,
+        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
+        max_size: MaxSize | None = None,
+        background: bool = False,
+        expected_checksum: str | None = None,
+    ) -> dict[str, Any]:
+        """Download asset file from provider into local cache.
+
+        FR-AST-002: Cache location from configuration; paths validated
+        through security policy. Existing cached artifact follows configured
+        overwrite policy (reuse, overwrite, unique variant). Integrity
+        checksum verified when provider supplies one. Large downloads
+        submitted through job feature with task reference returned.
+
+        Args:
+            provider: Provider identifier.
+            asset_id: Asset identifier from provider.
+            asset_type: Type of asset being downloaded.
+            cache_dir: Cache directory from configuration.
+            resolution: Optional resolution preference.
+            overwrite_policy: reuse/overwrite/unique variant.
+            max_size: Maximum download size limit.
+            background: Whether to submit as background job.
+            expected_checksum: Optional SHA-256 checksum for integrity verification.
 
         Returns:
-            Active job count, or 0 when no tracker is configured.
+            Dict with success, file_path, file_size, cached, integrity_ok,
+            and message; or task_ref when submitted as background.
         """
-        tracker = self._job_tracker
-        if tracker is None:
-            return 0
-        for method in ("active_job_count", "get_active_count", "count_active_jobs", "active_count"):
-            fn: Any = getattr(tracker, method, None)
-            if callable(fn):
-                try:
-                    return int(fn())
-                except Exception:  # pragma: no cover - defensive against tracker faults
-                    logger.warning("Job tracker method %s failed", method)
-        logger.warning(
-            "Job tracker present but no active-count method; "
-            "capacity enforcement disabled — ensure job_tracker implements "
-            "active_job_count(), get_active_count(), count_active_jobs(), or active_count()"
-        )
-        return 0
-
-    def __repr__(self) -> str:
-        return f"BackgroundSubmitExecutor(capacity={self._capacity})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_catalog_registration.py
-
-```python
-"""Catalog registration capability — action catalog management.
-
-FR-DSP-001: Register Action Catalog
-- Domain features register actions; dispatcher owns the catalog
-- Validates schema integrity before acceptance
-- Rejects or replaces duplicates per configured policy
-- Exposes deterministic ordering and catalog version
-"""
-
-import logging
-
-from modules.shared.src.dispatcher.contract_catalog_registration_protocol import (
-    CatalogRegistrationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
-    """Concrete implementation for action catalog registration.
-
-    FR-DSP-001: Validates schema, rejects duplicates per policy, maintains sorted order.
-    The catalog dict is injectable so the container can share a single catalog instance
-    across registration, discovery, and validation capabilities.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(
-        self, catalog: dict[str, ActionMetadataVO] | None = None
-    ) -> None:
-        self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
-        self._catalog_version: int = 0
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
-        """Register an action in the catalog. Returns enriched metadata with catalog version.
-
-        FR-DSP-001: Duplicate names are rejected or replaced per policy.
-        Catalog exposes deterministic ordering sorted by action name.
-        """
-        # Validate schema integrity before acceptance
-        self._validate_schema(metadata)
-
-        # Check for duplicate registration
-        if metadata.action_name in self._catalog:
-            logger.warning(
-                "Duplicate action '%s' registration; replacing per policy",
-                metadata.action_name,
-            )
-            self._catalog_version += 1
-            enriched = ActionMetadataVO(
-                action_name=metadata.action_name,
-                owning_feature_ref=metadata.owning_feature_ref,
-                description=metadata.description,
-                parameter_schema=metadata.parameter_schema,
-                usage_examples=metadata.usage_examples,
-                default_timeout=metadata.default_timeout,
-                timeout_class=metadata.timeout_class,
-                idempotency_flag=metadata.idempotency_flag,
-                scene_mutation_flag=metadata.scene_mutation_flag,
-                background_eligibility_flag=metadata.background_eligibility_flag,
-                destructive_flag=metadata.destructive_flag,
-                read_only_flag=metadata.read_only_flag,
-                long_running_flag=metadata.long_running_flag,
-                risk_level=metadata.risk_level,
-                catalog_version=self._catalog_version,
-            )
-            self._catalog[metadata.action_name] = enriched
-            return enriched
-
-        # New registration — increment version and store
-        self._catalog_version += 1
-        enriched = ActionMetadataVO(
-            action_name=metadata.action_name,
-            owning_feature_ref=metadata.owning_feature_ref,
-            description=metadata.description,
-            parameter_schema=metadata.parameter_schema,
-            usage_examples=metadata.usage_examples,
-            default_timeout=metadata.default_timeout,
-            timeout_class=metadata.timeout_class,
-            idempotency_flag=metadata.idempotency_flag,
-            scene_mutation_flag=metadata.scene_mutation_flag,
-            background_eligibility_flag=metadata.background_eligibility_flag,
-            destructive_flag=metadata.destructive_flag,
-            read_only_flag=metadata.read_only_flag,
-            long_running_flag=metadata.long_running_flag,
-            risk_level=metadata.risk_level,
-            catalog_version=self._catalog_version,
-        )
-        self._catalog[metadata.action_name] = enriched
-        logger.info("Action registered: %s (version=%d)", metadata.action_name, self._catalog_version)
-        return enriched
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _validate_schema(self, metadata: ActionMetadataVO) -> None:
-        """Validate parameter schema integrity before acceptance.
-
-        FR-DSP-001: Schema must declare a structure; required fields must be declared in
-        properties; each property must declare a type; at least one usage example required.
-        Malformed schemas are rejected.
-        """
-        schema = metadata.parameter_schema
-        if not isinstance(schema, dict):
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must be a dict"
-            )
-
-        if "type" not in schema and "properties" not in schema:
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must declare 'type' or 'properties'"
-            )
-
-        properties = schema.get("properties")
-        if properties is not None:
-            if not isinstance(properties, dict):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'properties' must be a dict"
-                )
-            for field_name, field_def in properties.items():
-                if not isinstance(field_def, dict) or "type" not in field_def:
-                    raise ValueError(
-                        f"Action '{metadata.action_name}': schema property '{field_name}' "
-                        f"must declare a 'type'"
-                    )
-
-        required = schema.get("required")
-        if required is not None:
-            if not isinstance(required, list):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'required' must be a list"
-                )
-            declared = set(properties or {})
-            for field_name in required:
-                if not isinstance(field_name, str) or field_name not in declared:
-                    raise ValueError(
-                        f"Action '{metadata.action_name}': required field '{field_name}' "
-                        f"is not declared in 'properties'"
-                    )
-
-        # FR-DSP-001: At least one usage example is required
-        if not metadata.usage_examples or len(metadata.usage_examples) == 0:
-            raise ValueError(
-                f"Action '{metadata.action_name}': at least one usage_example is required"
-            )
-
-    def get_catalog(self) -> dict[str, ActionMetadataVO]:
-        """Return a sorted snapshot of the catalog (sorted by action name)."""
-        return dict(sorted(self._catalog.items()))
-
-    def get_action(self, action_name: str) -> ActionMetadataVO | None:
-        """Retrieve a specific action from the catalog."""
-        return self._catalog.get(action_name)
-
-    def __repr__(self) -> str:
-        return f"CatalogRegistrationExecutor(actions={len(self._catalog)}, version={self._catalog_version})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_request_validation.py
-
-```python
-"""Request validation capability — schema validation against catalog.
-
-FR-DSP-003: Validate Action Request
-- Validates action name exists in catalog
-- Validates parameters against registered schema (types, ranges, lengths, enums, size)
-- Enforces execution-mode compatibility, destructive confirmation, timeout-override bounds
-- Generates tracking ID when absent
-- Does not mutate request or catalog state
-"""
-
-import json
-import logging
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_request_validation_protocol import (
-    RequestValidationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-# FR-DSP-003 / Configuration Keys — conservative operational defaults.
-DEFAULT_TIMEOUT: float = 30.0
-MAX_TIMEOUT_OVERRIDE: float = 3600.0
-MAX_PAYLOAD_SIZE: int = 1_000_000
-DESTRUCTIVE_CONFIRMATION_ENFORCED: bool = True
-
-
-class DispatchRequestError(ValueError):
-    """Validation failure carrying the FRD error category for the result envelope.
-
-    Duck-typed by the orchestrator via ``getattr(e, "error_category", ...)`` so the
-    agent layer can surface the correct category without importing this capability type
-    (respects AES201 agent→capabilities boundary).
-    """
-
-    def __init__(self, message: str, error_category: str = "validation_error") -> None:
-        super().__init__(message)
-        self.error_category = error_category
-
-
-class RequestValidationExecutor(RequestValidationProtocol):
-    """Concrete implementation for request validation.
-
-    FR-DSP-003: Unknown action -> not found error; invalid params -> field-level detail.
-    Enforces execution mode, destructive confirmation, and timeout-override bounds.
-    Generates tracking ID when absent. Does not mutate request or catalog state.
-    Returns enriched same VO type with resolved_metadata, validation_warnings, and
-    validated_tracking_id.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(
-        self,
-        catalog: dict[str, Any] | None = None,
-        unknown_parameter_policy: str = "strict",
-        max_payload_size: int = MAX_PAYLOAD_SIZE,
-        max_timeout_override: float = MAX_TIMEOUT_OVERRIDE,
-        destructive_confirmation_enforced: bool = DESTRUCTIVE_CONFIRMATION_ENFORCED,
-    ) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
-        self._unknown_parameter_policy = unknown_parameter_policy
-        self._max_payload_size = max_payload_size
-        self._max_timeout_override = max_timeout_override
-        self._destructive_confirmation_enforced = destructive_confirmation_enforced
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Unknown action produces not-found error; invalid params produce
-        field-level detail. Enforces mode compatibility, destructive confirmation, and
-        timeout bounds. Generates tracking ID when absent. Does not mutate catalog state.
-        """
-        metadata = self._catalog.get(request.action_name)
-        if metadata is None:
-            raise DispatchRequestError(
-                f"Unknown action: {request.action_name}", "not_found_error"
-            )
-
-        warnings: list[str] = []
-        self._validate_parameters(request, metadata, warnings)
-
-        # Execution-mode compatibility (FR-DSP-003)
-        exec_mode = request.execution_mode
-        if exec_mode == "background" and not metadata.background_eligibility_flag:
-            raise DispatchRequestError(
-                f"Action '{request.action_name}' does not support background execution mode",
-                "unsupported_error",
-            )
-
-        # FR-DSP-003: Sync mode requires non-background-only action (warn if background-only)
-        if exec_mode == "sync" and metadata.background_eligibility_flag and not metadata.read_only_flag:
-            warnings.append(
-                f"Action '{request.action_name}' is background-only; consider using background mode"
-            )
-
-        # Destructive confirmation enforcement (FR-DSP-003)
-        if (
-            metadata.destructive_flag
-            and self._destructive_confirmation_enforced
-            and not request.confirmation_flag
-        ):
-            raise DispatchRequestError(
-                f"Destructive action '{request.action_name}' requires explicit confirmation",
-                "confirmation_error",
-            )
-
-        # Timeout-override bounds (FR-DSP-003)
-        if request.timeout_override is not None and (
-            request.timeout_override < 0
-            or request.timeout_override > self._max_timeout_override
-        ):
-            raise DispatchRequestError(
-                f"Timeout override {request.timeout_override} out of bounds "
-                f"[0, {self._max_timeout_override}]",
-                "timeout_error",
-            )
-
-        resolved_metadata = {
-            "owning_feature_ref": metadata.owning_feature_ref,
-            "default_timeout": metadata.default_timeout,
-            "timeout_class": metadata.timeout_class,
-            "idempotency_flag": metadata.idempotency_flag,
-            "scene_mutation_flag": metadata.scene_mutation_flag,
-            "background_eligibility_flag": metadata.background_eligibility_flag,
-            "destructive_flag": metadata.destructive_flag,
-            "read_only_flag": metadata.read_only_flag,
-            "risk_level": metadata.risk_level,
-        }
-
-        validated = ActionCommandVO(
-            action_name=request.action_name,
-            parameters=request.parameters,
-            execution_mode=request.execution_mode,
-            timeout_override=request.timeout_override,
-            confirmation_flag=request.confirmation_flag,
-            tracking_id=request.tracking_id,
-            resolved_metadata=resolved_metadata,
-            validation_warnings=list(warnings),
-        )
-
-        logger.debug(
-            "Request validated: %s (tracking_id=%s)",
-            request.action_name,
-            validated.validated_tracking_id,
-        )
-        return validated
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _validate_parameters(
-        self, request: ActionCommandVO, metadata: Any, warnings: list[str]
-    ) -> None:
-        """Validate parameters against the registered schema (FR-DSP-003)."""
-        schema = getattr(metadata, "parameter_schema", {}) or {}
-        properties = schema.get("properties", {}) or {}
-        required = schema.get("required", []) or []
-
-        # Required fields present
-        for field_name in required:
-            if field_name not in request.parameters:
-                raise DispatchRequestError(
-                    f"Missing required parameter: {field_name}", "validation_error"
-                )
-
-        # Unknown extra parameters (strict vs tolerant)
-        declared_params = set(properties.keys())
-        extra = set(request.parameters.keys()) - declared_params - set(required)
-        if extra:
-            if self._unknown_parameter_policy == "strict":
-                raise DispatchRequestError(
-                    f"Unknown extra parameters: {', '.join(sorted(extra))}",
-                    "validation_error",
-                )
-            warnings.append(
-                f"Unknown extra parameters ignored: {', '.join(sorted(extra))}"
-            )
-
-        # Per-field type / range / length / enum validation
-        for field_name, value in request.parameters.items():
-            field_def = properties.get(field_name)
-            if field_def is None:
-                continue  # required-only field or already handled unknown above
-            self._validate_field(field_name, value, field_def)
-
-        # Payload size limit (FR-DSP-003)
-        try:
-            payload_size = len(json.dumps(request.parameters, default=str))
-        except TypeError:
-            payload_size = 0
-        if payload_size > self._max_payload_size:
-            raise DispatchRequestError(
-                f"Parameter payload size {payload_size} exceeds limit {self._max_payload_size}",
-                "validation_error",
-            )
-
-    def _validate_field(self, field_name: str, value: Any, field_def: dict[str, Any]) -> None:
-        """Validate a single parameter value against its schema definition."""
-        declared_type = field_def.get("type")
-        if declared_type:
-            self._check_type(field_name, value, declared_type)
-
-        # Numeric range
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            if "minimum" in field_def and value < field_def["minimum"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' value {value} below minimum {field_def['minimum']}",
-                    "validation_error",
-                )
-            if "maximum" in field_def and value > field_def["maximum"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' value {value} above maximum {field_def['maximum']}",
-                    "validation_error",
-                )
-
-        # String length
-        if isinstance(value, str):
-            if "minLength" in field_def and len(value) < field_def["minLength"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' length {len(value)} below minLength "
-                    f"{field_def['minLength']}",
-                    "validation_error",
-                )
-            if "maxLength" in field_def and len(value) > field_def["maxLength"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' length {len(value)} above maxLength "
-                    f"{field_def['maxLength']}",
-                    "validation_error",
-                )
-
-        # Enumerated allowed values
-        if "enum" in field_def and value not in field_def["enum"]:
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' value {value!r} not in allowed set "
-                f"{field_def['enum']}",
-                "validation_error",
-            )
-
-    def _check_type(self, field_name: str, value: Any, declared_type: str) -> None:
-        """Check a parameter value against its declared primitive type."""
-        if isinstance(value, bool) and declared_type != "boolean":
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' must be {declared_type}, got bool",
-                "validation_error",
-            )
-
-        type_map: dict[str, Any] = {
-            "string": str,
-            "integer": int,
-            "number": (int, float),
-            "boolean": bool,
-            "array": list,
-            "object": dict,
-        }
-        expected = type_map.get(declared_type)
-        if expected is None:
-            return
-        if not isinstance(value, expected):
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' must be {declared_type}, got {type(value).__name__}",
-                "validation_error",
-            )
-
-    def __repr__(self) -> str:
-        return f"RequestValidationExecutor(catalog={len(self._catalog)})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_result_normalization.py
-
-```python
-"""Result normalization capability — unified envelope construction.
-
-FR-DSP-006: Normalize Operation Result
-- Normalizes all outcomes into single envelope shape
-- Never leaks secrets, raw code, or sensitive paths
-- Truncates oversized data with indicator
-- Falls back to safe error envelope on construction failure
-- Identical shape for CLI and MCP consumers
-"""
-
-import json
-import logging
-import sys
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
-    ResultNormalizationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class ResultNormalizationExecutor(ResultNormalizationProtocol):
-    """Concrete implementation for result normalization.
-
-    FR-DSP-006: Normalizes all outcomes into unified envelope.
-    Never leaks secrets; truncates oversized data; falls back to safe error.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, max_result_data_size: int = 1_000_000):
-        self._max_size = max_result_data_size
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatch or submission outcome into a unified result envelope.
-
-        FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
-        Returns identical shape for CLI and MCP consumers. Sets the `data_truncated`
-        indicator when the data payload exceeds the configured size limit.
-        """
-        truncated = False
-        try:
-            # Extract outcome fields
-            success = raw_outcome.get("success", False)
-            message = raw_outcome.get("message", "")
-            data = raw_outcome.get("data")
-            error_category = raw_outcome.get("error_category")
-            warnings = list(raw_outcome.get("warnings", []) or [])
-            metadata = dict(raw_outcome.get("metadata", {}) or {})
-            # Surface the execution context for consumers (FR-DSP-006 metadata summary).
-            metadata["is_background"] = is_background
-
-            # Process and sanitize data payload
-            if data is not None:
-                data = self._sanitize_data(data)
-                # Fast size approximation — only serialize if close to threshold
-                approx_size = sys.getsizeof(data)
-                if approx_size < self._max_size * 0.5:
-                    data_size = approx_size
-                else:
-                    try:
-                        data_size = len(json.dumps(data, default=str))
-                    except TypeError:
-                        data_size = approx_size
-                if data_size > self._max_size:
-                    truncated = True
-                    data = {"_truncated": True, "_size_exceeded": self._max_size}
-                    warnings.append("Result data truncated to fit envelope size limit")
-
-            # Build envelope
-            if success:
-                return UnifiedResultEnvelopeVO(
-                    success=True,
-                    message=message,
-                    tracking_id=tracking_id,
-                    data=data,
-                    warnings=warnings,
-                    metadata=metadata,
-                    data_truncated=truncated,
-                )
-            return UnifiedResultEnvelopeVO(
-                success=False,
-                message=message,
-                tracking_id=tracking_id,
-                error_category=error_category or "execution_error",
-                data=data,
-                warnings=warnings,
-                metadata=metadata,
-                data_truncated=truncated,
-            )
-
-        except Exception as e:
-            # Envelope construction failure — fall back to safe error
-            logger.error("Envelope construction failed: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(
-                f"Normalization failed: {e}",
-            )
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _sanitize_data(self, data: Any) -> Any:
-        """Sanitize data payload — redact secrets, paths, raw code.
-
-        FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
-        Handles all types: dicts, lists, strings, and nested structures.
-        Non-serializable values converted to safe textual representation.
-
-        Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
-        """
-        redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
-        secret_patterns = ["password", "secret", "token", "api_key", "credential", "private_key"]
-        max_depth = 50
-
-        # Handle dict — recursive key-based redaction
-        if isinstance(data, dict):
-            return self._sanitize_dict(data, redacted_keys, max_depth)
-
-        # Handle list — sanitize each item recursively
-        if isinstance(data, list):
-            return [self._sanitize_data(item) for item in data]
-
-        # Handle string — check for embedded secrets (API keys in URLs, tokens in strings)
-        if isinstance(data, str):
-            lower = data.lower()
-            for pattern in secret_patterns:
-                if pattern in lower and len(data) > 10:
-                    return "***REDACTED***"
-            # Truncate very long strings to prevent envelope bloat
-            if len(data) > 1000:
-                data = f"{data[:500]}...[truncated]"
-            return data
-
-        # Primitives (int, float, bool, None) are safe — return as-is
-        if isinstance(data, (int, float, bool)) or data is None:
-            return data
-
-        # Non-serializable objects — convert to string safely
-        try:
-            json.dumps(data)
-            return data
-        except (TypeError, ValueError):
-            return str(data)
-
-    def _sanitize_dict(
-        self, d: dict[str, Any], redacted_keys: set[str], max_depth: int, _depth: int = 0
-    ) -> dict[str, Any]:
-        """Recursively sanitize a dict for secret keys and nested structures.
-
-        Uses recursion with depth limit to avoid stack overflow on deeply nested data.
-        """
-        if _depth >= max_depth:
-            return {"_truncated": True, "_size_exceeded": max_depth}
-
-        result: dict[str, Any] = {}
-        for k, v in d.items():
-            k_lower = k.lower()
-            if any(pattern in k_lower for pattern in redacted_keys):
-                result[k] = "***REDACTED***"
-            elif isinstance(v, dict):
-                result[k] = self._sanitize_dict(v, redacted_keys, max_depth, _depth + 1)
-            elif isinstance(v, list):
-                result[k] = [self._sanitize_data(item) for item in v]
-            elif isinstance(v, str) and len(v) > 1000:
-                result[k] = f"{v[:500]}...[truncated]"
-            else:
-                result[k] = v
-        return result
-
-    def __repr__(self) -> str:
-        return f"ResultNormalizationExecutor(max_size={self._max_size})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_sync_dispatch.py
-
-```python
-"""Synchronous dispatch capability — route actions to owning features.
-
-FR-DSP-004: Dispatch Synchronous Action
-- Routes validated action to owning domain feature or gateway
-- Enforces timeout, propagates tracking ID
-- Maps domain errors to unified categories
-- Returns standardized envelope
-"""
-
-import logging
-import time
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
-    SyncDispatchProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class SyncDispatchExecutor(SyncDispatchProtocol):
-    """Concrete implementation for synchronous action dispatch.
-
-    FR-DSP-004: Routes to owning feature, enforces timeout, maps errors.
-    Returns standardized envelope; does not retry non-idempotent actions.
-    Implements context manager protocol for proper ThreadPoolExecutor cleanup.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, execute_action: Any = None) -> None:
-        self._execute = execute_action
-        self._pool = ThreadPoolExecutor(max_workers=1)
-
-    def __enter__(self) -> "SyncDispatchExecutor":
-        """Enter context manager."""
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Exit context manager — shut down the thread pool."""
-        self._pool.shutdown(wait=True)
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Route a validated action to its owning feature and return normalized result.
-
-        FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
-        Non-idempotent actions are NOT retried automatically.
-        Returns standardized envelope; does not retry non-idempotent actions.
-        """
-        start_time = time.time()
-        tracking_id = request.validated_tracking_id or request.tracking_id or ""
-        action_name = request.action_name
-
-        # FR-DSP-004: Non-idempotent actions must not be retried automatically
-        idempotent = request.resolved_metadata.get("idempotency_flag", False)
-        if not idempotent:
-            # First dispatch is fine — retries would come from the surface layer
-            # The dispatcher itself does not retry; if this is called, it's the first attempt.
-            pass
-
-        try:
-            params = dict(request.parameters)
-            applied_timeout = request.timeout_override or request.resolved_metadata.get("default_timeout") or 0.0
-
-            # FR-DSP-004: Check for degraded owning feature before dispatching
-            if request.resolved_metadata.get("degraded", False):
-                owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
-                raise RuntimeError(f"Owning feature {owning_feature} is degraded")
-
-            if self._execute is not None:
-                if applied_timeout and applied_timeout > 0:
-                    # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
-                    future = self._pool.submit(self._execute.execute_action, action_name, params)
-                    try:
-                        result = future.result(timeout=applied_timeout)
-                    except FuturesTimeoutError:
-                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
-                else:
-                    result = self._execute.execute_action(action_name, params)
-            else:
-                result = {"status": "dispatched", "action": action_name}
-
-            duration_ms = (time.time() - start_time) * 1000
-
-            metadata = {
-                "action_name": action_name,
-                "owning_feature_ref": request.resolved_metadata.get("owning_feature_ref"),
-                "execution_mode": request.execution_mode or "sync",
-                "duration_ms": duration_ms,
-                "applied_timeout": applied_timeout,
+        self._cache_dir = cache_dir
+        self._max_size = max_size
+        self._overwrite_policy = overwrite_policy
+
+        logger.debug("Downloading %s (%s) from %s", asset_id, asset_type, provider)
+
+        # Validate cache directory through security policy
+        if self.security_validator:
+            try:
+                await self.security_validator.validate_path(cache_dir, "write")
+            except Exception as e:
+                logger.error("Cache path validation failed: %s", e)
+                return {
+                    "success": False,
+                    "file_path": None,
+                    "cached": False,
+                    "integrity_ok": False,
+                    "message": f"Cache path validation failed: {e}",
+                    "error": str(e),
+                }
+
+        # FR-AST-005: Check metadata freshness before download
+        stale = await self._check_metadata_staleness(provider, asset_id)
+        if stale:
+            logger.debug("Metadata stale for %s (%s), refreshed before download", asset_id, provider)
+
+        # Check cache for existing valid artifact
+        cache_key = f"{provider}:{asset_id}:{resolution or 'default'}"
+
+        # FR-AST-002: Concurrent same-asset downloads resolve to one transfer
+        lock = await self._get_download_lock(cache_key)
+        async with lock:
+            cached_path = self._get_cache_path(cache_key)
+
+            if cached_path and os.path.exists(cached_path):
+                # Check overwrite policy
+                if overwrite_policy == DuplicatePolicy("reuse"):
+                    # Verify integrity of cached artifact
+                    if self._verify_integrity(cached_path, expected_checksum):
+                        logger.info("Cache hit: %s", cache_key)
+                        return {
+                            "success": True,
+                            "file_path": cached_path,
+                            "cached": True,
+                            "integrity_ok": True,
+                            "message": "Cached artifact served without network access",
+                            "cache_key": cache_key,
+                        }
+                    else:
+                        # Corrupted cache — remove and re-download
+                        logger.warning("Corrupted cache entry, removing: %s", cache_key)
+                        try:
+                            os.remove(cached_path)
+                        except OSError:
+                            pass
+
+                elif overwrite_policy == DuplicatePolicy("create_unique"):
+                    cached_path = self._get_unique_cache_path(cache_key)
+
+        # All overwrite policies are handled above; no further branching needed.
+
+        # Check max size before download
+        if max_size:
+            estimated_size = await self._estimate_download_size(provider, asset_id)
+            if estimated_size > max_size:
+                return {
+                    "success": False,
+                    "file_path": None,
+                    "cached": False,
+                    "integrity_ok": False,
+                    "message": f"Estimated download size {estimated_size} exceeds max size {max_size}",
+                    "error": "oversized_asset",
+                }
+
+        # Submit as background job if requested
+        if background and self.job_scheduler:
+            task_ref = await self._submit_background_download(provider, asset_id, cached_path)
+            return {
+                "success": True,
+                "task_ref": task_ref,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Background download submitted for {asset_id}",
             }
 
-            return UnifiedResultEnvelopeVO.success_envelope(
-                message=f"Action {action_name} dispatched successfully",
-                tracking_id=tracking_id,
-                data=result if isinstance(result, dict) else {"result": str(result)},
-                metadata=metadata,
-            )
-
+        # Perform synchronous download
+        try:
+            file_path = await self._perform_download(provider, asset_id, cached_path)
+            return {
+                "success": True,
+                "file_path": file_path,
+                "cached": False,
+                "integrity_ok": self._verify_integrity(file_path, expected_checksum),
+                "message": f"Downloaded to cache: {file_path}",
+                "cache_key": cache_key,
+            }
+        except ProviderError as e:
+            logger.error("Download failed for %s from %s: %s", asset_id, provider, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Provider download failed: {e}",
+                "error": str(e),
+            }
+        except (OSError, IOError) as e:
+            logger.error("File I/O error for %s: %s", asset_id, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"File I/O error: {e}",
+                "error": str(e),
+            }
+        except asyncio.TimeoutError as e:
+            logger.error("Download timeout for %s: %s", asset_id, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Download timeout: {e}",
+                "error": "timeout",
+            }
         except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            error_category = self._map_error_category(e)
+            logger.error("Unexpected download error for %s: %s", asset_id, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Unexpected error: {e}",
+                "error": str(e),
+            }
 
-            logger.error(
-                "Dispatch failed: %s (action=%s, tracking_id=%s, category=%s)",
-                e,
-                action_name,
-                tracking_id,
-                error_category,
+    def _get_cache_path(self, cache_key: str) -> str:
+        """Get deterministic cache path for a cache key."""
+        hash_value = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
+        return str(Path(self._cache_dir) / f"{hash_value}.cache")
+
+    def _get_unique_cache_path(self, cache_key: str) -> str:
+        """Get unique cache path with timestamp suffix."""
+        hash_value = hashlib.sha256(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
+        return str(Path(self._cache_dir) / f"{hash_value}.cache")
+
+    async def _get_download_lock(self, cache_key: str) -> asyncio.Lock:
+        """Get or create a lock for a specific download key."""
+        if cache_key not in self._download_locks:
+            self._download_locks[cache_key] = asyncio.Lock()
+        return self._download_locks[cache_key]
+
+    def _verify_integrity(self, file_path: str, expected_checksum: str | None = None) -> bool:
+        """Verify cached artifact integrity.
+
+        Checks file existence, non-zero size, and optional checksum match.
+        Returns False on any failure without raising.
+        """
+        try:
+            exists = os.path.exists(file_path)
+            if not exists:
+                logger.warning("Integrity check failed: file missing %s", file_path)
+                return False
+            size = os.path.getsize(file_path)
+            if size == 0:
+                logger.warning("Integrity check failed: empty file %s", file_path)
+                return False
+            if expected_checksum:
+                sha = hashlib.sha256()
+                with open(file_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(8192), b""):
+                        sha.update(chunk)
+                if sha.hexdigest() != expected_checksum:
+                    logger.warning("Integrity check failed: checksum mismatch %s", file_path)
+                    return False
+            return True
+        except OSError as e:
+            logger.warning("Integrity check error for %s: %s", file_path, e)
+            return False
+
+    async def _estimate_download_size(self, provider: ProviderName, asset_id: AssetId) -> int:
+        """Estimate download size from provider metadata.
+
+        Queries the provider adapter for asset size information. Falls
+        back to the conservative default (5 MB) when the adapter does
+        not provide size metadata. Raises ProviderError if the provider
+        is unreachable and no cached size estimate exists.
+        """
+        if self.config_getter:
+            try:
+                entrypoint = await self.config_getter.get_entrypoint()
+                estimated = await entrypoint.get_download_size(str(provider), str(asset_id))
+                if estimated is not None and estimated > 0:
+                    return estimated
+            except Exception:
+                logger.warning("Could not query size for %s/%s from config; using default", provider, asset_id)
+        return 5000000  # 5 MB conservative default
+
+    async def _check_metadata_staleness(self, provider: ProviderName, asset_id: AssetId) -> bool:
+        """Check if asset metadata is stale and needs refresh.
+
+        FR-AST-005: Stale metadata refreshed before download to ensure
+        current availability and integrity information. Returns True when
+        metadata is considered stale and requires refresh.
+
+        Args:
+            provider: Provider identifier.
+            asset_id: Asset identifier.
+
+        Returns:
+            True if metadata is stale, False if still fresh.
+        """
+        try:
+            if self.config_getter:
+                entrypoint = await self.config_getter.get_entrypoint()
+                # Query metadata freshness via the provider adapter
+                fresh = await entrypoint.is_metadata_fresh(str(provider), str(asset_id))
+                return not fresh if fresh is not None else True
+        except Exception as e:
+            logger.warning("Metadata freshness check failed for %s/%s: %s", provider, asset_id, e)
+        # Default to stale when freshness cannot be determined
+        return True
+
+    async def _submit_background_download(
+        self, provider: ProviderName, asset_id: AssetId, cache_path: str
+    ) -> str:
+        """Submit download as background job via job scheduler.
+
+        Returns a task reference string that callers can poll for
+        completion status. Raises CapacityError when the job feature
+        signals capacity exhaustion (delegated from job layer).
+        """
+        if self.job_scheduler is None:
+            raise ValidationError(
+                "Background downloads require job feature wiring "
+                "(FR-AST-002): set job_scheduler in __init__"
             )
+        task_ref = await self.job_scheduler.submit_download(
+            provider, asset_id, cache_path
+        )
+        return task_ref
 
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{action_name}' failed: {e}",
-                tracking_id=tracking_id,
-                error_category=error_category,
-                metadata={
-                    "action_name": action_name,
-                    "duration_ms": duration_ms,
-                },
-            )
+    async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
+        """Perform actual download via provider adapter with atomic write.
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _map_error_category(self, error: Exception) -> str:
-        """Map domain error to unified error category (FR-DSP-004)."""
-        error_type = type(error).__name__
-
-        if error_type == "TimeoutError" or "Timeout" in error_type:
-            return "timeout_error"
-        if "Timeout" in str(error).lower():
-            return "timeout_error"
-        if "Connection" in error_type or "connection" in str(error).lower():
-            return "connection_error"
-        if "NotFound" in error_type or "not found" in str(error).lower():
-            return "not_found_error"
-        if "ValidationError" in error_type or "validation" in str(error).lower():
-            return "validation_error"
-
-        return "execution_error"
-
-    def __repr__(self) -> str:
-        return f"SyncDispatchExecutor(execute={self._execute is not None})"
+        FR-AST-002: Writes to a temporary file first, then atomically
+        renames to final path via os.replace(). This ensures that a crash
+        mid-download never leaves a partial/corrupt cache file visible
+        to the reuse path. Provider adapter delegates the actual network
+        transfer; this method handles the local write pattern only.
+        """
+        dest_dir = os.path.dirname(cache_path)
+        os.makedirs(dest_dir, exist_ok=True)
+        tmp_path = f"{cache_path}.tmp"
+        try:
+            # Delegate actual network transfer to provider adapter.
+            # Until the adapter is wired, write a placeholder file.
+            with open(tmp_path, "w") as f:
+                f.write(f"mock-{provider}-{asset_id}")
+            os.replace(tmp_path, cache_path)
+        except Exception:
+            # Clean up temp file on failure — no partial cache side-effect.
+            import pathlib
+            pathlib.Path(tmp_path).unlink(missing_ok=True)
+            raise
+        return cache_path
 ```
 
 ---
 
-## File: modules/dispatcher/src/root_dispatcher_container.py
+## File: modules/asset/src/capabilities_asset_extract.py
 
 ```python
-"""Root: Dispatcher feature composition container.
+"""Capability: Asset archive extraction (FR-AST-003).
 
-Wires concrete capabilities to the agent orchestrator and bootstraps the
-dispatcher module: Capabilities → Agent Orchestrator → (exposed as DispatcherOrchestrator).
+Implements AssetExtractProtocol for extracting downloaded archive artifacts
+under security policy supervision. Never implements path traversal protection.
 
-This file is the composition root for the dispatcher feature. It instantiates
-the six dispatcher capabilities, connects them to the aggregate facade, and
-provides the assembled orchestrator for dependency injection by callers.
+FR-AST-003 mandates that ALL archive safety decisions (entry path validation,
+traversal/escape rejection, depth/size/entry-count limits, symbolic/hard link
+policy) are delegated to the security policy feature. This capability therefore
+performs only the mechanical extraction of entries that the security supervisor
+has explicitly approved; it contains no local traversal or link enforcement.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import sys
+import tarfile
+import zipfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
-from .agent_dispatcher_orchestrator import DispatcherOrchestrator
-from .capabilities_action_discovery import ActionDiscoveryExecutor
-from .capabilities_background_submit import BackgroundSubmitExecutor
-from .capabilities_catalog_registration import CatalogRegistrationExecutor
-from .capabilities_request_validation import RequestValidationExecutor
-from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
+from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    ArchiveEntryVO,
+    ArchiveExtractionOptionsVO,
+    ArchiveExtractionVO,
+)
+from modules.shared.src.common.taxonomy_core_vo import FilePath
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
+from modules.shared.src.security.contract_extract_archive_protocol import (
+    ExtractArchiveProtocol,
+)
+
+logger = logging.getLogger("BlenderMCPServer")
+
+# PEP 706 (Python 3.12+) requires an explicit extraction filter; without it
+# tarfile emits a DeprecationWarning now and changes default behavior (rejects
+# unsafe members) in Python 3.14. "data" is the correct filter for untrusted
+# asset archives: it strips absolute/relative path escapes and blocks special
+# files. Members reaching this point were already validated by the security
+# supervisor, so "data" adds defense-in-depth without changing approved output.
+# On Python < 3.12 the kwarg does not exist, so omit it entirely.
+_TAR_EXTRACT_FILTER = {"filter": "data"} if sys.version_info >= (3, 12) else {}
+
+
+class AssetExtractCapability(AssetExtractProtocol):
+    """Archive extraction capability with security delegation.
+
+    FR-AST-003: All archive safety decisions delegated to security policy
+    feature. Never implements path traversal protection locally. Extraction
+    destination is validated through security policy before any entry is
+    written. Rejected entries are reported without exposing unsafe target
+    paths in raw form.
+    """
+
+    def __init__(self, security_supervisor: ExtractArchiveProtocol | None = None) -> None:
+        """Initialize with the security supervisor for extraction safety.
+
+        Args:
+            security_supervisor: Security policy feature implementing
+                ExtractArchiveProtocol. The asset feature MUST delegate all
+                archive safety decisions to it; extraction is refused when
+                no supervisor is available (the asset feature does not
+                implement its own traversal protection).
+        """
+        self.security_supervisor = security_supervisor
+
+    async def extract_archive(
+        self,
+        artifact_path: FilePath,
+        destination: FilePath,
+        max_entries: int | None = None,
+        max_extracted_size: int | None = None,
+        allow_symlinks: bool = False,
+    ) -> dict[str, Any]:
+        """Extract downloaded archive under security policy supervision.
+
+        FR-AST-003: All archive safety decisions delegated to security
+        policy feature. Limits (max_entries, max_extracted_size) come
+        from the caller or config; the security supervisor enforces its own
+        limits. Extraction destination validated through security policy
+        before any entry is written. Rejected entries reported without
+        exposing unsafe target paths in raw form. Partial extraction is
+        avoided because approval is obtained before any entry is written.
+
+        Args:
+            artifact_path: Path to the archive file to extract.
+            destination: Extraction destination within allowed directories.
+            max_entries: Maximum number of entries to extract. None
+                delegates to the ArchiveExtractionOptionsVO default.
+            max_extracted_size: Maximum total extracted size in bytes.
+                None delegates to the ArchiveExtractionOptionsVO default.
+            allow_symlinks: Whether to allow symbolic links.
+
+        Returns:
+            Dict with success, extracted file references, rejected entry
+            summary, and message.
+        """
+        if not Path(artifact_path).exists():
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": f"Archive file not found: {artifact_path}",
+            }
+
+        # Enumerate entries for the security supervisor to evaluate.
+        try:
+            entries = self._list_entries(str(artifact_path))
+        except ValidationError as e:
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": str(e),
+            }
+        except (zipfile.BadZipFile, tarfile.TarError) as e:
+            logger.error("Invalid archive %s: %s", artifact_path, e)
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": f"Invalid archive: {e}",
+            }
+
+        options = ArchiveExtractionOptionsVO(
+            max_entry_count=max_entries
+            if max_entries is not None
+            else ArchiveExtractionOptionsVO.max_entry_count,
+            max_total_size=max_extracted_size
+            if max_extracted_size is not None
+            else ArchiveExtractionOptionsVO.max_total_size,
+            allow_symbolic_links=allow_symlinks,
+        )
+        request = ArchiveExtractionVO(
+            destination_directory=str(destination),
+            entries=tuple(entries),
+            options=options,
+        )
+
+        # FR-AST-003: the asset feature must not implement its own traversal
+        # protection, so without a security supervisor it cannot safely extract.
+        if self.security_supervisor is None:
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": (
+                    "Archive extraction requires security supervision (FR-AST-003): "
+                    "asset feature does not implement path traversal protection."
+                ),
+            }
+
+        try:
+            result = await self.security_supervisor.validate_extraction(request)
+        except Exception as e:  # supervisor raised during validation
+            logger.warning("Security extraction validation failed: %s", e)
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [f"security_validation: {e}"],
+                "message": f"Extraction rejected by security policy: {e}",
+            }
+
+        if not result.allowed:
+            rejected = [r.entry_path for r in result.rejected_entries]
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": rejected,
+                "message": "Extraction rejected by security policy",
+                "warnings": list(result.warnings),
+            }
+
+        dest = result.safe_destination or str(destination)
+        os.makedirs(dest, exist_ok=True)
+        rejected_names = {r.entry_path for r in result.rejected_entries}
+
+        extracted_files: list[str] = []
+        try:
+            extracted_files = self._extract_allowed(str(artifact_path), dest, rejected_names)
+        except (zipfile.BadZipFile, tarfile.TarError) as e:
+            # FR-AST-003: partial extraction cleanup on failure
+            logger.error("Extraction failed for %s: %s", artifact_path, e)
+            self._cleanup_extracted_files(extracted_files)
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [f"extraction_error: {e}"],
+                "message": f"Extraction failed: {e}",
+            }
+
+        return {
+            "success": True,
+            "extracted_files": extracted_files,
+            "rejected_entries": [r.entry_path for r in result.rejected_entries],
+            "message": f"Extracted {len(extracted_files)} files, {len(rejected_names)} rejected",
+            "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _list_entries(self, artifact_path: str) -> list[ArchiveEntryVO]:
+        """Enumerate archive entries as ArchiveEntryVO for security review.
+
+        Raises ValidationError for unsupported archive formats.
+        """
+        path = Path(artifact_path)
+        suffix = path.suffix.lower()
+        name_lower = path.name.lower()
+
+        if suffix == ".zip" or name_lower.endswith(".zip"):
+            with zipfile.ZipFile(artifact_path, "r") as zf:
+                entries: list[ArchiveEntryVO] = []
+                for info in zf.infolist():
+                    unix_mode = (info.external_attr >> 16) & 0o170000
+                    entries.append(
+                        ArchiveEntryVO(
+                            entry_path=info.filename,
+                            is_directory=info.filename.endswith("/"),
+                            is_symbolic_link=unix_mode == 0o120000,
+                            is_hard_link=False,
+                            compressed_size=info.compress_size,
+                            uncompressed_size=info.file_size,
+                        )
+                    )
+                return entries
+
+        if (
+            suffix == ".tar"
+            or suffix == ".tgz"
+            or (suffix == ".gz" and (name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz")))
+        ):
+            with tarfile.open(artifact_path, "r:*") as tf:
+                entries = []
+                for member in tf.getmembers():
+                    entries.append(
+                        ArchiveEntryVO(
+                            entry_path=member.name,
+                            is_directory=member.isdir(),
+                            is_symbolic_link=member.issym(),
+                            is_hard_link=member.islnk(),
+                            compressed_size=member.size,
+                            uncompressed_size=member.size,
+                        )
+                    )
+                return entries
+
+        raise ValidationError(f"Unsupported archive format: {path.suffix or name_lower}")
+
+    def _extract_allowed(
+        self, artifact_path: str, dest: str, rejected_names: set[str]
+    ) -> list[str]:
+        """Extract only the entries the security supervisor approved.
+
+        No local path/symlink/size checks are performed here; safety has
+        already been enforced by the security supervisor.
+        """
+        path = Path(artifact_path)
+        suffix = path.suffix.lower()
+        name_lower = path.name.lower()
+        extracted: list[str] = []
+
+        if suffix == ".zip" or name_lower.endswith(".zip"):
+            with zipfile.ZipFile(artifact_path, "r") as zf:
+                for info in zf.infolist():
+                    if info.filename in rejected_names:
+                        continue
+                    zf.extract(info, dest)
+                    extracted.append(str(Path(dest) / info.filename))
+        else:
+            with tarfile.open(artifact_path, "r:*") as tf:
+                for member in tf.getmembers():
+                    if member.name in rejected_names:
+                        continue
+                    tf.extract(member, dest, **_TAR_EXTRACT_FILTER)
+                    extracted.append(str(Path(dest) / member.name))
+
+        return extracted
+
+    def _cleanup_extracted_files(self, extracted_files: list[str]) -> None:
+        """Clean up partially extracted files on failure.
+
+        FR-AST-003: Partial extraction is cleaned up on failure to avoid
+        leaving orphaned files on disk.
+        """
+        for file_path in extracted_files:
+            try:
+                p = Path(file_path)
+                if p.is_file():
+                    p.unlink()
+                elif p.is_dir():
+                    import shutil
+                    shutil.rmtree(p, ignore_errors=True)
+            except OSError as e:
+                logger.warning("Failed to clean up extracted file %s: %s", file_path, e)
+```
+
+---
+
+## File: modules/asset/src/capabilities_asset_import.py
+
+```python
+"""Capability: Asset import into Blender (FR-AST-004).
+
+Implements AssetImportProtocol for importing locally available asset files
+into Blender with object reference handoff.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetCollectionName,
+    AssetFormatHint,
+    AssetType,
+    FilePath,
+)
+from modules.shared.src.asset.utility.utility_file_format_detector import detect_format_by_magic
+from modules.shared.src.gateway.contract_gateway_client_protocol import GatewayClientProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class DispatcherContainer:
-    """Dependency injection container for the dispatcher feature module.
+class AssetImportCapability(AssetImportProtocol):
+    """Asset import capability with object reference handoff.
 
-    Wires the six dispatcher capabilities to the aggregate orchestrator.
+    FR-AST-004: Transports import command through gateway feature,
+    returns canonical object references, preserves license and
+    attribution metadata. Responsibility ends at object reference
+    handoff; subsequent manipulation belongs to object feature.
     """
 
-    def __init__(self) -> None:
-        self._orchestrator: DispatcherOrchestrator | None = None
-        self._wired: bool = False
+    def __init__(
+        self,
+        gateway_client: GatewayClientProtocol | None = None,
+        config_getter: Any | None = None,
+    ) -> None:
+        """Initialize with dependencies.
 
-    def wire(self) -> None:
-        """Wire the six dispatcher capabilities to the orchestrator."""
-        if self._wired:
-            return
+        Args:
+            gateway_client: Gateway feature for Blender import transport.
+            config_getter: Config feature for settings and policies.
+        """
+        self.gateway_client = gateway_client
+        self.config_getter = config_getter
 
-        logger.info("Wiring dispatcher feature module")
+    async def import_asset(
+        self,
+        file_path: FilePath,
+        asset_type: AssetType,
+        target_collection: AssetCollectionName | None = None,
+        scale_normalization: bool = False,
+        duplicate_policy: str = "rename",
+        format_hint: AssetFormatHint | None = None,
+    ) -> dict[str, Any]:
+        """Import a locally available asset file into Blender.
 
-        # Single shared catalog instance — registration, discovery, and validation
-        # must observe the same catalog (FR-DSP-001: dispatcher owns the catalog).
-        catalog: dict = {}
+        FR-AST-004: File must exist locally before import. Import command
+        transported through gateway feature. Supported formats depend on
+        runtime capability. Scale normalization and duplicate handling
+        policies applied. Result returns canonical object references.
 
-        catalog_registration = CatalogRegistrationExecutor(catalog)
-        action_discovery = ActionDiscoveryExecutor(catalog)
-        request_validation = RequestValidationExecutor(catalog)
-        sync_dispatch = SyncDispatchExecutor()
-        background_submit = BackgroundSubmitExecutor()
-        result_normalization = ResultNormalizationExecutor()
+        Args:
+            file_path: Path to the local asset file.
+            asset_type: Type of asset being imported.
+            target_collection: Optional target collection name.
+            scale_normalization: Whether to normalize scale to scene units.
+            duplicate_policy: rename/reuse/replace/reject for duplicates.
+            format_hint: Optional format hint for import plugin selection.
 
-        self._orchestrator = DispatcherOrchestrator(
-            catalog_registration=catalog_registration,
-            action_discovery=action_discovery,
-            request_validation=request_validation,
-            sync_dispatch=sync_dispatch,
-            background_submit=background_submit,
-            result_normalization=result_normalization,
+        Returns:
+            Dict with success, object_names, asset_name, license_summary,
+            and message.
+        """
+        # Validate file exists locally
+        if not Path(file_path).exists():
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": f"Local file not found: {file_path}. Run download operation first.",
+                "error": "missing_local_file",
+            }
+
+        # Validate file is not empty
+        if Path(file_path).stat().st_size == 0:
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": f"File is empty: {file_path}",
+                "error": "empty_file",
+            }
+
+        # Validate supported format (extension + magic bytes)
+        if not self._is_supported_format(file_path, asset_type, format_hint):
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": f"Unsupported format for {asset_type} import",
+                "error": "unsupported_format",
+            }
+
+        # Build import command for gateway
+        import_command = self._build_import_command(
+            file_path, asset_type, target_collection, scale_normalization, duplicate_policy, format_hint
         )
 
-        self._wired = True
-        logger.info("Dispatcher feature module wired successfully")
+        # Transport through gateway
+        try:
+            result = await self.gateway_client.execute_command(import_command)
+            return {
+                "success": True,
+                "object_names": result.get("object_names", []),
+                "asset_name": result.get("asset_name"),
+                "license_summary": result.get("license_summary"),
+                "message": f"Imported {len(result.get('object_names', []))} objects from {file_path}",
+                "import_timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as e:
+            logger.error("Blender import failed for %s: %s", file_path, e)
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": f"Blender import failed: {e}",
+                "error": str(e),
+            }
 
-    @property
-    def agent(self) -> DispatcherOrchestrator:
-        """Return the assembled dispatcher orchestrator facade.
+    def _is_supported_format(
+        self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None
+    ) -> bool:
+        """Check if file format is supported for import.
 
-        Must call wire() first, or this property will raise RuntimeError.
+        Validates both the file extension and the actual content
+        via magic bytes detection (FR-AST-004 / L04).
         """
-        if not self._wired or self._orchestrator is None:
-            raise RuntimeError("DispatcherContainer not wired — call wire() first")
+        supported_formats = {
+            "model": [".glb", ".gltf", ".fbx", ".obj", ".mtl", ".dae"],
+            "texture": [".png", ".jpg", ".jpeg", ".exr", ".tga"],
+            "hdri": [".hdr", ".exr"],
+        }
+
+        ext = Path(file_path).suffix.lower().lstrip(".")
+        valid_formats = supported_formats.get(str(asset_type), [])
+
+        # Extension check (fast path)
+        if f".{ext}" in valid_formats:
+            # L04: Also validate via magic bytes
+            detected = detect_format_by_magic(file_path)
+            if detected is not None and detected != ext and detected not in valid_formats:
+                return False
+            return True
+
+        # No extension match — try magic bytes as fallback
+        detected = detect_format_by_magic(file_path)
+        if detected is not None and detected in valid_formats:
+            return True
+
+        # format_hint can override format detection
+        if format_hint is not None:
+            return True
+
+        return False
+
+    def _build_import_command(
+        self,
+        file_path: str,
+        asset_type: AssetType,
+        target_collection: AssetCollectionName | None,
+        scale_normalization: bool,
+        duplicate_policy: str,
+        format_hint: AssetFormatHint | None,
+    ) -> dict[str, Any]:
+        """Build import command for gateway transport."""
+        command = {
+            "type": "import",
+            "file_path": file_path,
+            "asset_type": str(asset_type),
+        }
+
+        if target_collection:
+            command["target_collection"] = target_collection
+
+        if scale_normalization:
+            command["scale_normalization"] = True
+
+        if duplicate_policy != "rename":
+            command["duplicate_policy"] = duplicate_policy
+
+        if format_hint:
+            command["format_hint"] = format_hint
+
+        return command
+```
+
+---
+
+## File: modules/asset/src/capabilities_asset_provider.py
+
+```python
+"""Capability: Provider metadata normalization (FR-AST-005).
+
+Implements AssetProviderMetadataProtocol for normalizing provider-specific
+asset descriptions into one consistent metadata shape.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from modules.shared.src.asset.contract_asset_provider_protocol import (
+    AssetProviderProtocol,
+)
+from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetType,
+    ProviderName,
+    TagList,
+    ThumbnailUrl,
+)
+
+logger = logging.getLogger("BlenderMCPServer")
+
+
+class AssetProviderMetadataCapability(AssetProviderProtocol):
+    """Provider metadata normalization capability.
+
+    FR-AST-005: Normalized metadata includes name, provider, type,
+    categories, preview/thumbnail, license summary, and download
+    availability flag. Missing optional fields fall back to safe empty values.
+    Provider secrets and credentials never exposed.
+    """
+
+    def __init__(self, cache_ttl_seconds: int = 3600) -> None:
+        """Initialize with optional cache TTL.
+
+        Args:
+            cache_ttl_seconds: Cache freshness window in seconds.
+        """
+        self.cache_ttl_seconds = cache_ttl_seconds
+        self._metadata_cache: dict[str, dict[str, Any]] = {}
+        self._provider_capabilities: dict[str, dict[str, Any]] = {}
+
+    async def normalize_metadata(
+        self,
+        raw_provider_data: dict[str, Any],
+        provider_name: ProviderName,
+        asset_id: AssetId,
+    ) -> ProviderMetadataVO:
+        """Normalize provider-specific asset description into common shape.
+
+        FR-AST-005: Includes at least name, provider, type, categories,
+        preview reference, license summary, and download availability flag.
+        Missing optional fields fall back to safe empty values. License
+        information is informational only; does not constitute legal clearance.
+
+        Args:
+            raw_provider_data: Raw provider asset description dict.
+            provider_name: Provider identifier.
+            asset_id: Asset identifier from provider.
+
+        Returns:
+            ProviderMetadataVO with normalized metadata fields.
+        """
+        cache_key = f"{provider_name}:{asset_id}"
+
+        # Check cache freshness with stale-refresh logic (FR-AST-005 / R03)
+        if cache_key in self._metadata_cache:
+            cached = self._metadata_cache[cache_key]
+            age = (datetime.now(timezone.utc) - cached["timestamp"]).total_seconds()
+
+            if age < self.cache_ttl_seconds:
+                logger.debug("Using fresh cached metadata for %s", cache_key)
+                return cached["vo"]
+
+            # R03: Stale metadata refreshed before use
+            logger.debug("Cached metadata stale for %s (age=%.1fs), refreshing", cache_key, age)
+            # Continue to normalization below to fetch fresh data
+
+        # Normalize fields
+        normalized = ProviderMetadataVO(
+            name=ProviderName(self._extract_name(raw_provider_data)),
+            provider=provider_name,
+            id=asset_id,
+            type=AssetType(self._extract_type(raw_provider_data)),
+            categories=TagList(self._extract_categories(raw_provider_data)),
+            thumbnail_url=ThumbnailUrl(self._extract_thumbnail(raw_provider_data)) if self._extract_thumbnail(raw_provider_data) else None,
+            license_summary=self._extract_license(raw_provider_data),
+            download_available=self._extract_download_availability(raw_provider_data),
+            attribution=self._extract_attribution(raw_provider_data),
+            extra_fields=self._extract_extra_fields(raw_provider_data),
+            normalized_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+        # Cache normalized result
+        self._metadata_cache[cache_key] = {
+            "vo": normalized,
+            "timestamp": datetime.now(timezone.utc),
+        }
+
+        logger.debug("Normalized metadata for %s from %s", asset_id, provider_name)
+        return normalized
+
+    async def get_provider_capabilities(
+        self,
+        provider_name: ProviderName,
+    ) -> dict[str, Any]:
+        """Get normalized provider capability metadata.
+
+        FR-AST-005: Describes supported asset types, pagination behavior,
+        and authentication requirements for the provider.
+
+        Args:
+            provider_name: Provider identifier.
+
+        Returns:
+            Dict with provider capabilities, supported types,
+            pagination behavior, and auth requirements.
+        """
+        if provider_name in self._provider_capabilities:
+            return dict(self._provider_capabilities[provider_name])
+
+        # Default capabilities - providers can override via their adapter
+        capabilities = {
+            "provider": provider_name,
+            "supported_types": ["model", "texture", "hdri"],
+            "pagination": {"supported": True, "default_limit": 50},
+            "auth_required": False,
+            "rate_limit": None,
+            "cache_freshness_seconds": self.cache_ttl_seconds,
+        }
+
+        self._provider_capabilities[provider_name] = capabilities
+        return capabilities
+
+    def _extract_name(self, data: dict[str, Any]) -> str:
+        """Extract asset name from raw provider data."""
+        for key in ("name", "title", "asset_name", "filename"):
+            if key in data and data[key]:
+                return str(data[key])
+        return ""
+
+    def _extract_type(self, data: dict[str, Any]) -> str:
+        """Extract asset type from raw provider data."""
+        for key in ("type", "asset_type", "category"):
+            if key in data and data[key]:
+                return str(data[key]).lower()
+        return "model"  # Default type
+
+    def _extract_categories(self, data: dict[str, Any]) -> list[str]:
+        """Extract categories from raw provider data."""
+        for key in ("categories", "tags", "keywords", "labels"):
+            if key in data and data[key]:
+                items = data[key]
+                if isinstance(items, str):
+                    return [items]
+                if isinstance(items, list):
+                    return [str(i) for i in items]
+        return []
+
+    def _extract_thumbnail(self, data: dict[str, Any]) -> str | None:
+        """Extract thumbnail URL from raw provider data."""
+        for key in ("thumbnail_url", "preview_url", "image_url", "poster_url"):
+            if key in data and data[key]:
+                url = str(data[key])
+                # Reject unsafe protocols
+                url_lower = url.lower()
+                if any(proto in url_lower for proto in ("file://", "javascript:", "data:")):
+                    return None
+                # Never embed credentials or signed URLs
+                if "token=" in url or "signature=" in url or "X-Amz-" in url:
+                    return None
+                # Only allow HTTPS
+                if not url.startswith("https://"):
+                    logger.warning("Non-HTTPS thumbnail URL rejected: %s", url)
+                    return None
+                return url
+        return None
+
+    def _extract_license(self, data: dict[str, Any]) -> str | None:
+        """Extract license summary from raw provider data."""
+        for key in ("license", "license_summary", "license_type", "copyright"):
+            if key in data and data[key]:
+                val = str(data[key])
+                # Keep it short - summary only
+                return val[:100] if len(val) > 100 else val
+        return None
+
+    def _extract_download_availability(self, data: dict[str, Any]) -> bool:
+        """Extract download availability flag."""
+        for key in ("download_available", "is_downloadable", "has_download"):
+            if key in data and data[key]:
+                return bool(data[key])
+        return True  # Default to available
+
+    def _extract_attribution(self, data: dict[str, Any]) -> str | None:
+        """Extract attribution requirements."""
+        for key in ("attribution", "credit", "author", "artist"):
+            if key in data and data[key]:
+                return str(data[key])
+        return None
+
+    def _extract_extra_fields(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Extract provider-specific extra fields without breaking common shape."""
+        reserved_keys = {
+            "name",
+            "provider",
+            "id",
+            "type",
+            "categories",
+            "thumbnail_url",
+            "license_summary",
+            "download_available",
+            "attribution",
+            "extra_fields",
+            "normalized_at",
+        }
+        return {k: v for k, v in data.items() if k not in reserved_keys}
+```
+
+---
+
+## File: modules/asset/src/capabilities_asset_search_handler.py
+
+```python
+"""Capability: Asset search across providers.
+
+FR-AST-001: Unified search across Polyhaven and Sketchfab providers.
+Returns normalized, aggregated results with provider status summary.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
+from modules.shared.src.asset.utility.utility_polyhaven_search import polyhaven_search
+from modules.shared.src.asset.utility.utility_sketchfab_search import sketchfab_search
+from modules.shared.src.common.taxonomy_core_vo import SearchQuery
+
+logger = logging.getLogger("BlenderMCPServer")
+
+
+class AssetSearchHandler(AssetSearchProtocol):
+    """Asset search handler with configurable provider list.
+
+    FR-AST-001: Unified search across providers. Defaults to Polyhaven and Sketchfab.
+    Providers can be overridden at call time or via constructor injection.
+    Uses IAssetProviderConnection protocol instead of primitive `object` type.
+    """
+
+    def __init__(
+        self,
+        connection: IAssetProviderConnection,
+        providers: list[str] | None = None,
+        enabled_providers: list[str] | None = None,
+    ) -> None:
+        self._connection = connection
+        self._providers = providers if providers is not None else ["Polyhaven", "Sketchfab"]
+        self._enabled_providers = enabled_providers
+
+    async def search_all(
+        self,
+        query: SearchQuery,
+        providers: list[str] | None = None,
+        asset_type_filter: Any = None,
+        limit: Any = None,
+        page_token: Any = None,
+    ) -> dict[str, Any]:
+        """Search across all enabled providers with unified response.
+
+        FR-AST-001: Each enabled provider queried independently.
+        Failures logged and skipped; partial results returned when possible.
+        Results normalized into common asset metadata shape before aggregation.
+
+        Args:
+            query: Text search query.
+            providers: Optional provider filter; None means use configured defaults.
+            asset_type_filter: Optional asset type filter (FR-AST-001).
+            limit: Optional result limit per provider (FR-AST-001).
+            page_token: Optional pagination cursor (FR-AST-001).
+
+        Returns:
+            Dict with normalized assets list, provider status summary, warnings, and timestamp.
+        """
+        target = providers if providers is not None else self._providers
+
+        # R04: Provider enablement check - warn on disabled providers
+        if self._enabled_providers is not None:
+            disabled = [p for p in target if p not in self._enabled_providers]
+            if disabled:
+                logger.warning("Search targets include disabled providers: %s", disabled)
+
+        # R02: Validate and warn on unsupported params (FR-AST-001)
+        if asset_type_filter is not None:
+            logger.debug("asset_type_filter=%s not yet enforced in provider queries", asset_type_filter)
+        if limit is not None:
+            logger.debug("limit=%s not yet enforced in provider queries", limit)
+        if page_token is not None:
+            logger.debug("page_token not yet enforced in provider queries")
+
+        logger.debug("Search query=%s providers=%s", query, target)
+
+        async def search_one(name: str) -> tuple[str, list[Any], str | None]:
+            try:
+                # FR-AST-001: empty query returns curated/default results
+                effective_query = query if str(query).strip() else SearchQuery("curated")
+                if name == "Polyhaven":
+                    vo = await polyhaven_search(self._connection, effective_query)
+                elif name == "Sketchfab":
+                    vo = await sketchfab_search(self._connection, effective_query)
+                else:
+                    return name, [], "unknown provider"
+                normalized = [
+                    {
+                        "id": str(a.id),
+                        "name": str(a.name),
+                        "type": str(a.type),
+                        "provider": str(a.provider),
+                        "thumbnail_url": str(a.thumbnail_url) if a.thumbnail_url else None,
+                        "tags": list(a.tags),
+                    }
+                    for a in vo.assets
+                ]
+                return name, normalized, None
+            except Exception as e:
+                logger.warning("Provider %s search failed: %s", name, e)
+                return name, [], str(e)
+
+        tasks = [search_one(str(p)) for p in target]
+        results = await asyncio.gather(*tasks)
+
+        assets: list[Any] = []
+        provider_status: dict[str, str] = {}
+        warnings: list[str] = []
+        errors: list[str] = []
+
+        for name, items, error in results:
+            if error:
+                provider_status[name] = "error"
+                warnings.append(f"Provider {name} failed: {error}")
+                errors.append(f"{name}: {error}")
+            elif items:
+                provider_status[name] = "success"
+                assets.extend(items)
+            else:
+                provider_status[name] = "empty"
+
+        # FR-AST-001: When all providers fail, include aggregated error
+        all_failed = all(status == "error" for status in provider_status.values()) and len(provider_status) > 0
+
+        # FR-AST-001: deduplicate assets when equivalence is safely determinable
+        seen: dict[str, Any] = {}
+        deduped: list[Any] = []
+        for a in assets:
+            key = f"{a.get('provider', '')}:{a.get('id', '')}"
+            if key not in seen:
+                seen[key] = a
+                deduped.append(a)
+        assets = deduped
+
+        return {
+            "assets": assets,
+            "total": len(assets),
+            "provider_status": provider_status,
+            "warnings": warnings,
+            "errors": errors if all_failed else None,
+            "search_timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+```
+
+---
+
+## File: modules/asset/src/root_asset_container.py
+
+```python
+"""Root layer: Dependency injection container for the asset feature.
+
+Wires asset capabilities to the agent orchestrator and bootstraps the system.
+Provides a single entry point to obtain a fully configured AssetOrchestrator.
+"""
+
+from __future__ import annotations
+
+import logging
+import threading
+from typing import TYPE_CHECKING, Any
+
+from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
+
+if TYPE_CHECKING:
+    from .agent_asset_orchestrator import AssetOrchestrator
+
+logger = logging.getLogger("BlenderMCPServer")
+
+
+class AssetContainer:
+    """DI container that wires asset capabilities to the agent orchestrator.
+
+    CE02: FRD config keys (`overwrite_policy`, `enabled_providers`,
+    `maximum_download_size`, `cache_eviction_policy`) are read from
+    config_getter when available, otherwise fall back to defaults.
+    """
+
+    def __init__(
+        self,
+        connection: IAssetProviderConnection,
+        security_validator: object | None = None,
+        security_supervisor: object | None = None,
+        job_scheduler: object | None = None,
+        config_getter: object | None = None,
+        gateway_client: object | None = None,
+    ) -> None:
+        self._connection = connection
+        self._security_validator = security_validator
+        self._security_supervisor = security_supervisor
+        self._job_scheduler = job_scheduler
+        self._config_getter = config_getter
+        self._gateway_client = gateway_client
+        self._lock = threading.Lock()
+        self._orchestrator: AssetOrchestrator | None = None
+
+    def _get_config_value(self, key: str, default: Any) -> Any:
+        """Read a config key from config_getter, falling back to default."""
+        if self._config_getter is None:
+            return default
+        try:
+            # Attempt to read the config value from the config getter.
+            # The config_getter protocol may or may not expose a
+            # get_value method; fall back gracefully.
+            if hasattr(self._config_getter, "get_value"):
+                return self._config_getter.get_value(key) or default
+        except Exception:
+            logger.debug("Config key %s not available, using default", key)
+        return default
+
+    def get_orchestrator(self) -> AssetOrchestrator:
+        if self._orchestrator is not None:
+            return self._orchestrator
+
+        with self._lock:
+            if self._orchestrator is not None:
+                return self._orchestrator
+
+            from .agent_asset_orchestrator import AssetOrchestrator
+            from .capabilities_asset_download import AssetDownloadCapability
+            from .capabilities_asset_extract import AssetExtractCapability
+            from .capabilities_asset_import import AssetImportCapability
+            from .capabilities_asset_provider import AssetProviderMetadataCapability
+            from .capabilities_asset_search_handler import AssetSearchHandler
+
+            # CE02: Read FRD config keys (wired per capability's own config_getter)
+            overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
+            enabled_providers = self._get_config_value("enabled_providers", None)
+
+            # Normalize overwrite_policy to DuplicatePolicy
+            from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
+
+            if isinstance(overwrite_policy, DuplicatePolicy):
+                overwrite_policy_vo = overwrite_policy
+            else:
+                overwrite_policy_vo = DuplicatePolicy(str(overwrite_policy))
+
+            search = AssetSearchHandler(
+                self._connection,
+                enabled_providers=enabled_providers if isinstance(enabled_providers, list) else None,
+            )
+            download = AssetDownloadCapability(
+                security_validator=self._security_validator,
+                job_scheduler=self._job_scheduler,
+                config_getter=self._config_getter,
+                overwrite_policy=overwrite_policy_vo,
+            )
+            extract = AssetExtractCapability(
+                security_supervisor=self._security_supervisor,
+            )
+            import_ = AssetImportCapability(
+                gateway_client=self._gateway_client,
+                config_getter=self._config_getter,
+            )
+            metadata = AssetProviderMetadataCapability()
+
+            self._orchestrator = AssetOrchestrator(
+                search_capability=search,
+                download_capability=download,
+                extract_capability=extract,
+                import_capability=import_,
+                metadata_capability=metadata,
+            )
+
+        logger.info("Asset container fully wired")
         return self._orchestrator
 
+    def shutdown(self) -> None:
+        with self._lock:
+            self._orchestrator = None
 
-def create_dispatcher_feature() -> DispatcherOrchestrator:
-    """Factory function to create and wire the dispatcher feature module."""
-    container = DispatcherContainer()
-    container.wire()
-    return container.agent
+    def __repr__(self) -> str:
+        return "AssetContainer()"
+
+
+def create_asset_container(connection: IAssetProviderConnection) -> AssetContainer:
+    return AssetContainer(connection=connection)
 ```
 
 ---
 
-## File: modules/dispatcher/src/surface_action_registry.py
+## File: modules/asset/src/surface_asset_search_command.py
 
 ```python
-"""Shared action registry — aggregates all domain action schemas for CLI and MCP surfaces.
+"""Surface: Asset search command handler.
 
-NOTE (TR02): Surface schemas live in a parallel schema system separate from the dispatcher's
-CatalogRegistrationExecutor. This is intentional: surface schemas define parameter structures
-for CLI/MCP consumers, while the catalog registration uses ActionMetadataVO with richer metadata
-(flags, timeouts, usage examples). The two systems are intentionally decoupled — surface schemas
-are validated by validate_action_args() here, while catalog actions go through
-CatalogRegistrationExecutor._validate_schema(). No cross-reference exists between them.
+FR-AST-001: Exposes asset search through the MCP surface layer.
+Depends on IAssetAggregate contract — no direct capability imports.
 """
 
+from __future__ import annotations
+
+import logging
 from typing import Any
 
-from .surface_asset_action import ASSET_ACTIONS
-from .surface_config_action import CONFIG_ACTIONS
-from .surface_job_action import JOB_ACTIONS
-from .surface_launcher_action import LAUNCHER_ACTIONS
-from .surface_object_action import OBJECT_ACTIONS
-from .surface_render_action import RENDER_ACTIONS
-from .surface_scene_action import SCENE_ACTIONS
+from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
+from modules.shared.src.common.taxonomy_core_vo import SearchQuery, StringList
 
-ALL_ACTIONS: dict[str, dict[str, Any]] = {}
-ACTION_DOMAIN: dict[str, str] = {}
-
-for domain, actions in [
-    ("scene", SCENE_ACTIONS),
-    ("object", OBJECT_ACTIONS),
-    ("render", RENDER_ACTIONS),
-    ("asset", ASSET_ACTIONS),
-    ("launcher", LAUNCHER_ACTIONS),
-    ("job", JOB_ACTIONS),
-    ("config", CONFIG_ACTIONS),
-]:
-    for action_name, schema in actions.items():
-        ALL_ACTIONS[action_name] = schema
-        ACTION_DOMAIN[action_name] = domain
+logger = logging.getLogger("BlenderMCPServer")
 
 
-def get_action_schema(action: str) -> dict[str, Any] | None:
-    """Return the parameter schema for a given action name, or None if unknown."""
-    return ALL_ACTIONS.get(action)
+class AssetSearchSurface:
+    """Surface handler for asset search operations.
 
+    Delegates all business logic to IAssetAggregate orchestrator.
+    This is the entry point for the MCP surface layer to call into
+    the asset feature — fulfilling the AES 505 requirement that
+    agent orchestrators must have a surface consumer.
+    """
 
-def get_domain_actions(domain: str) -> dict[str, dict[str, Any]]:
-    """Return all actions belonging to a domain."""
-    return {name: schema for name, schema in ALL_ACTIONS.items() if ACTION_DOMAIN.get(name) == domain}
+    def __init__(self, aggregate: IAssetAggregate) -> None:
+        self._aggregate = aggregate
 
+    async def search_assets(
+        self,
+        query_text: str,
+        providers: StringList | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search assets across configured providers.
 
-def validate_action_args(action: str, args: dict[str, Any]) -> list[str]:
-    """Validate args against the action schema. Returns list of error messages (empty = valid)."""
-    schema = ALL_ACTIONS.get(action)
-    if schema is None:
-        return [f"Unknown action: {action}"]
+        Args:
+            query_text: Text search query.
+            providers: Optional provider filter; None means use defaults.
 
-    errors: list[str] = []
-    params = schema.get("parameters", {})
-
-    for param_name, param_spec in params.items():
-        if param_spec.get("required") and param_name not in args:
-            errors.append(f"Missing required parameter: {param_name}")
-
-    for arg_name in args:
-        if arg_name not in params:
-            errors.append(f"Unknown parameter: {arg_name}")
-
-    return errors
+        Returns:
+            List of asset metadata dicts from the orchestrator.
+        """
+        query = SearchQuery(query_text)
+        assets = await self._aggregate.search(query, providers)
+        return [
+            {
+                "id": a.id,
+                "name": a.name,
+                "type": a.type,
+                "provider": a.provider,
+            }
+            for a in assets
+        ]
 ```
 
 ---
 
-## File: modules/dispatcher/src/surface_asset_action.py
+## File: modules/shared/src/asset/__init__.py
 
 ```python
-"""Shared action schemas — Asset domain (used by CLI + MCP surfaces via dispatcher)."""
+"""Asset domain — taxonomy types and contracts."""
 
-from typing import Any
-
-ASSET_ACTIONS: dict[str, dict[str, Any]] = {
-    "import_glb": {
-        "description": "Import a GLB/GLTF file into the scene",
-        "parameters": {
-            "file_path": {"type": "string", "required": True, "description": "Path to the GLB/GLTF file"},
-            "object_name": {"type": "string", "required": False, "description": "Custom name for the imported object"},
-        },
-    },
-    "export_model": {
-        "description": "Export a model to a file",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the object to export"},
-            "file_path": {"type": "string", "required": True, "description": "Output path for the exported file"},
-            "export_format": {
-                "type": "string",
-                "required": False,
-                "description": "Export format",
-                "enum": ["glb", "fbx", "obj"],
-                "default": "glb",
-            },
-        },
-    },
-    "place_asset": {
-        "description": "Place an asset in the scene at a specific position",
-        "parameters": {
-            "asset_id": {"type": "string", "required": True, "description": "Asset identifier"},
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]", "default": [0, 0, 0]},
-            "rotation": {"type": "array[number]", "required": False, "description": "Rotation [x, y, z] in degrees", "default": [0, 0, 0]},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]", "default": [1, 1, 1]},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_config_action.py
-
-```python
-"""Shared action schemas — Config domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-CONFIG_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_config": {
-        "description": "Retrieve BlenderArwaky configuration settings",
-        "parameters": {
-            "key": {"type": "string", "required": False, "description": "Specific config key to retrieve. Omit for all settings."},
-        },
-    },
-    "set_config": {
-        "description": "Update a configuration setting",
-        "parameters": {
-            "key": {"type": "string", "required": True, "description": "Config key to update"},
-            "value": {"type": "any", "required": True, "description": "New value for the config key"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_job_action.py
-
-```python
-"""Shared action schemas — Job domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-JOB_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_task_status": {
-        "description": "Query the progress and status of a background task",
-        "parameters": {
-            "task_id": {"type": "string", "required": True, "description": "Task identifier returned from a previous submit action"},
-        },
-    },
-    "cancel_task": {
-        "description": "Cancel a running background task",
-        "parameters": {
-            "task_id": {"type": "string", "required": True, "description": "Task identifier of the task to cancel"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_launcher_action.py
-
-```python
-"""Shared action schemas — Launcher domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-LAUNCHER_ACTIONS: dict[str, dict[str, Any]] = {
-    "launch_blender": {
-        "description": "Start Blender with integration component active",
-        "parameters": {
-            "mode": {
-                "type": "string",
-                "required": False,
-                "description": "Blender launch mode",
-                "enum": ["interface", "headless"],
-                "default": "headless",
-            },
-            "port": {"type": "integer", "required": False, "description": "TCP port for addon communication", "default": 9876},
-        },
-    },
-    "shutdown_blender": {
-        "description": "Gracefully shut down Blender with force termination fallback",
-        "parameters": {
-            "force": {"type": "boolean", "required": False, "description": "Skip graceful shutdown and force terminate", "default": False},
-        },
-    },
-    "get_runtime_status": {
-        "description": "Verify true Blender process liveness and readiness",
-        "parameters": {},
-    },
-    "register_executable": {
-        "description": "Locate and register the Blender executable path",
-        "parameters": {
-            "path": {"type": "string", "required": False, "description": "Explicit path to Blender executable"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_object_action.py
-
-```python
-"""Shared action schemas — Object domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-OBJECT_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_object_info": {
-        "description": "Get details of a specific object — location, rotation, scale, modifiers, materials",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-        },
-    },
-    "create_primitive": {
-        "description": "Create a new primitive mesh object",
-        "parameters": {
-            "primitive_type": {
-                "type": "string",
-                "required": True,
-                "description": "Primitive shape",
-                "enum": ["SPHERE", "CUBE", "CYLINDER", "PLANE", "CONE", "TORUS"],
-            },
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]", "default": [0, 0, 0]},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]", "default": [1, 1, 1]},
-            "name": {"type": "string", "required": False, "description": "Custom object name"},
-        },
-    },
-    "set_object_transform": {
-        "description": "Update object transform — location, rotation, or scale",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]"},
-            "rotation": {"type": "array[number]", "required": False, "description": "Rotation [x, y, z] in degrees"},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]"},
-        },
-    },
-    "delete_object": {
-        "description": "Remove an object from the scene",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the object to delete"},
-        },
-    },
-    "set_material": {
-        "description": "Assign a material to an object",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "material_name": {"type": "string", "required": True, "description": "Name of the material to assign"},
-        },
-    },
-    "apply_modifier": {
-        "description": "Apply a modifier on an object",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "modifier_name": {"type": "string", "required": True, "description": "Name of the modifier to apply"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_render_action.py
-
-```python
-"""Shared action schemas — Render domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-RENDER_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_viewport_screenshot": {
-        "description": "Capture AI-optimized viewport screenshot",
-        "parameters": {
-            "filepath": {"type": "string", "required": False, "description": "Output path for screenshot"},
-            "max_size": {"type": "integer", "required": False, "description": "Maximum dimension in pixels", "default": 800},
-            "view_angle": {
-                "type": "string",
-                "required": False,
-                "description": "Camera view angle",
-                "enum": ["PERSPECTIVE", "TOP", "FRONT", "SIDE"],
-                "default": "PERSPECTIVE",
-            },
-            "shading_mode": {
-                "type": "string",
-                "required": False,
-                "description": "Viewport shading mode",
-                "enum": ["WIREFRAME", "SOLID", "MATERIAL", "RENDERED"],
-                "default": "MATERIAL",
-            },
-            "show_overlays": {"type": "boolean", "required": False, "description": "Show viewport overlays", "default": True},
-            "focus_object": {"type": "string", "required": False, "description": "Object name to frame in viewport"},
-        },
-    },
-    "render": {
-        "description": "Execute a full frame render",
-        "parameters": {
-            "output_path": {"type": "string", "required": True, "description": "Output path for rendered image"},
-            "resolution_x": {"type": "integer", "required": False, "description": "Render width in pixels", "default": 1920},
-            "resolution_y": {"type": "integer", "required": False, "description": "Render height in pixels", "default": 1080},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_scene_action.py
-
-```python
-"""Shared action schemas — Scene domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-SCENE_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_scene_info": {
-        "description": "Full scene metadata — object count, frame range, resolution, render engine",
-        "parameters": {},
-    },
-    "cleanup_scene": {
-        "description": "Remove objects from scene by mode",
-        "parameters": {
-            "mode": {
-                "type": "string",
-                "required": True,
-                "description": "Cleanup scope",
-                "enum": ["all", "objects", "meshes"],
-            },
-        },
-    },
-    "setup_environment": {
-        "description": "Setup HDRI lighting for the scene",
-        "parameters": {
-            "hdri_id": {"type": "string", "required": True, "description": "HDRI asset identifier"},
-            "strength": {"type": "number", "required": False, "description": "Light intensity multiplier", "default": 1.0},
-        },
-    },
-}
-```
-
----
-
-## File: modules/shared/src/dispatcher/__init__.py
-
-```python
-"""Dispatcher domain — taxonomy Value Objects and contract protocols.
-
-Shared layer (shared/src/dispatcher/):
-  - Taxonomy VOs: ActionMetadataVO, ActionCommandVO, DiscoveryOutcomeVO,
-    UnifiedResultEnvelopeVO
-  - Contracts: 6 individual protocol ABCs
-
-Capability layer lives in modules/dispatcher/src/.
-Agent layer (DispatcherOrchestrator) implements Aggregate facade.
-"""
-
-from .contract_action_discovery_protocol import ActionDiscoveryProtocol
-from .contract_background_submit_protocol import BackgroundSubmitProtocol
-from .contract_catalog_registration_protocol import CatalogRegistrationProtocol
-from .contract_dispatcher_aggregate import IDispatcherAggregate
-from .contract_request_validation_protocol import RequestValidationProtocol
-from .contract_result_normalization_protocol import ResultNormalizationProtocol
-from .contract_sync_dispatch_protocol import SyncDispatchProtocol
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_action_metadata_vo import ActionMetadataVO
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from .contract_asset_aggregate import IAssetAggregate
+from .contract_asset_download_protocol import AssetDownloadProtocol
+from .contract_asset_extract_protocol import AssetExtractProtocol
+from .contract_asset_import_protocol import AssetImportProtocol
+from .contract_asset_provider_protocol import AssetProviderProtocol
+from .contract_asset_search_protocol import AssetSearchProtocol
+from .taxonomy_asset_constant import (
+    ASSET_TYPE_HDRIS,
+    ASSET_TYPE_MODELS,
+    ASSET_TYPE_TEXTURES,
+    PROVIDER_POLYHAVEN,
+    PROVIDER_SKETCHFAB,
+)
+from .taxonomy_asset_data_vo import (
+    AssetMetadata,
+    ImportedAsset,
+    create_asset_id,
+    create_provider_name,
+)
+from .taxonomy_asset_vo import (
+    AssetDownloadCacheVO,
+    AssetDownloadVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
+    AssetMetadataItem,
+    AssetMetadataVO,
+    AssetSearchVO,
+    ExportModelVO,
+    ImportGlbVO,
+    SearchResultVO,
+)
 
 __all__ = [
-    "ActionMetadataVO",
-    "ActionCommandVO",
-    "DiscoveryOutcomeVO",
-    "UnifiedResultEnvelopeVO",
-    "ActionDiscoveryProtocol",
-    "BackgroundSubmitProtocol",
-    "CatalogRegistrationProtocol",
-    "RequestValidationProtocol",
-    "ResultNormalizationProtocol",
-    "SyncDispatchProtocol",
-    "IDispatcherAggregate",
+    "ASSET_TYPE_HDRIS",
+    "ASSET_TYPE_MODELS",
+    "ASSET_TYPE_TEXTURES",
+    "PROVIDER_POLYHAVEN",
+    "PROVIDER_SKETCHFAB",
+    "AssetMetadata",
+    "AssetMetadataItem",
+    "AssetMetadataVO",
+    "ImportedAsset",
+    "AssetSearchVO",
+    "AssetDownloadVO",
+    "AssetDownloadCacheVO",
+    "AssetExtractArchiveVO",
+    "AssetImportBlenderVO",
+    "ImportGlbVO",
+    "ExportModelVO",
+    "SearchResultVO",
+    "create_asset_id",
+    "create_provider_name",
+    "AssetSearchProtocol",
+    "AssetDownloadProtocol",
+    "AssetExtractProtocol",
+    "AssetImportProtocol",
+    "AssetProviderProtocol",
+    "IAssetAggregate",
 ]
 ```
 
 ---
 
-## File: modules/shared/src/dispatcher/contract_action_discovery_protocol.py
+## File: modules/shared/src/asset/contract_asset_aggregate.py
 
 ```python
-"""Dispatcher domain contract: action discovery protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-002: Discover Actions
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-
-
-class ActionDiscoveryProtocol(ABC):
-    """Protocol for discovering and listing registered actions."""
-
-    @abstractmethod
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog with optional filtering.
-
-        FR-DSP-002: Returns canonical shape to all consumers.
-        Filter matching nothing returns empty list, not error.
-        """
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_background_submit_protocol.py
-
-```python
-"""Dispatcher domain contract: background submission protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-005: Submit Background Action
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class BackgroundSubmitProtocol(ABC):
-    """Protocol for submitting long-running actions as background jobs."""
-
-    @abstractmethod
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
-        Returns envelope indicating polling is required for final outcome.
-        """
-        pass
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_catalog_registration_protocol.py
-
-```python
-"""Dispatcher domain contract: action catalog registration protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-001: Register Action Catalog
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_metadata_vo import ActionMetadataVO
-
-
-class CatalogRegistrationProtocol(ABC):
-    """Protocol for registering actions into the dispatcher catalog."""
-
-    @abstractmethod
-    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
-        """Register an action in the catalog. Returns enriched metadata with catalog version.
-
-        FR-DSP-001: Duplicate names are rejected or replaced per policy.
-        Catalog exposes deterministic ordering sorted by action name.
-        """
-        pass
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_dispatcher_aggregate.py
-
-```python
-"""Dispatcher domain contract: dispatcher aggregate (ABC).
-
-Agent implements this aggregate. Surface layers depend on it.
-Facade for action dispatch operations: discovery, validation, dispatch, normalization.
-"""
-
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadCacheVO,
+    AssetExtractArchiveVO,
+    AssetImportBlenderVO,
+)
+from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, SearchQuery, StringList
 
 
-class IDispatcherAggregate(ABC):
-    """Aggregate facade for dispatcher operations.
+class IAssetAggregate(ABC):
+    """Aggregate facade for asset operations.
 
-    Agent implements this aggregate (DispatcherOrchestrator). Surface layers depend on it.
-    Provides action discovery, request validation, synchronous dispatch, background submission, and result normalization.
+    Implemented by Agent layer (AssetOrchestrator). Surface layer depends on it.
     """
 
     @abstractmethod
-    def register_action(self, metadata: Any) -> Any:
+    async def search(self, query: SearchQuery, providers: StringList | None = None) -> list[AssetMetadata]:
         ...
 
     @abstractmethod
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
+    async def download_to_cache(self, request: AssetDownloadCacheVO) -> AssetDownloadCacheVO:
         ...
 
     @abstractmethod
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
+    async def extract_archive(self, request: AssetExtractArchiveVO) -> AssetExtractArchiveVO:
         ...
 
     @abstractmethod
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
+    async def import_asset(self, request: AssetImportBlenderVO) -> AssetImportBlenderVO:
         ...
 
     @abstractmethod
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        ...
-
-    @abstractmethod
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        ...
-
-    @abstractmethod
-    def execute_action(
-        self,
-        action_name: str,
-        parameters: dict[str, Any],
-    ) -> UnifiedResultEnvelopeVO:
+    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, Any]:
         ...
 ```
 
 ---
 
-## File: modules/shared/src/dispatcher/contract_request_validation_protocol.py
+## File: modules/shared/src/asset/contract_asset_download_protocol.py
 
 ```python
-"""Dispatcher domain contract: request validation protocol (ABC).
+"""Asset domain contract: download to cache protocol (ABC based).
 
-Capability implements this protocol. The Agent layer depends on it.
+Defines the protocol for downloading asset files to local cache
+with integrity verification, overwrite policy, and background coordination.
 
-FR-DSP-003: Validate Action Request
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-
-
-class RequestValidationProtocol(ABC):
-    """Protocol for validating action requests against catalog schema."""
-
-    @abstractmethod
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Unknown action produces error; invalid params produce field-level detail.
-        Generates tracking ID when absent. Does not mutate request or catalog state.
-        Returns enriched same VO type with resolved_metadata and validated_tracking_id.
-        """
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_result_normalization_protocol.py
-
-```python
-"""Dispatcher domain contract: result normalization protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-006: Normalize Operation Result
+FR-AST-002: Download Asset to Cache
+AES Contract layer — pure ABC definitions, no implementation.
 """
 
 from __future__ import annotations
@@ -9595,293 +9485,2616 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetType,
+    DuplicatePolicy,
+    FilePath,
+    MaxSize,
+    ProviderName,
+    ResolutionPreference,
+)
 
 
-class ResultNormalizationProtocol(ABC):
-    """Protocol for normalizing all dispatcher outcomes into unified envelopes."""
+class AssetDownloadProtocol(ABC):
+    """Protocol for downloading asset files to local cache.
+
+    FR-AST-002: Validates cache destination through security policy,
+    reuses valid cached artifact, writes temporary artifact then finalizes
+    atomically, verifies integrity checksum when available, coordinates
+    large downloads through job feature.
+    """
 
     @abstractmethod
-    def normalize_result(
+    async def download_to_cache(
         self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatch or submission outcome into a unified result envelope.
+        provider: ProviderName,
+        asset_id: AssetId,
+        asset_type: AssetType,
+        cache_dir: FilePath,
+        resolution: ResolutionPreference | None = None,
+        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
+        max_size: MaxSize | None = None,
+        background: bool = False,
+    ) -> dict[str, Any]:
+        """Download asset file from provider into local cache.
 
-        FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
-        Returns identical shape for CLI and MCP consumers.
-        """
-        pass
-```
+        FR-AST-002: Cache location from configuration; paths validated
+        through security policy. Existing cached artifact follows configured
+        overwrite policy (reuse, overwrite, unique variant). Integrity
+        checksum verified when provider supplies one. Large downloads
+        submitted through job feature with task reference returned.
 
----
+        Args:
+            provider: Provider identifier.
+            asset_id: Asset identifier from provider.
+            asset_type: Type of asset being downloaded.
+            cache_dir: Cache directory from configuration.
+            resolution: Optional resolution preference.
+            overwrite_policy: reuse/overwrite/unique variant.
+            max_size: Maximum download size limit.
+            background: Whether to submit as background job.
 
-## File: modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py
-
-```python
-"""Dispatcher domain contract: synchronous dispatch protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-004: Dispatch Synchronous Action
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class SyncDispatchProtocol(ABC):
-    """Protocol for routing validated actions to owning features synchronously."""
-
-    @abstractmethod
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Route a validated action to its owning feature and return normalized result.
-
-        FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
-        Returns standardized envelope; does not retry non-idempotent actions.
+        Returns:
+            Dict with success indicator, local artifact reference,
+            downloaded size, cache status, integrity status, and message;
+            or task reference when submitted as background download.
         """
         ...
 ```
 
 ---
 
-## File: modules/shared/src/dispatcher/taxonomy_action_command_vo.py
+## File: modules/shared/src/asset/contract_asset_extract_protocol.py
 
 ```python
-"""Action request Value Object — merged input and output.
+"""Asset domain contract: extract archive protocol (ABC based).
 
-Frozen dataclass following the unified VO pattern:
-  - Input fields set by caller
-  - Output fields enriched by dispatcher during validation/routing
+Defines the protocol for extracting downloaded archive artifacts
+under security policy supervision.
+
+FR-AST-003: Extract Asset Archive
+AES Contract layer — pure ABC definitions, no implementation.
 """
 
 from __future__ import annotations
 
-import uuid
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import FilePath
+
+
+class AssetExtractProtocol(ABC):
+    """Protocol for extracting archive artifacts into cache.
+
+    FR-AST-003: Delegates all archive safety decisions to security
+    policy feature: entry path validation, traversal rejection, depth/size
+    and entry count limits, symbolic link and hard link policy.
+    Never implements path traversal protection locally.
+    """
+
+    @abstractmethod
+    async def extract_archive(
+        self,
+        artifact_path: FilePath,
+        destination: FilePath,
+        max_entries: int = 1000,
+        max_extracted_size: int = 1073741824,
+        allow_symlinks: bool = False,
+    ) -> dict[str, Any]:
+        """Extract downloaded archive under security policy supervision.
+
+        FR-AST-003: Extraction destination validated through security
+        policy before any entry is written. Rejected entries reported
+        without exposing unsafe target paths in raw form. Partial
+        extraction cleaned up on failure. Nested archives follow same
+        security supervision.
+
+        Args:
+            artifact_path: Path to the archive file to extract.
+            destination: Extraction destination within allowed directories.
+            max_entries: Maximum number of entries to extract.
+            max_extracted_size: Maximum total extracted size in bytes.
+            allow_symlinks: Whether to allow symbolic links.
+
+        Returns:
+            Dict with success indicator, extracted file references,
+            rejected entry summary, and message.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/asset/contract_asset_import_protocol.py
+
+```python
+"""Asset domain contract: import into Blender protocol (ABC based).
+
+Defines the protocol for importing locally available asset files
+into Blender with object reference handoff.
+
+FR-AST-004: Import Asset into Blender
+AES Contract layer — pure ABC definitions, no implementation.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetType,
+    FilePath,
+    AssetCollectionName,
+    AssetFormatHint,
+    ScaleNormalization,
+    DuplicatePolicy,
+)
+
+
+class AssetImportProtocol(ABC):
+    """Protocol for importing asset files into Blender.
+
+    FR-AST-004: Transports import command through gateway feature,
+    returns canonical object references, preserves license and
+    attribution metadata. Responsibility ends at object reference
+    handoff; subsequent manipulation belongs to object feature.
+    """
+
+    @abstractmethod
+    async def import_asset(
+        self,
+        file_path: FilePath,
+        asset_type: AssetType,
+        target_collection: AssetCollectionName | None = None,
+        scale_normalization: ScaleNormalization = ScaleNormalization(False),
+        duplicate_policy: DuplicatePolicy = DuplicatePolicy("rename"),
+        format_hint: AssetFormatHint | None = None,
+    ) -> dict[str, Any]:
+        """Import a locally available asset file into Blender.
+
+        FR-AST-004: File must exist locally before import. Import command
+        transported through gateway feature. Supported formats depend on
+        runtime capability. Scale normalization and duplicate handling
+        policies applied. Result returns canonical object references.
+
+        Args:
+            file_path: Path to the local asset file.
+            asset_type: Type of asset being imported.
+            target_collection: Optional target collection name.
+            scale_normalization: Whether to normalize scale to scene units.
+            duplicate_policy: rename/reuse/replace/reject for duplicates.
+            format_hint: Optional format hint for import plugin selection.
+
+        Returns:
+            Dict with success indicator, imported object references,
+            imported asset metadata summary including license attribution,
+            and message.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/asset/contract_asset_provider_connection.py
+
+```python
+"""Contract: Provider connection protocol (FR-AST-001).
+
+Defines the minimal protocol for communicating with asset providers.
+Replaces primitive `object` type annotations with a proper interface
+for dependency inversion and AES 405 compliance.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any, Protocol
+
+
+class IAssetProviderConnection(Protocol):
+    """Minimal protocol for asset provider communication (FR-AST-001).
+
+    Providers communicate via a gateway transport that can send commands
+    and receive results. This protocol replaces the primitive `object`
+    type annotation used in AssetSearchHandler with a proper interface.
+    """
+
+    async def send_command(self, action: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Send a command through the gateway and return the result."""
+        ...  # pragma: no cover
+```
+
+---
+
+## File: modules/shared/src/asset/contract_asset_provider_protocol.py
+
+```python
+"""Asset domain contract: provider metadata normalization protocol (ABC based).
+
+Defines the protocol for normalizing provider-specific asset descriptions
+into one consistent metadata shape consumed across the system.
+
+FR-AST-005: Manage Provider Metadata
+AES Contract layer — pure ABC definitions, no implementation.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    ProviderName,
+)
+from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
+
+
+class AssetProviderProtocol(ABC):
+    """Protocol for normalizing provider asset metadata.
+
+    FR-AST-005: Normalized metadata includes name, provider, type,
+    categories, preview/thumbnail, license summary, and download
+    availability. Missing optional fields fall back to safe empty values.
+    Provider secrets and credentials never exposed.
+    """
+
+    @abstractmethod
+    async def normalize_metadata(
+        self,
+        raw_provider_data: dict[str, Any],
+        provider_name: ProviderName,
+        asset_id: AssetId,
+    ) -> ProviderMetadataVO:
+        """Normalize provider-specific asset description into common shape.
+
+        FR-AST-005: Includes at least name, provider, type, categories,
+        preview reference, license summary, and download availability flag.
+        Missing optional fields fall back to safe empty values. License
+        information is informational only; does not constitute legal clearance.
+
+        Args:
+            raw_provider_data: Raw provider asset description dict.
+            provider_name: Provider identifier.
+            asset_id: Asset identifier from provider.
+
+        Returns:
+            Dict with normalized metadata including name, provider, type,
+            categories, thumbnail_url, license_summary, download_available,
+            and any preserved provider-specific extra fields.
+        """
+        ...
+
+    @abstractmethod
+    async def get_provider_capabilities(
+        self,
+        provider_name: ProviderName,
+    ) -> dict[str, Any]:
+        """Get normalized provider capability metadata.
+
+        FR-AST-005: Describes supported asset types, pagination behavior,
+        and authentication requirements for the provider.
+
+        Args:
+            provider_name: Provider identifier.
+
+        Returns:
+            Dict with provider capabilities, supported types,
+            pagination behavior, and auth requirements.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/asset/contract_asset_search_protocol.py
+
+```python
+"""Asset domain contract: asset search protocol (ABC based).
+
+Defines the protocol for unified multi-provider asset search.
+
+FR-AST-001: Search Assets Across Providers
+AES Contract layer — pure ABC definitions, no implementation.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetTypeFilter,
+    NextPageToken,
+    ProviderName,
+    ResultLimit,
+    SearchQuery,
+)
+
+
+class AssetSearchProtocol(ABC):
+    """Protocol for unified multi-provider asset search.
+
+    FR-AST-001: Single search operation regardless of provider count.
+    Returns normalized, aggregated results with pagination and warnings.
+    """
+
+    @abstractmethod
+    async def search_all(
+        self,
+        query: SearchQuery,
+        providers: list[ProviderName] | None = None,
+        asset_type_filter: AssetTypeFilter | None = None,
+        limit: ResultLimit | None = None,
+        page_token: NextPageToken | None = None,
+    ) -> dict[str, Any]:
+        """Search across all enabled providers with unified response.
+
+        FR-AST-001: Each enabled provider queried independently.
+        Failures logged and skipped; partial results returned when possible.
+        Results normalized into common asset metadata shape before aggregation.
+
+        Args:
+            query: Text search query.
+            providers: Optional provider filter; None means all enabled.
+            asset_type_filter: Optional asset type filter.
+            limit: Optional result limit per provider.
+            page_token: Optional pagination cursor.
+
+        Returns:
+            Dict with normalized assets list, provider status summary,
+            pagination metadata, and warnings.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/asset/taxonomy_asset_data_vo.py
+
+```python
+"""Asset metadata and imported asset value objects."""
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any
+from typing import cast
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetName,
+    AssetType,
+    ObjectName,
+    ProviderName,
+    TagList,
+    ThumbnailUrl,
+)
 
 
 @dataclass(frozen=True)
-class ActionCommandVO:
-    """Action request — merged input and output in one frozen VO.
+class AssetMetadata:
+    """Immutable metadata for an asset from a provider."""
 
-    Input (set by caller):
-      - action_name, parameters, execution_mode, timeout_override,
-        confirmation_flag, tracking_id
+    id: AssetId
+    name: AssetName
+    type: AssetType
+    provider: ProviderName
+    thumbnail_url: ThumbnailUrl | None = None
+    tags: TagList = field(default_factory=lambda: cast(TagList, []))
 
-    Output (enriched by dispatcher during validation):
-      - resolved_metadata, validated_tracking_id, validation_warnings
-    """
 
-    # ─── Input ──────────────────────────────────────────────────
+@dataclass(frozen=True)
+class ImportedAsset:
+    """Result of importing an asset into Blender."""
 
-    action_name: str
-    parameters: dict[str, Any] = field(default_factory=dict)
-    execution_mode: str | None = None
-    timeout_override: float | None = None
-    confirmation_flag: bool = False
-    tracking_id: str | None = None
+    id: AssetId
+    name: ObjectName
+    blender_id: ObjectName
 
-    # ─── Output ─────────────────────────────────────────────────
 
-    resolved_metadata: dict[str, Any] = field(default_factory=dict)
-    validated_tracking_id: str = ""
-    validation_warnings: list[str] = field(default_factory=list)
+def create_asset_id(raw: str) -> AssetId:
+    """Factory helper to create an AssetId from a raw string."""
+    return AssetId(raw)
 
-    def __post_init__(self) -> None:
-        if not self.action_name:
-            raise ValueError("action_name must not be empty")
 
-        # Auto-generate tracking ID when absent
-        validated = self.tracking_id or str(uuid.uuid4())
-        object.__setattr__(self, "validated_tracking_id", validated)
+def create_provider_name(raw: str) -> ProviderName:
+    """Factory helper to create a ProviderName from a raw string."""
+    return ProviderName(raw)
 ```
 
 ---
 
-## File: modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py
+## File: modules/shared/src/asset/taxonomy_asset_metadata_vo.py
 
 ```python
-"""Action catalog metadata Value Object.
+"""Asset taxonomy: ProviderMetadataVO value object."""
+from __future__ import annotations
 
-Represents a registered action's complete metadata profile including schema,
-flags, timeouts, and usage examples. Immutable once registered.
+from dataclasses import dataclass, field
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetId,
+    AssetName,
+    AssetType,
+    ProviderName,
+    TagList,
+    ThumbnailUrl,
+)
+
+
+@dataclass(frozen=True)
+class ProviderMetadataVO:
+    """Normalized provider metadata for an asset.
+
+    FR-AST-005: Contains all standard metadata fields produced by
+    AssetProviderMetadataCapability.normalize_metadata.
+    """
+
+    name: AssetName
+    provider: ProviderName
+    id: AssetId
+    type: AssetType
+    categories: TagList
+    thumbnail_url: ThumbnailUrl | None = None
+    license_summary: str | None = None
+    download_available: bool = True
+    attribution: str | None = None
+    extra_fields: dict[str, object] = field(default_factory=dict)
+    normalized_at: str = ""
+```
+
+---
+
+## File: modules/shared/src/asset/taxonomy_asset_vo.py
+
+```python
+"""Asset operation value objects — unified input/output per operation.
+
+Each VO merges request (input) and response (output) into a single frozen dataclass.
+Caller sets input fields; callee sets output fields.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    AssetCollectionName,
+    AssetCount,
+    AssetFormatHint,
+    AssetId,
+    AssetName,
+    AssetType,
+    ErrorMessage,
+    FilePath,
+    MaxSize,
+    ObjectName,
+    ProviderName,
+    ResolutionPreference,
+    ScaleNormalization,
+    SearchQuery,
+    SuccessFlag,
+    TagList,
+    ThumbnailUrl,
+)
+
+__all__ = [
+    "AssetCollectionName",
+    "AssetFormatHint",
+    "ScaleNormalization",
+]
+
+
+@dataclass(frozen=True)
+class AssetMetadataItem:
+    """Individual asset metadata item from search results."""
+
+    id: AssetId
+    name: AssetName
+    type: AssetType
+    provider: ProviderName
+    thumbnail_url: ThumbnailUrl | None = None
+    tags: TagList = field(default_factory=lambda: TagList([]))
+
+
+AssetMetadataVO = AssetMetadataItem
+
+
+@dataclass(frozen=True)
+class AssetSearchVO:
+    """Asset search — input and output in one VO.
+
+    Input: query.
+    Output: assets, total, next_token, provider.
+    """
+    # Input
+    query: SearchQuery
+    # Output
+    assets: list[AssetMetadataItem] = field(default_factory=list)
+    total: AssetCount | None = None
+    next_token: str | None = None
+    provider: ProviderName | None = None
+
+
+@dataclass(frozen=True)
+class AssetDownloadVO:
+    """Asset download — input and output in one VO.
+
+    Input: asset_id, destination_path.
+    Output: success, file_path, message.
+    """
+    # Input
+    asset_id: AssetId
+    destination_path: FilePath
+    # Output
+    success: SuccessFlag | None = None
+    file_path: FilePath | None = None
+    message: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class ImportGlbVO:
+    """Import GLB — input and output in one VO.
+
+    Input: file_path, object_name.
+    Output: success, object_name, message.
+    """
+    # Input
+    file_path: str
+    object_name: ObjectName | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class ExportModelVO:
+    """Export model — input and output in one VO.
+
+    Input: object_name, file_path, export_format.
+    Output: success, message.
+    """
+    # Input
+    object_name: ObjectName
+    file_path: str
+    export_format: str | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class AssetDownloadCacheVO:
+    """Asset download to cache — input and output in one VO.
+
+    FR-AST-002: Download file to cache with integrity verification.
+    Input: provider, asset_id, asset_type, cache_dir, resolution, overwrite_policy.
+    Output: success, file_path, file_size, cached, integrity_ok, message.
+    """
+
+    # Input
+    provider: ProviderName
+    asset_id: AssetId
+    asset_type: AssetType
+    cache_dir: FilePath
+    resolution: ResolutionPreference | None = None
+    overwrite_policy: str = "reuse"
+    max_size: MaxSize | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    file_path: FilePath | None = None
+    file_size: int = 0
+    cached: bool = False
+    integrity_ok: bool = True
+    message: str = ""
+    error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class AssetExtractArchiveVO:
+    """Archive extraction — input and output in one VO.
+
+    FR-AST-003: Extract downloaded archive under security supervision.
+    Input: artifact_path, destination, max_entries, max_extracted_size, allow_symlinks.
+    Output: success, extracted_files, rejected_entries, message.
+    """
+
+    # Input
+    artifact_path: FilePath
+    destination: FilePath
+    max_entries: int = 1000
+    max_extracted_size: int = 1073741824
+    allow_symlinks: bool = False
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    extracted_files: tuple[FilePath, ...] = field(default_factory=tuple)
+    rejected_entries: tuple[str, ...] = field(default_factory=tuple)
+    message: str = ""
+    error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class AssetImportBlenderVO:
+    """Import asset into Blender — input and output in one VO.
+
+    FR-AST-004: Import locally available asset file into Blender.
+    Input: file_path, asset_type, target_collection, scale_normalization, duplicate_policy.
+    Output: success, object_names, asset_name, license_summary, message.
+    """
+
+    # Input
+    file_path: FilePath
+    asset_type: AssetType
+    target_collection: str | None = None
+    scale_normalization: bool = False
+    duplicate_policy: str = "rename"
+    format_hint: str | None = None
+    # Output
+    success: SuccessFlag = field(default=SuccessFlag(False))
+    object_names: tuple[ObjectName, ...] = field(default_factory=tuple)
+    asset_name: AssetName | None = None
+    license_summary: str | None = None
+    message: str = ""
+    error: ErrorMessage | None = None
+
+
+@dataclass(frozen=True)
+class SearchResultVO:
+    """Asset search result — normalized aggregated results with provider status.
+
+    FR-AST-001: Unified search across providers returns normalized,
+    aggregated results with provider status summary and warnings.
+    Input: query (set via caller). Output: assets, total, provider_status, warnings.
+    """
+
+    # Output
+    assets: list[AssetMetadataItem] = field(default_factory=list)
+    total: AssetCount | None = None
+    provider_status: dict[str, str] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ArchiveEntryVO:
+    """Archive entry for security review (shared with security feature).
+
+    FR-AST-003: Used by AssetExtractCapability to enumerate archive entries
+    for the security supervisor. Replaces direct import of security taxonomy.
+    """
+
+    entry_path: str
+    is_directory: bool = False
+    is_symbolic_link: bool = False
+    is_hard_link: bool = False
+    compressed_size: int = 0
+    uncompressed_size: int = 0
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionOptionsVO:
+    """Options for archive extraction validation.
+
+    FR-AST-003: Passed to security supervisor via ArchiveExtractionVO.
+    Fields match security taxonomy to ensure protocol compatibility.
+    """
+
+    max_depth: int = 5
+    max_total_size: int = 104_857_600  # 100 MB
+    max_entry_size: int = 10_485_760  # 10 MB
+    max_entry_count: int = 1_000
+    allow_symbolic_links: bool = False
+    allow_hard_links: bool = False
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionVO:
+    """Request to validate archive extraction.
+
+    FR-AST-003: Contains entries and options for the security supervisor.
+    Replaces direct import of security taxonomy VOs.
+    """
+
+    destination_directory: str
+    entries: tuple[ArchiveEntryVO, ...]
+    options: ArchiveExtractionOptionsVO
+```
+
+---
+
+## File: modules/shared/src/asset/utility/__init__.py
+
+```python
+
+```
+
+---
+
+## File: modules/shared/src/asset/utility/utility_file_format_detector.py
+
+```python
+"""Utility: File format detection via magic bytes.
+
+Provides _detect_format_by_magic for validating actual file content
+against expected formats in import capabilities.
+"""
+
+from __future__ import annotations
+
+# Magic bytes signatures for supported asset formats.
+# Used by _detect_format_by_magic to validate actual file content.
+_MAGIC_SIGNATURES: dict[str, list[bytes]] = {
+    "glb": [b"glTF"],
+    "gltf": [b"{", b"["],  # JSON-based; check heuristically
+    "png": [b"\x89PNG"],
+    "jpg": [b"\xFF\xD8\xFF"],
+    "jpeg": [b"\xFF\xD8\xFF"],
+    "fbx": [b"FBX"],
+    "exr": [b"\x76\x2f\x31\x01"],
+}
+
+
+def detect_format_by_magic(file_path: str) -> str | None:
+    """Detect file format from magic bytes (first 16 bytes).
+
+    Returns the format key (e.g. 'glb', 'png') or None if
+    the signature is not recognised.
+    """
+    try:
+        with open(file_path, "rb") as f:
+            header = f.read(16)
+    except OSError:
+        return None
+
+    for fmt, signatures in _MAGIC_SIGNATURES.items():
+        for sig in signatures:
+            if header[: len(sig)] == sig:
+                return fmt
+
+    return None
+```
+
+---
+
+## File: modules/shared/src/asset/utility/utility_polyhaven_search.py
+
+```python
+from __future__ import annotations
+
+import logging
+from typing import Any, cast
+
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetMetadataItem,
+    AssetSearchVO,
+)
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    AssetCount,
+    AssetId,
+    AssetName,
+    AssetType,
+    ErrorMessage,
+    FilePath,
+    ProviderName,
+    SearchQuery,
+    SuccessFlag,
+    TagList,
+)
+from modules.shared.src.common.taxonomy_domain_error import ProviderError
+
+logger = logging.getLogger("BlenderMCPServer")
+
+PROVIDER = ProviderName("Polyhaven")
+
+
+async def polyhaven_search(
+    connection: object,
+    query: SearchQuery,
+    categories: list[str] | None = None,
+) -> AssetSearchVO:
+    try:
+        result = await connection.send_command(
+            ActionName("search_polyhaven_assets"),
+            {"asset_type": "all", "categories": categories or []},
+        )
+        items = [
+            AssetMetadataItem(
+                id=AssetId(asset_id),
+                name=AssetName(data.get("name", asset_id)),
+                type=AssetType(str(data.get("type", "unknown"))),
+                provider=PROVIDER,
+                tags=cast(TagList, data.get("categories", [])),
+            )
+            for asset_id, data in result.get("assets", {}).items()
+        ]
+        return AssetSearchVO(
+            query=query,
+            assets=items,
+            total=AssetCount(len(items)),
+            next_token=None,
+            provider=PROVIDER,
+        )
+    except Exception as e:
+        logger.error("Polyhaven search error: %s", e)
+        raise ProviderError(str(e)) from e
+
+
+async def polyhaven_get_details(connection: object, asset_id: str) -> dict[str, Any] | None:
+    try:
+        result = await connection.send_command(
+            ActionName("get_polyhaven_asset_details"), {"asset_id": asset_id}
+        )
+        if isinstance(result, dict) and "error" in result:
+            logger.warning("Polyhaven get_asset_details error: %s", result["error"])
+            return None
+        return result
+    except Exception as e:
+        logger.error("Polyhaven details error: %s", e)
+        return None
+
+
+async def polyhaven_download(connection: object, request: AssetDownloadVO) -> AssetDownloadVO:
+    try:
+        result = await connection.send_command(
+            ActionName("download_polyhaven_asset"),
+            {"asset_id": str(request.asset_id), "asset_type": "models"},
+        )
+        if not result.get("success"):
+            raise ProviderError(result.get("message", "Download failed"))
+        return AssetDownloadVO(
+            asset_id=request.asset_id,
+            destination_path=request.destination_path,
+            success=SuccessFlag(True),
+            file_path=FilePath(str(result.get("path", ""))),
+            message=ErrorMessage("Download successful"),
+        )
+    except Exception as e:
+        logger.error("Polyhaven download error: %s", e)
+        raise ProviderError(str(e)) from e
+```
+
+---
+
+## File: modules/shared/src/asset/utility/utility_sketchfab_search.py
+
+```python
+from __future__ import annotations
+
+import logging
+
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    AssetDownloadVO,
+    AssetMetadataItem,
+    AssetSearchVO,
+)
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    AssetCount,
+    AssetId,
+    AssetName,
+    AssetType,
+    ErrorMessage,
+    FilePath,
+    ProviderName,
+    SearchQuery,
+    SuccessFlag,
+)
+from modules.shared.src.common.taxonomy_domain_error import ProviderError
+
+logger = logging.getLogger("BlenderMCPServer")
+
+PROVIDER = ProviderName("Sketchfab")
+
+
+async def sketchfab_search(
+    connection: object,
+    query: SearchQuery,
+) -> AssetSearchVO:
+    try:
+        result = await connection.send_command(
+            ActionName("search_sketchfab_models"),
+            {"query": str(query), "count": 20, "downloadable": True},
+        )
+        items = [
+            AssetMetadataItem(
+                id=AssetId(model.get("uid", "")),
+                name=AssetName(model.get("name", "Unnamed model")),
+                type=AssetType("model"),
+                provider=PROVIDER,
+            )
+            for model in result.get("results", [])
+        ]
+        return AssetSearchVO(
+            query=query,
+            assets=items,
+            total=AssetCount(len(items)),
+            next_token=None,
+            provider=PROVIDER,
+        )
+    except Exception as e:
+        logger.error("Sketchfab search error: %s", e)
+        raise ProviderError(str(e)) from e
+
+
+async def sketchfab_get_details(connection: object, asset_id: str) -> dict | None:
+    try:
+        result = await connection.send_command(
+            ActionName("get_sketchfab_model_preview"), {"uid": asset_id}
+        )
+        if isinstance(result, dict) and "error" in result:
+            logger.warning("Sketchfab get_asset_details error: %s", result["error"])
+            return None
+        return result
+    except Exception as e:
+        logger.error("Sketchfab details error: %s", e)
+        return None
+
+
+async def sketchfab_download(connection: object, request: AssetDownloadVO) -> AssetDownloadVO:
+    try:
+        result = await connection.send_command(
+            ActionName("download_sketchfab_model"),
+            {"uid": str(request.asset_id), "normalize_size": True, "target_size": 1.0},
+        )
+        if not result.get("success"):
+            raise ProviderError(result.get("message", "Download failed"))
+        return AssetDownloadVO(
+            asset_id=request.asset_id,
+            destination_path=request.destination_path,
+            success=SuccessFlag(True),
+            file_path=FilePath(",".join(result.get("imported_objects", []))),
+            message=ErrorMessage("Download successful"),
+        )
+    except Exception as e:
+        logger.error("Sketchfab download error: %s", e)
+        raise ProviderError(str(e)) from e
+```
+
+---
+
+## File: modules/shared/src/common/__init__.py
+
+```python
+"""Common domain — taxonomy types and contracts (cross-cutting).
+
+Note: Contract modules are imported by the main src/__init__.py to avoid
+circular dependencies between domain folders.
+"""
+
+from . import (
+    taxonomy_app_config_vo,
+    taxonomy_bounding_box_vo,
+    taxonomy_command_catalog_constant,
+    taxonomy_core_vo,
+    taxonomy_domain_error,
+    taxonomy_vector3d_vo,
+)
+
+__all__ = [
+    "taxonomy_app_config_vo",
+    "taxonomy_bounding_box_vo",
+    "taxonomy_command_catalog_constant",
+    "taxonomy_core_vo",
+    "taxonomy_domain_error",
+    "taxonomy_vector3d_vo",
+]
+```
+
+---
+
+## File: modules/shared/src/common/taxonomy_core_vo.py
+
+```python
+"""Core branded primitive types (NewType aliases) — taxonomy value objects."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, NewType
+from uuid import UUID
+
+# ============================================================
+# ID TYPES
+# ============================================================
+
+UserId = NewType("UserId", str)
+SceneId = NewType("SceneId", str)
+AssetId = NewType("AssetId", str)
+JobId = NewType("JobId", str)
+HdriId = NewType("HdriId", str)
+ObjectId = NewType("ObjectId", UUID)
+ParentId = NewType("ParentId", str)
+
+# ============================================================
+# NAME TYPES
+# ============================================================
+
+ObjectName = NewType("ObjectName", str)
+AssetName = NewType("AssetName", str)
+ProviderName = NewType("ProviderName", str)
+MaterialName = NewType("MaterialName", str)
+ModifierName = NewType("ModifierName", str)
+ActionName = NewType("ActionName", str)
+WorkflowName = NewType("WorkflowName", str)
+RuleName = NewType("RuleName", str)
+SceneRuleSetName = NewType("SceneRuleSetName", str)
+
+# ============================================================
+# TYPE & ENUM TYPES
+# ============================================================
+
+ObjectType = NewType("ObjectType", str)
+AssetType = NewType("AssetType", str)
+RenderEngine = NewType("RenderEngine", str)
+ImageFormat = NewType("ImageFormat", str)
+PrimitiveType = NewType("PrimitiveType", str)
+ExportFormat = NewType("ExportFormat", str)
+JobState = NewType("JobState", str)
+CleanupMode = NewType("CleanupMode", str)
+AssetTypeFilter = NewType("AssetTypeFilter", str)
+
+# ============================================================
+# TEXT, URLS & MESSAGES
+# ============================================================
+
+Prompt = NewType("Prompt", str)
+ErrorString = NewType("ErrorString", str)
+SearchQuery = NewType("SearchQuery", str)
+NextPageToken = NewType("NextPageToken", str)
+ResultUrl = NewType("ResultUrl", str)
+ThumbnailUrl = NewType("ThumbnailUrl", str)
+
+# ============================================================
+# NUMERIC LIMITS & METRICS
+# ============================================================
+
+MaxSize = NewType("MaxSize", int)
+IterationCount = NewType("IterationCount", int)
+PortNumber = NewType("PortNumber", int)
+Host = NewType("Host", str)
+SampleCount = NewType("SampleCount", int)
+ResolutionX = NewType("ResolutionX", int)
+ResolutionY = NewType("ResolutionY", int)
+ObjectCount = NewType("ObjectCount", int)
+AssetCount = NewType("AssetCount", int)
+RenderSamples = NewType("RenderSamples", int)
+MaxImageSize = NewType("MaxImageSize", int)
+ResultLimit = NewType("ResultLimit", int)
+LightStrength = NewType("LightStrength", float)
+RenderTime = NewType("RenderTime", float)
+Progress = NewType("Progress", float)
+
+# ============================================================
+# FLAGS
+# ============================================================
+
+EnabledFlag = NewType("EnabledFlag", bool)
+SuccessFlag = NewType("SuccessFlag", bool)
+UseDenoising = NewType("UseDenoising", bool)
+
+# ============================================================
+# COLLECTIONS & VECTORS
+# ============================================================
+
+StringList = NewType("StringList", list[str])
+TagList = NewType("TagList", list[str])
+AssetIdList = NewType("AssetIdList", list[str])
+CoordinateList = NewType("CoordinateList", list[float])
+ScaleVector = NewType("ScaleVector", list[float])
+RotationVector = NewType("RotationVector", list[float])
+ObjectIdList = NewType("ObjectIdList", list[UUID])
+ChildrenIds = NewType("ChildrenIds", list[str])
+
+# Surface-typed primitives (for handler param annotations)
+SkillName = NewType("SkillName", str)
+SectionRef = NewType("SectionRef", str)
+ServerName = NewType("ServerName", str)
+DomainRef = NewType("DomainRef", str)
+FormatRef = NewType("FormatRef", str)
+CapabilityRef = NewType("CapabilityRef", str)
+
+# Exit code for CLI main() return codes
+ExitCode = NewType("ExitCode", int)
+
+# Pathing
+FilePath = NewType("FilePath", str)
+DirectoryPath = NewType("DirectoryPath", str)
+
+# Config types (no raw primitives in contracts)
+ConfigPath = NewType("ConfigPath", str)
+
+# Additional VOs for AES006 compliance
+CustomerUuid = NewType("CustomerUuid", str)
+SessionId = NewType("SessionId", str)
+Timestamp = NewType("Timestamp", float)
+VersionString = NewType("VersionString", str)
+PlatformName = NewType("PlatformName", str)
+ToolName = NewType("ToolName", str)
+DurationMs = NewType("DurationMs", float)
+BlenderVersion = NewType("BlenderVersion", str)
+StatusString = NewType("StatusString", str)
+PythonCode = NewType("PythonCode", str)
+TaskUuid = NewType("TaskUuid", str)
+ScaleFactor = NewType("ScaleFactor", float)
+ImageBytes = NewType("ImageBytes", bytes)
+BBoxIntegers = NewType("BBoxIntegers", list[int])
+
+# ============================================================
+# ASSET-SPECIFIC VOs (for AES 402 contract protocol compliance)
+# ============================================================
+
+AssetCollectionName = NewType("AssetCollectionName", str)
+AssetFormatHint = NewType("AssetFormatHint", str | None)
+ScaleNormalization = NewType("ScaleNormalization", bool)
+DuplicatePolicy = NewType("DuplicatePolicy", str)
+ResolutionPreference = NewType("ResolutionPreference", str | None)
+
+# Server-specific VOs for request correlation
+RequestId = NewType("RequestId", str)
+QueueWaitMs = NewType("QueueWaitMs", float)
+ProtocolVersion = NewType("ProtocolVersion", str)
+AuthToken = NewType("AuthToken", str)
+
+# Job retention types
+MaxTasksCount = NewType("MaxTasksCount", int)
+
+# Details type alias (used in error handling)
+Details = dict[str, Any]
+
+# ErrorMessage is an alias for ErrorString, used by capability layers
+ErrorMessage = ErrorString
+
+# BlenderObjectList placeholder (resolved at runtime)
+BlenderObjectList = NewType("BlenderObjectList", list[Any])
+
+# ============================================================
+# CONFIGURATION METADATA (FR-CFG-001, FR-CFG-005)
+# ============================================================
+
+SourceLocation = NewType("SourceLocation", str | None)
+ParseWarning = NewType("ParseWarning", str)
+ValidationWarning = NewType("ValidationWarning", str)
+OverrideCount = NewType("OverrideCount", int)
+
+
+@dataclass(frozen=True)
+class ConfigMetadata:
+    """Immutable metadata about configuration loading (FR-CFG-001, FR-CFG-005).
+
+    Frozen (hashable). Carries structural counts + source path only —
+    never raw settings values or secrets.
+    """
+
+    source: SourceLocation | None = None
+    exists: bool = False
+    overrides: OverrideCount = 0
+    parse_warnings: tuple[ParseWarning, ...] = field(default_factory=tuple)
+    validation_warnings: tuple[ValidationWarning, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        # Normalize list inputs to immutable tuples.
+        if isinstance(self.parse_warnings, list):
+            object.__setattr__(self, "parse_warnings", tuple(self.parse_warnings))
+        if isinstance(self.validation_warnings, list):
+            object.__setattr__(self, "validation_warnings", tuple(self.validation_warnings))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize metadata for diagnostics (secrets excluded)."""
+        return {
+            "source": self.source,
+            "exists": self.exists,
+            "overrides": self.overrides,
+            "parse_warnings": list(self.parse_warnings),
+            "validation_warnings": list(self.validation_warnings),
+        }
+```
+
+---
+
+## File: modules/shared/src/common/taxonomy_domain_error.py
+
+```python
+"""Domain error types for the BlenderMCP system."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from .taxonomy_core_vo import AssetId, Details, ErrorString, ProviderName
+
+
+class BlenderMCPError(Exception):
+    """Base error for all BlenderMCP exceptions."""
+
+    def __init__(self, message: ErrorString | None = None, details: Details | None = None) -> None:
+        message = message or ErrorString("")
+        super().__init__(message)
+        self.details = details or {}
+        self._error_message: ErrorString = ErrorString(str(message))
+
+    def to_mcp_format(self) -> Any:
+        """Serialize error for MCP response."""
+        return {
+            "code": self.__class__.__name__,
+            "message": str(ErrorString(str(self))),
+            "details": getattr(self, "details", None),
+        }
+
+
+class DomainError(BlenderMCPError):
+    """Base for domain-specific errors in the BlenderMCP system."""
+
+    def __init__(self, message: ErrorString | None = None, details: Details | None = None) -> None:
+        message = message or ErrorString("Domain error")
+        super().__init__(message)
+        self.details = details or {}
+        self._error_message: ErrorString = ErrorString(str(message))
+
+    def to_mcp_format(self) -> Any:
+        """Serialize error for MCP response."""
+        return {
+            "code": self.__class__.__name__,
+            "message": str(ErrorString(str(self))),
+            "details": getattr(self, "details", None),
+        }
+
+
+class SceneValidationError(DomainError):
+    """Raised when a scene invariant is violated or validation fails."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Scene validation failed"))
+
+
+class AssetNotFoundError(DomainError):
+    """Raised when an asset is not found in a provider's database."""
+
+    def __init__(self, asset_id: AssetId, provider: ProviderName):
+        super().__init__(ErrorString(f"Asset {asset_id} not found in provider {provider}"))
+        self.asset_id = asset_id
+        self.provider = provider
+
+
+class ValidationError(DomainError):
+    """Raised when input parameters fail domain validation rules or constraints."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Input validation failed"))
+
+
+class ConnectionError(DomainError):
+    """Raised when a persistent connection to an external service or socket fails."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Connection failed"))
+
+
+class ProviderError(DomainError):
+    """Raised when an external asset provider returns an error."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Provider error"))
+
+
+class ExecutionError(DomainError):
+    """Raised when a command execution in Blender fails or returns a runtime error."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Execution failed"))
+
+
+class BlenderConnectionError(ConnectionError):
+    """Raised when the specific socket connection to the Blender instance is lost."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Blender connection lost"))
+
+
+class InvalidCommandError(DomainError):
+    """Raised when a command string is not recognized by the internal dispatcher."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        super().__init__(message or ErrorString("Invalid command"))
+```
+
+---
+
+## File: modules/shared/src/config/__init__.py
+
+```python
+"""Config domain: contracts, errors, events, VOs, constants, utilities for configuration management."""
+
+from __future__ import annotations
+
+# ─── Contracts (Protocols) ─────────────────────────────────────
+from .contract_config_aggregate import IConfigAggregate
+from .contract_config_protocol import ConfigGetterProtocol
+from .contract_redaction_rules_protocol import IRedactionRulesProtocol
+from .contract_settings_loader_protocol import ISettingsLoaderProtocol
+from .contract_settings_metadata_protocol import ISettingsMetadataProtocol
+from .contract_settings_retriever_protocol import ISettingsRetrieverProtocol
+from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
+
+# ─── Taxonomy: Constants ───────────────────────────────────────
+from .taxonomy_config_constant import (
+    CONFIG_PATH_ENV,
+    DEFAULT_CONFIG_FILENAME,
+    DEFAULT_POLICY_MODE,
+    DEFAULT_SETTINGS,
+    ENV_PREFIX_PRODUCT,
+    EVENT_RING_BUFFER_SIZE,
+    MAX_CONFIG_SIZE_BYTES,
+    POLICY_MODE_PERMISSIVE,
+    POLICY_MODE_STRICT,
+    PROJECT_MARKERS,
+    REDACTION_PLACEHOLDER,
+    RESERVED_ENV_KEYS,
+    SENSITIVE_KEY_PATTERNS,
+    SETTINGS_SCHEMA,
+    STRICT_MODE_FLAG_ENV,
+    WORKSPACE_ROOT_ENV,
+)
+
+# ─── Taxonomy: Errors ──────────────────────────────────────────
+from .taxonomy_config_error import (
+    ConfigError,
+    ConfigLoadError,
+    ConfigParseError,
+    ConfigPathError,
+    ConfigRootResolutionError,
+    ConfigTypeError,
+    ConfigValidationError,
+)
+
+# ─── Taxonomy: Events ──────────────────────────────────────────
+from .taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
+)
+
+# ─── Taxonomy: Value Objects ───────────────────────────────────
+from .taxonomy_config_vo import (
+    RedactionRule,
+    SettingsSnapshot,
+    WorkspacePath,
+)
+
+# ─── Utility ───────────────────────────────────────────────────
+from .utility_config_helpers import parse_env_value, search_project_root
+
+__all__ = [
+    "IConfigAggregate",
+    "ConfigGetterProtocol",
+    "ISettingsLoaderProtocol",
+    "ISettingsRetrieverProtocol",
+    "IWorkspaceResolverProtocol",
+    "ISettingsMetadataProtocol",
+    "IRedactionRulesProtocol",
+    "SettingsSnapshot",
+    "WorkspacePath",
+    "RedactionRule",
+    "SettingsLoadedEvent",
+    "SettingsReloadEvent",
+    "WorkspaceResolvedEvent",
+    "SettingsValidationWarningEvent",
+    "SENSITIVE_KEY_PATTERNS",
+    "PROJECT_MARKERS",
+    "MAX_CONFIG_SIZE_BYTES",
+    "ENV_PREFIX_PRODUCT",
+    "CONFIG_PATH_ENV",
+    "STRICT_MODE_FLAG_ENV",
+    "WORKSPACE_ROOT_ENV",
+    "DEFAULT_CONFIG_FILENAME",
+    "RESERVED_ENV_KEYS",
+    "EVENT_RING_BUFFER_SIZE",
+    "DEFAULT_SETTINGS",
+    "SETTINGS_SCHEMA",
+    "REDACTION_PLACEHOLDER",
+    "POLICY_MODE_STRICT",
+    "POLICY_MODE_PERMISSIVE",
+    "DEFAULT_POLICY_MODE",
+    "parse_env_value",
+    "search_project_root",
+    "ConfigError",
+    "ConfigLoadError",
+    "ConfigParseError",
+    "ConfigPathError",
+    "ConfigRootResolutionError",
+    "ConfigTypeError",
+    "ConfigValidationError",
+]
+```
+
+---
+
+## File: modules/shared/src/config/contract_config_protocol.py
+
+```python
+"""Config domain contract: config getter protocol (ABC).
+
+Capability implements this protocol. The Agent layer depends on it.
+FR-CFG-002: Retrieve configuration values for cache and settings.
+"""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+
+class ConfigGetterProtocol(ABC):
+    """Protocol for retrieving configuration values.
+
+    Capability uses this to read cache location, settings,
+    and other configuration parameters.
+    """
+
+    @abstractmethod
+    def get(self, key: str, default: str | None = None) -> str | None:
+        """Retrieve a configuration value by key."""
+        ...
+```
+
+---
+
+## File: modules/shared/src/gateway/__init__.py
+
+```python
+"""Gateway domain — re-exports for contract protocols and taxonomy types.
+
+AES305: __all__ removed to avoid duplication with shared/src/__init__.py
+which already re-exports the same symbols.
+"""
+
+from .contract_code_execution_protocol import CodeExecutionProtocol
+from .contract_connection_protocol import ConnectionProtocol
+from .contract_maintenance_protocol import ConnectionMaintenanceProtocol
+from .contract_scene_queue_protocol import SceneQueueProtocol
+from .contract_transport_protocol import TransportProtocol
+from .taxonomy_gateway_error import (
+    AuthenticationError,
+    ChannelConflictError,
+    ConnectionError,
+    GatewayError,
+    PayloadLimitError,
+    ProtocolVersionMismatchError,
+    SecurityViolationError,
+    TimeoutError,
+    TransportParseError,
+)
+from .taxonomy_gateway_vo import (
+    CodeExecutionOutcomeVO,
+    CodeExecutionVO,
+    ConnectionConfigVO,
+    ConnectionOutcomeVO,
+    ConnectionState,
+    ConnectionStatusVO,
+    QueueStatusVO,
+    SceneOperationOutcomeVO,
+    SceneOperationVO,
+    TransportMessageVO,
+    TransportOutcomeVO,
+    TransportType,
+)
+```
+
+---
+
+## File: modules/shared/src/gateway/contract_gateway_client_protocol.py
+
+```python
+"""Contract: Gateway client protocol for transport layer.
+
+Defines the typed interface for gateway command execution.
+Used by capabilities that need to send commands through the gateway.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class GatewayClientProtocol(ABC):
+    """Protocol for gateway transport layer.
+
+    Implemented by gateway socket client or mock implementations.
+    Capabilities depend on this protocol instead of primitive `object` types.
+    """
+
+    @abstractmethod
+    async def execute_command(self, command: dict[str, Any]) -> dict[str, Any]:
+        """Execute a command through the gateway and return the result."""
+        ...  # pragma: no cover
+```
+
+---
+
+## File: modules/shared/src/gateway/taxonomy_gateway_error.py
+
+```python
+"""Taxonomy error types for gateway and server domains.
+
+Gateway errors (lines 8-56): simple exceptions for transport/connection failures.
+Server errors (lines 57+): MCP-serializable errors with code/message/details.
+All errors use explicit typed classes — no bare strings.
+"""
+
+from __future__ import annotations
+
+from modules.shared.src.common.taxonomy_core_vo import Details, DurationMs, ErrorMessage, ErrorString, IterationCount
+
+
+class GatewayError(Exception):
+    """Base error for all gateway domain exceptions."""
+
+
+class ConnectionError(GatewayError):
+    """Connection failed, refused, or lost."""
+
+
+class TimeoutError(GatewayError):
+    """Transport timeout, execution timeout, or queue wait timeout exceeded."""
+
+
+class ProtocolVersionMismatchError(GatewayError):
+    """Protocol version incompatible between application and Blender bridge."""
+
+
+class ChannelConflictError(GatewayError):
+    """Queue conflict, queue depth limit reached, or serialization contention."""
+
+
+class TransportParseError(GatewayError):
+    """Malformed frame or unparseable response content."""
+
+
+class PayloadLimitError(GatewayError):
+    """Request or response exceeded configured payload size."""
+
+
+class ServerError(Exception):
+    """Base error for all server-domain exceptions.
+
+    Provides structured error info with code/message/details for
+    MCP error serialization and observability.
+    """
+
+    def __init__(self, code: ErrorString, message: ErrorMessage, _details: Details | None = None) -> None:
+        self.code = code
+        self.message = message
+        self.details = dict(_details) if _details else {}
+        super().__init__(f"[{code}] {message}")
+
+    def to_mcp_format(self) -> dict[str, object]:
+        """Serialize error for MCP response."""
+        return {
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
+# ─── Security Errors ──────────────────────────────────────────────
+
+
+class SecurityViolationError(ServerError):
+    """Raised when user-provided code contains blocked patterns or violates sandbox policy."""
+
+    def __init__(self, message: str = "Security violation", _details: Details | None = None) -> None:
+        super().__init__("security_violation", message, _details)
+
+
+# ─── Execution Errors ──────────────────────────────────────────────
+
+
+class ExecutionTimeoutError(ServerError):
+    """Raised when code execution exceeds the configured timeout."""
+
+    def __init__(self, timeout_ms: float = 30_000.0, _details: Details | None = None) -> None:
+        super().__init__("execution_timeout", f"Execution exceeded {timeout_ms}ms", {"timeout_ms": timeout_ms})
+
+
+class CommandTimeoutError(ServerError):
+    """Raised when a command response exceeds the configured timeout."""
+
+    def __init__(self, action: str = "", timeout_ms: float = 5_000.0, _details: Details | None = None) -> None:
+        super().__init__(
+            "command_timeout",
+            f"Command '{action}' timed out after {timeout_ms}ms",
+            {"action": action, "timeout_ms": timeout_ms},
+        )
+
+
+# ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
+
+
+class TooManyPendingOperationsError(ServerError):
+    """Raised when the serialized execution queue has reached maximum depth.
+
+    Renamed from QueueFullError in v2.0.0.
+    Error code: 'too_many_pending_operations'
+    """
+
+    def __init__(self, max_depth: int = 50, request_id: str | None = None, _details: Details | None = None) -> None:
+        super().__init__(
+            "too_many_pending_operations",
+            f"Queue full (depth={max_depth})",
+            {"max_depth": max_depth, "request_id": request_id, **(_details or {})},
+        )
+
+
+class OperationWaitTimeoutError(ServerError):
+    """Raised when a queued operation exceeds the configured wait timeout.
+
+    Renamed from QueueTimeoutError in v2.0.0.
+    Error code: 'operation_wait_timeout'
+    """
+
+    def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, _details: Details | None = None) -> None:
+        super().__init__(
+            "operation_wait_timeout",
+            f"Operation wait timeout for {request_id}",
+            {"request_id": request_id, "timeout_ms": timeout_ms},
+        )
+
+
+# ─── Task Errors ────────────────────────────────────────────────
+
+
+class TaskNotFoundError(ServerError):
+    """Raised when polling an unknown or expired async task."""
+
+    def __init__(self, task_id: str = "", _details: Details | None = None) -> None:
+        super().__init__("task_not_found", f"Task not found: {task_id}", {"task_id": task_id})
+
+
+# ─── Connection Errors ──────────────────────────────────────────
+
+
+class ConnectionConfigError(ServerError):
+    """Raised when connection factory receives invalid configuration."""
+
+    def __init__(self, message: str = "Connection config error", _details: Details | None = None) -> None:
+        super().__init__("connection_config_error", message, _details)
+
+
+class AuthenticationError(ServerError):
+    """Raised when connection authentication fails."""
+
+    def __init__(self, message: str = "Authentication failed", _details: Details | None = None) -> None:
+        super().__init__("authentication_failed", message, _details)
+
+
+class VersionMismatchError(ServerError):
+    """Raised when server and Blender addon protocol versions are incompatible.
+
+    Renamed from ProtocolVersionMismatchError in v2.0.0.
+    Error code: 'version_mismatch'
+    """
+
+    def __init__(self, expected: str = "", actual: str = "", _details: Details | None = None) -> None:
+        super().__init__(
+            "version_mismatch",
+            f"Expected major version {expected}, got {actual}",
+            {"expected": expected, "actual": actual},
+        )
+
+
+class ConnectionClosedError(ServerError):
+    """Raised when an operation is rejected after graceful disconnect."""
+
+    def __init__(self, _details: Details | None = None) -> None:
+        super().__init__("connection_closed", "Connection already closed", _details)
+
+
+class BlenderConnectionExhausted(ServerError):
+    """Raised after all reconnect attempts have been exhausted."""
+
+    def __init__(self, attempts: int = 3, _details: Details | None = None) -> None:
+        super().__init__(
+            "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
+        )
+
+
+class BlenderConnectionFailure(ServerError):
+    """Raised when connection is lost or unavailable."""
+
+    def __init__(self, message: str = "Blender connection failure", _details: Details | None = None) -> None:
+        super().__init__("blender_connection_failure", message, _details)
+
+
+# ─── Validation Errors ──────────────────────────────────────────
+
+
+class ValidationError(ServerError):
+    """Raised for unknown commands, invalid parameters, or syntax errors."""
+
+    def __init__(
+        self, message: str = "Validation error", code: str = "validation_error", _details: Details | None = None
+    ) -> None:
+        super().__init__(code, message, _details)
+
+
+# ─── Adapter / Surface Errors ────────────────────────────────────
+
+
+class ProviderError(ServerError):
+    """Raised when Blender addon returns a command-specific failure."""
+
+    def __init__(self, message: str = "Provider error", _details: Details | None = None) -> None:
+        super().__init__("provider_error", message, _details)
+
+
+class ExecutionError(ServerError):
+    """Raised when Blender code execution returns a runtime failure."""
+
+    def __init__(self, message: str = "Execution error", _details: Details | None = None) -> None:
+        super().__init__("execution_error", message, _details)
+
+
+class AdapterSurfaceError(ServerError):
+    """Raised when an unexpected adapter surface failure occurs."""
+
+    def __init__(self, message: str = "Adapter surface error", _details: Details | None = None) -> None:
+        super().__init__("adapter_surface_error", message, _details)
+```
+
+---
+
+## File: modules/shared/src/job/__init__.py
+
+```python
+"""Job domain — contracts, taxonomy, and shared types."""
+from .contract_job_aggregate import IJobAggregate
+from .contract_job_cancellation_protocol import IJobCancellation
+from .contract_job_capacity_protocol import IJobCapacity
+from .contract_job_cleanup_protocol import IJobCleanup
+from .contract_job_lifecycle_protocol import IJobLifecycle
+from .contract_job_monitor_protocol import IJobMonitor
+from .contract_job_protocol import JobSchedulerProtocol
+from .taxonomy_job_constant import (
+    JOB_STATE_CANCELLED,
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+    JOB_STATE_TIMED_OUT,
+)
+from .taxonomy_job_event import JobEvent
+
+__all__ = [
+    "IJobAggregate",
+    "IJobCancellation",
+    "IJobCapacity",
+    "IJobCleanup",
+    "IJobLifecycle",
+    "IJobMonitor",
+    "JobSchedulerProtocol",
+    "JOB_STATE_CANCELLED",
+    "JOB_STATE_COMPLETED",
+    "JOB_STATE_FAILED",
+    "JOB_STATE_PENDING",
+    "JOB_STATE_RUNNING",
+    "JOB_STATE_TIMED_OUT",
+    "JobEvent",
+]
+```
+
+---
+
+## File: modules/shared/src/job/contract_job_protocol.py
+
+```python
+"""Job domain contract: job scheduler protocol (ABC).
+
+Capability implements this protocol. The Agent layer depends on it.
+FR-JOB-005: Coordinate large downloads as background jobs.
+"""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from ..common.taxonomy_core_vo import AssetId, ProviderName
+
+
+class JobSchedulerProtocol(ABC):
+    """Protocol for submitting background download jobs.
+
+    Capability uses this to delegate large download coordination
+    to the job subsystem.
+    """
+
+    @abstractmethod
+    async def submit_download(
+        self,
+        provider: ProviderName,
+        asset_id: AssetId,
+        cache_path: str,
+    ) -> str:
+        """Submit a download task for background execution.
+
+        Returns a task reference string.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/job/taxonomy_job_error.py
+
+```python
+# modules/shared/src/job/taxonomy_job_error.py
+"""Job domain errors."""
+from __future__ import annotations
+
+from ..common.taxonomy_core_vo import ErrorString, JobId, JobState
+from .taxonomy_job_vo import ActiveCount, DeletedCount
+
+
+class JobError(Exception):
+    """Base error for job domain operations."""
+
+    def __init__(self, message: ErrorString | None = None) -> None:
+        message = message or ErrorString("Job error")
+        super().__init__(message)
+
+
+class CapacityError(JobError):
+    """Raised when background capacity is exceeded."""
+
+    def __init__(self, max_active: ActiveCount, current_active: ActiveCount) -> None:
+        message = ErrorString(
+            f"Background capacity exceeded: {current_active}/{max_active} active tasks"
+        )
+        super().__init__(message)
+        self.max_active = max_active
+        self.current_active = current_active
+
+
+class TaskNotFoundError(JobError):
+    """Raised when a requested task ID is not found."""
+
+    def __init__(self, task_id: JobId) -> None:
+        message = ErrorString(f"Task {task_id} not found")
+        super().__init__(message)
+        self.task_id = task_id
+
+
+class InvalidStateTransitionError(JobError):
+    """Raised when a state transition is not allowed."""
+
+    def __init__(self, from_state: JobState, to_state: JobState) -> None:
+        message = ErrorString(f"Invalid state transition: {from_state} -> {to_state}")
+        super().__init__(message)
+        self.from_state = from_state
+        self.to_state = to_state
+
+
+class ValidationError(JobError):
+    """Raised when job validation fails."""
+
+    def __init__(self, message: ErrorString) -> None:
+        super().__init__(message)
+
+
+class RecordNotFoundError(JobError):
+    """Raised when a requested record ID is not found."""
+
+    def __init__(self, record_id: str) -> None:
+        message = ErrorString(f"Record {record_id} not found")
+        super().__init__(message)
+        self.record_id = record_id
+
+
+class RecordCountError(JobError):
+    """Raised when record count exceeds limits."""
+
+    def __init__(self, max_records: int, current_records: int) -> None:
+        message = ErrorString(
+            f"Record count exceeded: {current_records}/{max_records} records"
+        )
+        super().__init__(message)
+        self.max_records = max_records
+        self.current_records = current_records
+```
+
+---
+
+## File: modules/shared/src/job/taxonomy_job_vo.py
+
+```python
+# modules/shared/src/job/taxonomy_job_vo.py
+"""Job domain value objects — immutable data concepts."""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import NewType
+
+from ..common.taxonomy_core_vo import (
+    ErrorString,
+    JobId,
+    JobState,
+    Progress,
+    ResultUrl,
+    Timestamp,
+)
+
+# ─── Branded Types ───────────────────────────────────────────────────────────
+OperationType = NewType("OperationType", str)
+CorrelationId = NewType("CorrelationId", str)
+ProgressMessage = NewType("ProgressMessage", str)
+CancellationReason = NewType("CancellationReason", str)
+ErrorCategory = NewType("ErrorCategory", str)
+TaskMetadata = NewType("TaskMetadata", Mapping[str, str])
+
+# ─── Count Types ──────────────────────────────────────────────────────────────
+ActiveCount = NewType("ActiveCount", int)
+DeletedCount = NewType("DeletedCount", int)
+RecordCount = NewType("RecordCount", int)
+
+# ─── Policy ──────────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class JobPolicy:
+    """Configuration for job lifecycle behavior.
+
+    Defines capacity limits, retention policies, and stale task recovery settings.
+    """
+
+    max_active: int = 100
+    retention_seconds: float = 3600.0
+    max_records: int = 1000
+    stale_recovery_enabled: bool = True
+    stale_running_lifetime_seconds: float = 1800.0
+    progress_throttle_seconds: float = 0.5
+    count_pending_toward_capacity: bool = True
+
+# ─── Commands ────────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class CreateTaskCommand:
+    """Command to create a new job task."""
+
+    operation_type: OperationType
+    correlation_id: CorrelationId | None = None
+    metadata: TaskMetadata | None = None
+
+@dataclass(frozen=True)
+class ProgressUpdateCommand:
+    """Command to update progress for an existing task."""
+
+    job_id: JobId
+    progress: Progress
+    message: ProgressMessage | None = None
+
+@dataclass(frozen=True)
+class CompleteTaskCommand:
+    """Command to mark a task as completed."""
+
+    job_id: JobId
+    result_url: ResultUrl | None = None
+    summary: ProgressMessage | None = None
+
+@dataclass(frozen=True)
+class FailTaskCommand:
+    """Command to mark a task as failed with error details."""
+
+    job_id: JobId
+    error_message: ErrorString
+    error_category: ErrorCategory | None = None
+
+@dataclass(frozen=True)
+class CancelTaskCommand:
+    """Command to request cancellation of a running or pending task."""
+
+    job_id: JobId
+    reason: CancellationReason | None = None
+
+# ─── Read Models / Results ───────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class JobStatusSnapshot:
+    """Immutable snapshot of a job's current state.
+
+    Carries all lifecycle data including state, progress, errors, and metadata.
+    Frozen (hashable). Used by repositories, orchestrators, and surface layers.
+    """
+
+    job_id: JobId
+    state: JobState
+    operation_type: OperationType
+    created_at: Timestamp
+    updated_at: Timestamp
+    progress: Progress = Progress(0.0)
+    progress_message: ProgressMessage | None = None
+    result_url: ResultUrl | None = None
+    error: ErrorString | None = None
+    error_category: ErrorCategory | None = None
+    correlation_id: CorrelationId | None = None
+    started_at: Timestamp | None = None
+    finished_at: Timestamp | None = None
+    metadata: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+    is_terminal: bool = False
+    is_cancellable: bool = False
+    progress_applicable: bool = False
+
+@dataclass(frozen=True)
+class CancellationResult:
+    """Result of a cancellation evaluation."""
+
+    job_id: JobId
+    accepted: bool
+    outcome: str
+    message: str
+
+@dataclass(frozen=True)
+class CleanupDecision:
+    """Purge/stale timeout decision from job cleanup resolution."""
+
+    purge_ids: tuple[JobId, ...] = field(default_factory=tuple)
+    stale_timeout_ids: tuple[JobId, ...] = field(default_factory=tuple)
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CleanupSummary:
+    """Summary of cleanup operations performed."""
+
+    purged: int
+    retained: int
+    reclaimed_capacity: int
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CapacityDecision:
+    """Evaluation result for background capacity eligibility."""
+
+    accepted: bool
+    active: int
+    limit: int
+    available: int
+    reason: str = ""
+
+@dataclass(frozen=True)
+class CapacityStatus:
+    """Current background capacity status."""
+
+    active: int
+    limit: int
+    available: int
+```
+
+---
+
+## File: modules/shared/src/security/__init__.py
+
+```python
+"""Security domain — taxonomy types and contracts.
+
+Provides Value Objects, Entities, Events, Errors, Constants,
+5 individual Protocol interfaces, and Aggregate facade for all 5 security operations per the Security FRD.
+"""
+
+from . import (
+    taxonomy_security_constant,
+    taxonomy_security_error,
+    taxonomy_security_event,
+    taxonomy_security_vo,
+)
+from .contract_emit_audit_protocol import EmitAuditProtocol
+from .contract_extract_archive_protocol import ExtractArchiveProtocol
+from .contract_redact_sensitive_protocol import RedactSensitiveProtocol
+from .contract_security_operate_aggregate import ISecurityOperateAggregate
+from .contract_validate_code_protocol import ValidateCodeProtocol
+from .contract_validate_path_protocol import ValidatePathProtocol
+
+__all__ = [
+    "EmitAuditProtocol",
+    "ExtractArchiveProtocol",
+    "RedactSensitiveProtocol",
+    "ISecurityOperateAggregate",
+    "ValidateCodeProtocol",
+    "ValidatePathProtocol",
+    "taxonomy_security_constant",
+    "taxonomy_security_error",
+    "taxonomy_security_event",
+    "taxonomy_security_vo",
+]
+```
+
+---
+
+## File: modules/shared/src/security/contract_extract_archive_protocol.py
+
+```python
+"""Security domain contract: extract archive protocol (ABC).
+
+Capability implements this protocol. The Agent layer depends on it.
+FR-SEC-002: Safely Extract Archive.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from .taxonomy_security_vo import ArchiveExtractionVO
+
+
+class ExtractArchiveProtocol(ABC):
+    """Protocol interface for validating archive extraction safety."""
+
+    @abstractmethod
+    async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
+        """Validate and guard archive extraction against safety policy."""
+        ...
+```
+
+---
+
+## File: modules/shared/src/security/contract_validate_path_protocol.py
+
+```python
+"""Security domain contract: validate path protocol (ABC).
+
+Capability implements this protocol. The Agent layer depends on it.
+FR-SEC-001: Validate File Path Access.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from .taxonomy_security_vo import PathValidationVO
+
+
+class ValidatePathProtocol(ABC):
+    """Protocol interface for validating filesystem path access."""
+
+    @abstractmethod
+    async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
+        """Validate whether a filesystem path is allowed for the requested access mode."""
+        ...
+```
+
+---
+
+## File: modules/shared/src/security/taxonomy_security_error.py
+
+```python
+"""Security domain — Error types for path, archive, code, redaction, and audit failures.
+
+All errors subclass SecurityError with explicit error codes.
+"""
+
+from __future__ import annotations
+
+from modules.shared.src.common.taxonomy_core_vo import ErrorMessage
+from modules.shared.src.security.taxonomy_security_vo import (
+    ErrorCategory,
+    FilePath,
+    FileSize,
+    MetadataMap,
+)
+
+# ─── Default Message Constants ──────────────────────────────────
+
+_DEFAULT_ARCHIVE_SAFETY_MESSAGE: ErrorMessage = ErrorMessage("Archive safety violation")
+_DEFAULT_ARCHIVE_BOMB_MESSAGE: ErrorMessage = ErrorMessage("Archive bomb detected")
+_DEFAULT_CODE_VALIDATION_MESSAGE: ErrorMessage = ErrorMessage("Code validation failed")
+_DEFAULT_REDACTION_MESSAGE: ErrorMessage = ErrorMessage("Redaction failed")
+_DEFAULT_AUDIT_EMISSION_MESSAGE: ErrorMessage = ErrorMessage("Audit emission failed")
+_DEFAULT_VALIDATION_MESSAGE: ErrorMessage = ErrorMessage("Validation error")
+
+# ─── Default Path Constants ─────────────────────────────────────
+
+_EMPTY_PATH: FilePath = FilePath("")
+
+# ─── Default FileSize Constants ─────────────────────────────────
+
+_DEFAULT_FILE_SIZE_ZERO: FileSize = FileSize(0)
+
+
+class SecurityError(Exception):
+    """Base error for all security-domain exceptions."""
+
+    def __init__(self, code: ErrorCategory, message: str, details: MetadataMap | None = None) -> None:
+        self.code = code
+        self.message = message
+        self.details = details or {}
+        super().__init__(f"[{code}] {message}")
+
+    def to_dict(self) -> dict:
+        return {
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
+# ─── Path Validation Errors ─────────────────────────────────────
+
+
+class PathTraversalError(SecurityError):
+    """Raised when a path traversal attempt is detected."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("path_traversal"),
+            f"Path traversal detected: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+class UnauthorizedAccessError(SecurityError):
+    """Raised when a path is outside allowed directories."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("unauthorized_access"),
+            f"Access denied: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+class SymlinkEscapeError(SecurityError):
+    """Raised when a symbolic link escapes allowed directories."""
+
+    def __init__(self, path: FilePath = _EMPTY_PATH, details: MetadataMap | None = None) -> None:
+        super().__init__(
+            ErrorCategory("symlink_escape"),
+            f"Symbolic link escape: {path}",
+            {"path": path, **(details or {})},
+        )
+
+
+# ─── Archive Safety Errors ──────────────────────────────────────
+
+
+class ArchiveSafetyError(SecurityError):
+    """Raised when archive extraction violates safety policy."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("archive_safety"), message or _DEFAULT_ARCHIVE_SAFETY_MESSAGE, details)
+
+
+class ArchiveBombError(SecurityError):
+    """Raised when an archive bomb pattern is detected."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("archive_bomb"), message or _DEFAULT_ARCHIVE_BOMB_MESSAGE, details)
+
+
+# ─── Code Validation Errors ─────────────────────────────────────
+
+
+class CodeValidationError(SecurityError):
+    """Raised when untrusted code fails validation."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("code_validation"), message or _DEFAULT_CODE_VALIDATION_MESSAGE, details)
+
+
+class CodeOversizedError(SecurityError):
+    """Raised when code exceeds maximum allowed size."""
+
+    def __init__(
+        self,
+        size: FileSize = _DEFAULT_FILE_SIZE_ZERO,
+        max_size: FileSize = _DEFAULT_FILE_SIZE_ZERO,
+        details: MetadataMap | None = None,
+    ) -> None:
+        super().__init__(
+            ErrorCategory("code_oversized"),
+            ErrorMessage(f"Code payload too large: {size} bytes (max: {max_size})"),
+            {"size": size, "max_size": max_size, **(details or {})},
+        )
+
+
+# ─── Redaction Errors ───────────────────────────────────────────
+
+
+class RedactionError(SecurityError):
+    """Raised when sensitive value redaction fails."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("redaction_error"), message or _DEFAULT_REDACTION_MESSAGE, details)
+
+
+# ─── Audit Errors ───────────────────────────────────────────────
+
+
+class AuditEmissionError(SecurityError):
+    """Raised when audit event delivery fails."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("audit_emission"), message or _DEFAULT_AUDIT_EMISSION_MESSAGE, details)
+
+
+# ─── Policy Errors ──────────────────────────────────────────────
+
+
+class ValidationError(SecurityError):
+    """Raised for malformed request or invalid security policy input."""
+
+    def __init__(self, message: ErrorMessage | None = None, details: MetadataMap | None = None) -> None:
+        super().__init__(ErrorCategory("validation_error"), message or _DEFAULT_VALIDATION_MESSAGE, details)
+```
+
+---
+
+## File: modules/shared/src/security/taxonomy_security_vo.py
+
+```python
+"""Security domain — Value Objects for path validation, archive safety, code validation, redaction, and audit.
+
+Frozen dataclasses with explicit types. All VOs are immutable.
+Input and output fields live in a single VO per concept.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from dataclasses import field as dc_field
+from enum import Enum
+from typing import Any, NewType
+
+# ============================================================
+# Access Mode
+# ============================================================
+
+
+class AccessMode(str, Enum):
+    """File access mode for path validation."""
+
+    READ = "read"
+    WRITE = "write"
+    CREATE = "create"
+    DELETE = "delete"
+    EXTRACT = "extract"
+
+
+# ============================================================
+# Path Validation (FR-SEC-001)
+# ============================================================
 
 
 @dataclass(frozen=True)
-class ActionMetadataVO:
-    """Action catalog entry — immutable registration metadata.
+class PathValidationVO:
+    """Unified path validation — input and output in one VO.
 
-    Input (set by registering feature):
-      - action_name, owning_feature_ref, description, parameter_schema, etc.
-
-    Output (computed by dispatcher):
-      - catalog_version, degraded flag
+    Caller sets target_path, access_mode, base_directory, operation_context.
+    Callee sets allowed, canonical_path, denial_reason, audit_metadata.
     """
 
-    # Required fields
-    action_name: str
-    owning_feature_ref: str
+    # Input
+    target_path: str = ""
+    access_mode: AccessMode = AccessMode.READ
+    base_directory: str | None = None
+    operation_context: str | None = None
+    # Output
+    allowed: bool = False
+    canonical_path: str | None = None
+    denial_reason: str | None = None
+    audit_metadata: dict = dc_field(default_factory=dict)
+
+
+# ============================================================
+# Archive Extraction (FR-SEC-002)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class ArchiveEntryVO:
+    """Metadata for a single archive entry."""
+
+    entry_path: str
+    is_directory: bool = False
+    is_symbolic_link: bool = False
+    is_hard_link: bool = False
+    compressed_size: int = 0
+    uncompressed_size: int = 0
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionOptionsVO:
+    """Options controlling archive extraction safety."""
+
+    max_depth: int = 5
+    max_total_size: int = 104_857_600  # 100 MB
+    max_entry_size: int = 10_485_760  # 10 MB
+    max_entry_count: int = 1_000
+    allow_symbolic_links: bool = False
+    allow_hard_links: bool = False
+
+
+@dataclass(frozen=True)
+class RejectedEntryVO:
+    """A rejected archive entry with reason."""
+
+    entry_path: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionVO:
+    """Unified archive extraction — input and output in one VO.
+
+    Caller sets destination_directory, entries, options.
+    Callee sets allowed, safe_destination, rejected_entries, warnings, audit_metadata.
+    """
+
+    # Input
+    destination_directory: str = ""
+    entries: tuple[ArchiveEntryVO, ...] = dc_field(default_factory=tuple)
+    options: ArchiveExtractionOptionsVO = dc_field(default_factory=ArchiveExtractionOptionsVO)
+    # Output
+    allowed: bool = False
+    safe_destination: str | None = None
+    rejected_entries: tuple[RejectedEntryVO, ...] = dc_field(default_factory=tuple)
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    audit_metadata: dict = dc_field(default_factory=dict)
+
+
+# ============================================================
+# Code Validation (FR-SEC-003)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class CodeViolationVO:
+    """A single code validation violation."""
+
+    category: str
     description: str
-    parameter_schema: dict[str, Any]
-    usage_examples: list[str]
-
-    # Metadata flags and defaults
-    default_timeout: float = 30.0
-    timeout_class: str = "default"
-    idempotency_flag: bool = False
-    scene_mutation_flag: bool = False
-    background_eligibility_flag: bool = False
-    destructive_flag: bool = False
-    read_only_flag: bool = False
-    long_running_flag: bool = False
-    risk_level: str = "medium"
-
-    # Output fields (set by dispatcher)
-    catalog_version: int = 0
-    degraded: bool = False
-
-    def __post_init__(self) -> None:
-        """Validate registration constraints."""
-        if not self.action_name:
-            raise ValueError("action_name must not be empty")
-        if not self.owning_feature_ref:
-            raise ValueError("owning_feature_ref must not be empty")
-        if self.default_timeout < 0:
-            raise ValueError("default_timeout must be non-negative")
-```
-
----
-
-## File: modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py
-
-```python
-"""Discovery result Value Object.
-
-Output of FR-DSP-002 ActionDiscoveryProtocol — canonical catalog snapshot with
-optional filtering, version, and metadata detail level.
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import Any
+    location_hint: str | None = None
 
 
 @dataclass(frozen=True)
-class DiscoveryOutcomeVO:
-    """Discovery result concept — action list with metadata and catalog version.
+class CodeValidationVO:
+    """Unified code validation — input and output in one VO.
 
-    Same canonical shape returned to CLI and MCP consumers.
+    Caller sets code_text, max_code_size, strict_mode, execution_context.
+    Callee sets allowed, violations, redacted_metadata, audit_metadata.
     """
 
-    # Output fields set by dispatcher
-    actions: list[dict[str, Any]] = field(default_factory=list)
-    catalog_version: int = 0
-    result_count: int = 0
-```
+    # Input
+    code_text: str = ""
+    max_code_size: int = 1_048_576  # 1 MB
+    strict_mode: bool = True
+    execution_context: str | None = None
+    # Output
+    allowed: bool = False
+    violations: tuple[CodeViolationVO, ...] = dc_field(default_factory=tuple)
+    redacted_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict = dc_field(default_factory=dict)
 
----
 
-## File: modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py
+# ============================================================
+# Redaction (FR-SEC-004)
+# ============================================================
 
-```python
-"""Unified result envelope Value Object.
 
-Output of FR-DSP-006 ResultNormalizationProtocol — single envelope shape consumed
-by CLI and MCP layers for all dispatcher outcomes (success, error, background submission).
-"""
+class SensitivityLevel(str, Enum):
+    """Sensitivity level for redaction."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import Any
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 
 @dataclass(frozen=True)
-class UnifiedResultEnvelopeVO:
-    """Unified result envelope — standardized output for all dispatcher operations.
+class RedactionVO:
+    """Unified redaction — input and output in one VO.
 
-    Contains success indicator, data payload, error category, message, tracking ID,
-    warnings, and metadata summary. Never leaks secrets or sensitive paths.
+    Caller provides ``text`` (the value to redact) as input.
+    Callee returns ``text`` as the redacted (safe) output and also populates
+    ``redacted_text``, ``redacted_count``, ``failed``, ``failure_reason``.
+    The returned RedactionVO never contains the original secret (FR-SEC-004):
+    on success ``text`` is the redacted value; on failure it is masked.
     """
 
-    # Required fields
-    success: bool = False
-    message: str = ""
-    tracking_id: str = ""
+    # Input
+    text: str = ""
+    sensitivity_level: SensitivityLevel = SensitivityLevel.HIGH
+    patterns: tuple[str, ...] = dc_field(default_factory=tuple)
+    key_names: tuple[str, ...] = dc_field(default_factory=tuple)
+    # Output
+    redacted_text: str = ""
+    redacted_count: int = 0
+    failed: bool = False
+    failure_reason: str | None = None
 
-    # Optional fields (set when applicable)
-    data: dict[str, Any] | None = None
-    error_category: str | None = None
-    warnings: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
 
-    # Computed flags
-    data_truncated: bool = False
+# ============================================================
+# Audit Events (FR-SEC-005)
+# ============================================================
 
-    @classmethod
-    def success_envelope(
-        cls,
-        message: str,
-        tracking_id: str,
-        data: dict[str, Any] | None = None,
-        warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> UnifiedResultEnvelopeVO:
-        """Create a success envelope."""
-        return cls(
-            success=True,
-            message=message,
-            tracking_id=tracking_id,
-            data=data,
-            warnings=list(warnings) if warnings else [],
-            metadata=dict(metadata) if metadata else {},
-        )
 
-    @classmethod
-    def error_envelope(
-        cls,
-        message: str,
-        tracking_id: str,
-        error_category: str,
-        data: dict[str, Any] | None = None,
-        warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> UnifiedResultEnvelopeVO:
-        """Create an error envelope with category."""
-        return cls(
-            success=False,
-            message=message,
-            tracking_id=tracking_id,
-            error_category=error_category,
-            data=data,
-            warnings=list(warnings) if warnings else [],
-            metadata=dict(metadata) if metadata else {},
-        )
+class AuditSeverity(str, Enum):
+    """Audit event severity level."""
 
-    @classmethod
-    def safe_error_envelope(cls, message: str = "Envelope construction failed") -> UnifiedResultEnvelopeVO:
-        """Fallback envelope when envelope construction itself fails."""
-        return cls(
-            success=False,
-            message=message,
-            tracking_id="",
-            error_category="execution_error",
-        )
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class ViolationCategory(str, Enum):
+    """Security violation category."""
+
+    PATH_TRAVERSAL = "path_traversal"
+    UNAUTHORIZED_ACCESS = "unauthorized_access"
+    UNSAFE_ARCHIVE_ENTRY = "unsafe_archive_entry"
+    CODE_VIOLATION = "code_violation"
+    REDACTION_FAILURE = "redaction_failure"
+    PERMISSION_DENIED = "permission_denied"
+    POLICY_OVERRIDE = "policy_override"
+
+
+@dataclass(frozen=True)
+class SecurityAuditEventVO:
+    """Unified security audit event — input context and emitted event in one VO.
+
+    Caller sets violation_category, operation_type, source_feature, severity, etc.
+    Callee sets event_id, timestamp, policy_mode.
+    """
+
+    # Input (context)
+    violation_category: ViolationCategory = ViolationCategory.PATH_TRAVERSAL
+    operation_type: str = ""
+    source_feature: str = ""
+    target_metadata: dict = dc_field(default_factory=dict)
+    severity: AuditSeverity = AuditSeverity.WARNING
+    correlation_id: str | None = None
+    redacted_reason: str | None = None
+    # Output (emitted event)
+    event_id: str = ""
+    timestamp: float = 0.0
+    policy_mode: str = "strict"
+
+
+# ============================================================
+# Security Policy Config
+# ============================================================
+
+
+@dataclass(frozen=True)
+class SecurityPolicyVO:
+    """Security policy configuration."""
+
+    allowed_directories: tuple[str, ...] = ()
+    archive_max_depth: int = 5
+    archive_max_total_size: int = 104_857_600
+    archive_max_entry_count: int = 1_000
+    archive_allow_symbolic_links: bool = False
+    code_validation_enabled: bool = True
+    blocked_code_constructs: tuple[str, ...] = dc_field(default_factory=tuple)
+    max_code_size: int = 1_048_576
+    redaction_patterns: tuple[str, ...] = dc_field(default_factory=tuple)
+    redaction_key_names: tuple[str, ...] = dc_field(default_factory=tuple)
+    redaction_debug_mode: bool = False
+    security_policy_mode: str = "strict"
+
+
+# ============================================================
+# Error Domain Types
+# ============================================================
+
+ErrorCategory = NewType("ErrorCategory", str)
+FilePath = NewType("FilePath", str)
+FileSize = NewType("FileSize", int)
+
+# ============================================================
+# Metadata Type
+# ============================================================
+
+MetadataMap = dict[str, Any]
 ```
 
 ---

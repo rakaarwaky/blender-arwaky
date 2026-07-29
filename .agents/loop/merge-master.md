@@ -33,12 +33,17 @@ Before starting, read:
 - Check the `.agents/issues/` folder.
 - Read any issue documents/files found inside.
 - **Decompose:** If a document is too long, complex, or contains multiple distinct tasks, break it down and create multiple sub-issues.
-- **Create Issues:** Use `gh issue create --title "..." --body "..."` to create the issues on GitHub.
+- **Expand Issues:** Each GitHub issue must be comprehensive — include:
+  - Full problem description with context
+  - Root cause analysis
+  - **Code fixes** — provide the exact code changes needed (diffs or full file content)
+  - Steps to verify the fix works
+- **Create Issues:** Use `gh issue create --title "..." --body "..."` to create the issues on GitHub. Use `--body-file` for long issues to avoid truncation.
 - **Manage Labels:**
   - Check existing labels: `gh label list`.
   - If relevant labels already exist, apply them to the new issues to make them easy to find.
   - If no relevant labels exist, create new appropriate tags using `gh label create <name> --color <color> --description "..."` and apply them.
-- Once processed, delete the local files from `.agents/issues/` to avoid duplicate processing in future sessions.
+- **DO NOT delete local issue files** after processing. Leave `.agents/issues/` intact so they remain available for reference and future sessions.
 
 ### 3. Triage Issues and PRs
 

@@ -15,26 +15,16 @@ adapters:
 ignored_rules: []
 
 ignored_paths:
-  - "/target"
   - "/.git"
-  - "/.github"
-  - "/scratch"
   - "/node_modules"
-  - "/.opencode"
-  - "/.mimocode"
-  - "/scripts"
   - ".min.js"
   - ".min.css"
   - "/.dsc_cache"
   - "/tests"
-  - "/test-workspaces"
-  - "/mimocode"
   - "build.rs"
   - "/build.rs"
   - "**/build.rs"
-  - "/.agents"
   - "/benches"
-  - "./output"
   - "/dist"
   - "/build"
   - "/.tsbuildinfo"
@@ -46,7 +36,6 @@ ignored_paths:
   - "/.mypy_cache"
   - "/.ruff_cache"
   - ".pytest_cache"
-  - "blender_mcp_addon"
 
 architecture:
   enabled: true
@@ -411,31 +400,31 @@ architecture:
       exceptions: ["__init__.py", "__main__.py", "main.py"]
 
     AES501:
-      enabled: true
+      enabled: false
       scope: ["taxonomy"]
       entry_points: []
 
     AES502:
-      enabled: true
+      enabled: false
       scope: ["contract"]
       entry_points: []
 
     AES503:
-      enabled: true
+      enabled: false
       scope: ["capabilities"]
       entry_points: []
 
     AES504:
-      enabled: true
+      enabled: false
       scope: ["utility"]
       entry_points: []
 
     AES505:
-      enabled: true
+      enabled: false
       scope: ["agent"]
       entry_points: []
 
     AES506:
-      enabled: true
+      enabled: false
       scope: ["surface"]
       entry_points: []

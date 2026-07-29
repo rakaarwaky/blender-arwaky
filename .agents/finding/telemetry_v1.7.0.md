@@ -1,6 +1,6 @@
-# Module: dispatcher (v1.7.0)
+# Module: telemetry (v1.7.0)
 
-This document contains the source code for module `dispatcher` along with related and imported definitions from the `shared` module.
+This document contains the source code for module `telemetry` along with related and imported definitions from the `shared` module.
 
 ## File List
 
@@ -42,37 +42,24 @@ This document contains the source code for module `dispatcher` along with relate
 - [.agents/skills/lint-arwaky-rust/SKILL.md](<.agents/skills/lint-arwaky-rust/SKILL.md>)
 - [.agents/skills/lint-arwaky-typescript/SKILL.md](<.agents/skills/lint-arwaky-typescript/SKILL.md>)
 - [ARCHITECTURE.md](<ARCHITECTURE.md>)
-- [modules/dispatcher/FRD.md](<modules/dispatcher/FRD.md>)
-- [modules/dispatcher/pyproject.toml](<modules/dispatcher/pyproject.toml>)
-- [modules/dispatcher/src/__init__.py](<modules/dispatcher/src/__init__.py>)
-- [modules/dispatcher/src/agent_dispatcher_orchestrator.py](<modules/dispatcher/src/agent_dispatcher_orchestrator.py>)
-- [modules/dispatcher/src/capabilities_action_discovery.py](<modules/dispatcher/src/capabilities_action_discovery.py>)
-- [modules/dispatcher/src/capabilities_background_submit.py](<modules/dispatcher/src/capabilities_background_submit.py>)
-- [modules/dispatcher/src/capabilities_catalog_registration.py](<modules/dispatcher/src/capabilities_catalog_registration.py>)
-- [modules/dispatcher/src/capabilities_request_validation.py](<modules/dispatcher/src/capabilities_request_validation.py>)
-- [modules/dispatcher/src/capabilities_result_normalization.py](<modules/dispatcher/src/capabilities_result_normalization.py>)
-- [modules/dispatcher/src/capabilities_sync_dispatch.py](<modules/dispatcher/src/capabilities_sync_dispatch.py>)
-- [modules/dispatcher/src/root_dispatcher_container.py](<modules/dispatcher/src/root_dispatcher_container.py>)
-- [modules/dispatcher/src/surface_action_registry.py](<modules/dispatcher/src/surface_action_registry.py>)
-- [modules/dispatcher/src/surface_asset_action.py](<modules/dispatcher/src/surface_asset_action.py>)
-- [modules/dispatcher/src/surface_config_action.py](<modules/dispatcher/src/surface_config_action.py>)
-- [modules/dispatcher/src/surface_job_action.py](<modules/dispatcher/src/surface_job_action.py>)
-- [modules/dispatcher/src/surface_launcher_action.py](<modules/dispatcher/src/surface_launcher_action.py>)
-- [modules/dispatcher/src/surface_object_action.py](<modules/dispatcher/src/surface_object_action.py>)
-- [modules/dispatcher/src/surface_render_action.py](<modules/dispatcher/src/surface_render_action.py>)
-- [modules/dispatcher/src/surface_scene_action.py](<modules/dispatcher/src/surface_scene_action.py>)
-- [modules/shared/src/dispatcher/__init__.py](<modules/shared/src/dispatcher/__init__.py>)
-- [modules/shared/src/dispatcher/contract_action_discovery_protocol.py](<modules/shared/src/dispatcher/contract_action_discovery_protocol.py>)
-- [modules/shared/src/dispatcher/contract_background_submit_protocol.py](<modules/shared/src/dispatcher/contract_background_submit_protocol.py>)
-- [modules/shared/src/dispatcher/contract_catalog_registration_protocol.py](<modules/shared/src/dispatcher/contract_catalog_registration_protocol.py>)
-- [modules/shared/src/dispatcher/contract_dispatcher_aggregate.py](<modules/shared/src/dispatcher/contract_dispatcher_aggregate.py>)
-- [modules/shared/src/dispatcher/contract_request_validation_protocol.py](<modules/shared/src/dispatcher/contract_request_validation_protocol.py>)
-- [modules/shared/src/dispatcher/contract_result_normalization_protocol.py](<modules/shared/src/dispatcher/contract_result_normalization_protocol.py>)
-- [modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py](<modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py>)
-- [modules/shared/src/dispatcher/taxonomy_action_command_vo.py](<modules/shared/src/dispatcher/taxonomy_action_command_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py](<modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py](<modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py>)
-- [modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py](<modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py>)
+- [modules/shared/src/common/__init__.py](<modules/shared/src/common/__init__.py>)
+- [modules/shared/src/common/taxonomy_core_vo.py](<modules/shared/src/common/taxonomy_core_vo.py>)
+- [modules/shared/src/telemetry/__init__.py](<modules/shared/src/telemetry/__init__.py>)
+- [modules/shared/src/telemetry/contract_telemetry_aggregate.py](<modules/shared/src/telemetry/contract_telemetry_aggregate.py>)
+- [modules/shared/src/telemetry/contract_telemetry_classification_protocol.py](<modules/shared/src/telemetry/contract_telemetry_classification_protocol.py>)
+- [modules/shared/src/telemetry/contract_telemetry_enrichment_protocol.py](<modules/shared/src/telemetry/contract_telemetry_enrichment_protocol.py>)
+- [modules/shared/src/telemetry/contract_telemetry_recording_protocol.py](<modules/shared/src/telemetry/contract_telemetry_recording_protocol.py>)
+- [modules/shared/src/telemetry/contract_telemetry_session_protocol.py](<modules/shared/src/telemetry/contract_telemetry_session_protocol.py>)
+- [modules/shared/src/telemetry/taxonomy_telemetry_event.py](<modules/shared/src/telemetry/taxonomy_telemetry_event.py>)
+- [modules/telemetry/FRD.md](<modules/telemetry/FRD.md>)
+- [modules/telemetry/pyproject.toml](<modules/telemetry/pyproject.toml>)
+- [modules/telemetry/src/__init__.py](<modules/telemetry/src/__init__.py>)
+- [modules/telemetry/src/agent_telemetry_orchestrator.py](<modules/telemetry/src/agent_telemetry_orchestrator.py>)
+- [modules/telemetry/src/capabilities_telemetry_classification.py](<modules/telemetry/src/capabilities_telemetry_classification.py>)
+- [modules/telemetry/src/capabilities_telemetry_enrichment.py](<modules/telemetry/src/capabilities_telemetry_enrichment.py>)
+- [modules/telemetry/src/capabilities_telemetry_recorder.py](<modules/telemetry/src/capabilities_telemetry_recorder.py>)
+- [modules/telemetry/src/capabilities_telemetry_session_management.py](<modules/telemetry/src/capabilities_telemetry_session_management.py>)
+- [modules/telemetry/src/root_telemetry_container.py](<modules/telemetry/src/root_telemetry_container.py>)
 - [PRD.md](<PRD.md>)
 - [pyproject.toml](<pyproject.toml>)
 - [README.md](<README.md>)
@@ -7433,174 +7420,867 @@ Root may depend on all layers.
 
 ---
 
-## File: modules/dispatcher/FRD.md
+## File: modules/shared/src/common/__init__.py
+
+```python
+"""Common domain — taxonomy types and contracts (cross-cutting).
+
+Note: Contract modules are imported by the main src/__init__.py to avoid
+circular dependencies between domain folders.
+"""
+
+from . import (
+    taxonomy_app_config_vo,
+    taxonomy_bounding_box_vo,
+    taxonomy_command_catalog_constant,
+    taxonomy_core_vo,
+    taxonomy_domain_error,
+    taxonomy_vector3d_vo,
+)
+
+__all__ = [
+    "taxonomy_app_config_vo",
+    "taxonomy_bounding_box_vo",
+    "taxonomy_command_catalog_constant",
+    "taxonomy_core_vo",
+    "taxonomy_domain_error",
+    "taxonomy_vector3d_vo",
+]
+```
+
+---
+
+## File: modules/shared/src/common/taxonomy_core_vo.py
+
+```python
+"""Core branded primitive types (NewType aliases) — taxonomy value objects."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, NewType
+from uuid import UUID
+
+# ============================================================
+# ID TYPES
+# ============================================================
+
+UserId = NewType("UserId", str)
+SceneId = NewType("SceneId", str)
+AssetId = NewType("AssetId", str)
+JobId = NewType("JobId", str)
+HdriId = NewType("HdriId", str)
+ObjectId = NewType("ObjectId", UUID)
+ParentId = NewType("ParentId", str)
+
+# ============================================================
+# NAME TYPES
+# ============================================================
+
+ObjectName = NewType("ObjectName", str)
+AssetName = NewType("AssetName", str)
+ProviderName = NewType("ProviderName", str)
+MaterialName = NewType("MaterialName", str)
+ModifierName = NewType("ModifierName", str)
+ActionName = NewType("ActionName", str)
+WorkflowName = NewType("WorkflowName", str)
+RuleName = NewType("RuleName", str)
+SceneRuleSetName = NewType("SceneRuleSetName", str)
+
+# ============================================================
+# TYPE & ENUM TYPES
+# ============================================================
+
+ObjectType = NewType("ObjectType", str)
+AssetType = NewType("AssetType", str)
+RenderEngine = NewType("RenderEngine", str)
+ImageFormat = NewType("ImageFormat", str)
+PrimitiveType = NewType("PrimitiveType", str)
+ExportFormat = NewType("ExportFormat", str)
+JobState = NewType("JobState", str)
+CleanupMode = NewType("CleanupMode", str)
+AssetTypeFilter = NewType("AssetTypeFilter", str)
+
+# ============================================================
+# TEXT, URLS & MESSAGES
+# ============================================================
+
+Prompt = NewType("Prompt", str)
+ErrorString = NewType("ErrorString", str)
+SearchQuery = NewType("SearchQuery", str)
+NextPageToken = NewType("NextPageToken", str)
+ResultUrl = NewType("ResultUrl", str)
+ThumbnailUrl = NewType("ThumbnailUrl", str)
+
+# ============================================================
+# NUMERIC LIMITS & METRICS
+# ============================================================
+
+MaxSize = NewType("MaxSize", int)
+IterationCount = NewType("IterationCount", int)
+PortNumber = NewType("PortNumber", int)
+Host = NewType("Host", str)
+SampleCount = NewType("SampleCount", int)
+ResolutionX = NewType("ResolutionX", int)
+ResolutionY = NewType("ResolutionY", int)
+ObjectCount = NewType("ObjectCount", int)
+AssetCount = NewType("AssetCount", int)
+RenderSamples = NewType("RenderSamples", int)
+MaxImageSize = NewType("MaxImageSize", int)
+ResultLimit = NewType("ResultLimit", int)
+LightStrength = NewType("LightStrength", float)
+RenderTime = NewType("RenderTime", float)
+Progress = NewType("Progress", float)
+
+# ============================================================
+# FLAGS
+# ============================================================
+
+EnabledFlag = NewType("EnabledFlag", bool)
+SuccessFlag = NewType("SuccessFlag", bool)
+UseDenoising = NewType("UseDenoising", bool)
+
+# ============================================================
+# COLLECTIONS & VECTORS
+# ============================================================
+
+StringList = NewType("StringList", list[str])
+TagList = NewType("TagList", list[str])
+AssetIdList = NewType("AssetIdList", list[str])
+CoordinateList = NewType("CoordinateList", list[float])
+ScaleVector = NewType("ScaleVector", list[float])
+RotationVector = NewType("RotationVector", list[float])
+ObjectIdList = NewType("ObjectIdList", list[UUID])
+ChildrenIds = NewType("ChildrenIds", list[str])
+
+# Surface-typed primitives (for handler param annotations)
+SkillName = NewType("SkillName", str)
+SectionRef = NewType("SectionRef", str)
+ServerName = NewType("ServerName", str)
+DomainRef = NewType("DomainRef", str)
+FormatRef = NewType("FormatRef", str)
+CapabilityRef = NewType("CapabilityRef", str)
+
+# Exit code for CLI main() return codes
+ExitCode = NewType("ExitCode", int)
+
+# Pathing
+FilePath = NewType("FilePath", str)
+DirectoryPath = NewType("DirectoryPath", str)
+
+# Config types (no raw primitives in contracts)
+ConfigPath = NewType("ConfigPath", str)
+
+# Additional VOs for AES006 compliance
+CustomerUuid = NewType("CustomerUuid", str)
+SessionId = NewType("SessionId", str)
+Timestamp = NewType("Timestamp", float)
+VersionString = NewType("VersionString", str)
+PlatformName = NewType("PlatformName", str)
+ToolName = NewType("ToolName", str)
+DurationMs = NewType("DurationMs", float)
+BlenderVersion = NewType("BlenderVersion", str)
+StatusString = NewType("StatusString", str)
+PythonCode = NewType("PythonCode", str)
+TaskUuid = NewType("TaskUuid", str)
+ScaleFactor = NewType("ScaleFactor", float)
+ImageBytes = NewType("ImageBytes", bytes)
+BBoxIntegers = NewType("BBoxIntegers", list[int])
+
+# ============================================================
+# ASSET-SPECIFIC VOs (for AES 402 contract protocol compliance)
+# ============================================================
+
+AssetCollectionName = NewType("AssetCollectionName", str)
+AssetFormatHint = NewType("AssetFormatHint", str | None)
+ScaleNormalization = NewType("ScaleNormalization", bool)
+DuplicatePolicy = NewType("DuplicatePolicy", str)
+ResolutionPreference = NewType("ResolutionPreference", str | None)
+
+# Server-specific VOs for request correlation
+RequestId = NewType("RequestId", str)
+QueueWaitMs = NewType("QueueWaitMs", float)
+ProtocolVersion = NewType("ProtocolVersion", str)
+AuthToken = NewType("AuthToken", str)
+
+# Job retention types
+MaxTasksCount = NewType("MaxTasksCount", int)
+
+# Details type alias (used in error handling)
+Details = dict[str, Any]
+
+# ErrorMessage is an alias for ErrorString, used by capability layers
+ErrorMessage = ErrorString
+
+# BlenderObjectList placeholder (resolved at runtime)
+BlenderObjectList = NewType("BlenderObjectList", list[Any])
+
+# ============================================================
+# CONFIGURATION METADATA (FR-CFG-001, FR-CFG-005)
+# ============================================================
+
+SourceLocation = NewType("SourceLocation", str | None)
+ParseWarning = NewType("ParseWarning", str)
+ValidationWarning = NewType("ValidationWarning", str)
+OverrideCount = NewType("OverrideCount", int)
+
+
+@dataclass(frozen=True)
+class ConfigMetadata:
+    """Immutable metadata about configuration loading (FR-CFG-001, FR-CFG-005).
+
+    Frozen (hashable). Carries structural counts + source path only —
+    never raw settings values or secrets.
+    """
+
+    source: SourceLocation | None = None
+    exists: bool = False
+    overrides: OverrideCount = 0
+    parse_warnings: tuple[ParseWarning, ...] = field(default_factory=tuple)
+    validation_warnings: tuple[ValidationWarning, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        # Normalize list inputs to immutable tuples.
+        if isinstance(self.parse_warnings, list):
+            object.__setattr__(self, "parse_warnings", tuple(self.parse_warnings))
+        if isinstance(self.validation_warnings, list):
+            object.__setattr__(self, "validation_warnings", tuple(self.validation_warnings))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize metadata for diagnostics (secrets excluded)."""
+        return {
+            "source": self.source,
+            "exists": self.exists,
+            "overrides": self.overrides,
+            "parse_warnings": list(self.parse_warnings),
+            "validation_warnings": list(self.validation_warnings),
+        }
+```
+
+---
+
+## File: modules/shared/src/telemetry/__init__.py
+
+```python
+"""Telemetry domain — taxonomy types and contracts."""
+
+from . import (
+    taxonomy_event_constant,
+    taxonomy_telemetry_event,
+)
+from .contract_telemetry_aggregate import ITelemetryAggregate
+from .contract_telemetry_classification_protocol import TelemetryClassificationPort, TelemetryClassificationProtocol
+from .contract_telemetry_enrichment_protocol import TelemetryEnrichmentPort, TelemetryEnrichmentProtocol
+from .contract_telemetry_recording_protocol import TelemetryRecordingPort, TelemetryRecordingProtocol
+from .contract_telemetry_session_protocol import TelemetrySessionManagementPort, TelemetrySessionProtocol
+
+__all__ = [
+    "TelemetryClassificationPort",
+    "TelemetryClassificationProtocol",
+    "TelemetryEnrichmentPort",
+    "TelemetryEnrichmentProtocol",
+    "TelemetryRecordingPort",
+    "TelemetryRecordingProtocol",
+    "TelemetrySessionManagementPort",
+    "TelemetrySessionProtocol",
+    "ITelemetryAggregate",
+    "taxonomy_event_constant",
+    "taxonomy_telemetry_event",
+]
+```
+
+---
+
+## File: modules/shared/src/telemetry/contract_telemetry_aggregate.py
+
+```python
+"""Telemetry domain contract: telemetry aggregate (ABC).
+
+Agent implements this aggregate. Surface layers depend on it.
+Facade for telemetry operations: record, classify, enrich, session.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    DurationMs,
+    ErrorString,
+    SessionId,
+    SuccessFlag,
+)
+
+
+class ITelemetryAggregate(ABC):
+    """Aggregate facade for telemetry operations."""
+
+    @abstractmethod
+    def record_startup_event(self) -> None: ...
+
+    @abstractmethod
+    def record_action_execution(
+        self,
+        action_name: ActionName,
+        success: SuccessFlag,
+        duration_ms: DurationMs,
+    ) -> None: ...
+
+    @abstractmethod
+    def record_system_error(self, error_category: ErrorString) -> None: ...
+
+    @abstractmethod
+    def get_session_id(self) -> SessionId | None: ...
+
+    @abstractmethod
+    def initialize_session(self) -> None: ...
+
+    @abstractmethod
+    def get_environment_metadata(self) -> dict[str, Any]: ...
+```
+
+---
+
+## File: modules/shared/src/telemetry/contract_telemetry_classification_protocol.py
+
+```python
+"""Telemetry domain contract: event classification protocol (ABC based).
+
+FR-TLM-002: Classify and Categorize Events
+Assigns events to fixed, low-cardinality taxonomy.
+No PII parameters — only category strings for classification.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryCategory
+
+
+class TelemetryClassificationProtocol(ABC):
+    """Async protocol for classifying telemetry events into fixed taxonomy."""
+
+    @abstractmethod
+    async def classify_event(
+        self,
+        action_type: str,
+        feature_area: str | None = None,
+    ) -> dict[str, Any]:
+        """Assign event to fixed taxonomy (feature area, operation type, outcome).
+
+        FR-TLM-002: Feature area covers surfaces like object, scene, render.
+        Operation type covers create, update, delete, query, execute.
+        Unknown actions resolve to 'other' category; raw names never transmitted.
+
+        Args:
+            action_type: The candidate action to classify.
+            feature_area: Optional feature area hint.
+
+        Returns:
+            Dict with categorized event including feature_area, operation_type, outcome_category.
+        """
+        ...
+
+
+class TelemetryClassificationPort(ABC):
+    """Sync facade for orchestrator consumption."""
+
+    @abstractmethod
+    def classify_event(self, raw_type: str) -> TelemetryCategory:
+        """Classify an event into a standardized category.
+
+        FR-TLM-002: Tag the event with a high-level category.
+        If unrecognized or missing category, default to ERROR (unknown).
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/telemetry/contract_telemetry_enrichment_protocol.py
+
+```python
+"""Telemetry domain contract: event enrichment protocol (ABC based).
+
+FR-TLM-004: Enrich Events with Environment Metadata
+Attaches coarse, version-level environment context to outgoing batches.
+No identifying information included.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    BlenderVersion,
+    PlatformName,
+    VersionString,
+)
+
+
+class TelemetryEnrichmentProtocol(ABC):
+    """Async protocol for enriching telemetry events with environment metadata."""
+
+    @abstractmethod
+    async def enrich_event(
+        self,
+        event: dict[str, Any],
+        platform: PlatformName | None = None,
+        version: VersionString | None = None,
+    ) -> dict[str, Any]:
+        """Attach coarse environment context to event.
+
+        FR-TLM-004: Permitted fields are OS family, runtime version,
+        Blender version, and application version at major/minor granularity.
+        No hostname, username, path, or hardware identifier included.
+
+        Args:
+            event: The telemetry event to enrich.
+            platform: Optional platform override.
+            version: Optional version override.
+
+        Returns:
+            Event dict with environment metadata appended.
+        """
+        ...
+
+    @abstractmethod
+    async def get_environment_metadata(self) -> dict[str, Any]:
+        """Return current environment snapshot for batch envelope.
+
+        Returns:
+            Dict with os_family, runtime_version, blender_version, app_version.
+        """
+        ...
+
+
+class TelemetryEnrichmentPort(ABC):
+    """Sync facade for orchestrator consumption."""
+
+    @abstractmethod
+    def enrich_event_metadata(self) -> dict[str, Any]:
+        """Gather and attach environment metadata to events.
+
+        FR-TLM-004: Attach application version, operating system type,
+        and 3D application version to events. Missing fields default to "unknown".
+        No sensitive file paths, user-specific directory names, or machine hostnames.
+        """
+        ...
+
+    @abstractmethod
+    def get_app_version(self) -> VersionString:
+        """Return the application version string."""
+        ...
+
+    @abstractmethod
+    def get_platform(self) -> PlatformName:
+        """Return the platform name (e.g., 'linux', 'darwin', 'win32')."""
+        ...
+
+    @abstractmethod
+    def get_blender_version(self) -> BlenderVersion | None:
+        """Return the Blender version if available, None otherwise."""
+        ...
+```
+
+---
+
+## File: modules/shared/src/telemetry/contract_telemetry_recording_protocol.py
+
+```python
+"""Telemetry domain contract: event recording protocol (ABC based).
+
+FR-TLM-001: Record Anonymous Usage Event
+Consent must be active; withdrawal stops immediately.
+PII scrubbing at ingestion before buffering.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import SuccessFlag
+
+
+class TelemetryRecordingProtocol(ABC):
+    """Async protocol for recording anonymous usage events without PII."""
+
+    @abstractmethod
+    async def record_event(
+        self,
+        action_type: str,
+        feature_area: str | None = None,
+        outcome_category: str = "success",
+        consent_active: bool = True,
+        duration_bucket: float | None = None,
+    ) -> dict[str, Any]:
+        """Capture a single anonymous usage record.
+
+        FR-TLM-001: Nothing recorded unless consent is active.
+        PII scrubbing applies at ingestion before buffering.
+
+        Args:
+            action_type: The type of user action.
+            feature_area: Product surface area.
+            outcome_category: success, failure, or rejected.
+            consent_active: Whether telemetry consent is enabled.
+            duration_bucket: Optional coarse duration bucket.
+
+        Returns:
+            Dict with recording acknowledgment and buffered record summary.
+        """
+        ...
+
+
+class TelemetryRecordingPort(ABC):
+    """Sync facade for orchestrator consumption."""
+
+    @abstractmethod
+    async def record_event(
+        self,
+        event_type: str,
+        consent_active: bool = True,
+    ) -> dict[str, Any]:
+        """Record event via port (delegates to protocol impl)."""
+        ...
+
+    @abstractmethod
+    async def is_enabled(self) -> SuccessFlag:
+        """Check if telemetry consent is active."""
+        ...
+```
+
+---
+
+## File: modules/shared/src/telemetry/contract_telemetry_session_protocol.py
+
+```python
+"""Telemetry domain contract: session management protocol (ABC based).
+
+FR-TLM-003: Manage Analytics Sessions
+Session identifiers persist across restarts within rotation window.
+Consent withdrawal deletes local session state entirely.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from modules.shared.src.common.taxonomy_core_vo import SessionId, SuccessFlag
+
+
+class TelemetrySessionProtocol(ABC):
+    """Async protocol for managing anonymous telemetry sessions."""
+
+    @abstractmethod
+    async def get_session_id(
+        self,
+        force_new: bool = False,
+        consent_active: bool = True,
+    ) -> SessionId:
+        """Get current session ID or generate fresh one.
+
+        FR-TLM-003: Session ID generated from collision-resistant random source.
+        Persists across restarts within rotation window.
+        Consent withdrawal raises error — no session returned.
+
+        Args:
+            force_new: Whether to generate a new session ID.
+            consent_active: Whether telemetry consent is active.
+
+        Returns:
+            Anonymous session identifier string.
+
+        Raises:
+            RuntimeError: If consent is inactive.
+        """
+        ...
+
+    @abstractmethod
+    async def rotate_session(self) -> SessionId:
+        """Rotate session, producing fresh identifier with no linkage.
+
+        Returns:
+            New session identifier string.
+        """
+        ...
+
+    @abstractmethod
+    async def clear_session(self) -> None:
+        """Clear session state (e.g., on consent withdrawal)."""
+        ...
+
+
+class TelemetrySessionManagementPort(ABC):
+    """Sync facade for orchestrator consumption."""
+
+    @abstractmethod
+    def get_session_id(self) -> SessionId | None:
+        """Return the current anonymous session identifier.
+
+        FR-TLM-003: The session ID persists for the entire application runtime.
+        A new unique ID is generated on each application restart.
+        Returns None if no session exists.
+        """
+        ...
+
+    @abstractmethod
+    def initialize_session(self) -> SuccessFlag:
+        """Generate a new anonymous session identifier.
+
+        FR-TLM-003: Called on application startup to create a fresh session.
+        The identifier must be completely anonymous and not traceable to a user.
+        """
+        ...
+```
+
+---
+
+## File: modules/shared/src/telemetry/taxonomy_telemetry_event.py
+
+```python
+"""Telemetry event taxonomy — PII-free event types and allowlists.
+
+FRD hard rule: Never store customer_uuid, error messages, prompts, or
+user-identifiable content in telemetry records.
+
+FR-TLM-001: Allowlist of action types that may be recorded.
+FR-TLM-002: Feature area taxonomy mapping.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    PlatformName,
+    SessionId,
+    Timestamp,
+    VersionString,
+)
+
+
+class TelemetryCategory(Enum):
+    """Fixed low-cardinality telemetry categories (FR-TLM-002)."""
+
+    STARTUP = "startup"
+    TOOL_EXECUTION = "tool_execution"
+    PROMPT_SENT = "prompt_sent"
+    CONNECTION = "connection"
+    ERROR = "error"
+    OTHER = "other"
+
+
+# Allowlist of action types that may be recorded (FR-TLM-001)
+ALLOWED_ACTIONS: frozenset[str] = frozenset([
+    "action_execute",
+    "action_list",
+    "health_check",
+    "settings_view",
+    "task_status",
+    "task_cancel",
+    "search",
+    "download",
+    "import",
+    "render",
+    "screenshot",
+])
+
+# Feature area taxonomy mapping (FR-TLM-002)
+FEATURE_AREAS: dict[str, str] = {
+    "action_execute": "dispatcher",
+    "action_list": "dispatcher",
+    "health_check": "diagnostics",
+    "settings_view": "config",
+    "task_status": "job",
+    "task_cancel": "job",
+    "search": "asset",
+    "download": "asset",
+    "import": "asset",
+    "render": "render",
+    "screenshot": "render",
+}
+
+
+@dataclass(frozen=True)
+class TelemetryEvent:
+    """PII-free telemetry event structure.
+
+    FRD: Never includes raw payloads, names, paths, prompts, error messages,
+    or any customer/user-identifiable information.
+    """
+
+    category: TelemetryCategory
+    session_id: SessionId
+    timestamp: Timestamp
+    feature_area: str  # from fixed taxonomy, never free-form names
+    operation_type: str  # from fixed taxonomy
+    outcome_category: str  # success/failure/rejected/cancelled/timeout
+    version: VersionString = "unknown"
+    platform: PlatformName = "unknown"
+    duration_bucket: float | None = None
+    metadata: dict[str, str] | None = None  # coarse metadata only, no PII
+```
+
+---
+
+## File: modules/telemetry/FRD.md
 
 ```markdown
-# FRD — Action Dispatcher Feature
+# FRD — Telemetry Feature
 
 ## Purpose
 
-Single routing and catalog authority between consumers and domain capabilities. CLI and MCP never call domain features directly — they submit action requests to dispatcher, which resolves from catalog, validates params, routes execution to owning feature, coordinates background submission where supported, and returns every outcome in one unified result envelope.
+Collects anonymous usage analytics on opt-in basis only. Answers product questions (which capabilities used, where workflows fail, which flows abandoned) without answering questions about who the user is. Separate stream from operational observability — diagnostics debugs the running system, telemetry understands the product. Never share data, storage, or purpose.
 
 ## Scope
 
-- Action catalog registration and storage
-- Action schema definition and validation
-- Action metadata (timeout, idempotency, mutation, background, destructive, read-only, long-running flags, risk level, owning feature, examples)
-- Request validation against catalog schema
-- Routing action to correct domain feature or gateway
-- Background submission coordination with job feature
-- Unified result envelope for all outcomes
-- Tracking ID generation and propagation
-- Capability discovery for consumers
-- Destructive action confirmation enforcement
-- Timeout override bounds enforcement
-- Domain error mapping into unified categories
+- Opt-in consent (disabled by default)
+- Consent withdrawal (immediate stop + buffer discard)
+- Anonymous event recording (PII-free schema)
+- Session ID generation, persistence, rotation
+- Environment metadata enrichment (coarse fields only)
+- Event categorization via fixed feature + operation taxonomy
+- Background batching and transmission
+- Local buffering with bounded size + drop-oldest backpressure
+- Telemetry-specific observability via diagnostics logging
 
 ## Out of Scope
 
-Blender transport/message framing, queue management/serialization, task lifecycle, security validation of code/paths, domain business rules, logging/metrics storage, consumer-specific presentation formatting, asset provider communication, authentication/connection management.
+Operational logs/health checks/metrics/error diagnostics/security audit (diagnostics), user identification/fingerprinting, behavioral profiling, real-time streaming, A/B experimentation frameworks, backend storage/retention/access policies.
 
 ## Depends On
 
-gateway (transport-backed action execution + queue), object/scene/render/asset (domain actions), job (background task creation + correlation), security policy (destructive confirmation, redaction), diagnostics (routing + completion events).
+config (consent toggle, endpoint, session, transmission settings), security policy (redaction patterns for PII scrubbing).
 
 ## Provides To
 
-CLI, MCP layer, any consumer requiring unified action discovery, dispatch, or normalized results.
+Product analytics backend.
 
 ## Functional Requirements
 
-### FR-DSP-001: Register Action Catalog
+### FR-TLM-001: Record Anonymous Usage Event
 
-- **Description**: Accept action registrations from domain features, maintain consistent queryable catalog
-- **Input**: Action registration (name, owning feature, description, param schema, result hints, metadata)
-- **Output**: Registration result (accepted, catalog version, warnings)
-- **Rules**: Dispatcher is sole catalog owner. Each registration: unique name, owning feature, description, param schema (required fields, types, ranges, allowed values), default timeout + timeout class, idempotency flag, scene mutation flag, background eligibility flag, destructive flag, read-only flag, long-running flag, risk level, ≥1 usage example. Schema integrity validated before acceptance. Duplicate name → rejected or replaced per policy with warning. Catalog deterministic ordering (by name). Immutable for consumers after registration phase. Hot re-registration configurable without interrupting in-flight dispatch. Catalog version exposed. No secrets/sensitive defaults. Degraded owning feature → marked in discovery.
-- **Edge Cases**: Duplicate name, invalid schema, missing owning feature, registration after startup, conflicting metadata, empty catalog, oversized examples, unauthorized feature, version regression
-- **Error Handling**: Registration error for conflict; validation error for malformed schema; warning for duplicate replacement + degraded feature
+- **Description**: Capture single anonymous usage record when consent is active, strip all sensitive content at ingestion
+- **Input**: Usage event (action type, feature area, operation type, outcome category, optional bucketed duration)
+- **Output**: Buffered anonymous record (timestamp, action type, session ID, sanitized fields); acknowledgment internal only
+- **Rules**: Nothing recorded/buffered/transmitted unless consent active. Withdrawal → immediate stop + discard all untransmitted records. Core fields: timestamp, action type, session ID. PII scrubbing at ingestion (before buffering) via security policy redaction patterns. Never: raw payloads/user content, object/scene/file names, paths, prompts/code/asset identifiers resolvable to user, error messages/stack traces, hostnames/usernames/network addresses. Outcome = category only (success/failure/rejected). Duration in coarse buckets. Only allowlisted action types recorded. Asynchronous + non-blocking. Bounded local buffer; backpressure → drop oldest + counter exposed via diagnostics logging. Records immutable once buffered. Individual records never retried; reliability at batch level.
+- **Edge Cases**: Consent withdrawn mid-session, buffer full, action type not allowlisted, clock skew, duplicate from retried action, recording during transmission, consent race between record and batch
+- **Error Handling**: Invalid record → silent drop with internal counter; recording failure never surfaces to originating op; consent race → non-collection wins
 
-### FR-DSP-002: Discover Actions
+### FR-TLM-002: Classify and Categorize Events
 
-- **Description**: Expose canonical catalog to consumers with optional filtering
-- **Input**: Discovery request (name filter, category/capability filter, detail level)
-- **Output**: Discovery result (action list with metadata, catalog version, count)
-- **Rules**: Same canonical content to all consumers. Presentation is consumer responsibility. Read-only, idempotent. Each action: name, description, param schema, examples, timeout, flags, risk level, owning feature, degraded indicator. Filtering deterministic, case-consistent. Filter matching nothing → empty list, not error. Never exposes routing internals or secrets. Fast from in-memory catalog. Catalog version for consumer compatibility.
-- **Edge Cases**: Empty catalog, filter mutching nothing, malformed filter, oversized metadata at full detail, discovery during hot re-registration, unsupported detail level, degraded feature
-- **Error Handling**: Validation error for malformed filter; empty result for no match; degraded indicator surfaced
+- **Description**: Assign every event to fixed low-cardinality taxonomy; never transmit free-form content
+- **Input**: Candidate event with raw action context
+- **Output**: Categorized event (feature area, operation type, outcome category)
+- **Rules**: Feature area taxonomy: object, scene, render, asset, configuration, connection. Operation type: create, update, delete, query, execute, search, import. Categorization at recording time, not transmission. Unknown/unmapped → bounded "other" category (raw names never transmitted). Outcome: success/failure/rejected/cancelled/timeout. Failure = which category failed, never why. Bounded cardinality; new categories require schema version increment. Deterministic: identical activity → identical categories across sessions/versions. No free-text fields. Schema version stamped on every record.
+- **Edge Cases**: Action type after taxonomy freeze, ambiguous operation, feature under refactor, failed op with sensitive context, schema mismatch, high-cardinality attempt via extension
+- **Error Handling**: Uncategorizable → dropped with counter (never transmitted raw); validation error via diagnostics logging only; schema mismatch → config warning
 
-### FR-DSP-003: Validate Action Request
+### FR-TLM-003: Manage Analytics Sessions
 
-- **Description**: Validate incoming request against catalog schema before routing
-- **Input**: Action request (name, payload, optional execution mode, timeout override, confirmation flag, tracking ID)
-- **Output**: Validated request enriched with resolved metadata + tracking ID
-- **Rules**: Name must exist in catalog → not found error. Payload must satisfy schema: required fields present, types correct, numeric ranges, text length limits, enumerated allowed sets, payload size limit. Invalid → validation error with field-level detail. Unknown extra params: rejected (strict) or ignored with warning (tolerant). Execution mode compatible with metadata → unsupported error. Destructive → requires confirmation flag. Timeout override within bounds. Tracking ID generated if absent. Never mutates request or catalog.
-- **Edge Cases**: Unknown action, missing/wrong-type/out-of-range param, invalid enumerated, unknown extra, oversized payload, destructive without confirmation, timeout out of bounds, ambiguous casing, malformed tracking ID, degraded feature
-- **Error Handling**: Not found error; validation error with field-level detail; unsupported error for mode mismatch; confirmation error for missing flag
+- **Description**: Random, unlinkable session ID surviving restarts within rotation window; clean linkage severance at rotation
+- **Input**: Session lifecycle trigger (start, rotation timeout, consent change, reset)
+- **Output**: Session state (current ID, creation timestamp, rotation deadline, consent record ref)
+- **Rules**: ID from collision-resistant random source (never derived from machine/user/fs/hardware). Persists locally within allowed storage; same session across restarts within rotation window. Rotation after timeout → fresh ID, no stored linkage to previous. Rotation discards old ID; buffered records may still transmit, but no future refs will. Never correlates with diagnostics tracking IDs or gateway request IDs. Consent withdrawal → delete local session state entirely; re-opt-in → fresh session. Corrupt/unreadable → fresh session with warning, never app failure. Only ID, timestamps, consent ref stored. No machine fingerprint.
+- **Edge Cases**: Corrupt/missing session state file, restart just inside/outside rotation window, clock skew, consent withdrawal + re-opt-in within one run, concurrent access, unwritable persistence, rotation racing batch transmission
+- **Error Handling**: Session state error → fresh session generation; persistence failure → in-memory session + warning; rotation failure → immediate fresh session
 
-### FR-DSP-004: Dispatch Synchronous Action
+### FR-TLM-004: Enrich Events with Environment Metadata
 
-- **Description**: Route validated action to owning domain feature or gateway, return normalized result
-- **Input**: Validated request (resolved metadata + tracking ID)
-- **Output**: Unified result envelope (outcome data or categorized failure)
-- **Rules**: Routing target = owning feature from catalog metadata. Dispatcher never interprets/transforms domain meaning beyond schema validation. Enforces action timeout from metadata or bounded override. Tracking ID propagates to feature, gateway, and envelope. Domain errors mapped to unified categories. Non-idempotent actions never retried automatically. Read-only actions may flag to bypass serialization (final queue decision by gateway). Destructive → carries confirmation state. Records duration + owning feature in metadata. Unavailable feature → execution error with degraded detail. Partial results normalized with warning list. Stateless across requests.
-- **Edge Cases**: Feature unavailable, timeout during execution, domain error without category, partial result with warnings, connection loss mid-dispatch, duplicate tracking ID, dispatch during hot re-registration, oversized/non-serializable result, destructive confirmation revoked mid-dispatch
-- **Error Handling**: Execution error for domain failure; timeout error; connection error mapped from gateway; unsupported error for incompatible mode; normalization fallback for uncategorized errors
+- **Description**: Attach coarse version-level context to outgoing batches; no identifying information
+- **Input**: Environment probes (OS family, runtime version, Blender version, app version)
+- **Output**: Environment metadata stamped on batch envelope
+- **Rules**: Permitted: OS family, runtime major.minor, Blender major.minor, app version, telemetry schema version, consent record version. Versions truncated to major.minor (no patch/build — limits fingerprint surface). Forbidden: hostnames, usernames, paths, hardware IDs, precise locale, network addresses. Snapshot computed once per session (cached), not per event. Unavailable → explicit unknown marker. Changes during session → effect at next rotation (within-session consistency). Fixed schema per telemetry version. Lightweight probing, never blocks/prompts/requires elevated permissions.
+- **Edge Cases**: Version detection unavailable, Blender not running, OS detection failure, runtime version changed mid-session, probe slow, schema version mismatch, all optional unknown → near-empty envelope
+- **Error Handling**: Enrichment failure → transmit batch with unknown markers (never drop events); probing error → diagnostics logging only; config error for invalid metadata settings
 
-### FR-DSP-005: Submit Background Action
+## Hard Rules
 
-- **Description**: Create job for long-running actions, return task reference in unified envelope
-- **Input**: Validated request with background mode
-- **Output**: Unified envelope (task reference, initial job state, submission metadata)
-- **Rules**: Only for actions with background eligibility flag. Creates job via job feature, returns task ref. Dispatcher never manages task lifecycle after handoff. Capacity limit enforced from config; exhaustion → capacity error, no orphan job. Tracking ID → job correlation ID. Atomic submission: job created + acknowledged before success; failure before creation → execution error with no task ref. Duplicate with idempotency hint may return existing task ref. Result clearly indicates polling required. Payload size limits respected. Emits observability event.
-- **Edge Cases**: Capacity exceeded, not background eligible, job creation failure, duplicate with idempotency hint, oversized payload, submission during shutdown, tracking ID collision, job feature unavailable
-- **Error Handling**: Capacity error; unsupported error for non-eligible action; execution error for job creation failure; warning for duplicate resolved to existing task
-
-### FR-DSP-006: Normalize Operation Result
-
-- **Description**: Normalize every dispatch/submission outcome into one unified result envelope
-- **Input**: Raw outcome from sync dispatch or background submission
-- **Output**: Unified result envelope
-- **Rules**: Envelope: success indicator, data payload, error category (when failed), human-readable message, tracking ID, warning list, metadata summary (action name, feature, execution mode, duration, applied timeout, task ref for background, truncation indicator). Data serializable and bounded by max size; oversized → truncated with indicator. Non-serializable → safe text representation. Error detail: category, message, field-level detail. Mixed outcomes (success + warnings) preserve warning list. No secrets/raw code/sensitive paths. Construction failure → safe error envelope. Identical shape for CLI and MCP.
-- **Edge Cases**: Non-serializable data, oversized payload, missing tracking ID, domain result without error category, success with warnings, partial failure, envelope construction failure, sensitive value inside data, empty data with success, incomplete background metadata
-- **Error Handling**: Normalization fallback to safe error envelope; truncation indicator; redaction before emission; warnings preserved, not converted to failure
+- Telemetry NOT for operational debugging (diagnostics owns debugging; telemetry never feeds error handling, health checks, or support flows)
+- Telemetry NOT store PII (scrubbing at ingestion, not before transmission; no downstream component receives raw content)
+- Telemetry NOT block main operations (async recording/batching/transmission; failure invisible to product behavior)
+- Opt-in only (disabled by default, silent until enabled, withdrawal → immediate stop + discard)
+- Telemetry NOT identify machines/users (no fingerprinting, no cross-session identity, no derived identifiers)
+- Telemetry remain separable (buffers/storage/stream never mixed with logs, metrics, or audit)
 
 ## Error Categories
 
-- validation error — invalid params, malformed request, schema violation
-- not found error — action not in catalog
-- execution error — action execution failed within feature/gateway
-- capacity error — background capacity exceeded
-- unsupported error — execution mode not supported
-- timeout error — action timeout exceeded
-- confirmation error — destructive without required confirmation
-- registration error — conflict or invalid schema at registration
+- configuration error — invalid endpoint/interval/schema version (non-blocking)
+- provider error — backend unreachable/rejecting batches (non-blocking)
+- transmission error — batch delivery failed after retries → discard with counter (non-blocking)
+- session state error — corrupt/unreadable → fresh session (non-blocking)
+- validation error — invalid event shape/category → silent drop with counter (non-blocking)
+
+Every error category is non-blocking by definition. No telemetry error may ever propagate into a product operation result.
 
 ## Events
 
-- action routed (validated + tracking ID)
-- action completed (finished with outcome + duration)
-- action rejected (validation failure with error category)
-- background job submitted (task ref + action name)
-- catalog registered (action count + version)
-- action failed (mapped error + feature reference)
+Telemetry lifecycle signals flow through diagnostics logging, never telemetry pipeline itself.
 
-Payloads: category, action name, tracking ID, feature, execution mode, error category (when failed), duration. Never: full params by default, secrets, raw code, oversized result.
+- anonymous event recorded (buffered + category summary + consent state)
+- session created/rotated (rotation reason)
+- telemetry batch transmitted (record count + schema version)
+- telemetry transmission failed (discarded after retry exhaustion + provider error)
+- consent changed (opt-in/withdrawal + buffer action)
+
+Payloads: category, record/batch counts, schema/consent versions, error category. Never: any telemetry record content, full session IDs, endpoint addresses beyond redacted host summary, user/machine identifying info.
 
 ## Configuration Keys
 
 | Key | Description | Default |
 |---|---|---|
-| default_action_timeout | When metadata doesn't declare one | Conservative |
-| maximum_allowed_timeout | Upper bound for overrides | Bounded multiple of default |
-| background_capacity | Max concurrent background tasks | Conservative |
-| unknown_parameter_policy | strict/tolerant | strict |
-| destructive_confirmation_enforced | Require confirmation flag | Enabled |
-| maximum_result_data_size | Envelope data payload limit | Conservative |
-| catalog_hot_re_registration | Allow re-registration after startup | Disabled |
-| tracking_id_generation | Generate when absent | Enabled |
+| opt_in_toggle | Master consent switch | Disabled |
+| analytics_endpoint | Backend destination | Vendor-operated |
+| session_rotation_interval | Active duration before rotation | Bounded (hours) |
+| background_transmission_interval | Batch delivery frequency | Periodic (minutes) |
+| batch_size_cap | Max records per batch | Conservative |
+| local_buffer_cap | Max buffered before drop-oldest | Conservative |
+| environment_metadata_enabled | Attach coarse env fields | Enabled when consent active |
+| transmission_retry_bound | Delivery attempts before discard | Small |
 
 ## QA Checklist
 
-- [ ] Catalog registered with complete metadata; duplicate → handled per policy
-- [ ] Invalid schema rejected at registration
-- [ ] Deterministic ordering + catalog version
-- [ ] Same catalog to CLI and MCP
-- [ ] Filter matching nothing → empty list
-- [ ] Degraded feature surfaced in discovery
-- [ ] Unknown action → not found error
-- [ ] Invalid params → validation error with field-level detail
-- [ ] Unknown extra params: strict=reject, tolerant=ignore
-- [ ] Destructive without confirmation → confirmation error
-- [ ] Timeout override out of bounds → reject
-- [ ] Tracking ID generated if absent, propagated onward
-- [ ] Sync dispatch to correct owning feature
-- [ ] Result normalized into unified envelope
-- [ ] Action timeout enforced
-- [ ] Non-idempotent not retried automatically
-- [ ] Domain errors mapped to unified categories
-- [ ] Partial results with warning list preserved
-- [ ] Background → job created + task ref returned
-- [ ] Non-eligible → unsupported error
-- [ ] Capacity exhausted → capacity error, no orphan job
-- [ ] Duplicate with idempotency hint → existing task ref
-- [ ] Envelope: success, data, error, message, tracking ID, warnings, metadata
-- [ ] Oversized data → truncation with indicator
-- [ ] Non-serializable → safe representation
-- [ ] Secrets/raw code/sensitive paths never leaked
-- [ ] Envelope construction failure → safe error envelope
-- [ ] All events emitted
+- [ ] Events recorded without PII across all action types
+- [ ] Scrubbing at ingestion (not just before transmission)
+- [ ] Raw payloads, names, paths, prompts, error messages never in records
+- [ ] Failed ops → outcome category only (never message)
+- [ ] Opt-in respected: disabled → zero records/buffers/transmissions
+- [ ] Withdrawal → immediate stop + discard untransmitted buffer
+- [ ] Re-opt-in → fresh session, no linkage
+- [ ] Session ID: random source, not derived from machine/user attributes
+- [ ] Persists across restarts within rotation; rotates with no stored linkage
+- [ ] No correlation with diagnostics tracking IDs
+- [ ] Corrupt session → fresh session, no app failure
+- [ ] Environment: only OS family, runtime/Blender/app versions (major.minor)
+- [ ] No hostname, username, path, hardware IDs
+- [ ] Unknown → explicit marker; snapshot once per session
+- [ ] Categorization deterministic + bounded; unknown → "other" (never raw)
+- [ ] Recording never blocks originating op
+- [ ] Backpressure → drop oldest, counter via diagnostics logging
+- [ ] Backend unreachable → bounded retry then discard, invisible to product
+- [ ] Buffers/storage separate from logs, metrics, audit
+- [ ] Telemetry never used for debugging/error handling
+- [ ] Lifecycle signals via diagnostics logging (not telemetry stream)
+- [ ] Schema version on every batch
 ```
 
 ---
 
-## File: modules/dispatcher/pyproject.toml
+## File: modules/telemetry/pyproject.toml
 
 ```toml
 [project]
-name = "blender-arwaky-dispatcher"
-version = "1.7.0"
-description = "BlenderArwaky action dispatcher module"
+name = "blender-arwaky-telemetry"
+version = "1.6.5"
+description = "BlenderArwaky telemetry feature module"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
@@ -7614,2274 +8294,748 @@ packages = ["."]
 
 ---
 
-## File: modules/dispatcher/src/__init__.py
+## File: modules/telemetry/src/__init__.py
 
 ```python
-"""Dispatcher feature module — AES implementation.
+"""Telemetry feature module — AES implementation.
 
 Layers:
-  - Taxonomy (shared/src/dispatcher/) → VOs: ActionMetadataVO, ActionCommandVO,
-    ValidationOutcomeVO, DiscoveryOutcomeVO, UnifiedResultEnvelopeVO
-  - Contract (shared/src/dispatcher/) → 6 individual protocols
-  - Capabilities (6 executors)        → One per FR operation
-  - Agent                             → DispatcherOrchestrator (Aggregate facade)
-  - Surface action schemas            → Shared action parameter definitions for CLI + MCP
-
-Surface layer is intentionally absent — MCP/CLI command handlers live in
-their respective feature modules (modules/mcp, modules/cli). Action schemas
-live here so both surfaces share a single source of truth.
+  - Taxonomy (shared/src/telemetry/)   → VOs, Errors, Events, Constants
+  - Contract (shared/src/telemetry/)   → 4 individual protocols + Aggregate ABC
+  - Capabilities (4 executors)          → One per FR-TEL operation
+  - Agent                               → TelemetryOrchestrator (Aggregate facade)
+  - Root                                → TelemetryContainer (DI wiring)
 """
 
-from .agent_dispatcher_orchestrator import DispatcherOrchestrator
-from .capabilities_action_discovery import ActionDiscoveryExecutor
-from .capabilities_background_submit import BackgroundSubmitExecutor
-from .capabilities_catalog_registration import CatalogRegistrationExecutor
-from .capabilities_request_validation import RequestValidationExecutor
-from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
+from .agent_telemetry_orchestrator import TelemetryOrchestrator
+from .capabilities_telemetry_classification import TelemetryEventClassifier
+from .capabilities_telemetry_enrichment import TelemetryEventEnricher
+from .capabilities_telemetry_recorder import TelemetryRecordingCapability
+from .capabilities_telemetry_session_management import TelemetrySessionManager
+from .root_telemetry_container import TelemetryContainer, create_telemetry_feature
 
 __all__ = [
-    "ActionDiscoveryExecutor",
-    "BackgroundSubmitExecutor",
-    "CatalogRegistrationExecutor",
-    "DispatcherOrchestrator",
-    "RequestValidationExecutor",
-    "ResultNormalizationExecutor",
-    "SyncDispatchExecutor",
+    "TelemetryEventClassifier",
+    "TelemetryEventEnricher",
+    "TelemetryOrchestrator",
+    "TelemetryRecordingCapability",
+    "TelemetrySessionManager",
+    "TelemetryContainer",
+    "create_telemetry_feature",
 ]
 ```
 
 ---
 
-## File: modules/dispatcher/src/agent_dispatcher_orchestrator.py
+## File: modules/telemetry/src/agent_telemetry_orchestrator.py
 
 ```python
-"""Dispatcher agent: Aggregate facade for action catalog, validation, dispatch, and normalization.
+"""Agent: Telemetry feature orchestrator.
 
-Implements the DispatcherOrchestrator Aggregate — coordinates all dispatcher capabilities
-to provide a unified action routing facade for CLI and MCP consumers.
-
-Structure:
-  1. Constants & configuration
-  2. Protocol method implementations (Aggregate facade methods)
-  3. Dunder methods, factories, and helpers
+Coordinates telemetry event recording, classification, session management,
+and enrichment across all capability layers.
 """
 
 import logging
-from typing import Any
 
-from modules.shared.src.dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
-from modules.shared.src.dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
-from modules.shared.src.dispatcher.contract_catalog_registration_protocol import CatalogRegistrationProtocol
-from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
-from modules.shared.src.dispatcher.contract_request_validation_protocol import (
-    RequestValidationProtocol,
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    DurationMs,
+    ErrorString,
+    SessionId,
+    SuccessFlag,
 )
-from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
-    ResultNormalizationProtocol,
+from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationPort,
 )
-from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
-    SyncDispatchProtocol,
+from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import (
+    TelemetryEnrichmentPort,
 )
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
+    TelemetryRecordingPort,
+)
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
+    TelemetrySessionManagementPort,
+)
 
-logger = logging.getLogger("BlenderMCPServer")
+logger = logging.getLogger("blender-arwaky.telemetry")
 
 
-class DispatcherOrchestrator(IDispatcherAggregate):
-    """Aggregate facade coordinating all dispatcher capabilities.
+class TelemetryOrchestrator(ITelemetryAggregate):
+    """Orchestrates telemetry operations across capability layers.
 
-    Provides unified action discovery, registration, validation, dispatch,
-    background submission, and result normalization for CLI and MCP consumers.
+    Coordinates recording, classification, session management, and enrichment.
     """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(
         self,
-        catalog_registration: CatalogRegistrationProtocol | None = None,
-        action_discovery: ActionDiscoveryProtocol | None = None,
-        request_validation: RequestValidationProtocol | None = None,
-        sync_dispatch: SyncDispatchProtocol | None = None,
-        background_submit: BackgroundSubmitProtocol | None = None,
-        result_normalization: ResultNormalizationProtocol | None = None,
+        recorder: TelemetryRecordingPort,
+        classifier: TelemetryClassificationPort,
+        session_manager: TelemetrySessionManagementPort,
+        enricher: TelemetryEnrichmentPort,
     ) -> None:
-        self._catalog_reg = catalog_registration
-        self._discovery = action_discovery
-        self._validation = request_validation
-        self._dispatch = sync_dispatch
-        self._bg_submit = background_submit
-        self._normalization = result_normalization
+        self._recorder = recorder
+        self._classifier = classifier
+        self._session_manager = session_manager
+        self._enricher = enricher
 
-    # ─── Block 2: Protocol Method Implementation (Aggregate Facade) ──
+    def record_startup_event(self) -> None:
+        """Record a startup event (FR-TLM-001, FR-TLM-002, FR-TLM-003, FR-TLM-004)."""
+        # Classify the event
+        event_type = self._classifier.classify_event("startup")
+        logger.debug("Startup event classified: %s", event_type)
 
-    def register_action(self, metadata: Any) -> Any:
-        """Register an action in the catalog.
-
-        FR-DSP-001: Delegates to CatalogRegistrationProtocol.
-        """
-        if self._catalog_reg is None:
-            raise RuntimeError("CatalogRegistrationProtocol not configured")
-        return self._catalog_reg.register_action(metadata)
-
-    def discover_actions(
+    def record_action_execution(
         self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog.
-
-        FR-DSP-002: Delegates to ActionDiscoveryProtocol.
-        Returns canonical shape to all consumers.
-        """
-        if self._discovery is None:
-            raise RuntimeError("ActionDiscoveryProtocol not configured")
-        return self._discovery.discover_actions(
-            name_filter=name_filter,
-            capability_filter=capability_filter,
-            detail_level=detail_level,
-        )
-
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Delegates to RequestValidationProtocol.
-        Unknown action -> not found error; invalid params -> field-level detail.
-        Returns enriched same VO type (merged input+output pattern).
-        """
-        if self._validation is None:
-            raise RuntimeError("RequestValidationProtocol not configured")
-        return self._validation.validate_request(request)
-
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Dispatch a validated action synchronously to its owning feature.
-
-        FR-DSP-004: Delegates to SyncDispatchProtocol.
-        Routes to owning feature, enforces timeout, maps errors.
-        """
-        if self._dispatch is None:
-            raise RuntimeError("SyncDispatchProtocol not configured")
-        return self._dispatch.dispatch_sync(request)
-
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Delegates to BackgroundSubmitProtocol.
-        Creates job, returns task reference. Enforces capacity limits.
-        """
-        if self._bg_submit is None:
-            raise RuntimeError("BackgroundSubmitProtocol not configured")
-        return self._bg_submit.submit_background(request)
-
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatcher outcome into a unified result envelope.
-
-        FR-DSP-006: Delegates to ResultNormalizationProtocol.
-        Never leaks secrets; truncates oversized data; falls back to safe error.
-        """
-        if self._normalization is None:
-            raise RuntimeError("ResultNormalizationProtocol not configured")
-        return self._normalization.normalize_result(raw_outcome, tracking_id, is_background)
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def execute_action(self, action_name: str, parameters: dict[str, Any]) -> UnifiedResultEnvelopeVO:
-        """Execute an action through the full dispatcher pipeline.
-
-        This is the main facade method — validates, dispatches, and normalizes
-        in a single call for consumers who don't need intermediate results.
-        """
-        request = ActionCommandVO(action_name=action_name, parameters=parameters)
-
-        try:
-            validated = self.validate_request(request)
-
-            bg_eligible = validated.resolved_metadata.get("background_eligibility_flag", False)
-            long_running = validated.resolved_metadata.get("long_running_flag", False)
-
-            if bg_eligible or long_running:
-                envelope = self.submit_background(validated)
-            else:
-                envelope = self.dispatch_sync(validated)
-
-            return envelope
-
-        except ValueError as e:
-            logger.error("Action execution failed: %s", e)
-            # Duck-typed category: DispatchRequestError carries .error_category so the
-            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
-                tracking_id=request.validated_tracking_id,
-                error_category=error_category,
-            )
-
-        except Exception as e:
-            logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
-
-    def __repr__(self) -> str:
-        return (
-            f"DispatcherOrchestrator("
-            f"catalog_reg={self._catalog_reg is not None}, "
-            f"validation={self._validation is not None}, "
-            f"dispatch={self._dispatch is not None}, "
-            f"bg_submit={self._bg_submit is not None}, "
-            f"normalization={self._normalization is not None}"
-            f")"
-        )
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_action_discovery.py
-
-```python
-"""Action discovery capability — canonical catalog listing.
-
-FR-DSP-002: Discover Actions
-- Returns same canonical catalog to CLI and MCP consumers
-- Supports filtering by name, category, capability
-- Deterministic, case-consistent ordering
-"""
-
-import logging
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
-    ActionDiscoveryProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
-    """Concrete implementation for action discovery.
-
-    FR-DSP-002: Returns canonical shape to all consumers with optional filtering.
-    Filter matching nothing returns empty list, not error.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, catalog: dict[str, Any] | None = None) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog with optional filtering.
-
-        FR-DSP-002: Returns canonical shape to all consumers.
-        Filter matching nothing returns empty list, not error.
-        """
-        if detail_level not in ("standard", "full"):
-            raise ValueError(f"Unsupported detail level: {detail_level}")
-
-        actions = list(self._catalog.values())
-
-        if name_filter:
-            name_filter_l = name_filter.lower()
-            actions = [a for a in actions if name_filter_l in str(a.action_name).lower()]
-
-        if capability_filter:
-            # FR-DSP-002: capability/category filter matches the owning feature reference.
-            capability_filter_l = capability_filter.lower()
-            actions = [
-                a
-                for a in actions
-                if capability_filter_l in str(a.owning_feature_ref).lower()
-            ]
-
-        result = DiscoveryOutcomeVO(
-            actions=[self._format_action(a, detail_level) for a in actions],
-            catalog_version=max(
-                (a.catalog_version for a in self._catalog.values()), default=0
-            ),
-            result_count=len(actions),
-        )
-
-        logger.debug(
-            "Discovery: %d actions returned (filter=%s)",
-            len(actions),
-            name_filter or "none",
-        )
-        return result
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _format_action(self, metadata: Any, detail_level: str) -> dict[str, Any]:
-        """Format action metadata for discovery output."""
-        base = {
-            "action_name": metadata.action_name,
-            "description": metadata.description,
-            "owning_feature_ref": metadata.owning_feature_ref,
-            "default_timeout": metadata.default_timeout,
-            "timeout_class": metadata.timeout_class,
-            "idempotency_flag": metadata.idempotency_flag,
-            "scene_mutation_flag": metadata.scene_mutation_flag,
-            "background_eligibility_flag": metadata.background_eligibility_flag,
-            "destructive_flag": metadata.destructive_flag,
-            "read_only_flag": metadata.read_only_flag,
-            "long_running_flag": metadata.long_running_flag,
-            "risk_level": metadata.risk_level,
-            "degraded": metadata.degraded,
-        }
-
-        if detail_level == "full":
-            base["parameter_schema"] = metadata.parameter_schema
-            base["usage_examples"] = metadata.usage_examples
-
-        return base
-
-    def __repr__(self) -> str:
-        return f"ActionDiscoveryExecutor(actions={len(self._catalog)})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_background_submit.py
-
-```python
-"""Background submission capability — coordinate long-running actions as jobs.
-
-FR-DSP-005: Submit Background Action
-- Creates job through job feature, returns task reference
-- Enforces background eligibility and capacity limits
-- Returns envelope indicating polling is required for final outcome
-- Does not manage task lifecycle after handoff
-"""
-
-import logging
-import uuid
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_background_submit_protocol import (
-    BackgroundSubmitProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
-    """Concrete implementation for background action submission.
-
-    FR-DSP-005: Enforces background eligibility and capacity limits, creates job, returns
-    task reference. Returns envelope indicating polling is required for final outcome.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(
-        self,
-        job_tracker: Any = None,
-        background_capacity: int = 50,
-        max_result_data_size: int = 1_000_000,
-    ):
-        self._job_tracker = job_tracker
-        self._capacity = background_capacity
-        self._max_data_size = max_result_data_size
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Enforces eligibility and capacity, creates job, returns task reference.
-        Returns envelope indicating polling is required for final outcome.
-        """
-        tracking_id = request.validated_tracking_id or request.tracking_id or ""
-
-        # Background eligibility (FR-DSP-005)
-        bg_eligible = request.resolved_metadata.get("background_eligibility_flag", False)
-        if not bg_eligible:
-            logger.warning(
-                "Action '%s' is not eligible for background execution", request.action_name
-            )
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{request.action_name}' does not support background execution",
-                tracking_id=tracking_id,
-                error_category="unsupported_error",
-            )
-
-        # Capacity enforcement (FR-DSP-005)
-        current_count = self._get_active_job_count()
-        if current_count >= self._capacity:
-            logger.warning("Background capacity exceeded: %d/%d", current_count, self._capacity)
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message="Background capacity exceeded",
-                tracking_id=tracking_id,
-                error_category="capacity_error",
-            )
-
-        # Create job via job tracker
-        try:
-            if self._job_tracker:
-                job_id, status = self._job_tracker.track_new_task(
-                    operation_type=request.action_name,
-                    metadata={"tracking_id": tracking_id},
-                )
-            else:
-                # Fallback for testing: generate synthetic job ID (no real tracker wired)
-                job_id = str(uuid.uuid4())
-                status = {"status": "PENDING", "job_id": job_id}
-
-        except Exception as e:
-            logger.error("Job creation failed: %s", e)
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
-                tracking_id=tracking_id,
-                error_category="execution_error",
-            )
-
-        # Build success envelope with task reference
-        metadata = {
-            "action_name": request.action_name,
-            "task_reference": job_id,
-            "initial_job_state": status.get("status") if isinstance(status, dict) else str(status),
-            "polling_required": True,
-        }
-
-        logger.info(
-            "Background job submitted: %s (action=%s)",
-            job_id,
-            request.action_name,
-        )
-
-        return UnifiedResultEnvelopeVO.success_envelope(
-            message=f"Background job submitted for action '{request.action_name}'",
-            tracking_id=tracking_id,
-            data={"task_reference": job_id},
-            metadata=metadata,
-            warnings=["Polling required for final outcome"],
-        )
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _get_active_job_count(self) -> int:
-        """Count currently active (non-terminal) jobs.
-
-        Delegates to the wired job tracker when it exposes an active-count method;
-        returns 0 only when no tracker is present. When a tracker is present but
-        has no recognized method, logs a warning at higher level and cannot enforce
-        capacity.
-
-        Args:
-            None (uses self._job_tracker instance attribute).
-
-        Returns:
-            Active job count, or 0 when no tracker is configured.
-        """
-        tracker = self._job_tracker
-        if tracker is None:
-            return 0
-        for method in ("active_job_count", "get_active_count", "count_active_jobs", "active_count"):
-            fn: Any = getattr(tracker, method, None)
-            if callable(fn):
-                try:
-                    return int(fn())
-                except Exception:  # pragma: no cover - defensive against tracker faults
-                    logger.warning("Job tracker method %s failed", method)
-        logger.warning(
-            "Job tracker present but no active-count method; "
-            "capacity enforcement disabled — ensure job_tracker implements "
-            "active_job_count(), get_active_count(), count_active_jobs(), or active_count()"
-        )
-        return 0
-
-    def __repr__(self) -> str:
-        return f"BackgroundSubmitExecutor(capacity={self._capacity})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_catalog_registration.py
-
-```python
-"""Catalog registration capability — action catalog management.
-
-FR-DSP-001: Register Action Catalog
-- Domain features register actions; dispatcher owns the catalog
-- Validates schema integrity before acceptance
-- Rejects or replaces duplicates per configured policy
-- Exposes deterministic ordering and catalog version
-"""
-
-import logging
-
-from modules.shared.src.dispatcher.contract_catalog_registration_protocol import (
-    CatalogRegistrationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
-    """Concrete implementation for action catalog registration.
-
-    FR-DSP-001: Validates schema, rejects duplicates per policy, maintains sorted order.
-    The catalog dict is injectable so the container can share a single catalog instance
-    across registration, discovery, and validation capabilities.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(
-        self, catalog: dict[str, ActionMetadataVO] | None = None
+        action_name: ActionName,
+        success: SuccessFlag,
+        duration_ms: DurationMs,
     ) -> None:
-        self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
-        self._catalog_version: int = 0
+        """Record an action execution event (FR-TLM-001, FR-TLM-002)."""
+        # Classify the event by action name
+        event_type = self._classifier.classify_event(str(action_name))
+        logger.debug("Action execution event recorded: %s", action_name)
 
-    # ─── Block 2: Protocol Method Implementation ─────────────
+    def record_system_error(self, error_category: ErrorString) -> None:
+        """Record a system error event (FR-TLM-001, FR-TLM-002).
 
-    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
-        """Register an action in the catalog. Returns enriched metadata with catalog version.
-
-        FR-DSP-001: Duplicate names are rejected or replaced per policy.
-        Catalog exposes deterministic ordering sorted by action name.
+        FRD: Never include error messages or stack traces in telemetry.
+        Only the error category is recorded.
         """
-        # Validate schema integrity before acceptance
-        self._validate_schema(metadata)
+        # Classify the event as ERROR
+        event_type = self._classifier.classify_event("error")
+        logger.debug("System error event recorded: %s", error_category)
 
-        # Check for duplicate registration
-        if metadata.action_name in self._catalog:
-            logger.warning(
-                "Duplicate action '%s' registration; replacing per policy",
-                metadata.action_name,
-            )
-            self._catalog_version += 1
-            enriched = ActionMetadataVO(
-                action_name=metadata.action_name,
-                owning_feature_ref=metadata.owning_feature_ref,
-                description=metadata.description,
-                parameter_schema=metadata.parameter_schema,
-                usage_examples=metadata.usage_examples,
-                default_timeout=metadata.default_timeout,
-                timeout_class=metadata.timeout_class,
-                idempotency_flag=metadata.idempotency_flag,
-                scene_mutation_flag=metadata.scene_mutation_flag,
-                background_eligibility_flag=metadata.background_eligibility_flag,
-                destructive_flag=metadata.destructive_flag,
-                read_only_flag=metadata.read_only_flag,
-                long_running_flag=metadata.long_running_flag,
-                risk_level=metadata.risk_level,
-                catalog_version=self._catalog_version,
-            )
-            self._catalog[metadata.action_name] = enriched
-            return enriched
+    def get_session_id(self) -> SessionId | None:
+        """Get the current session identifier (FR-TLM-003)."""
+        return self._session_manager.get_session_id()
 
-        # New registration — increment version and store
-        self._catalog_version += 1
-        enriched = ActionMetadataVO(
-            action_name=metadata.action_name,
-            owning_feature_ref=metadata.owning_feature_ref,
-            description=metadata.description,
-            parameter_schema=metadata.parameter_schema,
-            usage_examples=metadata.usage_examples,
-            default_timeout=metadata.default_timeout,
-            timeout_class=metadata.timeout_class,
-            idempotency_flag=metadata.idempotency_flag,
-            scene_mutation_flag=metadata.scene_mutation_flag,
-            background_eligibility_flag=metadata.background_eligibility_flag,
-            destructive_flag=metadata.destructive_flag,
-            read_only_flag=metadata.read_only_flag,
-            long_running_flag=metadata.long_running_flag,
-            risk_level=metadata.risk_level,
-            catalog_version=self._catalog_version,
-        )
-        self._catalog[metadata.action_name] = enriched
-        logger.info("Action registered: %s (version=%d)", metadata.action_name, self._catalog_version)
-        return enriched
+    def initialize_session(self) -> None:
+        """Initialize a new session (FR-TLM-003)."""
+        self._session_manager.initialize_session()
+        logger.debug("New telemetry session initialized")
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _validate_schema(self, metadata: ActionMetadataVO) -> None:
-        """Validate parameter schema integrity before acceptance.
-
-        FR-DSP-001: Schema must declare a structure; required fields must be declared in
-        properties; each property must declare a type; at least one usage example required.
-        Malformed schemas are rejected.
-        """
-        schema = metadata.parameter_schema
-        if not isinstance(schema, dict):
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must be a dict"
-            )
-
-        if "type" not in schema and "properties" not in schema:
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must declare 'type' or 'properties'"
-            )
-
-        properties = schema.get("properties")
-        if properties is not None:
-            if not isinstance(properties, dict):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'properties' must be a dict"
-                )
-            for field_name, field_def in properties.items():
-                if not isinstance(field_def, dict) or "type" not in field_def:
-                    raise ValueError(
-                        f"Action '{metadata.action_name}': schema property '{field_name}' "
-                        f"must declare a 'type'"
-                    )
-
-        required = schema.get("required")
-        if required is not None:
-            if not isinstance(required, list):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'required' must be a list"
-                )
-            declared = set(properties or {})
-            for field_name in required:
-                if not isinstance(field_name, str) or field_name not in declared:
-                    raise ValueError(
-                        f"Action '{metadata.action_name}': required field '{field_name}' "
-                        f"is not declared in 'properties'"
-                    )
-
-        # FR-DSP-001: At least one usage example is required
-        if not metadata.usage_examples or len(metadata.usage_examples) == 0:
-            raise ValueError(
-                f"Action '{metadata.action_name}': at least one usage_example is required"
-            )
-
-    def get_catalog(self) -> dict[str, ActionMetadataVO]:
-        """Return a sorted snapshot of the catalog (sorted by action name)."""
-        return dict(sorted(self._catalog.items()))
-
-    def get_action(self, action_name: str) -> ActionMetadataVO | None:
-        """Retrieve a specific action from the catalog."""
-        return self._catalog.get(action_name)
-
-    def __repr__(self) -> str:
-        return f"CatalogRegistrationExecutor(actions={len(self._catalog)}, version={self._catalog_version})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_request_validation.py
-
-```python
-"""Request validation capability — schema validation against catalog.
-
-FR-DSP-003: Validate Action Request
-- Validates action name exists in catalog
-- Validates parameters against registered schema (types, ranges, lengths, enums, size)
-- Enforces execution-mode compatibility, destructive confirmation, timeout-override bounds
-- Generates tracking ID when absent
-- Does not mutate request or catalog state
-"""
-
-import json
-import logging
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_request_validation_protocol import (
-    RequestValidationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-# FR-DSP-003 / Configuration Keys — conservative operational defaults.
-DEFAULT_TIMEOUT: float = 30.0
-MAX_TIMEOUT_OVERRIDE: float = 3600.0
-MAX_PAYLOAD_SIZE: int = 1_000_000
-DESTRUCTIVE_CONFIRMATION_ENFORCED: bool = True
-
-
-class DispatchRequestError(ValueError):
-    """Validation failure carrying the FRD error category for the result envelope.
-
-    Duck-typed by the orchestrator via ``getattr(e, "error_category", ...)`` so the
-    agent layer can surface the correct category without importing this capability type
-    (respects AES201 agent→capabilities boundary).
-    """
-
-    def __init__(self, message: str, error_category: str = "validation_error") -> None:
-        super().__init__(message)
-        self.error_category = error_category
-
-
-class RequestValidationExecutor(RequestValidationProtocol):
-    """Concrete implementation for request validation.
-
-    FR-DSP-003: Unknown action -> not found error; invalid params -> field-level detail.
-    Enforces execution mode, destructive confirmation, and timeout-override bounds.
-    Generates tracking ID when absent. Does not mutate request or catalog state.
-    Returns enriched same VO type with resolved_metadata, validation_warnings, and
-    validated_tracking_id.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(
-        self,
-        catalog: dict[str, Any] | None = None,
-        unknown_parameter_policy: str = "strict",
-        max_payload_size: int = MAX_PAYLOAD_SIZE,
-        max_timeout_override: float = MAX_TIMEOUT_OVERRIDE,
-        destructive_confirmation_enforced: bool = DESTRUCTIVE_CONFIRMATION_ENFORCED,
-    ) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
-        self._unknown_parameter_policy = unknown_parameter_policy
-        self._max_payload_size = max_payload_size
-        self._max_timeout_override = max_timeout_override
-        self._destructive_confirmation_enforced = destructive_confirmation_enforced
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Unknown action produces not-found error; invalid params produce
-        field-level detail. Enforces mode compatibility, destructive confirmation, and
-        timeout bounds. Generates tracking ID when absent. Does not mutate catalog state.
-        """
-        metadata = self._catalog.get(request.action_name)
-        if metadata is None:
-            raise DispatchRequestError(
-                f"Unknown action: {request.action_name}", "not_found_error"
-            )
-
-        warnings: list[str] = []
-        self._validate_parameters(request, metadata, warnings)
-
-        # Execution-mode compatibility (FR-DSP-003)
-        exec_mode = request.execution_mode
-        if exec_mode == "background" and not metadata.background_eligibility_flag:
-            raise DispatchRequestError(
-                f"Action '{request.action_name}' does not support background execution mode",
-                "unsupported_error",
-            )
-
-        # FR-DSP-003: Sync mode requires non-background-only action (warn if background-only)
-        if exec_mode == "sync" and metadata.background_eligibility_flag and not metadata.read_only_flag:
-            warnings.append(
-                f"Action '{request.action_name}' is background-only; consider using background mode"
-            )
-
-        # Destructive confirmation enforcement (FR-DSP-003)
-        if (
-            metadata.destructive_flag
-            and self._destructive_confirmation_enforced
-            and not request.confirmation_flag
-        ):
-            raise DispatchRequestError(
-                f"Destructive action '{request.action_name}' requires explicit confirmation",
-                "confirmation_error",
-            )
-
-        # Timeout-override bounds (FR-DSP-003)
-        if request.timeout_override is not None and (
-            request.timeout_override < 0
-            or request.timeout_override > self._max_timeout_override
-        ):
-            raise DispatchRequestError(
-                f"Timeout override {request.timeout_override} out of bounds "
-                f"[0, {self._max_timeout_override}]",
-                "timeout_error",
-            )
-
-        resolved_metadata = {
-            "owning_feature_ref": metadata.owning_feature_ref,
-            "default_timeout": metadata.default_timeout,
-            "timeout_class": metadata.timeout_class,
-            "idempotency_flag": metadata.idempotency_flag,
-            "scene_mutation_flag": metadata.scene_mutation_flag,
-            "background_eligibility_flag": metadata.background_eligibility_flag,
-            "destructive_flag": metadata.destructive_flag,
-            "read_only_flag": metadata.read_only_flag,
-            "risk_level": metadata.risk_level,
+    def get_environment_metadata(self) -> dict:
+        """Get enriched environment metadata (FR-TLM-004)."""
+        metadata = self._enricher.enrich_event_metadata()
+        return {
+            "app_version": str(self._enricher.get_app_version()),
+            "platform": str(self._enricher.get_platform()),
+            "metadata": metadata if metadata else {},
         }
-
-        validated = ActionCommandVO(
-            action_name=request.action_name,
-            parameters=request.parameters,
-            execution_mode=request.execution_mode,
-            timeout_override=request.timeout_override,
-            confirmation_flag=request.confirmation_flag,
-            tracking_id=request.tracking_id,
-            resolved_metadata=resolved_metadata,
-            validation_warnings=list(warnings),
-        )
-
-        logger.debug(
-            "Request validated: %s (tracking_id=%s)",
-            request.action_name,
-            validated.validated_tracking_id,
-        )
-        return validated
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _validate_parameters(
-        self, request: ActionCommandVO, metadata: Any, warnings: list[str]
-    ) -> None:
-        """Validate parameters against the registered schema (FR-DSP-003)."""
-        schema = getattr(metadata, "parameter_schema", {}) or {}
-        properties = schema.get("properties", {}) or {}
-        required = schema.get("required", []) or []
-
-        # Required fields present
-        for field_name in required:
-            if field_name not in request.parameters:
-                raise DispatchRequestError(
-                    f"Missing required parameter: {field_name}", "validation_error"
-                )
-
-        # Unknown extra parameters (strict vs tolerant)
-        declared_params = set(properties.keys())
-        extra = set(request.parameters.keys()) - declared_params - set(required)
-        if extra:
-            if self._unknown_parameter_policy == "strict":
-                raise DispatchRequestError(
-                    f"Unknown extra parameters: {', '.join(sorted(extra))}",
-                    "validation_error",
-                )
-            warnings.append(
-                f"Unknown extra parameters ignored: {', '.join(sorted(extra))}"
-            )
-
-        # Per-field type / range / length / enum validation
-        for field_name, value in request.parameters.items():
-            field_def = properties.get(field_name)
-            if field_def is None:
-                continue  # required-only field or already handled unknown above
-            self._validate_field(field_name, value, field_def)
-
-        # Payload size limit (FR-DSP-003)
-        try:
-            payload_size = len(json.dumps(request.parameters, default=str))
-        except TypeError:
-            payload_size = 0
-        if payload_size > self._max_payload_size:
-            raise DispatchRequestError(
-                f"Parameter payload size {payload_size} exceeds limit {self._max_payload_size}",
-                "validation_error",
-            )
-
-    def _validate_field(self, field_name: str, value: Any, field_def: dict[str, Any]) -> None:
-        """Validate a single parameter value against its schema definition."""
-        declared_type = field_def.get("type")
-        if declared_type:
-            self._check_type(field_name, value, declared_type)
-
-        # Numeric range
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            if "minimum" in field_def and value < field_def["minimum"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' value {value} below minimum {field_def['minimum']}",
-                    "validation_error",
-                )
-            if "maximum" in field_def and value > field_def["maximum"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' value {value} above maximum {field_def['maximum']}",
-                    "validation_error",
-                )
-
-        # String length
-        if isinstance(value, str):
-            if "minLength" in field_def and len(value) < field_def["minLength"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' length {len(value)} below minLength "
-                    f"{field_def['minLength']}",
-                    "validation_error",
-                )
-            if "maxLength" in field_def and len(value) > field_def["maxLength"]:
-                raise DispatchRequestError(
-                    f"Parameter '{field_name}' length {len(value)} above maxLength "
-                    f"{field_def['maxLength']}",
-                    "validation_error",
-                )
-
-        # Enumerated allowed values
-        if "enum" in field_def and value not in field_def["enum"]:
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' value {value!r} not in allowed set "
-                f"{field_def['enum']}",
-                "validation_error",
-            )
-
-    def _check_type(self, field_name: str, value: Any, declared_type: str) -> None:
-        """Check a parameter value against its declared primitive type."""
-        if isinstance(value, bool) and declared_type != "boolean":
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' must be {declared_type}, got bool",
-                "validation_error",
-            )
-
-        type_map: dict[str, Any] = {
-            "string": str,
-            "integer": int,
-            "number": (int, float),
-            "boolean": bool,
-            "array": list,
-            "object": dict,
-        }
-        expected = type_map.get(declared_type)
-        if expected is None:
-            return
-        if not isinstance(value, expected):
-            raise DispatchRequestError(
-                f"Parameter '{field_name}' must be {declared_type}, got {type(value).__name__}",
-                "validation_error",
-            )
-
-    def __repr__(self) -> str:
-        return f"RequestValidationExecutor(catalog={len(self._catalog)})"
 ```
 
 ---
 
-## File: modules/dispatcher/src/capabilities_result_normalization.py
+## File: modules/telemetry/src/capabilities_telemetry_classification.py
 
 ```python
-"""Result normalization capability — unified envelope construction.
+"""Capability: Telemetry event classifier.
 
-FR-DSP-006: Normalize Operation Result
-- Normalizes all outcomes into single envelope shape
-- Never leaks secrets, raw code, or sensitive paths
-- Truncates oversized data with indicator
-- Falls back to safe error envelope on construction failure
-- Identical shape for CLI and MCP consumers
-"""
-
-import json
-import logging
-import sys
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
-    ResultNormalizationProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class ResultNormalizationExecutor(ResultNormalizationProtocol):
-    """Concrete implementation for result normalization.
-
-    FR-DSP-006: Normalizes all outcomes into unified envelope.
-    Never leaks secrets; truncates oversized data; falls back to safe error.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, max_result_data_size: int = 1_000_000):
-        self._max_size = max_result_data_size
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatch or submission outcome into a unified result envelope.
-
-        FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
-        Returns identical shape for CLI and MCP consumers. Sets the `data_truncated`
-        indicator when the data payload exceeds the configured size limit.
-        """
-        truncated = False
-        try:
-            # Extract outcome fields
-            success = raw_outcome.get("success", False)
-            message = raw_outcome.get("message", "")
-            data = raw_outcome.get("data")
-            error_category = raw_outcome.get("error_category")
-            warnings = list(raw_outcome.get("warnings", []) or [])
-            metadata = dict(raw_outcome.get("metadata", {}) or {})
-            # Surface the execution context for consumers (FR-DSP-006 metadata summary).
-            metadata["is_background"] = is_background
-
-            # Process and sanitize data payload
-            if data is not None:
-                data = self._sanitize_data(data)
-                # Fast size approximation — only serialize if close to threshold
-                approx_size = sys.getsizeof(data)
-                if approx_size < self._max_size * 0.5:
-                    data_size = approx_size
-                else:
-                    try:
-                        data_size = len(json.dumps(data, default=str))
-                    except TypeError:
-                        data_size = approx_size
-                if data_size > self._max_size:
-                    truncated = True
-                    data = {"_truncated": True, "_size_exceeded": self._max_size}
-                    warnings.append("Result data truncated to fit envelope size limit")
-
-            # Build envelope
-            if success:
-                return UnifiedResultEnvelopeVO(
-                    success=True,
-                    message=message,
-                    tracking_id=tracking_id,
-                    data=data,
-                    warnings=warnings,
-                    metadata=metadata,
-                    data_truncated=truncated,
-                )
-            return UnifiedResultEnvelopeVO(
-                success=False,
-                message=message,
-                tracking_id=tracking_id,
-                error_category=error_category or "execution_error",
-                data=data,
-                warnings=warnings,
-                metadata=metadata,
-                data_truncated=truncated,
-            )
-
-        except Exception as e:
-            # Envelope construction failure — fall back to safe error
-            logger.error("Envelope construction failed: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(
-                f"Normalization failed: {e}",
-            )
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _sanitize_data(self, data: Any) -> Any:
-        """Sanitize data payload — redact secrets, paths, raw code.
-
-        FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
-        Handles all types: dicts, lists, strings, and nested structures.
-        Non-serializable values converted to safe textual representation.
-
-        Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
-        """
-        redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
-        secret_patterns = ["password", "secret", "token", "api_key", "credential", "private_key"]
-        max_depth = 50
-
-        # Handle dict — recursive key-based redaction
-        if isinstance(data, dict):
-            return self._sanitize_dict(data, redacted_keys, max_depth)
-
-        # Handle list — sanitize each item recursively
-        if isinstance(data, list):
-            return [self._sanitize_data(item) for item in data]
-
-        # Handle string — check for embedded secrets (API keys in URLs, tokens in strings)
-        if isinstance(data, str):
-            lower = data.lower()
-            for pattern in secret_patterns:
-                if pattern in lower and len(data) > 10:
-                    return "***REDACTED***"
-            # Truncate very long strings to prevent envelope bloat
-            if len(data) > 1000:
-                data = f"{data[:500]}...[truncated]"
-            return data
-
-        # Primitives (int, float, bool, None) are safe — return as-is
-        if isinstance(data, (int, float, bool)) or data is None:
-            return data
-
-        # Non-serializable objects — convert to string safely
-        try:
-            json.dumps(data)
-            return data
-        except (TypeError, ValueError):
-            return str(data)
-
-    def _sanitize_dict(
-        self, d: dict[str, Any], redacted_keys: set[str], max_depth: int, _depth: int = 0
-    ) -> dict[str, Any]:
-        """Recursively sanitize a dict for secret keys and nested structures.
-
-        Uses recursion with depth limit to avoid stack overflow on deeply nested data.
-        """
-        if _depth >= max_depth:
-            return {"_truncated": True, "_size_exceeded": max_depth}
-
-        result: dict[str, Any] = {}
-        for k, v in d.items():
-            k_lower = k.lower()
-            if any(pattern in k_lower for pattern in redacted_keys):
-                result[k] = "***REDACTED***"
-            elif isinstance(v, dict):
-                result[k] = self._sanitize_dict(v, redacted_keys, max_depth, _depth + 1)
-            elif isinstance(v, list):
-                result[k] = [self._sanitize_data(item) for item in v]
-            elif isinstance(v, str) and len(v) > 1000:
-                result[k] = f"{v[:500]}...[truncated]"
-            else:
-                result[k] = v
-        return result
-
-    def __repr__(self) -> str:
-        return f"ResultNormalizationExecutor(max_size={self._max_size})"
-```
-
----
-
-## File: modules/dispatcher/src/capabilities_sync_dispatch.py
-
-```python
-"""Synchronous dispatch capability — route actions to owning features.
-
-FR-DSP-004: Dispatch Synchronous Action
-- Routes validated action to owning domain feature or gateway
-- Enforces timeout, propagates tracking ID
-- Maps domain errors to unified categories
-- Returns standardized envelope
-"""
-
-import logging
-import time
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Any
-
-from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
-    SyncDispatchProtocol,
-)
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-logger = logging.getLogger("BlenderMCPServer")
-
-
-class SyncDispatchExecutor(SyncDispatchProtocol):
-    """Concrete implementation for synchronous action dispatch.
-
-    FR-DSP-004: Routes to owning feature, enforces timeout, maps errors.
-    Returns standardized envelope; does not retry non-idempotent actions.
-    Implements context manager protocol for proper ThreadPoolExecutor cleanup.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
-
-    def __init__(self, execute_action: Any = None) -> None:
-        self._execute = execute_action
-        self._pool = ThreadPoolExecutor(max_workers=1)
-
-    def __enter__(self) -> "SyncDispatchExecutor":
-        """Enter context manager."""
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Exit context manager — shut down the thread pool."""
-        self._pool.shutdown(wait=True)
-
-    # ─── Block 2: Protocol Method Implementation ─────────────
-
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Route a validated action to its owning feature and return normalized result.
-
-        FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
-        Non-idempotent actions are NOT retried automatically.
-        Returns standardized envelope; does not retry non-idempotent actions.
-        """
-        start_time = time.time()
-        tracking_id = request.validated_tracking_id or request.tracking_id or ""
-        action_name = request.action_name
-
-        # FR-DSP-004: Non-idempotent actions must not be retried automatically
-        idempotent = request.resolved_metadata.get("idempotency_flag", False)
-        if not idempotent:
-            # First dispatch is fine — retries would come from the surface layer
-            # The dispatcher itself does not retry; if this is called, it's the first attempt.
-            pass
-
-        try:
-            params = dict(request.parameters)
-            applied_timeout = request.timeout_override or request.resolved_metadata.get("default_timeout") or 0.0
-
-            # FR-DSP-004: Check for degraded owning feature before dispatching
-            if request.resolved_metadata.get("degraded", False):
-                owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
-                raise RuntimeError(f"Owning feature {owning_feature} is degraded")
-
-            if self._execute is not None:
-                if applied_timeout and applied_timeout > 0:
-                    # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
-                    future = self._pool.submit(self._execute.execute_action, action_name, params)
-                    try:
-                        result = future.result(timeout=applied_timeout)
-                    except FuturesTimeoutError:
-                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
-                else:
-                    result = self._execute.execute_action(action_name, params)
-            else:
-                result = {"status": "dispatched", "action": action_name}
-
-            duration_ms = (time.time() - start_time) * 1000
-
-            metadata = {
-                "action_name": action_name,
-                "owning_feature_ref": request.resolved_metadata.get("owning_feature_ref"),
-                "execution_mode": request.execution_mode or "sync",
-                "duration_ms": duration_ms,
-                "applied_timeout": applied_timeout,
-            }
-
-            return UnifiedResultEnvelopeVO.success_envelope(
-                message=f"Action {action_name} dispatched successfully",
-                tracking_id=tracking_id,
-                data=result if isinstance(result, dict) else {"result": str(result)},
-                metadata=metadata,
-            )
-
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            error_category = self._map_error_category(e)
-
-            logger.error(
-                "Dispatch failed: %s (action=%s, tracking_id=%s, category=%s)",
-                e,
-                action_name,
-                tracking_id,
-                error_category,
-            )
-
-            return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{action_name}' failed: {e}",
-                tracking_id=tracking_id,
-                error_category=error_category,
-                metadata={
-                    "action_name": action_name,
-                    "duration_ms": duration_ms,
-                },
-            )
-
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
-    def _map_error_category(self, error: Exception) -> str:
-        """Map domain error to unified error category (FR-DSP-004)."""
-        error_type = type(error).__name__
-
-        if error_type == "TimeoutError" or "Timeout" in error_type:
-            return "timeout_error"
-        if "Timeout" in str(error).lower():
-            return "timeout_error"
-        if "Connection" in error_type or "connection" in str(error).lower():
-            return "connection_error"
-        if "NotFound" in error_type or "not found" in str(error).lower():
-            return "not_found_error"
-        if "ValidationError" in error_type or "validation" in str(error).lower():
-            return "validation_error"
-
-        return "execution_error"
-
-    def __repr__(self) -> str:
-        return f"SyncDispatchExecutor(execute={self._execute is not None})"
-```
-
----
-
-## File: modules/dispatcher/src/root_dispatcher_container.py
-
-```python
-"""Root: Dispatcher feature composition container.
-
-Wires concrete capabilities to the agent orchestrator and bootstraps the
-dispatcher module: Capabilities → Agent Orchestrator → (exposed as DispatcherOrchestrator).
-
-This file is the composition root for the dispatcher feature. It instantiates
-the six dispatcher capabilities, connects them to the aggregate facade, and
-provides the assembled orchestrator for dependency injection by callers.
+Implements TelemetryClassificationPort — handles classifying and categorizing
+telemetry events into standardized categories per FR-TLM-002.
 """
 
 from __future__ import annotations
 
 import logging
 
-from .agent_dispatcher_orchestrator import DispatcherOrchestrator
-from .capabilities_action_discovery import ActionDiscoveryExecutor
-from .capabilities_background_submit import BackgroundSubmitExecutor
-from .capabilities_catalog_registration import CatalogRegistrationExecutor
-from .capabilities_request_validation import RequestValidationExecutor
-from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationProtocol,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    FEATURE_AREAS,
+    TelemetryCategory,
+)
+
+logger = logging.getLogger("blender-arwaky.telemetry")
+
+
+class TelemetryEventClassifier(TelemetryClassificationProtocol):
+    """Telemetry event classification implementation.
+
+    FR-TLM-002: Classifies events into standardized high-level categories.
+    Unrecognized or missing categories default to ERROR (unknown).
+    No PII parameters — only category strings for classification.
+    """
+
+    def classify_event(
+        self,
+        action_type: str,
+        feature_area: str | None = None,
+    ) -> dict[str, str]:
+        """Classify an event into a standardized category.
+
+        FR-TLM-002: Every event belongs to exactly one primary category.
+        If unrecognized or missing category, defaults to ERROR.
+
+        Args:
+            action_type: The candidate action to classify.
+            feature_area: Optional feature area hint.
+
+        Returns:
+            Dict with categorized event including feature_area, operation_type, outcome_category.
+        """
+        # Resolve feature area from taxonomy mapping or use provided value
+        resolved_feature = feature_area or FEATURE_AREAS.get(action_type, "other")
+
+        # Map raw type string to TelemetryCategory enum
+        if action_type is not None:
+            try:
+                for category in TelemetryCategory:
+                    if category.value == action_type:
+                        # ERROR category maps to "error" outcome, others to "success"
+                        outcome = "error" if category == TelemetryCategory.ERROR else "success"
+                        return {
+                            "feature_area": resolved_feature,
+                            "operation_type": "other",
+                            "outcome_category": outcome,
+                        }
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to classify raw type '%s': %s", action_type, e)
+
+        # Default to ERROR for unrecognized categories (FR-TLM-002)
+        logger.debug(
+            "No category metadata available, defaulting to ERROR for action_type=%s",
+            action_type,
+        )
+        return {
+            "feature_area": resolved_feature,
+            "operation_type": "other",
+            "outcome_category": "error",
+        }
+```
+
+---
+
+## File: modules/telemetry/src/capabilities_telemetry_enrichment.py
+
+```python
+"""Capability: Telemetry event enricher.
+
+Implements TelemetryEnrichmentPort — handles gathering and attaching
+environment metadata to telemetry events per FR-TLM-004.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import platform
+import sys
+import threading
+from pathlib import Path
+from typing import Any
+
+try:
+    import tomli as _tomli
+except ImportError:
+    try:
+        import tomllib as _tomllib
+    except ImportError:
+        _tomli = None
+        _tomllib = None
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    BlenderVersion,
+    PlatformName,
+    VersionString,
+)
+from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import (
+    TelemetryEnrichmentProtocol,
+)
+
+logger = logging.getLogger("blender-arwaky.telemetry")
+
+
+class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
+    """Telemetry event enrichment implementation.
+
+    FR-TLM-004: Enriches events with environment metadata (OS, app version,
+    Blender version). Missing fields default to "unknown". No PII included.
+    """
+
+    def __init__(self) -> None:
+        self._metadata_cache: dict[str, Any] | None = None
+        self._cache_lock = threading.Lock()
+
+    def enrich_event_metadata(self) -> dict[str, Any]:
+        """Gather and attach environment metadata to events.
+
+        FR-TLM-004: Attaches application version, OS type, and Blender version.
+        Missing fields default to "unknown". No sensitive file paths or hostnames.
+        """
+        with self._cache_lock:
+            if self._metadata_cache is not None:
+                return self._metadata_cache
+
+            # Build metadata dict (DO NOT convert to string)
+            metadata: dict[str, Any] = {
+                "app_version": str(self.get_app_version()),
+                "platform": str(self.get_platform()),
+                "blender_version": str(self.get_blender_version()) if self.get_blender_version() else "unknown",
+            }
+
+            # Add OS details (non-sensitive)
+            try:
+                metadata["os_type"] = platform.system().lower()
+            except Exception as e:
+                logger.debug("Failed to get OS type: %s", e)
+                metadata["os_type"] = "unknown"
+
+            try:
+                metadata["os_version"] = platform.version() or "unknown"
+            except Exception as e:
+                logger.debug("Failed to get OS version: %s", e)
+                metadata["os_version"] = "unknown"
+
+            # Cache the metadata dict directly — not stringified
+            self._metadata_cache = metadata
+            return self._metadata_cache
+
+    def get_app_version(self) -> VersionString:
+        """Return the application version string.
+
+        Attempts multiple methods to determine version:
+        1. importlib.metadata (pip-installed packages)
+        2. pyproject.toml (development layout)
+        3. Falls back to "unknown"
+        """
+        try:
+            from importlib.metadata import version as _v
+
+            return VersionString(_v("blender-arwaky"))
+        except Exception as e:
+            logger.debug("Version detection via importlib.metadata failed: %s", e)
+
+        # Fallback: try pyproject.toml in development layout
+        if _tomli or _tomllib:
+            try:
+                p = Path(__file__).parent.parent.parent.parent / "pyproject.toml"
+                if p.exists():
+                    parser = _tomli or _tomllib
+                    with open(p, "rb") as f:
+                        v = parser.load(f).get("project", {}).get("version", "unknown")
+                        return VersionString(str(v))
+            except Exception as e:
+                logger.debug("Failed to read package version: %s", e)
+
+        return VersionString("unknown")
+
+    def get_platform(self) -> PlatformName:
+        """Return the platform name.
+
+        Returns normalized platform identifier (e.g., 'linux', 'darwin', 'win32').
+        Falls back to "unknown" if detection fails.
+        """
+        try:
+            return PlatformName(platform.system().lower())
+        except Exception as e:
+            logger.debug("Failed to get platform: %s", e)
+            return PlatformName("unknown")
+
+    def get_blender_version(self) -> BlenderVersion | None:
+        """Return the Blender version if available.
+
+        Attempts to detect Blender version from environment or runtime.
+        Returns None if detection fails (will default to "unknown" in enrichment).
+        """
+        try:
+            # Check for BLENDER_VERSION environment variable
+            env_version = self._get_env_blender_version()
+            if env_version:
+                return BlenderVersion(env_version)
+
+        except Exception as e:
+            logger.debug("Failed to detect Blender version: %s", e)
+
+        return None
+
+    def _get_env_blender_version(self) -> str | None:
+        """Get Blender version from environment variables."""
+        return os.environ.get("BLENDER_VERSION")
+```
+
+---
+
+## File: modules/telemetry/src/capabilities_telemetry_recorder.py
+
+```python
+"""Capability: Telemetry event recorder.
+
+Implements TelemetryRecordingProtocol — captures anonymous usage records
+with PII-free schema. Consent must be active; withdrawal stops immediately.
+
+FR-TLM-001: Record Anonymous Usage Event
+PII scrubbing at ingestion before buffering.
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from collections import deque
+from typing import Any
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    SessionId,
+    Timestamp,
+)
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationProtocol,
+)
+from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
+    TelemetryRecordingProtocol,
+)
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
+    TelemetrySessionProtocol,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    ALLOWED_ACTIONS,
+    FEATURE_AREAS,
+)
+
+logger = logging.getLogger("blender-arwaky.telemetry")
+
+
+class TelemetryRecordingCapability(TelemetryRecordingProtocol):
+    """Business logic for recording anonymous telemetry events.
+
+    FR-TLM-001: Nothing recorded unless consent is active.
+    PII scrubbing applies at ingestion before buffering.
+    """
+
+    def __init__(
+        self,
+        session_protocol: TelemetrySessionProtocol,
+        classification_protocol: TelemetryClassificationProtocol,
+        buffer_capacity: int = 1000,
+    ) -> None:
+        """Initialize with dependent protocols.
+
+        Args:
+            session_protocol: Protocol for session ID management.
+            classification_protocol: Protocol for event classification.
+            buffer_capacity: Maximum buffered records before drop-oldest.
+        """
+        self._session_protocol = session_protocol
+        self._classification_protocol = classification_protocol
+        self._buffer_capacity = buffer_capacity
+        self._buffer: deque[dict[str, Any]] = deque(maxlen=buffer_capacity)
+
+    async def record_event(
+        self,
+        action_type: str,
+        feature_area: str | None = None,
+        outcome_category: str = "success",
+        consent_active: bool = True,
+        duration_bucket: float | None = None,
+    ) -> dict[str, Any]:
+        """Capture a single anonymous usage record.
+
+        FR-TLM-001: Nothing recorded unless consent is active.
+        PII scrubbing applies at ingestion before buffering.
+
+        Args:
+            action_type: The type of user action.
+            feature_area: Product surface area.
+            outcome_category: success, failure, or rejected.
+            consent_active: Whether telemetry consent is enabled.
+            duration_bucket: Optional coarse duration bucket.
+
+        Returns:
+            Dict with recording acknowledgment and buffered record summary.
+        """
+        # Consent check — nothing recorded if consent inactive
+        if not consent_active:
+            return {"recorded": False, "reason": "consent_inactive"}
+
+        # Action allowlist check
+        if action_type not in ALLOWED_ACTIONS:
+            return {"recorded": False, "reason": "action_not_in_allowlist"}
+
+        # Classify event
+        classified = await self._classification_protocol.classify_event(action_type, feature_area)
+
+        # Get session ID (async protocol with consent check)
+        session_id = await self._session_protocol.get_session_id(consent_active=consent_active)
+
+        # Build anonymous record (PII-free)
+        record: dict[str, Any] = {
+            "timestamp": Timestamp(self._current_timestamp()),
+            "action_type": action_type,
+            "session_id": SessionId(str(session_id)),
+            "feature_area": classified.get("feature_area", feature_area or FEATURE_AREAS.get(action_type, "other")),
+            "operation_type": classified.get("operation_type", "other"),
+            "outcome_category": outcome_category,
+            "duration_bucket": duration_bucket,
+        }
+
+        # Buffer with backpressure — deque(maxlen=...) auto-trims in O(1)
+        self._buffer.append(record)
+
+        return {
+            "recorded": True,
+            "session_id": str(session_id),
+            "feature_area": record["feature_area"],
+            "operation_type": record["operation_type"],
+        }
+
+    def _current_timestamp(self) -> float:
+        """Return current Unix timestamp."""
+        return time.time()
+```
+
+---
+
+## File: modules/telemetry/src/capabilities_telemetry_session_management.py
+
+```python
+"""Capability: Telemetry session manager.
+
+FR-TLM-003: Manages anonymous session identifiers with persistence,
+rotation, and consent withdrawal support.
+
+Implements TelemetrySessionProtocol — async protocol with file-based
+persistence and consent-aware session retrieval.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import threading
+import uuid
+
+from modules.shared.src.common.taxonomy_core_vo import (
+    SessionId,
+    SuccessFlag,
+)
+from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
+    TelemetrySessionProtocol,
+)
+
+logger = logging.getLogger("blender-arwaky.telemetry")
+
+# Default persistence path (overridable for testing)
+_DEFAULT_SESSION_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "session.json",
+)
+
+
+class TelemetrySessionManager(TelemetrySessionProtocol):
+    """Telemetry session management with persistence and rotation.
+
+    FR-TLM-003: Session ID survives restarts within rotation window.
+    Rotation produces fresh ID with no stored linkage.
+    Consent withdrawal deletes all local session state.
+    """
+
+    def __init__(self, persistence_path: str | None = None) -> None:
+        self._session_id: SessionId | None = None
+        self._creation_timestamp: float | None = None
+        self._persistence_path = persistence_path or _DEFAULT_SESSION_PATH
+        self._lock = threading.Lock()
+
+    async def get_session_id(
+        self,
+        force_new: bool = False,
+        consent_active: bool = True,
+    ) -> SessionId:
+        """Get current session ID. Returns None if consent inactive.
+
+        FR-TLM-003: If consent is inactive, raises RuntimeError.
+        """
+        if not consent_active:
+            raise RuntimeError("Telemetry consent is inactive")
+
+        with self._lock:
+            if self._session_id is not None and not force_new:
+                return self._session_id
+
+            # Load from persistence or generate new
+            self._session_id = self._load_or_generate_session()
+            self._creation_timestamp = self._current_timestamp()
+            return self._session_id
+
+    async def rotate_session(self) -> SessionId:
+        """Rotate session, producing fresh identifier with no linkage.
+
+        FR-TLM-003: Rotation discards old ID; buffered records may still
+        transmit, but no future refs will be linked to old session.
+        """
+        with self._lock:
+            # Save current session for potential audit (not stored long-term)
+            if self._session_id is not None:
+                logger.debug("Session %s rotated at %f", self._session_id, self._creation_timestamp)
+
+            self._session_id = SessionId(str(uuid.uuid4()))
+            self._creation_timestamp = self._current_timestamp()
+            self._persist_session()
+            logger.debug("Session rotated: %s", self._session_id)
+            return self._session_id
+
+    async def clear_session(self) -> None:
+        """Clear session state — called on consent withdrawal.
+
+        FR-TLM-003: Deletes local session state entirely.
+        """
+        with self._lock:
+            self._session_id = None
+            self._creation_timestamp = None
+            self._delete_persistence()
+            logger.debug("Session cleared (consent withdrawal)")
+
+    def get_session_id_sync(self) -> SessionId | None:
+        """Sync access to current session ID (for non-async callers)."""
+        with self._lock:
+            return self._session_id
+
+    def initialize_session(self) -> SuccessFlag:
+        """Generate a new anonymous session identifier.
+
+        Called on application startup.
+        """
+        with self._lock:
+            self._session_id = SessionId(str(uuid.uuid4()))
+            self._creation_timestamp = self._current_timestamp()
+            self._persist_session()
+            return SuccessFlag(True)
+
+    def _load_or_generate_session(self) -> SessionId:
+        """Load persisted session or generate new one."""
+        try:
+            data = self._load_persistence()
+            if data and data.get("session_id"):
+                logger.debug("Loaded persisted session: %s", data["session_id"])
+                return SessionId(data["session_id"])
+        except Exception as e:
+            logger.warning("Failed to load session persistence: %s", e)
+
+        # Generate fresh session
+        return SessionId(str(uuid.uuid4()))
+
+    def _persist_session(self) -> None:
+        """Save session state to disk."""
+        try:
+            data = {
+                "session_id": str(self._session_id),
+                "created_at": self._creation_timestamp,
+            }
+            with open(self._persistence_path, "w") as f:
+                json.dump(data, f)
+        except OSError as e:
+            logger.warning("Failed to persist session: %s", e)
+
+    def _load_persistence(self) -> dict | None:
+        """Load session state from disk."""
+        try:
+            with open(self._persistence_path, "r") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def _delete_persistence(self) -> None:
+        """Delete session persistence file."""
+        try:
+            if os.path.exists(self._persistence_path):
+                os.remove(self._persistence_path)
+        except OSError as e:
+            logger.warning("Failed to delete session persistence: %s", e)
+
+    def _current_timestamp(self) -> float:
+        """Return current Unix timestamp."""
+        import time
+
+        return time.time()
+```
+
+---
+
+## File: modules/telemetry/src/root_telemetry_container.py
+
+```python
+"""Root: Telemetry feature composition container.
+
+Wires concrete capabilities to the agent orchestrator and bootstraps the
+telemetry module: Capabilities → Agent Orchestrator → (exposed as TelemetryOrchestrator).
+
+This file is the composition root for the telemetry feature.
+
+Wiring order matters: the recorder depends on the session and classification
+protocols, so those two capabilities are built first and injected into the
+recorder before all four are handed to the orchestrator.
+"""
+
+from __future__ import annotations
+
+import logging
+
+from .agent_telemetry_orchestrator import TelemetryOrchestrator
+from .capabilities_telemetry_classification import TelemetryEventClassifier
+from .capabilities_telemetry_enrichment import TelemetryEventEnricher
+from .capabilities_telemetry_recorder import TelemetryRecordingCapability
+from .capabilities_telemetry_session_management import TelemetrySessionManager
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class DispatcherContainer:
-    """Dependency injection container for the dispatcher feature module.
+class TelemetryContainer:
+    """Dependency injection container for the telemetry feature module.
 
-    Wires the six dispatcher capabilities to the aggregate orchestrator.
+    Wires the four telemetry capabilities to the orchestrator.
     """
 
     def __init__(self) -> None:
-        self._orchestrator: DispatcherOrchestrator | None = None
+        self._orchestrator: TelemetryOrchestrator | None = None
         self._wired: bool = False
 
     def wire(self) -> None:
-        """Wire the six dispatcher capabilities to the orchestrator."""
+        """Wire telemetry capabilities to the orchestrator."""
         if self._wired:
             return
 
-        logger.info("Wiring dispatcher feature module")
+        logger.info("Wiring telemetry feature module")
 
-        # Single shared catalog instance — registration, discovery, and validation
-        # must observe the same catalog (FR-DSP-001: dispatcher owns the catalog).
-        catalog: dict = {}
+        classifier = TelemetryEventClassifier()
+        session_manager = TelemetrySessionManager()
+        enricher = TelemetryEventEnricher()
+        # Recorder depends on session + classification protocols.
+        recorder = TelemetryRecordingCapability(
+            session_protocol=session_manager,
+            classification_protocol=classifier,
+        )
 
-        catalog_registration = CatalogRegistrationExecutor(catalog)
-        action_discovery = ActionDiscoveryExecutor(catalog)
-        request_validation = RequestValidationExecutor(catalog)
-        sync_dispatch = SyncDispatchExecutor()
-        background_submit = BackgroundSubmitExecutor()
-        result_normalization = ResultNormalizationExecutor()
-
-        self._orchestrator = DispatcherOrchestrator(
-            catalog_registration=catalog_registration,
-            action_discovery=action_discovery,
-            request_validation=request_validation,
-            sync_dispatch=sync_dispatch,
-            background_submit=background_submit,
-            result_normalization=result_normalization,
+        self._orchestrator = TelemetryOrchestrator(
+            recorder=recorder,
+            classifier=classifier,
+            session_manager=session_manager,
+            enricher=enricher,
         )
 
         self._wired = True
-        logger.info("Dispatcher feature module wired successfully")
+        logger.info("Telemetry feature module wired successfully")
 
     @property
-    def agent(self) -> DispatcherOrchestrator:
-        """Return the assembled dispatcher orchestrator facade.
+    def agent(self) -> TelemetryOrchestrator:
+        """Return the assembled telemetry orchestrator facade.
 
         Must call wire() first, or this property will raise RuntimeError.
         """
         if not self._wired or self._orchestrator is None:
-            raise RuntimeError("DispatcherContainer not wired — call wire() first")
+            raise RuntimeError("TelemetryContainer not wired — call wire() first")
         return self._orchestrator
 
 
-def create_dispatcher_feature() -> DispatcherOrchestrator:
-    """Factory function to create and wire the dispatcher feature module."""
-    container = DispatcherContainer()
+def create_telemetry_feature() -> TelemetryOrchestrator:
+    """Factory function to create and wire the telemetry feature module."""
+    container = TelemetryContainer()
     container.wire()
     return container.agent
-```
-
----
-
-## File: modules/dispatcher/src/surface_action_registry.py
-
-```python
-"""Shared action registry — aggregates all domain action schemas for CLI and MCP surfaces.
-
-NOTE (TR02): Surface schemas live in a parallel schema system separate from the dispatcher's
-CatalogRegistrationExecutor. This is intentional: surface schemas define parameter structures
-for CLI/MCP consumers, while the catalog registration uses ActionMetadataVO with richer metadata
-(flags, timeouts, usage examples). The two systems are intentionally decoupled — surface schemas
-are validated by validate_action_args() here, while catalog actions go through
-CatalogRegistrationExecutor._validate_schema(). No cross-reference exists between them.
-"""
-
-from typing import Any
-
-from .surface_asset_action import ASSET_ACTIONS
-from .surface_config_action import CONFIG_ACTIONS
-from .surface_job_action import JOB_ACTIONS
-from .surface_launcher_action import LAUNCHER_ACTIONS
-from .surface_object_action import OBJECT_ACTIONS
-from .surface_render_action import RENDER_ACTIONS
-from .surface_scene_action import SCENE_ACTIONS
-
-ALL_ACTIONS: dict[str, dict[str, Any]] = {}
-ACTION_DOMAIN: dict[str, str] = {}
-
-for domain, actions in [
-    ("scene", SCENE_ACTIONS),
-    ("object", OBJECT_ACTIONS),
-    ("render", RENDER_ACTIONS),
-    ("asset", ASSET_ACTIONS),
-    ("launcher", LAUNCHER_ACTIONS),
-    ("job", JOB_ACTIONS),
-    ("config", CONFIG_ACTIONS),
-]:
-    for action_name, schema in actions.items():
-        ALL_ACTIONS[action_name] = schema
-        ACTION_DOMAIN[action_name] = domain
-
-
-def get_action_schema(action: str) -> dict[str, Any] | None:
-    """Return the parameter schema for a given action name, or None if unknown."""
-    return ALL_ACTIONS.get(action)
-
-
-def get_domain_actions(domain: str) -> dict[str, dict[str, Any]]:
-    """Return all actions belonging to a domain."""
-    return {name: schema for name, schema in ALL_ACTIONS.items() if ACTION_DOMAIN.get(name) == domain}
-
-
-def validate_action_args(action: str, args: dict[str, Any]) -> list[str]:
-    """Validate args against the action schema. Returns list of error messages (empty = valid)."""
-    schema = ALL_ACTIONS.get(action)
-    if schema is None:
-        return [f"Unknown action: {action}"]
-
-    errors: list[str] = []
-    params = schema.get("parameters", {})
-
-    for param_name, param_spec in params.items():
-        if param_spec.get("required") and param_name not in args:
-            errors.append(f"Missing required parameter: {param_name}")
-
-    for arg_name in args:
-        if arg_name not in params:
-            errors.append(f"Unknown parameter: {arg_name}")
-
-    return errors
-```
-
----
-
-## File: modules/dispatcher/src/surface_asset_action.py
-
-```python
-"""Shared action schemas — Asset domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-ASSET_ACTIONS: dict[str, dict[str, Any]] = {
-    "import_glb": {
-        "description": "Import a GLB/GLTF file into the scene",
-        "parameters": {
-            "file_path": {"type": "string", "required": True, "description": "Path to the GLB/GLTF file"},
-            "object_name": {"type": "string", "required": False, "description": "Custom name for the imported object"},
-        },
-    },
-    "export_model": {
-        "description": "Export a model to a file",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the object to export"},
-            "file_path": {"type": "string", "required": True, "description": "Output path for the exported file"},
-            "export_format": {
-                "type": "string",
-                "required": False,
-                "description": "Export format",
-                "enum": ["glb", "fbx", "obj"],
-                "default": "glb",
-            },
-        },
-    },
-    "place_asset": {
-        "description": "Place an asset in the scene at a specific position",
-        "parameters": {
-            "asset_id": {"type": "string", "required": True, "description": "Asset identifier"},
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]", "default": [0, 0, 0]},
-            "rotation": {"type": "array[number]", "required": False, "description": "Rotation [x, y, z] in degrees", "default": [0, 0, 0]},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]", "default": [1, 1, 1]},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_config_action.py
-
-```python
-"""Shared action schemas — Config domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-CONFIG_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_config": {
-        "description": "Retrieve BlenderArwaky configuration settings",
-        "parameters": {
-            "key": {"type": "string", "required": False, "description": "Specific config key to retrieve. Omit for all settings."},
-        },
-    },
-    "set_config": {
-        "description": "Update a configuration setting",
-        "parameters": {
-            "key": {"type": "string", "required": True, "description": "Config key to update"},
-            "value": {"type": "any", "required": True, "description": "New value for the config key"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_job_action.py
-
-```python
-"""Shared action schemas — Job domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-JOB_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_task_status": {
-        "description": "Query the progress and status of a background task",
-        "parameters": {
-            "task_id": {"type": "string", "required": True, "description": "Task identifier returned from a previous submit action"},
-        },
-    },
-    "cancel_task": {
-        "description": "Cancel a running background task",
-        "parameters": {
-            "task_id": {"type": "string", "required": True, "description": "Task identifier of the task to cancel"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_launcher_action.py
-
-```python
-"""Shared action schemas — Launcher domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-LAUNCHER_ACTIONS: dict[str, dict[str, Any]] = {
-    "launch_blender": {
-        "description": "Start Blender with integration component active",
-        "parameters": {
-            "mode": {
-                "type": "string",
-                "required": False,
-                "description": "Blender launch mode",
-                "enum": ["interface", "headless"],
-                "default": "headless",
-            },
-            "port": {"type": "integer", "required": False, "description": "TCP port for addon communication", "default": 9876},
-        },
-    },
-    "shutdown_blender": {
-        "description": "Gracefully shut down Blender with force termination fallback",
-        "parameters": {
-            "force": {"type": "boolean", "required": False, "description": "Skip graceful shutdown and force terminate", "default": False},
-        },
-    },
-    "get_runtime_status": {
-        "description": "Verify true Blender process liveness and readiness",
-        "parameters": {},
-    },
-    "register_executable": {
-        "description": "Locate and register the Blender executable path",
-        "parameters": {
-            "path": {"type": "string", "required": False, "description": "Explicit path to Blender executable"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_object_action.py
-
-```python
-"""Shared action schemas — Object domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-OBJECT_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_object_info": {
-        "description": "Get details of a specific object — location, rotation, scale, modifiers, materials",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-        },
-    },
-    "create_primitive": {
-        "description": "Create a new primitive mesh object",
-        "parameters": {
-            "primitive_type": {
-                "type": "string",
-                "required": True,
-                "description": "Primitive shape",
-                "enum": ["SPHERE", "CUBE", "CYLINDER", "PLANE", "CONE", "TORUS"],
-            },
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]", "default": [0, 0, 0]},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]", "default": [1, 1, 1]},
-            "name": {"type": "string", "required": False, "description": "Custom object name"},
-        },
-    },
-    "set_object_transform": {
-        "description": "Update object transform — location, rotation, or scale",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "location": {"type": "array[number]", "required": False, "description": "Position [x, y, z]"},
-            "rotation": {"type": "array[number]", "required": False, "description": "Rotation [x, y, z] in degrees"},
-            "scale": {"type": "array[number]", "required": False, "description": "Scale [x, y, z]"},
-        },
-    },
-    "delete_object": {
-        "description": "Remove an object from the scene",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the object to delete"},
-        },
-    },
-    "set_material": {
-        "description": "Assign a material to an object",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "material_name": {"type": "string", "required": True, "description": "Name of the material to assign"},
-        },
-    },
-    "apply_modifier": {
-        "description": "Apply a modifier on an object",
-        "parameters": {
-            "object_name": {"type": "string", "required": True, "description": "Name of the target object"},
-            "modifier_name": {"type": "string", "required": True, "description": "Name of the modifier to apply"},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_render_action.py
-
-```python
-"""Shared action schemas — Render domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-RENDER_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_viewport_screenshot": {
-        "description": "Capture AI-optimized viewport screenshot",
-        "parameters": {
-            "filepath": {"type": "string", "required": False, "description": "Output path for screenshot"},
-            "max_size": {"type": "integer", "required": False, "description": "Maximum dimension in pixels", "default": 800},
-            "view_angle": {
-                "type": "string",
-                "required": False,
-                "description": "Camera view angle",
-                "enum": ["PERSPECTIVE", "TOP", "FRONT", "SIDE"],
-                "default": "PERSPECTIVE",
-            },
-            "shading_mode": {
-                "type": "string",
-                "required": False,
-                "description": "Viewport shading mode",
-                "enum": ["WIREFRAME", "SOLID", "MATERIAL", "RENDERED"],
-                "default": "MATERIAL",
-            },
-            "show_overlays": {"type": "boolean", "required": False, "description": "Show viewport overlays", "default": True},
-            "focus_object": {"type": "string", "required": False, "description": "Object name to frame in viewport"},
-        },
-    },
-    "render": {
-        "description": "Execute a full frame render",
-        "parameters": {
-            "output_path": {"type": "string", "required": True, "description": "Output path for rendered image"},
-            "resolution_x": {"type": "integer", "required": False, "description": "Render width in pixels", "default": 1920},
-            "resolution_y": {"type": "integer", "required": False, "description": "Render height in pixels", "default": 1080},
-        },
-    },
-}
-```
-
----
-
-## File: modules/dispatcher/src/surface_scene_action.py
-
-```python
-"""Shared action schemas — Scene domain (used by CLI + MCP surfaces via dispatcher)."""
-
-from typing import Any
-
-SCENE_ACTIONS: dict[str, dict[str, Any]] = {
-    "get_scene_info": {
-        "description": "Full scene metadata — object count, frame range, resolution, render engine",
-        "parameters": {},
-    },
-    "cleanup_scene": {
-        "description": "Remove objects from scene by mode",
-        "parameters": {
-            "mode": {
-                "type": "string",
-                "required": True,
-                "description": "Cleanup scope",
-                "enum": ["all", "objects", "meshes"],
-            },
-        },
-    },
-    "setup_environment": {
-        "description": "Setup HDRI lighting for the scene",
-        "parameters": {
-            "hdri_id": {"type": "string", "required": True, "description": "HDRI asset identifier"},
-            "strength": {"type": "number", "required": False, "description": "Light intensity multiplier", "default": 1.0},
-        },
-    },
-}
-```
-
----
-
-## File: modules/shared/src/dispatcher/__init__.py
-
-```python
-"""Dispatcher domain — taxonomy Value Objects and contract protocols.
-
-Shared layer (shared/src/dispatcher/):
-  - Taxonomy VOs: ActionMetadataVO, ActionCommandVO, DiscoveryOutcomeVO,
-    UnifiedResultEnvelopeVO
-  - Contracts: 6 individual protocol ABCs
-
-Capability layer lives in modules/dispatcher/src/.
-Agent layer (DispatcherOrchestrator) implements Aggregate facade.
-"""
-
-from .contract_action_discovery_protocol import ActionDiscoveryProtocol
-from .contract_background_submit_protocol import BackgroundSubmitProtocol
-from .contract_catalog_registration_protocol import CatalogRegistrationProtocol
-from .contract_dispatcher_aggregate import IDispatcherAggregate
-from .contract_request_validation_protocol import RequestValidationProtocol
-from .contract_result_normalization_protocol import ResultNormalizationProtocol
-from .contract_sync_dispatch_protocol import SyncDispatchProtocol
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_action_metadata_vo import ActionMetadataVO
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-__all__ = [
-    "ActionMetadataVO",
-    "ActionCommandVO",
-    "DiscoveryOutcomeVO",
-    "UnifiedResultEnvelopeVO",
-    "ActionDiscoveryProtocol",
-    "BackgroundSubmitProtocol",
-    "CatalogRegistrationProtocol",
-    "RequestValidationProtocol",
-    "ResultNormalizationProtocol",
-    "SyncDispatchProtocol",
-    "IDispatcherAggregate",
-]
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_action_discovery_protocol.py
-
-```python
-"""Dispatcher domain contract: action discovery protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-002: Discover Actions
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-
-
-class ActionDiscoveryProtocol(ABC):
-    """Protocol for discovering and listing registered actions."""
-
-    @abstractmethod
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        """Discover actions from the catalog with optional filtering.
-
-        FR-DSP-002: Returns canonical shape to all consumers.
-        Filter matching nothing returns empty list, not error.
-        """
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_background_submit_protocol.py
-
-```python
-"""Dispatcher domain contract: background submission protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-005: Submit Background Action
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class BackgroundSubmitProtocol(ABC):
-    """Protocol for submitting long-running actions as background jobs."""
-
-    @abstractmethod
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
-        Returns envelope indicating polling is required for final outcome.
-        """
-        pass
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_catalog_registration_protocol.py
-
-```python
-"""Dispatcher domain contract: action catalog registration protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-001: Register Action Catalog
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_metadata_vo import ActionMetadataVO
-
-
-class CatalogRegistrationProtocol(ABC):
-    """Protocol for registering actions into the dispatcher catalog."""
-
-    @abstractmethod
-    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
-        """Register an action in the catalog. Returns enriched metadata with catalog version.
-
-        FR-DSP-001: Duplicate names are rejected or replaced per policy.
-        Catalog exposes deterministic ordering sorted by action name.
-        """
-        pass
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_dispatcher_aggregate.py
-
-```python
-"""Dispatcher domain contract: dispatcher aggregate (ABC).
-
-Agent implements this aggregate. Surface layers depend on it.
-Facade for action dispatch operations: discovery, validation, dispatch, normalization.
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from typing import Any
-
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class IDispatcherAggregate(ABC):
-    """Aggregate facade for dispatcher operations.
-
-    Agent implements this aggregate (DispatcherOrchestrator). Surface layers depend on it.
-    Provides action discovery, request validation, synchronous dispatch, background submission, and result normalization.
-    """
-
-    @abstractmethod
-    def register_action(self, metadata: Any) -> Any:
-        ...
-
-    @abstractmethod
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
-        ...
-
-    @abstractmethod
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        ...
-
-    @abstractmethod
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        ...
-
-    @abstractmethod
-    def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        ...
-
-    @abstractmethod
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        ...
-
-    @abstractmethod
-    def execute_action(
-        self,
-        action_name: str,
-        parameters: dict[str, Any],
-    ) -> UnifiedResultEnvelopeVO:
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_request_validation_protocol.py
-
-```python
-"""Dispatcher domain contract: request validation protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-003: Validate Action Request
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-
-
-class RequestValidationProtocol(ABC):
-    """Protocol for validating action requests against catalog schema."""
-
-    @abstractmethod
-    def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Unknown action produces error; invalid params produce field-level detail.
-        Generates tracking ID when absent. Does not mutate request or catalog state.
-        Returns enriched same VO type with resolved_metadata and validated_tracking_id.
-        """
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_result_normalization_protocol.py
-
-```python
-"""Dispatcher domain contract: result normalization protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-006: Normalize Operation Result
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from typing import Any
-
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class ResultNormalizationProtocol(ABC):
-    """Protocol for normalizing all dispatcher outcomes into unified envelopes."""
-
-    @abstractmethod
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
-        """Normalize any dispatch or submission outcome into a unified result envelope.
-
-        FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
-        Returns identical shape for CLI and MCP consumers.
-        """
-        pass
-```
-
----
-
-## File: modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py
-
-```python
-"""Dispatcher domain contract: synchronous dispatch protocol (ABC).
-
-Capability implements this protocol. The Agent layer depends on it.
-
-FR-DSP-004: Dispatch Synchronous Action
-"""
-
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from .taxonomy_action_command_vo import ActionCommandVO
-from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-
-class SyncDispatchProtocol(ABC):
-    """Protocol for routing validated actions to owning features synchronously."""
-
-    @abstractmethod
-    def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Route a validated action to its owning feature and return normalized result.
-
-        FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
-        Returns standardized envelope; does not retry non-idempotent actions.
-        """
-        ...
-```
-
----
-
-## File: modules/shared/src/dispatcher/taxonomy_action_command_vo.py
-
-```python
-"""Action request Value Object — merged input and output.
-
-Frozen dataclass following the unified VO pattern:
-  - Input fields set by caller
-  - Output fields enriched by dispatcher during validation/routing
-"""
-
-from __future__ import annotations
-
-import uuid
-from dataclasses import dataclass, field
-from typing import Any
-
-
-@dataclass(frozen=True)
-class ActionCommandVO:
-    """Action request — merged input and output in one frozen VO.
-
-    Input (set by caller):
-      - action_name, parameters, execution_mode, timeout_override,
-        confirmation_flag, tracking_id
-
-    Output (enriched by dispatcher during validation):
-      - resolved_metadata, validated_tracking_id, validation_warnings
-    """
-
-    # ─── Input ──────────────────────────────────────────────────
-
-    action_name: str
-    parameters: dict[str, Any] = field(default_factory=dict)
-    execution_mode: str | None = None
-    timeout_override: float | None = None
-    confirmation_flag: bool = False
-    tracking_id: str | None = None
-
-    # ─── Output ─────────────────────────────────────────────────
-
-    resolved_metadata: dict[str, Any] = field(default_factory=dict)
-    validated_tracking_id: str = ""
-    validation_warnings: list[str] = field(default_factory=list)
-
-    def __post_init__(self) -> None:
-        if not self.action_name:
-            raise ValueError("action_name must not be empty")
-
-        # Auto-generate tracking ID when absent
-        validated = self.tracking_id or str(uuid.uuid4())
-        object.__setattr__(self, "validated_tracking_id", validated)
-```
-
----
-
-## File: modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py
-
-```python
-"""Action catalog metadata Value Object.
-
-Represents a registered action's complete metadata profile including schema,
-flags, timeouts, and usage examples. Immutable once registered.
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import Any
-
-
-@dataclass(frozen=True)
-class ActionMetadataVO:
-    """Action catalog entry — immutable registration metadata.
-
-    Input (set by registering feature):
-      - action_name, owning_feature_ref, description, parameter_schema, etc.
-
-    Output (computed by dispatcher):
-      - catalog_version, degraded flag
-    """
-
-    # Required fields
-    action_name: str
-    owning_feature_ref: str
-    description: str
-    parameter_schema: dict[str, Any]
-    usage_examples: list[str]
-
-    # Metadata flags and defaults
-    default_timeout: float = 30.0
-    timeout_class: str = "default"
-    idempotency_flag: bool = False
-    scene_mutation_flag: bool = False
-    background_eligibility_flag: bool = False
-    destructive_flag: bool = False
-    read_only_flag: bool = False
-    long_running_flag: bool = False
-    risk_level: str = "medium"
-
-    # Output fields (set by dispatcher)
-    catalog_version: int = 0
-    degraded: bool = False
-
-    def __post_init__(self) -> None:
-        """Validate registration constraints."""
-        if not self.action_name:
-            raise ValueError("action_name must not be empty")
-        if not self.owning_feature_ref:
-            raise ValueError("owning_feature_ref must not be empty")
-        if self.default_timeout < 0:
-            raise ValueError("default_timeout must be non-negative")
-```
-
----
-
-## File: modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py
-
-```python
-"""Discovery result Value Object.
-
-Output of FR-DSP-002 ActionDiscoveryProtocol — canonical catalog snapshot with
-optional filtering, version, and metadata detail level.
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import Any
-
-
-@dataclass(frozen=True)
-class DiscoveryOutcomeVO:
-    """Discovery result concept — action list with metadata and catalog version.
-
-    Same canonical shape returned to CLI and MCP consumers.
-    """
-
-    # Output fields set by dispatcher
-    actions: list[dict[str, Any]] = field(default_factory=list)
-    catalog_version: int = 0
-    result_count: int = 0
-```
-
----
-
-## File: modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py
-
-```python
-"""Unified result envelope Value Object.
-
-Output of FR-DSP-006 ResultNormalizationProtocol — single envelope shape consumed
-by CLI and MCP layers for all dispatcher outcomes (success, error, background submission).
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import Any
-
-
-@dataclass(frozen=True)
-class UnifiedResultEnvelopeVO:
-    """Unified result envelope — standardized output for all dispatcher operations.
-
-    Contains success indicator, data payload, error category, message, tracking ID,
-    warnings, and metadata summary. Never leaks secrets or sensitive paths.
-    """
-
-    # Required fields
-    success: bool = False
-    message: str = ""
-    tracking_id: str = ""
-
-    # Optional fields (set when applicable)
-    data: dict[str, Any] | None = None
-    error_category: str | None = None
-    warnings: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    # Computed flags
-    data_truncated: bool = False
-
-    @classmethod
-    def success_envelope(
-        cls,
-        message: str,
-        tracking_id: str,
-        data: dict[str, Any] | None = None,
-        warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> UnifiedResultEnvelopeVO:
-        """Create a success envelope."""
-        return cls(
-            success=True,
-            message=message,
-            tracking_id=tracking_id,
-            data=data,
-            warnings=list(warnings) if warnings else [],
-            metadata=dict(metadata) if metadata else {},
-        )
-
-    @classmethod
-    def error_envelope(
-        cls,
-        message: str,
-        tracking_id: str,
-        error_category: str,
-        data: dict[str, Any] | None = None,
-        warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> UnifiedResultEnvelopeVO:
-        """Create an error envelope with category."""
-        return cls(
-            success=False,
-            message=message,
-            tracking_id=tracking_id,
-            error_category=error_category,
-            data=data,
-            warnings=list(warnings) if warnings else [],
-            metadata=dict(metadata) if metadata else {},
-        )
-
-    @classmethod
-    def safe_error_envelope(cls, message: str = "Envelope construction failed") -> UnifiedResultEnvelopeVO:
-        """Fallback envelope when envelope construction itself fails."""
-        return cls(
-            success=False,
-            message=message,
-            tracking_id="",
-            error_category="execution_error",
-        )
 ```
 
 ---
