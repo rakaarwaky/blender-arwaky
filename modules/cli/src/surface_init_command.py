@@ -3,8 +3,8 @@
 import os
 from typing import Any
 
-from .utility_cli_blender_process import launch_blender
-from .utility_cli_registry import Registry
+from modules.shared.src.launcher.utility_blender_process import launch_blender
+from modules.shared.src.launcher.utility_runtime_registry import Registry
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:

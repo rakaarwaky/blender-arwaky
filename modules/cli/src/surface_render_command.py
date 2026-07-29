@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from .utility_cli_registry import Registry
-from .utility_cli_socket_client import BlenderSocketClient
+from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
+from modules.shared.src.launcher.utility_runtime_registry import Registry
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:

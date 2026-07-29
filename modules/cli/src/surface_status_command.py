@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from .utility_cli_blender_process import is_running
-from .utility_cli_registry import Registry
+from modules.shared.src.launcher.utility_blender_process import is_running
+from modules.shared.src.launcher.utility_runtime_registry import Registry
 
 
 def handle(args: Any) -> dict[str, Any]:
