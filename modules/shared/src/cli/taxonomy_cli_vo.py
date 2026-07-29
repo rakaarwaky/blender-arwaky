@@ -1,6 +1,6 @@
 """CLI value objects — result envelope and error structures."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 

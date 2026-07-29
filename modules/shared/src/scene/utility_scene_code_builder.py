@@ -8,13 +8,7 @@ from __future__ import annotations
 from ..common.taxonomy_core_vo import PythonCode
 from .taxonomy_scene_constant import (
     CHILD_POLICY_DETACH,
-    CHILD_POLICY_DELETE,
-    CHILD_POLICY_REJECT,
     CLEANUP_MODE_ALL,
-    CLEANUP_MODE_MESHES,
-    CLEANUP_MODE_OBJECTS,
-    DEPENDENT_POLICY_IGNORE,
-    DEPENDENT_POLICY_REMOVE_SAFE,
     DEPENDENT_POLICY_REJECT,
 )
 from .taxonomy_scene_vo import SceneCleanupPolicyVO, SceneInspectionVO

@@ -10,9 +10,9 @@ from . import (
     taxonomy_launcher_error,
     taxonomy_launcher_event,
     taxonomy_launcher_vo,
+    utility_blender_process,
+    utility_runtime_registry,
 )
-from . import utility_blender_process
-from . import utility_runtime_registry
 from .contract_launch_protocol import LaunchProtocol
 from .contract_launcher_operate_aggregate import ILauncherOperateAggregate
 from .contract_locate_register_protocol import LocateRegisterProtocol

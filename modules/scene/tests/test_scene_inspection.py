@@ -20,17 +20,13 @@ from modules.scene.src.capabilities_scene_inspection_executor import SceneInspec
 from modules.shared.src.common.taxonomy_core_vo import (
     CleanupMode,
     ObjectCount,
-    Prompt,
-    PythonCode,
     SuccessFlag,
 )
-from modules.shared.src.gateway.contract_code_execution_protocol import ICodeExecutionProtocol
 from modules.shared.src.scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
     SceneStateSummaryVO,
 )
-
 
 # ─── Mock Code Executor ──────────────────────────────────────
 
@@ -38,7 +34,7 @@ from modules.shared.src.scene.taxonomy_scene_vo import (
 class MockCodeExecutor:
     """Mock code executor implementing ICodeExecutionProtocol for testing scene operations."""
 
-    def __init__(self, inspection_result: dict | None = None, cleanup_result: dict | None = None) -> None:  # noqa: ANN002
+    def __init__(self, inspection_result: dict | None = None, cleanup_result: dict | None = None) -> None:
         self._inspection_result = inspection_result or {
             "scene_name": "Scene",
             "total_object_count": 4,

@@ -15,11 +15,10 @@ import pytest
 
 from modules.security.src.capabilities_audit_emitter import AuditEmitter
 from modules.shared.src.security.taxonomy_security_vo import (
-    SecurityAuditEventVO,
     AuditSeverity,
+    SecurityAuditEventVO,
     ViolationCategory,
 )
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -207,7 +206,7 @@ class TestTargetMetadataRedaction:
         cap = _make_emitter()
         import asyncio
         event = _make_event(target_metadata={"auth": "password=hunter2"})
-        out = asyncio.run(cap.emit_audit(event))
+        asyncio.run(cap.emit_audit(event))
         # Original event still has raw secret
         assert event.target_metadata["auth"] == "password=hunter2"
 
@@ -355,7 +354,7 @@ class TestRateLimiting:
         cap = _make_emitter()
         import asyncio
         ids = set()
-        for i in range(10):
+        for _i in range(10):
             out = asyncio.run(cap.emit_audit(_make_event()))
             ids.add(out.event_id)
         assert len(ids) == 10
@@ -428,7 +427,7 @@ class TestEventImmutabilityAfterEmission:
         mock_sink.deliver = MagicMock(side_effect=lambda e: setattr(e, "mutated", True))
         cap = _make_emitter(mock_sink)
         import asyncio
-        out = asyncio.run(cap.emit_audit(_make_event()))
+        asyncio.run(cap.emit_audit(_make_event()))
         # The emitted event is a new instance; sink gets the same reference
         # but our _redact_sensitive creates copies, so original fields are safe
 

@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
 
 

@@ -1,14 +1,16 @@
 """MCP surface — 5 tools (execute_command, list_commands, health_check, get_config, read_skill_context) + per-domain action schemas."""
 
-from . import surface_execute_command
-from . import surface_get_config
-from . import surface_health_check
-from . import surface_list_commands
-from . import surface_prompt_register
-from . import surface_read_skill
-from . import surface_server_instance
-from . import surface_server_start
-from . import surface_tool_registry
+from . import (
+    surface_execute_command,
+    surface_get_config,
+    surface_health_check,
+    surface_list_commands,
+    surface_prompt_register,
+    surface_read_skill,
+    surface_server_instance,
+    surface_server_start,
+    surface_tool_registry,
+)
 from .surface_execute_command import ExecuteCommandHandler
 from .surface_get_config import GetConfigHandler
 from .surface_health_check import HealthCheckHandler

@@ -11,8 +11,8 @@ Layers:
 
 from .src.agent_gateway_orchestrator import GatewayOrchestrator
 from .src.capabilities_code_execution import CodeExecutionAdapter, CodeExecutionExecutor, TaskEntry
-from .src.capabilities_connection_manager import BlenderConnection, ConnectionExecutor
 from .src.capabilities_connection_maintenance import MaintenanceExecutor
+from .src.capabilities_connection_manager import BlenderConnection, ConnectionExecutor
 from .src.capabilities_scene_queue import OperationQueue, OperationState, SceneQueueExecutor
 from .src.capabilities_transport_executor import BlenderCommandAdapter, TransportExecutor
 

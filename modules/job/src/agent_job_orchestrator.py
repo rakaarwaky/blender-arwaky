@@ -25,8 +25,8 @@ from modules.shared.src.job.taxonomy_job_error import (
     TaskNotFoundError,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
-    CancelTaskCommand,
     CancellationResult,
+    CancelTaskCommand,
     CapacityStatus,
     CleanupSummary,
     CompleteTaskCommand,

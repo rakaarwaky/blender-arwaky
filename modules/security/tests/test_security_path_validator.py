@@ -7,10 +7,7 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock
-
-import pytest
 
 from modules.security.src.capabilities_path_validator import PathValidator
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -18,7 +15,6 @@ from modules.shared.src.security.taxonomy_security_vo import (
     PathValidationVO,
     SecurityPolicyVO,
 )
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

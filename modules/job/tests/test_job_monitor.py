@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+from modules.job.src.capabilities_job_monitor import JobStatusMonitor
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
@@ -17,29 +18,20 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ResultUrl,
     Timestamp,
 )
-from modules.shared.src.job.taxonomy_job_vo import (
-    CancellationReason,
-    CorrelationId,
-    ErrorCategory,
-    ProgressMessage,
-)
-from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
 from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    TERMINAL_JOB_STATES,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
-    CancellationReason,
+    CorrelationId,
+    ErrorCategory,
     JobStatusSnapshot,
     OperationType,
+    ProgressMessage,
 )
-
-from modules.job.src.capabilities_job_monitor import JobStatusMonitor
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

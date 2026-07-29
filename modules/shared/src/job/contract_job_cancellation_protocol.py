@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import JobState
-from .taxonomy_job_vo import CancelTaskCommand, CancellationResult
+from .taxonomy_job_vo import CancellationResult, CancelTaskCommand
 
 
 class IJobCancellation(ABC):

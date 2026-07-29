@@ -7,15 +7,13 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import time
-import uuid
-
 import pytest
 
+from modules.job.src.capabilities_job_checker import JobCapacityChecker
+from modules.job.src.capabilities_job_repository import InMemoryJobLifecycleRepository
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
     JobId,
-    JobState,
     Progress,
     ResultUrl,
     Timestamp,
@@ -27,7 +25,6 @@ from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
-    TERMINAL_JOB_STATES,
 )
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
@@ -36,24 +33,17 @@ from modules.shared.src.job.taxonomy_job_error import (
 )
 from modules.shared.src.job.taxonomy_job_vo import (
     CancellationReason,
-    CapacityDecision,
     CompleteTaskCommand,
     CorrelationId,
     CreateTaskCommand,
     ErrorCategory,
     FailTaskCommand,
     JobPolicy,
-    JobStatusSnapshot,
     OperationType,
     ProgressMessage,
     ProgressUpdateCommand,
     TaskMetadata,
 )
-
-from modules.job.src.capabilities_job_checker import JobCapacityChecker
-
-from modules.job.src.capabilities_job_repository import InMemoryJobLifecycleRepository
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -635,7 +625,6 @@ def test_transition_updates_timestamp(repo: InMemoryJobLifecycleRepository) -> N
     created = repo.create_task(cmd)
 
     # Advance clock and start task
-    import time as _time
     # We can't easily advance the clock in this fixture, but we verify updated_at changes
     # by checking the snapshot after transition
     snapshot_start = repo.start_task(created.job_id)

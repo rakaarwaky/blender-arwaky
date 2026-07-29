@@ -7,14 +7,11 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import pytest
-
 from modules.security.src.capabilities_sensitive_redactor import SensitiveRedactor
 from modules.shared.src.security.taxonomy_security_vo import (
     RedactionVO,
     SensitivityLevel,
 )
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -344,7 +341,7 @@ class TestEdgeCases:
     def test_multiline_secret_redacted(self) -> None:
         """FR-SEC-004: multiline secrets are redacted."""
         cap = _make_redactor()
-        res = _redact(cap, "password=line1\nline2")
+        _redact(cap, "password=line1\nline2")
         # The pattern matches up to whitespace/comma, so only line1 is redacted
         # This is expected behavior for the pattern-based approach
 

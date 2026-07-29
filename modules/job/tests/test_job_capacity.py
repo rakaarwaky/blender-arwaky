@@ -8,14 +8,10 @@ from __future__ import annotations
 
 import pytest
 
+from modules.job.src.capabilities_job_checker import JobCapacityChecker
 from modules.shared.src.job.taxonomy_job_vo import (
-    CapacityDecision,
-    CapacityStatus,
     JobPolicy,
 )
-
-from modules.job.src.capabilities_job_checker import JobCapacityChecker
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

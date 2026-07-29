@@ -11,12 +11,11 @@ unchanged.
 from __future__ import annotations
 
 from typing import Any
-
 from unittest.mock import patch
 
 from modules.mcp.src.surface_execute_command import ExecuteCommandHandler
-from modules.mcp.src.surface_list_commands import ListCommandsHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
+from modules.mcp.src.surface_list_commands import ListCommandsHandler
 from modules.mcp.src.surface_read_skill import SkillDocumentationReader, SkillReadHandler
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 

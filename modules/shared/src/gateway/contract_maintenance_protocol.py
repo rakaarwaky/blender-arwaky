@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import ConnectionStatusVO, ConnectionState
+from .taxonomy_gateway_vo import ConnectionState, ConnectionStatusVO
 
 
 class ConnectionMaintenanceProtocol(ABC):

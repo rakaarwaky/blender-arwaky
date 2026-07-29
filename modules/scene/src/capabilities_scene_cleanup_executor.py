@@ -23,7 +23,6 @@ from modules.shared.src.scene.contract_scene_cleanup_protocol import ISceneClean
 from modules.shared.src.scene.taxonomy_scene_constant import (
     CLEANUP_CONFIRMATION_REQUIRED,
     PRESERVATION_CAMERA,
-    PRESERVATION_LIGHT,
 )
 from modules.shared.src.scene.taxonomy_scene_error import SceneError, SceneErrorCategory
 from modules.shared.src.scene.taxonomy_scene_event import (
@@ -33,8 +32,6 @@ from modules.shared.src.scene.taxonomy_scene_event import (
 )
 from modules.shared.src.scene.taxonomy_scene_vo import (
     ObjectCount,
-    ObjectName,
-    SceneCleanupPolicyVO,
     SceneCleanupVO,
 )
 from modules.shared.src.scene.utility_scene_code_builder import build_cleanup_code
@@ -259,7 +256,7 @@ class SceneCleanupPolicy:
         self.protect_sole_camera = protect_sole_camera
 
     @classmethod
-    def from_request(cls, request: SceneCleanupVO) -> "SceneCleanupPolicy":
+    def from_request(cls, request: SceneCleanupVO) -> SceneCleanupPolicy:
         """Resolve policy from cleanup request."""
         preservation = set(request.preservation_list)
         return cls(

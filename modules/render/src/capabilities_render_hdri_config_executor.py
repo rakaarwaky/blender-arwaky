@@ -8,14 +8,14 @@ from __future__ import annotations
 import logging
 from dataclasses import replace
 
-from modules.shared.src.gateway.contract_code_execution_protocol import (
-    ICodeExecutionProtocol,
-)
 from modules.shared.src.common.taxonomy_core_vo import (
     LightStrength,
     Prompt,
     PythonCode,
     SuccessFlag,
+)
+from modules.shared.src.gateway.contract_code_execution_protocol import (
+    ICodeExecutionProtocol,
 )
 from modules.shared.src.render.contract_render_hdri_config_protocol import (
     IRenderHdriConfigProtocol,

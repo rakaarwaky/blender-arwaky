@@ -14,7 +14,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
     JobStatusSnapshot,
 )
 
-
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
 

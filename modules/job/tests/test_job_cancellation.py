@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import pytest
 
+from modules.job.src.capabilities_job_evaluator import JobCancellationEvaluator
 from modules.shared.src.common.taxonomy_core_vo import (
     JobId,
     JobState,
 )
-from modules.shared.src.job.contract_job_cancellation_protocol import IJobCancellation
 from modules.shared.src.job.taxonomy_job_constant import (
     CANCELLATION_ACCEPTED,
     CANCELLATION_ALREADY_TERMINAL,
@@ -23,16 +23,11 @@ from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    TERMINAL_JOB_STATES,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
     CancellationReason,
-    CancellationResult,
     CancelTaskCommand,
 )
-
-from modules.job.src.capabilities_job_evaluator import JobCancellationEvaluator
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

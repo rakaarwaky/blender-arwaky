@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
-from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
 from modules.shared.src.scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
 from modules.shared.src.scene.taxonomy_scene_error import SceneErrorCategory
 from modules.shared.src.scene.taxonomy_scene_event import SceneInspectionCompletedEvent

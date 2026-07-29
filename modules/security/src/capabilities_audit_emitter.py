@@ -81,14 +81,13 @@ class AuditEmitter(EmitAuditProtocol):
             policy_mode=event.policy_mode,
         )
 
-        fallback_record: SecurityAuditEventVO | None = None
         if self._sink:
             try:
                 self._sink.deliver(emitted)
             except Exception as exc:
                 # FR-SEC-005: audit sink unavailable — create local fallback record
                 logger.warning("Audit sink delivery failed: %s", exc)
-                fallback_record = SecurityAuditEventVO(
+                SecurityAuditEventVO(
                     violation_category=event.violation_category,
                     operation_type=event.operation_type,
                     source_feature=event.source_feature,

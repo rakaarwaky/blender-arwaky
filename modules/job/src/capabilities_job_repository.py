@@ -50,7 +50,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
     FailTaskCommand,
     JobPolicy,
     JobStatusSnapshot,
-    OperationType,
     ProgressUpdateCommand,
 )
 from modules.shared.src.job.utility_job_sanitizer import (

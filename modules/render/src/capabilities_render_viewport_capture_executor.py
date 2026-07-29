@@ -9,14 +9,14 @@ import logging
 import time
 from dataclasses import replace
 
-from modules.shared.src.gateway.contract_code_execution_protocol import (
-    ICodeExecutionProtocol,
-)
 from modules.shared.src.common.taxonomy_core_vo import (
     DurationMs,
     Prompt,
     PythonCode,
     SuccessFlag,
+)
+from modules.shared.src.gateway.contract_code_execution_protocol import (
+    ICodeExecutionProtocol,
 )
 from modules.shared.src.render.contract_render_viewport_capture_protocol import (
     IRenderViewportCaptureProtocol,

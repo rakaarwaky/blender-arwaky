@@ -12,14 +12,12 @@ they violate the CLI FRD scope and are tracked as findings in the review
 plan/report.
 """
 
+import importlib.util as _importlib_util
 import os
 import struct
-import sys
 from unittest import mock
 
 import pytest
-
-import importlib.util as _importlib_util
 
 _ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 

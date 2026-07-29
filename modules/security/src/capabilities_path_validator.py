@@ -14,7 +14,6 @@ from modules.shared.src.security.taxonomy_security_vo import (
     PathValidationVO,
     SecurityPolicyVO,
 )
-
 from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
 
 

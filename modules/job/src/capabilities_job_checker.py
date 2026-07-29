@@ -9,7 +9,6 @@ from __future__ import annotations
 from modules.shared.src.job.contract_job_capacity_protocol import IJobCapacity
 from modules.shared.src.job.taxonomy_job_vo import CapacityDecision, JobPolicy
 
-
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
 

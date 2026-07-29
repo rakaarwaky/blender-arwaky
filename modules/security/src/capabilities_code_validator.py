@@ -6,10 +6,9 @@ Implements ValidateCodeProtocol.
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import logging
-
-import ast
 
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.taxonomy_security_vo import (

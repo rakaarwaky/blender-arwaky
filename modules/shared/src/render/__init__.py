@@ -9,13 +9,11 @@ from . import (
     taxonomy_render_event,
     taxonomy_render_vo,
 )
-
 from .contract_render_aggregate import IRenderAggregate
 from .contract_render_camera_config_protocol import IRenderCameraConfigProtocol
 from .contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
 from .contract_render_scene_image_protocol import IRenderSceneImageProtocol
 from .contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
-
 from .taxonomy_render_constant import (
     CAMERA_SENSOR_FIT_AUTO,
     CAMERA_SENSOR_FIT_HORIZONTAL,
@@ -60,9 +58,7 @@ from .taxonomy_render_constant import (
     VIEW_ANGLE_ORTHOGRAPHIC,
     VIEW_ANGLE_PERSPECTIVE,
 )
-
 from .taxonomy_render_error import RenderError, RenderErrorCategory
-
 from .taxonomy_render_event import (
     CameraConfiguredEvent,
     HdriLightingConfiguredEvent,
@@ -71,7 +67,6 @@ from .taxonomy_render_event import (
     SceneRenderFailedEvent,
     ViewportCapturedEvent,
 )
-
 from .taxonomy_render_vo import (
     Aperture,
     CameraConfigMetricsVO,

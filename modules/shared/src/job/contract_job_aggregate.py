@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import JobId
 from .taxonomy_job_vo import (
-    CancelTaskCommand,
     CancellationResult,
+    CancelTaskCommand,
     CapacityStatus,
     CleanupSummary,
     CompleteTaskCommand,

@@ -9,15 +9,12 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
 from modules.security.src.capabilities_archive_guard import ArchiveGuard
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveEntryVO,
     ArchiveExtractionOptionsVO,
     ArchiveExtractionVO,
 )
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 

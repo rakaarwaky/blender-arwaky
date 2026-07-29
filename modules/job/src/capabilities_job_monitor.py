@@ -17,7 +17,6 @@ from modules.shared.src.job.taxonomy_job_constant import (
 from modules.shared.src.job.taxonomy_job_vo import JobStatusSnapshot
 from modules.shared.src.job.utility_job_sanitizer import redact_metadata
 
-
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -201,7 +201,7 @@ class TestAuditRedaction:
 
     def test_audit_redacts_sensitive_in_metadata(self) -> None:
         cap = _make_emitter()
-        result = asyncio.run(
+        asyncio.run(
             cap.emit_audit_event(
                 category="security_violation",
                 severity="critical",
