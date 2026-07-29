@@ -22,14 +22,14 @@ from pathlib import Path
 from typing import Any
 
 from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    ArchiveEntryVO,
+    ArchiveExtractionOptionsVO,
+)
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
 from modules.shared.src.security.contract_extract_archive_protocol import (
     ExtractArchiveProtocol,
-)
-from modules.shared.src.asset.taxonomy_asset_vo import (
-    ArchiveEntryVO,
-    ArchiveExtractionOptionsVO,
 )
 from modules.shared.src.security.taxonomy_security_vo import ArchiveExtractionVO
 
@@ -177,7 +177,7 @@ class AssetExtractCapability(AssetExtractProtocol):
         except (zipfile.BadZipFile, tarfile.TarError) as e:
             # FR-AST-003: partial extraction cleanup on failure
             logger.error("Extraction failed for %s: %s", artifact_path, e)
-            self._cleanup_extracted_files(extracted_files, dest)
+            self._cleanup_extracted_files(extracted_files)
             return {
                 "success": False,
                 "extracted_files": [],
@@ -271,7 +271,7 @@ class AssetExtractCapability(AssetExtractProtocol):
 
         return extracted
 
-    def _cleanup_extracted_files(self, extracted_files: list[str], dest: str) -> None:
+    def _cleanup_extracted_files(self, extracted_files: list[str]) -> None:
         """Clean up partially extracted files on failure.
 
         FR-AST-003: Partial extraction is cleaned up on failure to avoid

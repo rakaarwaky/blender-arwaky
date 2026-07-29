@@ -34,9 +34,6 @@ __all__ = [
     "ScaleNormalization",
 ]
 
-# Type alias for resolution preference strings (e.g., "low", "medium", "high")
-ResolutionPreference = str
-
 
 @dataclass(frozen=True)
 class AssetMetadataItem:
@@ -130,7 +127,7 @@ class AssetDownloadCacheVO:
     asset_id: AssetId
     asset_type: AssetType
     cache_dir: FilePath
-    resolution: str | None = None
+    resolution: ResolutionPreference | None = None
     overwrite_policy: str = "reuse"
     max_size: MaxSize | None = None
     # Output
