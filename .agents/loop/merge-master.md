@@ -43,7 +43,6 @@ Before starting, read:
   - Check existing labels: `gh label list`.
   - If relevant labels already exist, apply them to the new issues to make them easy to find.
   - If no relevant labels exist, create new appropriate tags using `gh label create <name> --color <color> --description "..."` and apply them.
-- **DO NOT delete local issue files** after processing. Leave `.agents/issues/` intact so they remain available for reference and future sessions.
 
 ### 3. Triage Issues and PRs
 
