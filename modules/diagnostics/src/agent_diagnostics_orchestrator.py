@@ -13,18 +13,18 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from modules.diagnostics.src.contract_audit_emission_protocol import AuditEmissionProtocol
-from modules.diagnostics.src.contract_health_composition_protocol import (
+from modules.shared.src.diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
+from modules.shared.src.diagnostics.contract_health_composition_protocol import (
     HealthCompositionProtocol,
 )
-from modules.diagnostics.src.contract_logging_policy_protocol import LoggingPolicyProtocol
-from modules.diagnostics.src.contract_metrics_collection_protocol import (
+from modules.shared.src.diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
+from modules.shared.src.diagnostics.contract_metrics_collection_protocol import (
     MetricsCollectionProtocol,
 )
-from modules.diagnostics.src.contract_snapshot_provision_protocol import (
+from modules.shared.src.diagnostics.contract_snapshot_provision_protocol import (
     SnapshotProvisionProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     AuditRecordVO,
     DiagnosticsSnapshotVO,
     HealthDetailsVO,

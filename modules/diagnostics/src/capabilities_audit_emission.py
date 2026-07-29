@@ -16,10 +16,10 @@ import uuid
 from collections import deque
 from typing import Any, Protocol
 
-from modules.diagnostics.src.contract_audit_emission_protocol import (
+from modules.shared.src.diagnostics.contract_audit_emission_protocol import (
     AuditEmissionProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import AuditRecordVO
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import AuditRecordVO
 from modules.shared.src.security.taxonomy_security_constant import (
     REDACTION_SENSITIVE_PATTERNS,
 )

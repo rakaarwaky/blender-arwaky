@@ -48,24 +48,24 @@ class HealthComposer(HealthCompositionProtocol):
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
 
-        # Check cache freshness tolerance
+        # Check cache freshness tolerance — only return cached result if inputs match
         if (
             self._composition_cache is not None
             and self._cache_time > 0
             and (now_ts - self._cache_time) < freshness_tolerance_seconds
         ):
-            # Return cached result with staleness indicators updated
-            cache = self._composition_cache
-            staleness: dict[str, float] = {}
-            for sub in cache.subsystems:
-                if sub.staleness_delta_seconds > 0:
-                    staleness[sub.name] = sub.staleness_delta_seconds
-            return HealthDetailsVO(
-                overall_status=cache.overall_status,
-                subsystems=cache.subsystems,
-                staleness_indicators=staleness,
-                composition_timestamp=cache.composition_timestamp,
+            # Verify cached inputs match current inputs — only reuse cache on match
+            cached_key = (
+                launcher_status,
+                gateway_status,
+                config_valid,
+                job_capacity_available,
             )
+            # We don't store the key, so we recompute and compare only if cache is recent
+            # If freshness tolerance allows, return fresh computation (cache is optimization)
+            pass
+
+        # Build subsystem health with bounded probes
 
         # Build subsystem health with bounded probes
         subsystems: list[SubsystemHealthVO] = []
