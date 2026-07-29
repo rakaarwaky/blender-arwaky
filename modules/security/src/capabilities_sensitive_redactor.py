@@ -29,7 +29,11 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def redact(self, request: RedactionVO) -> RedactionVO:
-        """Detect and redact sensitive values from text."""
+        """Detect and redact sensitive values from text.
+
+        FR-SEC-004: preserves non-sensitive key names during key-based redaction,
+        replacing only the value portion with [REDACTED].
+        """
         try:
             text = request.text
             redacted_count = 0
@@ -44,8 +48,9 @@ class SensitiveRedactor(RedactSensitiveProtocol):
                 # Quoted-key aware so custom key names also match JSON/`"key": "value"` forms
                 # — FR-SEC-004 nested/structured. Value half reuses KV_VALUE so spaced
                 # quoted values are consumed whole.
-                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + KV_VALUE
-                text, count = re.subn(pattern, "[REDACTED]", text)
+                # Preserve the key name, redact only the value (FR-SEC-004)
+                pattern = rf'((["\']?)(?:{re.escape(key)})\2\\s*[:=]\\s*)' + KV_VALUE
+                text, count = re.subn(pattern, r'\1[REDACTED]', text)
                 redacted_count += count
 
             if len(text) > 10_000:
