@@ -27,11 +27,11 @@ from modules.shared.src.common.taxonomy_domain_error import ValidationError
 from modules.shared.src.security.contract_extract_archive_protocol import (
     ExtractArchiveProtocol,
 )
-from modules.shared.src.security.taxonomy_security_vo import (
+from modules.shared.src.asset.taxonomy_asset_vo import (
     ArchiveEntryVO,
     ArchiveExtractionOptionsVO,
-    ArchiveExtractionVO,
 )
+from modules.shared.src.security.taxonomy_security_vo import ArchiveExtractionVO
 
 logger = logging.getLogger("BlenderMCPServer")
 

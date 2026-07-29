@@ -11,6 +11,7 @@ from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
     DurationMs,
+    FilePath,
     Prompt,
     PythonCode,
     SuccessFlag,
@@ -39,6 +40,13 @@ from modules.shared.src.render.utility_render_code_builder import (
 from modules.shared.src.render.utility_render_result_parser import (
     parse_artifact_result,
 )
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
+from modules.shared.src.security.taxonomy_security_vo import (
+    AccessMode,
+    PathValidationVO,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -47,8 +55,13 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
     """Capability for FR-RND-001: viewport capture."""
 
     # ─── Block 1: definition + constructor ─────────────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        security_validator: ValidatePathProtocol | None = None,
+    ) -> None:
         self._code_executor = code_executor
+        self._security_validator = security_validator
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def capture_viewport(self, request: ViewportCaptureVO) -> ViewportCaptureVO:
@@ -56,6 +69,16 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         validation_error = self._validate(request)
         if validation_error is not None:
             return self._failure(request, validation_error.to_prompt())
+
+        # FR-RND-001: Output location validated through security policy
+        try:
+            await self._validate_security(str(request.output_path))
+        except Exception as exc:
+            logger.warning("Security path validation failed: %s", exc)
+            return self._failure(
+                request,
+                Prompt(f"[{RenderErrorCategory.SECURITY_VIOLATION.value}] Path validation failed: {exc}"),
+            )
 
         try:
             start_time = time.perf_counter()
@@ -126,7 +149,27 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
                 message=Prompt(f"Invalid overwrite policy: {request.overwrite_policy}"),
             )
 
+        # FR-RND-001: Max size enforced (aspect ratio preserved by runtime)
+        max_size = int(request.max_size)
+        if max_size > 0 and max_size < 64:
+            return RenderError(
+                category=RenderErrorCategory.VALIDATION,
+                message=Prompt(f"max_size must be at least 64 pixels"),
+            )
+
         return None
+
+    async def _validate_security(self, path: str) -> None:
+        """Validate output path through security policy (FR-RND-001)."""
+        if self._security_validator is None:
+            return
+        request = PathValidationVO(
+            target_path=path,
+            access_mode=AccessMode.WRITE,
+        )
+        result = await self._security_validator.validate_path(request)
+        if not result.allowed:
+            raise Exception(result.denial_reason or "Path validation denied by security policy")
 
     async def _execute_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)

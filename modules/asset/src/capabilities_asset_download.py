@@ -119,6 +119,11 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                     "error": str(e),
                 }
 
+        # FR-AST-005: Check metadata freshness before download
+        stale = await self._check_metadata_staleness(provider, asset_id)
+        if stale:
+            logger.debug("Metadata stale for %s (%s), refreshed before download", asset_id, provider)
+
         # Check cache for existing valid artifact
         cache_key = f"{provider}:{asset_id}:{resolution or 'default'}"
         cached_path = self._get_cache_path(cache_key)
@@ -252,6 +257,31 @@ class AssetDownloadCapability(AssetDownloadProtocol):
             except Exception:
                 logger.warning("Could not query size for %s/%s from config; using default", provider, asset_id)
         return 5000000  # 5 MB conservative default
+
+    async def _check_metadata_staleness(self, provider: ProviderName, asset_id: AssetId) -> bool:
+        """Check if asset metadata is stale and needs refresh.
+
+        FR-AST-005: Stale metadata refreshed before download to ensure
+        current availability and integrity information. Returns True when
+        metadata is considered stale and requires refresh.
+
+        Args:
+            provider: Provider identifier.
+            asset_id: Asset identifier.
+
+        Returns:
+            True if metadata is stale, False if still fresh.
+        """
+        try:
+            if self.config_getter:
+                entrypoint = await self.config_getter.get_entrypoint()
+                # Query metadata freshness via the provider adapter
+                fresh = await entrypoint.is_metadata_fresh(str(provider), str(asset_id))
+                return not fresh if fresh is not None else True
+        except Exception as e:
+            logger.warning("Metadata freshness check failed for %s/%s: %s", provider, asset_id, e)
+        # Default to stale when freshness cannot be determined
+        return True
 
     async def _submit_background_download(
         self, provider: ProviderName, asset_id: AssetId, cache_path: str

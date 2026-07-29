@@ -13,9 +13,13 @@ from typing import Any
 from modules.shared.src.asset.contract_asset_provider_protocol import (
     AssetProviderProtocol,
 )
+from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
+    AssetType,
     ProviderName,
+    TagList,
+    ThumbnailUrl,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -45,7 +49,7 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
         raw_provider_data: dict[str, Any],
         provider_name: ProviderName,
         asset_id: AssetId,
-    ) -> dict[str, Any]:
+    ) -> ProviderMetadataVO:
         """Normalize provider-specific asset description into common shape.
 
         FR-AST-005: Includes at least name, provider, type, categories,
@@ -59,7 +63,7 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
             asset_id: Asset identifier from provider.
 
         Returns:
-            Dict with normalized metadata fields.
+            ProviderMetadataVO with normalized metadata fields.
         """
         cache_key = f"{provider_name}:{asset_id}"
 
@@ -69,26 +73,26 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
             age = (datetime.now(timezone.utc) - cached["timestamp"]).total_seconds()
             if age < self.cache_ttl_seconds:
                 logger.debug("Using cached metadata for %s", cache_key)
-                return dict(cached["data"])
+                return cached["vo"]
 
         # Normalize fields
-        normalized = {
-            "name": self._extract_name(raw_provider_data),
-            "provider": provider_name,
-            "id": asset_id,
-            "type": self._extract_type(raw_provider_data),
-            "categories": self._extract_categories(raw_provider_data),
-            "thumbnail_url": self._extract_thumbnail(raw_provider_data),
-            "license_summary": self._extract_license(raw_provider_data),
-            "download_available": self._extract_download_availability(raw_provider_data),
-            "attribution": self._extract_attribution(raw_provider_data),
-            "extra_fields": self._extract_extra_fields(raw_provider_data),
-            "normalized_at": datetime.now(timezone.utc).isoformat(),
-        }
+        normalized = ProviderMetadataVO(
+            name=ProviderName(self._extract_name(raw_provider_data)),
+            provider=provider_name,
+            id=asset_id,
+            type=AssetType(self._extract_type(raw_provider_data)),
+            categories=TagList(self._extract_categories(raw_provider_data)),
+            thumbnail_url=ThumbnailUrl(self._extract_thumbnail(raw_provider_data)) if self._extract_thumbnail(raw_provider_data) else None,
+            license_summary=self._extract_license(raw_provider_data),
+            download_available=self._extract_download_availability(raw_provider_data),
+            attribution=self._extract_attribution(raw_provider_data),
+            extra_fields=self._extract_extra_fields(raw_provider_data),
+            normalized_at=datetime.now(timezone.utc).isoformat(),
+        )
 
         # Cache normalized result
         self._metadata_cache[cache_key] = {
-            "data": normalized,
+            "vo": normalized,
             "timestamp": datetime.now(timezone.utc),
         }
 

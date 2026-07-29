@@ -1,7 +1,7 @@
 """Tests for RenderHdriConfigExecutor — FR-RND-004: Configure HDRI Lighting.
 
-Exercises strength/path/overwrite validation, rotation normalization, Blender code
-generation, success path with mocked code executor, and execution failure.
+Exercises strength/path/overwrite validation, security delegation (optional), rotation normalization,
+Blender code generation, success path with mocked code executor, and execution failure.
 """
 
 from __future__ import annotations
@@ -23,6 +23,10 @@ from modules.shared.src.render.taxonomy_render_constant import (
     MIN_HDRI_STRENGTH,
 )
 from modules.shared.src.render.taxonomy_render_vo import HdriConfigVO, RotationDegrees
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
+from modules.shared.src.security.taxonomy_security_vo import PathValidationVO
 
 
 class MockCodeExecutor:
@@ -40,6 +44,29 @@ class MockCodeExecutor:
         return Prompt(json.dumps(self.payload) if self.payload is not None else "")
 
 
+class MockSecurityValidator(ValidatePathProtocol):
+    """Mock security path validator that always allows."""
+
+    def __init__(self, deny: bool = False) -> None:
+        self.deny = deny
+        self._calls: list[PathValidationVO] = []
+
+    async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
+        self._calls.append(request)
+        if self.deny:
+            return PathValidationVO(
+                target_path=request.target_path,
+                access_mode=request.access_mode,
+                allowed=False,
+                denial_reason="Path denied by security policy",
+            )
+        return PathValidationVO(
+            target_path=request.target_path,
+            access_mode=request.access_mode,
+            allowed=True,
+        )
+
+
 @pytest.fixture
 def executor() -> RenderHdriConfigExecutor:
     return RenderHdriConfigExecutor(
@@ -49,7 +76,8 @@ def executor() -> RenderHdriConfigExecutor:
                 "applied_strength": 1.0,
                 "applied_rotation": 0.0,
             }
-        )
+        ),
+        security_validator=MockSecurityValidator(),
     )
 
 
@@ -154,3 +182,25 @@ async def test_fr_rnd_004_execution_failure() -> None:
     bad = RenderHdriConfigExecutor(code_executor=MockCodeExecutor(fail=True))
     result = await bad.configure_hdri(_req())
     assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_004_security_delegation(
+    executor: RenderHdriConfigExecutor,
+) -> None:
+    """FR-RND-004: Verify security validator is called before HDRI config."""
+    await executor.configure_hdri(_req())
+    assert len(executor._security_validator._calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_004_security_rejection() -> None:
+    """FR-RND-004: Security rejection returns error."""
+    sec = MockSecurityValidator(deny=True)
+    cap = RenderHdriConfigExecutor(
+        code_executor=MockCodeExecutor(payload={"environment_ref": "World"}),
+        security_validator=sec,
+    )
+    result = await cap.configure_hdri(_req())
+    assert bool(result.success) is False
+    assert "security_violation" in str(result.message).lower()

@@ -1,7 +1,7 @@
 """Tests for render executors — FR-RND-001 (Viewport Capture) and FR-RND-002 (Scene Render).
 
 Exercises validation, Blender code generation, success paths with mocked code
-executor, and failure handling. All Blender transport is mocked.
+executor, security delegation, and failure handling. All Blender transport is mocked.
 """
 
 from __future__ import annotations
@@ -26,9 +26,16 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ResolutionY,
     UseDenoising,
 )
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
 from modules.shared.src.render.taxonomy_render_vo import (
     RenderSceneVO,
     ViewportCaptureVO,
+)
+from modules.shared.src.security.taxonomy_security_vo import (
+    AccessMode,
+    PathValidationVO,
 )
 
 
@@ -47,6 +54,31 @@ class MockCodeExecutor:
         return Prompt(json.dumps(self.payload) if self.payload is not None else "")
 
 
+class MockSecurityValidator(ValidatePathProtocol):
+    """Mock security path validator that always allows."""
+
+    def __init__(self, deny: bool = False) -> None:
+        self.deny = deny
+        self._calls: list[PathValidationVO] = []
+
+    async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
+        self._calls.append(request)
+        if self.deny:
+            return PathValidationVO(
+                target_path=request.target_path,
+                access_mode=request.access_mode,
+                allowed=False,
+                denial_reason="Path denied by security policy",
+            )
+        from pathlib import Path as P
+        return PathValidationVO(
+            target_path=request.target_path,
+            access_mode=request.access_mode,
+            allowed=True,
+            canonical_path=str(P(request.target_path).resolve()),
+        )
+
+
 # ─── FR-RND-001: Viewport capture ─────────────────────────────
 
 
@@ -60,7 +92,8 @@ def viewport_executor() -> RenderViewportCaptureExecutor:
                 "height": 1080,
                 "format": "PNG",
             }
-        )
+        ),
+        security_validator=MockSecurityValidator(),
     )
 
 
@@ -147,6 +180,30 @@ async def test_fr_rnd_001_execution_failure() -> None:
     assert bool(result.success) is False
 
 
+@pytest.mark.asyncio
+async def test_fr_rnd_001_security_delegation(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    """FR-RND-001: Verify security validator is called before execution."""
+    await viewport_executor.capture_viewport(_viewport_req())
+    assert len(viewport_executor._security_validator._calls) == 1
+    call = viewport_executor._security_validator._calls[0]
+    assert call.access_mode == AccessMode.WRITE
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_security_rejection() -> None:
+    """FR-RND-001: Security rejection returns error."""
+    sec = MockSecurityValidator(deny=True)
+    cap = RenderViewportCaptureExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/shot.png"}),
+        security_validator=sec,
+    )
+    result = await cap.capture_viewport(_viewport_req())
+    assert bool(result.success) is False
+    assert "security_violation" in str(result.message).lower()
+
+
 # ─── FR-RND-002: Scene render ─────────────────────────────────
 
 
@@ -162,7 +219,8 @@ def scene_executor() -> RenderSceneImageExecutor:
                 "engine_used": "CYCLES",
                 "denoising_applied": True,
             }
-        )
+        ),
+        security_validator=MockSecurityValidator(),
     )
 
 
@@ -253,3 +311,27 @@ async def test_fr_rnd_002_execution_failure() -> None:
     bad = RenderSceneImageExecutor(code_executor=MockCodeExecutor(fail=True))
     result = await bad.render_scene(_scene_req())
     assert bool(result.success) is False
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_security_delegation(
+    scene_executor: RenderSceneImageExecutor,
+) -> None:
+    """FR-RND-002: Verify security validator is called before render."""
+    await scene_executor.render_scene(_scene_req())
+    assert len(scene_executor._security_validator._calls) == 1
+    call = scene_executor._security_validator._calls[0]
+    assert call.access_mode == AccessMode.WRITE
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_security_rejection() -> None:
+    """FR-RND-002: Security rejection returns error."""
+    sec = MockSecurityValidator(deny=True)
+    cap = RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/render.png"}),
+        security_validator=sec,
+    )
+    result = await cap.render_scene(_scene_req())
+    assert bool(result.success) is False
+    assert "security_violation" in str(result.message).lower()

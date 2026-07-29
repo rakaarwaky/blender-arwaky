@@ -9,8 +9,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
+from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
 from modules.shared.src.asset.utility.utility_polyhaven_search import polyhaven_search
 from modules.shared.src.asset.utility.utility_sketchfab_search import sketchfab_search
@@ -19,23 +20,15 @@ from modules.shared.src.common.taxonomy_core_vo import SearchQuery
 logger = logging.getLogger("BlenderMCPServer")
 
 
-@runtime_checkable
-class GatewayTransport(Protocol):
-    """Minimal gateway transport protocol for provider adapters."""
-
-    async def send_command(self, action: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Send a command through the gateway and return the result."""
-        ...  # pragma: no cover
-
-
 class AssetSearchHandler(AssetSearchProtocol):
     """Asset search handler with configurable provider list.
 
     FR-AST-001: Unified search across providers. Defaults to Polyhaven and Sketchfab.
     Providers can be overridden at call time or via constructor injection.
+    Uses IAssetProviderConnection protocol instead of primitive `object` type.
     """
 
-    def __init__(self, connection: GatewayTransport, providers: list[str] | None = None) -> None:
+    def __init__(self, connection: IAssetProviderConnection, providers: list[str] | None = None) -> None:
         self._connection = connection
         self._providers = providers if providers is not None else ["Polyhaven", "Sketchfab"]
 

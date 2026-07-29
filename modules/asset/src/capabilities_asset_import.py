@@ -18,6 +18,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     FilePath,
 )
+from modules.shared.src.gateway.contract_gateway_client_protocol import GatewayClientProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -33,7 +34,7 @@ class AssetImportCapability(AssetImportProtocol):
 
     def __init__(
         self,
-        gateway_client: Any | None = None,
+        gateway_client: GatewayClientProtocol | None = None,
         config_getter: Any | None = None,
     ) -> None:
         """Initialize with dependencies.

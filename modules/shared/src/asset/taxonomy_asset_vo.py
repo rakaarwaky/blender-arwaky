@@ -20,6 +20,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     MaxSize,
     ObjectName,
     ProviderName,
+    ResolutionPreference,
     ScaleNormalization,
     SearchQuery,
     SuccessFlag,
@@ -204,3 +205,48 @@ class SearchResultVO:
     total: AssetCount | None = None
     provider_status: dict[str, str] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ArchiveEntryVO:
+    """Archive entry for security review (shared with security feature).
+
+    FR-AST-003: Used by AssetExtractCapability to enumerate archive entries
+    for the security supervisor. Replaces direct import of security taxonomy.
+    """
+
+    entry_path: str
+    is_directory: bool = False
+    is_symbolic_link: bool = False
+    is_hard_link: bool = False
+    compressed_size: int = 0
+    uncompressed_size: int = 0
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionOptionsVO:
+    """Options for archive extraction validation.
+
+    FR-AST-003: Passed to security supervisor via ArchiveExtractionVO.
+    Fields match security taxonomy to ensure protocol compatibility.
+    """
+
+    max_depth: int = 5
+    max_total_size: int = 104_857_600  # 100 MB
+    max_entry_size: int = 10_485_760  # 10 MB
+    max_entry_count: int = 1_000
+    allow_symbolic_links: bool = False
+    allow_hard_links: bool = False
+
+
+@dataclass(frozen=True)
+class ArchiveExtractionVO:
+    """Request to validate archive extraction.
+
+    FR-AST-003: Contains entries and options for the security supervisor.
+    Replaces direct import of security taxonomy VOs.
+    """
+
+    destination_directory: str
+    entries: tuple[ArchiveEntryVO, ...]
+    options: ArchiveExtractionOptionsVO

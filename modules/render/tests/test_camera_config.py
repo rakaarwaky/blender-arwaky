@@ -1,8 +1,8 @@
 """Tests for RenderCameraConfigExecutor — FR-RND-003: Configure Camera.
 
-Exercises lens/sensor-fit validation, Blender code generation, success path with
-a mocked code executor, and execution failure handling. All Blender transport is
-mocked via a duck-typed ICodeExecutionProtocol (execute_python).
+Exercises lens/sensor-fit validation, security delegation (optional), Blender code generation,
+success path with a mocked code executor, and execution failure handling.
+All Blender transport is mocked via a duck-typed ICodeExecutionProtocol (execute_python).
 """
 
 from __future__ import annotations
@@ -20,6 +20,10 @@ from modules.shared.src.render.taxonomy_render_constant import (
     MIN_FOCAL_LENGTH,
 )
 from modules.shared.src.render.taxonomy_render_vo import CameraConfigVO, FocalLength
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
+from modules.shared.src.security.taxonomy_security_vo import PathValidationVO
 
 
 class MockCodeExecutor:
@@ -37,6 +41,29 @@ class MockCodeExecutor:
         return Prompt(json.dumps(self.payload) if self.payload is not None else "")
 
 
+class MockSecurityValidator(ValidatePathProtocol):
+    """Mock security path validator that always allows."""
+
+    def __init__(self, deny: bool = False) -> None:
+        self.deny = deny
+        self._calls: list[PathValidationVO] = []
+
+    async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
+        self._calls.append(request)
+        if self.deny:
+            return PathValidationVO(
+                target_path=request.target_path,
+                access_mode=request.access_mode,
+                allowed=False,
+                denial_reason="Path denied by security policy",
+            )
+        return PathValidationVO(
+            target_path=request.target_path,
+            access_mode=request.access_mode,
+            allowed=True,
+        )
+
+
 @pytest.fixture
 def executor() -> RenderCameraConfigExecutor:
     return RenderCameraConfigExecutor(
@@ -47,7 +74,8 @@ def executor() -> RenderCameraConfigExecutor:
                 "active_status": True,
                 "depth_of_field_applied": False,
             }
-        )
+        ),
+        security_validator=MockSecurityValidator(),
     )
 
 

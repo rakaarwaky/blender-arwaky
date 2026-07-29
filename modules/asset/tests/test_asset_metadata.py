@@ -58,7 +58,7 @@ async def test_fr_ast_005_normalize_name_from_title(
 ):
     """Test that name is extracted from 'title' field when 'name' absent."""
     result = await capability.normalize_metadata(raw_polyhaven_data, ProviderName("polyhaven"), "hdri_001")
-    assert result["name"] == "Forest Road HDRI"
+    assert result.name == "Forest Road HDRI"
 
 
 @pytest.mark.asyncio
@@ -67,14 +67,14 @@ async def test_fr_ast_005_normalize_name_from_name(
 ):
     """Test that name is extracted from 'name' field when present."""
     result = await capability.normalize_metadata(raw_sketchfab_data, ProviderName("sketchfab"), "chair_001")
-    assert result["name"] == "Office Chair"
+    assert result.name == "Office Chair"
 
 
 @pytest.mark.asyncio
 async def test_fr_ast_005_normalize_type(capability: AssetProviderMetadataCapability, raw_polyhaven_data: dict):
     """Test that asset type is normalized to lowercase."""
     result = await capability.normalize_metadata(raw_polyhaven_data, ProviderName("polyhaven"), "hdri_001")
-    assert result["type"] == "hdri"
+    assert result.type == "hdri"
 
 
 @pytest.mark.asyncio
@@ -82,14 +82,14 @@ async def test_fr_ast_005_normalize_type_defaults_to_model():
     """Test that type defaults to 'model' when no type field found."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({}, ProviderName("polyhaven"), "asset_001")
-    assert result["type"] == "model"
+    assert result.type == "model"
 
 
 @pytest.mark.asyncio
 async def test_fr_ast_005_normalize_categories(capability: AssetProviderMetadataCapability, raw_polyhaven_data: dict):
     """Test that categories are extracted from various field names."""
     result = await capability.normalize_metadata(raw_polyhaven_data, ProviderName("polyhaven"), "hdri_001")
-    assert result["categories"] == ["nature", "outdoor"]
+    assert result.categories == ["nature", "outdoor"]
 
 
 @pytest.mark.asyncio
@@ -97,7 +97,7 @@ async def test_fr_ast_005_categories_from_list():
     """Test categories extraction when field is a list."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({"tags": ["tag1", "tag2"]}, ProviderName("sketchfab"), "asset_001")
-    assert result["categories"] == ["tag1", "tag2"]
+    assert result.categories == ["tag1", "tag2"]
 
 
 @pytest.mark.asyncio
@@ -105,7 +105,7 @@ async def test_fr_ast_005_categories_from_string():
     """Test categories extraction when field is a single string."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({"keywords": "single"}, ProviderName("polyhaven"), "asset_001")
-    assert result["categories"] == ["single"]
+    assert result.categories == ["single"]
 
 
 @pytest.mark.asyncio
@@ -116,7 +116,7 @@ async def test_fr_ast_005_thumbnail_url_protected(capability: AssetProviderMetad
         "thumbnail_url": "https://example.com/preview.png?token=secret123",
     }
     result = await capability.normalize_metadata(data, ProviderName("sketchfab"), "protected_001")
-    assert result["thumbnail_url"] is None
+    assert result.thumbnail_url is None
 
 
 @pytest.mark.asyncio
@@ -128,7 +128,7 @@ async def test_fr_ast_005_thumbnail_s3_signed_url_stripped():
         "thumbnail_url": "https://s3.amazonaws.com/asset.png?X-Amz-Signature=abc",
     }
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "s3_001")
-    assert result["thumbnail_url"] is None
+    assert result.thumbnail_url is None
 
 
 @pytest.mark.asyncio
@@ -140,7 +140,7 @@ async def test_fr_ast_005_thumbnail_signature_stripped():
         "thumbnail_url": "https://example.com/img.png?signature=xyz",
     }
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "sig_001")
-    assert result["thumbnail_url"] is None
+    assert result.thumbnail_url is None
 
 
 @pytest.mark.asyncio
@@ -148,7 +148,7 @@ async def test_fr_ast_005_license_summary_only(capability: AssetProviderMetadata
     """Test that license is kept as summary (max 100 chars)."""
     data = {**raw_polyhaven_data, "license": "A" * 200}
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "hdri_001")
-    assert len(result["license_summary"] or "") <= 100
+    assert len(result.license_summary or "") <= 100
 
 
 @pytest.mark.asyncio
@@ -156,7 +156,7 @@ async def test_fr_ast_005_license_none_when_missing():
     """Test that license is None when no license field found."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({"name": "No License"}, ProviderName("polyhaven"), "asset_001")
-    assert result["license_summary"] is None
+    assert result.license_summary is None
 
 
 @pytest.mark.asyncio
@@ -164,7 +164,7 @@ async def test_fr_ast_005_download_available_default_true():
     """Test that download availability defaults to True when not specified."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({"name": "Asset"}, ProviderName("polyhaven"), "asset_001")
-    assert result["download_available"] is True
+    assert result.download_available is True
 
 
 @pytest.mark.asyncio
@@ -179,14 +179,14 @@ async def test_fr_ast_005_download_available_false():
     data = {"name": "Asset", "is_downloadable": False}
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
     # Implementation truthiness check: False is falsy, falls to default True
-    assert result["download_available"] is True
+    assert result.download_available is True
 
 
 @pytest.mark.asyncio
 async def test_fr_ast_005_attribution_preserved(capability: AssetProviderMetadataCapability, raw_sketchfab_data: dict):
     """Test that attribution requirements are preserved."""
     result = await capability.normalize_metadata(raw_sketchfab_data, ProviderName("sketchfab"), "chair_001")
-    assert result["attribution"] == "ChairMaker3D"
+    assert result.attribution == "ChairMaker3D"
 
 
 @pytest.mark.asyncio
@@ -199,8 +199,8 @@ async def test_fr_ast_005_extra_fields_preserved():
         "another_extra": 123,
     }
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
-    assert "custom_field" in result["extra_fields"]
-    assert result["extra_fields"]["another_extra"] == 123
+    assert "custom_field" in result.extra_fields
+    assert result.extra_fields["another_extra"] == 123
 
 
 @pytest.mark.asyncio
@@ -214,9 +214,9 @@ async def test_fr_ast_005_reserved_keys_stripped():
         "custom": "keep",
     }
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
-    assert "custom" in result["extra_fields"]
-    assert "name" not in result["extra_fields"]
-    assert "provider" not in result["extra_fields"]
+    assert "custom" in result.extra_fields
+    assert "name" not in result.extra_fields
+    assert "provider" not in result.extra_fields
 
 
 @pytest.mark.asyncio
@@ -224,7 +224,8 @@ async def test_fr_ast_005_normalized_at_included():
     """Test that normalized_at timestamp is included."""
     capability = AssetProviderMetadataCapability()
     result = await capability.normalize_metadata({"name": "Asset"}, ProviderName("polyhaven"), "asset_001")
-    assert "normalized_at" in result
+    assert hasattr(result, "normalized_at")
+    assert result.normalized_at != ""
 
 
 @pytest.mark.asyncio
@@ -248,7 +249,9 @@ async def test_fr_ast_005_credentials_not_in_metadata():
     }
     result = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
 
-    for value in result.values():
+    # Check string fields for credentials
+    for field_name in ("name", "license_summary", "attribution"):
+        value = getattr(result, field_name, None)
         if isinstance(value, str):
             assert "secret" not in value.lower() or value == "CC0"
 
@@ -264,7 +267,7 @@ async def test_fr_ast_005_cache_reuse(capability: AssetProviderMetadataCapabilit
 
     # Second call should use cache
     result = await capability.normalize_metadata(raw_polyhaven_data, ProviderName("polyhaven"), "hdri_001")
-    assert result["name"] == "Forest Road HDRI"
+    assert result.name == "Forest Road HDRI"
 
 
 @pytest.mark.asyncio
@@ -279,8 +282,8 @@ async def test_fr_ast_005_cache_key_includes_provider():
     r2 = await capability.normalize_metadata(data_skel, ProviderName("sketchfab"), "same_id")
 
     # Different providers should normalize differently
-    assert r1["name"] == "Poly Asset"
-    assert r2["name"] == "Sketchfab Asset"
+    assert r1.name == "Poly Asset"
+    assert r2.name == "Sketchfab Asset"
 
 
 @pytest.mark.asyncio
@@ -290,12 +293,12 @@ async def test_fr_ast_005_stale_cache_refreshes():
 
     data = {"name": "Old Name", "type": "hdri"}
     r1 = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
-    assert r1["name"] == "Old Name"
+    assert r1.name == "Old Name"
 
     # Cache is effectively disabled with 0 TTL
     data["name"] = "New Name"
     r2 = await capability.normalize_metadata(data, ProviderName("polyhaven"), "asset_001")
-    assert r2["name"] == "New Name"
+    assert r2.name == "New Name"
 
 
 @pytest.mark.asyncio

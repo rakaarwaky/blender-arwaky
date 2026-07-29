@@ -9,6 +9,7 @@ import logging
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
+    FilePath,
     LightStrength,
     Prompt,
     PythonCode,
@@ -37,6 +38,13 @@ from modules.shared.src.render.utility_render_code_builder import (
 from modules.shared.src.render.utility_render_result_parser import (
     parse_hdri_config_result,
 )
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
+from modules.shared.src.security.taxonomy_security_vo import (
+    AccessMode,
+    PathValidationVO,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -45,8 +53,13 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
     """Capability for FR-RND-004: HDRI configuration."""
 
     # ─── Block 1: definition + constructor ─────────────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        security_validator: ValidatePathProtocol | None = None,
+    ) -> None:
         self._code_executor = code_executor
+        self._security_validator = security_validator
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def configure_hdri(self, request: HdriConfigVO) -> HdriConfigVO:
@@ -56,6 +69,16 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         validation_error = self._validate(normalized)
         if validation_error is not None:
             return self._failure(normalized, validation_error.to_prompt())
+
+        # FR-RND-004: Local HDRI file ref validated through security before use
+        try:
+            await self._validate_security(str(normalized.hdri_path))
+        except Exception as exc:
+            logger.warning("Security path validation failed: %s", exc)
+            return self._failure(
+                normalized,
+                Prompt(f"[{RenderErrorCategory.SECURITY_VIOLATION.value}] Path validation failed: {exc}"),
+            )
 
         try:
             code = build_hdri_config_code(normalized)
@@ -129,6 +152,18 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
             )
 
         return None
+
+    async def _validate_security(self, path: str) -> None:
+        """Validate HDRI file path through security policy (FR-RND-004)."""
+        if self._security_validator is None:
+            return
+        request = PathValidationVO(
+            target_path=path,
+            access_mode=AccessMode.READ,
+        )
+        result = await self._security_validator.validate_path(request)
+        if not result.allowed:
+            raise Exception(result.denial_reason or "Path validation denied by security policy")
 
     async def _execute_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)

@@ -16,6 +16,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     ProviderName,
 )
+from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
 
 
 class AssetProviderProtocol(ABC):
@@ -33,7 +34,7 @@ class AssetProviderProtocol(ABC):
         raw_provider_data: dict[str, Any],
         provider_name: ProviderName,
         asset_id: AssetId,
-    ) -> dict[str, Any]:
+    ) -> ProviderMetadataVO:
         """Normalize provider-specific asset description into common shape.
 
         FR-AST-005: Includes at least name, provider, type, categories,

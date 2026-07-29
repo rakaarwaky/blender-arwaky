@@ -281,3 +281,148 @@ async def test_fr_ast_002_credentials_not_logged():
     for _key, value in result.items():
         if isinstance(value, str):
             assert "secret" not in value.lower() or "provider" not in value.lower()
+
+
+@pytest.mark.asyncio
+async def test_fr_ast_005_metadata_staleness_check_when_config_getter_available(
+    capability_with_security: AssetDownloadCapability, cache_dir: str
+):
+    """Test FR-AST-005: metadata staleness check runs before download when config getter is wired."""
+
+    class MockEntrypoint:
+        async def get_download_size(self, *args: Any) -> int | None:
+            return 1000000  # Under max size limit
+
+        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+            return True  # Fresh metadata
+
+    class MockConfigGetter:
+        async def get_entrypoint(self) -> MockEntrypoint:
+            return MockEntrypoint()
+
+    cap = capability_with_security
+    cap.config_getter = MockConfigGetter()
+
+    result = await cap.download_to_cache(
+        provider=ProviderName("polyhaven"),
+        asset_id=AssetId("hdri_001"),
+        asset_type=AssetType("hdri"),
+        cache_dir=FilePath(cache_dir),
+    )
+
+    assert result["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_fr_ast_005_metadata_staleness_defaults_to_stale_when_check_fails(
+    capability_with_security: AssetDownloadCapability, cache_dir: str
+):
+    """Test FR-AST-005: stale check defaults to True when freshness cannot be determined."""
+
+    class MockEntrypoint:
+        async def get_download_size(self, *args: Any) -> int | None:
+            return 1000000
+
+        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+            raise Exception("adapter unreachable")
+
+    class MockConfigGetter:
+        async def get_entrypoint(self) -> MockEntrypoint:
+            return MockEntrypoint()
+
+    cap = capability_with_security
+    cap.config_getter = MockConfigGetter()
+
+    result = await cap.download_to_cache(
+        provider=ProviderName("polyhaven"),
+        asset_id=AssetId("hdri_001"),
+        asset_type=AssetType("hdri"),
+        cache_dir=FilePath(cache_dir),
+    )
+
+    # Should proceed with download despite staleness check failure
+    assert result["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_fr_ast_005_staleness_check_skipped_without_config_getter(
+    capability_with_security: AssetDownloadCapability, cache_dir: str
+):
+    """Test FR-AST-005: staleness check gracefully skipped when config getter not wired."""
+    cap = capability_with_security
+    # config_getter is None by default from fixture
+
+    result = await cap.download_to_cache(
+        provider=ProviderName("polyhaven"),
+        asset_id=AssetId("hdri_001"),
+        asset_type=AssetType("hdri"),
+        cache_dir=FilePath(cache_dir),
+    )
+
+    assert result["success"] is True
+
+
+def test_fr_ast_005_check_metadata_staleness_fresh(cache_dir: str):
+    """Test _check_metadata_staleness returns False when metadata is fresh."""
+    import asyncio as _asyncio
+
+    class MockEntrypoint:
+        async def get_download_size(self, *args: Any) -> int | None:
+            return 0
+        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+            return True
+
+    class MockConfigGetter:
+        async def get_entrypoint(self) -> MockEntrypoint:
+            return MockEntrypoint()
+
+    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
+    assert result is False
+
+
+def test_fr_ast_005_check_metadata_staleness_stale(cache_dir: str):
+    """Test _check_metadata_staleness returns True when metadata is stale."""
+    import asyncio as _asyncio
+
+    class MockEntrypoint:
+        async def get_download_size(self, *args: Any) -> int | None:
+            return 0
+        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+            return False
+
+    class MockConfigGetter:
+        async def get_entrypoint(self) -> MockEntrypoint:
+            return MockEntrypoint()
+
+    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
+    assert result is True
+
+
+def test_fr_ast_005_check_metadata_staleness_no_config_getter():
+    """Test _check_metadata_staleness defaults to True when config getter not wired."""
+    import asyncio as _asyncio
+
+    cap = AssetDownloadCapability()
+    result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
+    assert result is True
+
+
+def test_fr_ast_005_check_metadata_staleness_exception_defaults_to_stale():
+    """Test _check_metadata_staleness defaults to True when freshness check raises."""
+    import asyncio as _asyncio
+
+    class MockEntrypoint:
+        async def get_download_size(self, *args: Any) -> int | None:
+            raise Exception("broken")
+        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+            raise Exception("adapter down")
+
+    class MockConfigGetter:
+        async def get_entrypoint(self) -> MockEntrypoint:
+            return MockEntrypoint()
+
+    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
+    assert result is True

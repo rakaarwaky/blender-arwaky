@@ -11,6 +11,12 @@ from typing import TYPE_CHECKING
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
+from modules.shared.src.job.contract_job_capacity_protocol import (
+    IJobCapacity,
+)
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
 
 if TYPE_CHECKING:
     from .agent_render_orchestrator import RenderOrchestrator
@@ -19,8 +25,15 @@ if TYPE_CHECKING:
 class RenderContainer:
     """Dependency injection container for render feature."""
 
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        security_validator: ValidatePathProtocol | None = None,
+        job_capacity: IJobCapacity | None = None,
+    ) -> None:
         self._code_executor = code_executor
+        self._security_validator = security_validator
+        self._job_capacity = job_capacity
         self._lock = threading.Lock()
         self._orchestrator: RenderOrchestrator | None = None
 
@@ -47,10 +60,23 @@ class RenderContainer:
                 RenderViewportCaptureExecutor,
             )
 
-            viewport_capture = RenderViewportCaptureExecutor(self._code_executor)
-            scene_image = RenderSceneImageExecutor(self._code_executor)
-            camera_config = RenderCameraConfigExecutor(self._code_executor)
-            hdri_config = RenderHdriConfigExecutor(self._code_executor)
+            viewport_capture = RenderViewportCaptureExecutor(
+                self._code_executor,
+                self._security_validator,
+            )
+            scene_image = RenderSceneImageExecutor(
+                self._code_executor,
+                self._security_validator,
+                self._job_capacity,
+            )
+            camera_config = RenderCameraConfigExecutor(
+                self._code_executor,
+                self._security_validator,
+            )
+            hdri_config = RenderHdriConfigExecutor(
+                self._code_executor,
+                self._security_validator,
+            )
 
             self._orchestrator = RenderOrchestrator(
                 viewport_capture=viewport_capture,
@@ -70,6 +96,14 @@ class RenderContainer:
         return "RenderContainer()"
 
 
-def create_render_container(code_executor: ICodeExecutionProtocol) -> RenderContainer:
+def create_render_container(
+    code_executor: ICodeExecutionProtocol,
+    security_validator: ValidatePathProtocol | None = None,
+    job_capacity: IJobCapacity | None = None,
+) -> RenderContainer:
     """Factory for RenderContainer."""
-    return RenderContainer(code_executor=code_executor)
+    return RenderContainer(
+        code_executor=code_executor,
+        security_validator=security_validator,
+        job_capacity=job_capacity,
+    )
