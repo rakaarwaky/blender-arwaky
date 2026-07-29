@@ -63,6 +63,28 @@ from modules.shared.src.config.utility_config_helpers import (
     validate_settings_schema,
 )
 
+# ─── Module-Level Constants ────────────────────────────────
+# Cached defaults and schema copies to avoid per-instantiation deepcopy overhead.
+# Only deep-copied when the caller provides custom defaults/schema.
+_DEFAULTS_CACHE: SettingsOverrides | None = None
+_SCHEMA_CACHE: SettingsSchema | None = None
+
+
+def _get_defaults_cache() -> SettingsOverrides:
+    """Return a cached deep copy of DEFAULT_SETTINGS, creating it once."""
+    global _DEFAULTS_CACHE
+    if _DEFAULTS_CACHE is None:
+        _DEFAULTS_CACHE = copy.deepcopy(DEFAULT_SETTINGS)
+    return dict(_DEFAULTS_CACHE)
+
+
+def _get_schema_cache() -> SettingsSchema:
+    """Return a cached deep copy of SETTINGS_SCHEMA, creating it once."""
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE is None:
+        _SCHEMA_CACHE = copy.deepcopy(SETTINGS_SCHEMA)
+    return dict(_SCHEMA_CACHE)
+
 
 # ─── Block 1: Class Definition & Constructor ───────────────
 class SettingsLoaderCapability(ISettingsLoaderProtocol):
@@ -84,8 +106,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
-        self._defaults = dict(defaults) if defaults is not None else copy.deepcopy(DEFAULT_SETTINGS)
-        self._schema = dict(schema) if schema is not None else copy.deepcopy(SETTINGS_SCHEMA)
+        # Use cached copies when no custom defaults/schema provided (Finding #2/#14)
+        self._defaults = dict(defaults) if defaults is not None else _get_defaults_cache()
+        self._schema = dict(schema) if schema is not None else _get_schema_cache()
         self._strict_mode_enabled = strict_mode_enabled
         self._lock = threading.Lock()
         # cached state
