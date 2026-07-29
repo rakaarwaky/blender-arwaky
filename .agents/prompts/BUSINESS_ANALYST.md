@@ -82,7 +82,7 @@ Write a concrete, actionable plan to `.agents/plans/todo-<feature-name>-business
 |---|----------|-------|----------------------|----------------|
 |   |          |       |                      |                |
 
-### Traceability (FRD → Code)
+### Traceability 
 | # | Severity | Issue | Location (File:Line) | Recommendation |
 |---|----------|-------|----------------------|----------------|
 |   |          |       |                      |                |
