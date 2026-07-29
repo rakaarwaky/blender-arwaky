@@ -1,6 +1,6 @@
 """Root: Diagnostics feature composition container.
 
-Wires 4 capabilities (FR-DIA-001..004) + InMemoryEventBus and exposes
+Wires 5 capabilities (FR-DIA-001..005) + InMemoryEventBus and exposes
 the DiagnosticsOrchestrator as the feature facade.
 
 This file is the composition root for the diagnostics feature.
@@ -10,11 +10,15 @@ from __future__ import annotations
 
 import logging
 
-from .capabilities_audit_emission import AuditEmitter, InMemoryEventBus
-from .capabilities_health_composition import HealthComposer
-from .capabilities_logging_policy import LoggingPolicy
-from .capabilities_metrics_collection import MetricsCollector
-from .agent_diagnostics_orchestrator import DiagnosticsOrchestrator
+from modules.diagnostics.src.agent_diagnostics_orchestrator import DiagnosticsOrchestrator
+from modules.diagnostics.src.capabilities_audit_emission import (
+    AuditEmitter,
+    InMemoryEventBus,
+)
+from modules.diagnostics.src.capabilities_health_composition import HealthComposer
+from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
+from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
+from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -23,7 +27,7 @@ class DiagnosticsContainer:
     """Dependency injection container for the diagnostics feature module.
 
     Wires HealthComposer, MetricsCollector, AuditEmitter, LoggingPolicy,
-    and InMemoryEventBus into the DiagnosticsOrchestrator.
+    SnapshotProvisioner, and InMemoryEventBus into the DiagnosticsOrchestrator.
     """
 
     def __init__(self) -> None:
@@ -43,12 +47,18 @@ class DiagnosticsContainer:
         metrics_collector = MetricsCollector()
         audit_emitter = AuditEmitter()
         logging_policy = LoggingPolicy()
+        snapshot_provisioner = SnapshotProvisioner(
+            health_provider=health_composer,
+            metrics_provider=metrics_collector,
+            audit_provider=None,  # Will be wired by caller if needed
+        )
 
         self._orchestrator = DiagnosticsOrchestrator(
             health_composer=health_composer,
             metrics_collector=metrics_collector,
             audit_emitter=audit_emitter,
             logging_policy=logging_policy,
+            snapshot_provisioner=snapshot_provisioner,
         )
 
         self._wired = True

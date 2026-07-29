@@ -1,7 +1,7 @@
 """Diagnostics feature orchestrator implementing IDiagnosticsAggregate.
 
 Coordinates health composition, metrics collection, audit emission,
-structured logging policy, and snapshot provision through 4 separate
+structured logging policy, and snapshot provision through 5 separate
 capabilities (FR-DIA-001..005).
 
 Orchestration only — delegates all business logic to capabilities
@@ -13,14 +13,24 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from modules.diagnostics.src.capabilities_health_composition import (
-    HealthComposer,
+from modules.diagnostics.src.contract_audit_emission_protocol import AuditEmissionProtocol
+from modules.diagnostics.src.contract_health_composition_protocol import (
+    HealthCompositionProtocol,
 )
-from modules.diagnostics.src.capabilities_metrics_collection import (
-    MetricsCollector,
+from modules.diagnostics.src.contract_logging_policy_protocol import LoggingPolicyProtocol
+from modules.diagnostics.src.contract_metrics_collection_protocol import (
+    MetricsCollectionProtocol,
 )
-from modules.diagnostics.src.capabilities_audit_emission import AuditEmitter
-from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
+from modules.diagnostics.src.contract_snapshot_provision_protocol import (
+    SnapshotProvisionProtocol,
+)
+from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+    AuditRecordVO,
+    DiagnosticsSnapshotVO,
+    HealthDetailsVO,
+    LogResultVO,
+    MetricsSnapshotVO,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +40,22 @@ class DiagnosticsOrchestrator:
 
     Provides a unified facade for health composition, metrics collection,
     audit emission, structured logging, and snapshot provision.
-    Delegates to 4 capabilities (FR-DIA-001..004).
+    Delegates to 5 capabilities (FR-DIA-001..005) via contract protocols.
     """
 
     def __init__(
         self,
-        health_composer: HealthComposer,
-        metrics_collector: MetricsCollector,
-        audit_emitter: AuditEmitter,
-        logging_policy: LoggingPolicy,
+        health_composer: HealthCompositionProtocol,
+        metrics_collector: MetricsCollectionProtocol,
+        audit_emitter: AuditEmissionProtocol,
+        logging_policy: LoggingPolicyProtocol,
+        snapshot_provisioner: SnapshotProvisionProtocol,
     ) -> None:
         self._health_composer = health_composer
         self._metrics_collector = metrics_collector
         self._audit_emitter = audit_emitter
         self._logging_policy = logging_policy
+        self._snapshot_provisioner = snapshot_provisioner
 
     async def compose_health(
         self,
@@ -51,7 +63,9 @@ class DiagnosticsOrchestrator:
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-    ) -> dict[str, Any]:
+        probe_timeout_seconds: float = 5.0,
+        freshness_tolerance_seconds: float = 10.0,
+    ) -> HealthDetailsVO:
         """Compose system health from all subsystems.
 
         Aggregates launcher status, gateway connection state, config validity,
@@ -63,6 +77,8 @@ class DiagnosticsOrchestrator:
             gateway_status=gateway_status,
             config_valid=config_valid,
             job_capacity_available=job_capacity_available,
+            probe_timeout_seconds=probe_timeout_seconds,
+            freshness_tolerance_seconds=freshness_tolerance_seconds,
         )
 
     async def collect_metrics_snapshot(
@@ -76,7 +92,7 @@ class DiagnosticsOrchestrator:
         tasks_created: int = 0,
         tasks_failed: int = 0,
         tasks_completed: int = 0,
-    ) -> dict[str, Any]:
+    ) -> MetricsSnapshotVO:
         """Collect operational metrics from all features.
 
         Pulls counters, gauges, and latency summaries from launcher,
@@ -101,8 +117,9 @@ class DiagnosticsOrchestrator:
         severity: str,
         source_feature: str,
         operation_type: str,
+        target_metadata: dict | None = None,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> AuditRecordVO:
         """Emit an immutable audit record for security-relevant activity.
 
         Handles security violations, connection failures, task failures,
@@ -114,6 +131,7 @@ class DiagnosticsOrchestrator:
             severity=severity,
             source_feature=source_feature,
             operation_type=operation_type,
+            target_metadata=target_metadata,
             correlation_id=correlation_id,
         )
 
@@ -124,7 +142,7 @@ class DiagnosticsOrchestrator:
         message: str,
         fields: dict[str, Any] | None = None,
         tracking_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> LogResultVO:
         """Write sanitized structured log entry.
 
         All features log through this policy; private per-feature log formats
@@ -143,27 +161,16 @@ class DiagnosticsOrchestrator:
         self,
         detail_level: str = "summary",
         section_filter: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> DiagnosticsSnapshotVO:
         """Provide a point-in-time diagnostics snapshot.
 
-        Combines composed health, metrics snapshot, recent audit summary,
-        and configuration metadata into a consistent view.
-        Implements FR-DIA-005.
+        Delegates to SnapshotProvisioner capability (FR-DIA-005).
+        Composes health, metrics, audit summary into a consistent view.
         """
-        sections = section_filter or ["health", "metrics", "audit_summary"]
-        snapshot: dict[str, Any] = {}
+        return await self._snapshot_provisioner.get_snapshot(
+            detail_level=detail_level,
+            section_filter=section_filter,
+        )
 
-        if "health" in sections:
-            snapshot["health"] = await self._health_composer.compose_health()
-
-        if "metrics" in sections:
-            snapshot["metrics"] = await self._metrics_collector.collect_metrics_snapshot()
-
-        if "audit_summary" in sections:
-            snapshot["audit_summary"] = {
-                "total_records": 0,
-                "recent_categories": [],
-            }
-
-        snapshot["detail_level"] = detail_level
-        return snapshot
+    def __repr__(self) -> str:
+        return "DiagnosticsOrchestrator()"

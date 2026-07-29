@@ -9,9 +9,6 @@ Organized by domain:
 - diagnostics/: Diagnostics observability protocols
 """
 
-# MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
-from modules.mcp.src.contract_mcp_bootstrap_protocol import ServerBootstrapManagerAggregate
-
 from . import (
     asset,
     common,
@@ -159,7 +156,7 @@ from .common.taxonomy_core_vo import (
 )
 from .common.taxonomy_domain_error import (
     AssetNotFoundError,
-    BlenderConnectionFailure,
+    BlenderConnectionError,
     BlenderMCPError,
     DomainError,
     ExecutionError,
@@ -494,7 +491,7 @@ __all__ = [
     "ValidationError",
     "ProviderError",
     "ExecutionError",
-    "BlenderConnectionFailure",
+    "BlenderConnectionError",
     "InvalidCommandError",
     "EventType",
     "TelemetryEvent",
@@ -565,7 +562,6 @@ __all__ = [
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
-    "ServerBootstrapManagerAggregate",
     "ServerDiscoveryProtocol",
     "ServerHealthProtocol",
     "TelemetryClassificationProtocol",

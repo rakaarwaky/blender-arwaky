@@ -1,6 +1,6 @@
 """Smoke test for the importable slice of the diagnostics module.
 
-Exercises all 4 capabilities individually and the DiagnosticsOrchestrator.
+Exercises all 5 capabilities individually and the DiagnosticsOrchestrator.
 """
 
 import asyncio
@@ -15,6 +15,7 @@ from modules.diagnostics.src.capabilities_audit_emission import (
 from modules.diagnostics.src.capabilities_health_composition import HealthComposer
 from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
 from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
+from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
 
 
 def test_health_composer_instantiates() -> None:
@@ -37,6 +38,11 @@ def test_logging_policy_instantiates() -> None:
     assert isinstance(cap, LoggingPolicy)
 
 
+def test_snapshot_provisioner_instantiates() -> None:
+    cap = SnapshotProvisioner()
+    assert isinstance(cap, SnapshotProvisioner)
+
+
 def test_event_bus_instantiates() -> None:
     bus = InMemoryEventBus()
     assert isinstance(bus, InMemoryEventBus)
@@ -48,6 +54,7 @@ def test_orchestrator_composes_all_capabilities() -> None:
         metrics_collector=MetricsCollector(),
         audit_emitter=AuditEmitter(),
         logging_policy=LoggingPolicy(),
+        snapshot_provisioner=SnapshotProvisioner(),
     )
     assert isinstance(orch, DiagnosticsOrchestrator)
 
@@ -62,8 +69,9 @@ def test_compose_health_returns_overall_status() -> None:
             job_capacity_available=True,
         )
     )
-    assert result["overall_status"] == "healthy"
-    assert set(result["subsystems"]) >= {"launcher", "gateway", "config", "job_capacity"}
+    assert result.overall_status == "healthy"
+    names = [s.name for s in result.subsystems]
+    assert set(names) >= {"launcher", "gateway", "config", "job_capacity"}
 
 
 def test_metrics_snapshot_collects_required_counters() -> None:
@@ -79,9 +87,9 @@ def test_metrics_snapshot_collects_required_counters() -> None:
             tasks_completed=4,
         )
     )
-    assert snap["counters"]["tasks_created"] == 5
-    assert snap["counters"]["tasks_failed"] == 1
-    assert snap["counters"]["tasks_completed"] == 4
+    assert snap.counters["tasks_created"] == 5
+    assert snap.counters["tasks_failed"] == 1
+    assert snap.counters["tasks_completed"] == 4
 
 
 def test_emit_audit_event_appends_record() -> None:
@@ -94,8 +102,8 @@ def test_emit_audit_event_appends_record() -> None:
             operation_type="connection_lost",
         )
     )
-    assert out["emitted"] is True
-    assert cap._audit_records[0]["category"] == "security_violation"
+    assert out.emission_confirmed is True
+    assert cap._fallback_buffer[0].category == "security_violation"
 
 
 def test_log_record_buffers_entry() -> None:
@@ -108,5 +116,5 @@ def test_log_record_buffers_entry() -> None:
             fields={"x": 1},
         )
     )
-    assert out["logged"] is True
-    assert cap._log_buffer[-1]["message"] == "startup"
+    assert out.logged is True
+    assert cap._buffer[-1]["message"] == "startup"
