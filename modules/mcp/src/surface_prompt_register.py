@@ -1,6 +1,6 @@
 """MCP Prompt registration for BlenderArwaky.
 
-FR-MCP-001: Expose MCP Tools — PromptHandlerModule registers prompt templates with FastMCP
+FR-MCP-001: Expose MCP Tools — PromptRegistrationModule registers prompt templates with FastMCP
 FR-MCP-002: Route Tool Calls — prompts are routed through MCP server instance lifecycle
 FR-MCP-003: Format MCP Responses — prompt responses follow standardized MCP format
 """
@@ -8,8 +8,8 @@ FR-MCP-003: Format MCP Responses — prompt responses follow standardized MCP fo
 from mcp.server.fastmcp import FastMCP
 
 
-class PromptHandlerModule:
-    """Handler for MCP prompt registration."""
+class PromptRegistrationModule:
+    """Module for MCP prompt registration."""
 
     @staticmethod
     def asset_creation_strategy():
@@ -56,13 +56,10 @@ Only fall back to scripting when:
 
     @staticmethod
     def register_prompts(mcp: FastMCP):
-        mcp.prompt(name="asset_creation_strategy")(PromptHandlerModule.asset_creation_strategy)
-        mcp.prompt(name="lighting_expert")(PromptHandlerModule.lighting_expert)
-        mcp.prompt(name="layout_expert")(PromptHandlerModule.layout_expert)
-        mcp.prompt(name="text_to_scene_orchestrator")(PromptHandlerModule.text_to_scene_orchestrator)
-
-
-register_prompts = PromptHandlerModule.register_prompts
+        mcp.prompt(name="asset_creation_strategy")(PromptRegistrationModule.asset_creation_strategy)
+        mcp.prompt(name="lighting_expert")(PromptRegistrationModule.lighting_expert)
+        mcp.prompt(name="layout_expert")(PromptRegistrationModule.layout_expert)
+        mcp.prompt(name="text_to_scene_orchestrator")(PromptRegistrationModule.text_to_scene_orchestrator)
 
 
 def get_layout_expert_prompt():

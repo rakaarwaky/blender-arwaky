@@ -12,11 +12,15 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
 )
+from modules.mcp.src.root_mcp_container import McpContainer
 
 logger = logging.getLogger("BlenderMCPServer")
 
+#: Maximum allowed payload size for tool call arguments (bytes)
+MAX_PAYLOAD_SIZE = 1_000_000  # 1MB
 
-class HealthCheckHandler:
+
+class HealthCheckSurface:
     """Surface handler for health_check MCP tool.
 
     Delegates all logic to contract protocols — zero business logic.
@@ -27,11 +31,8 @@ class HealthCheckHandler:
         self._response = response
 
     @staticmethod
-    def register_health_check(mcp):
+    def register(mcp, container: McpContainer) -> None:
         """Register the health_check tool (MCP Tool #3)."""
-        from modules.mcp.src.root_mcp_container import create_mcp_feature
-
-        container = create_mcp_feature()
 
         async def health_check() -> dict[str, Any]:
             """Check the health and connectivity of BlenderArwaky."""

@@ -15,8 +15,8 @@ from modules.shared.src.scene.taxonomy_scene_vo import SceneCleanupVO, SceneInsp
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class SceneToolsHandler:
-    """MCP surface handler for scene inspection and cleanup tools."""
+class SceneToolsSurface:
+    """MCP surface for scene inspection and cleanup tools."""
 
     @staticmethod
     def register_scene_tools(mcp, aggregate_factory: Callable[[], ISceneAggregate | None] | None = None):

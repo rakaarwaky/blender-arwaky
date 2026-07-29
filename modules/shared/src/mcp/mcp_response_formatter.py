@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any
+from typing import Any, Protocol
 
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
@@ -16,6 +16,13 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
 )
 
 logger = logging.getLogger("BlenderMCPServer")
+
+
+class _SchemaProvider(Protocol):
+    """Protocol for a dispatcher that exposes tool schemas."""
+
+    def discover_actions(self) -> list[dict[str, Any]]:
+        ...
 
 
 class McpResponseImpl(McpResponseProtocol):
@@ -106,10 +113,10 @@ class McpSchemaImpl(McpSchemaProtocol):
     Delegates to dispatcher catalog for tool schemas and catalog version.
     """
 
-    def __init__(self, dispatcher_aggregate: Any | None = None) -> None:
+    def __init__(self, dispatcher_aggregate: _SchemaProvider | None = None) -> None:
         self._dispatcher = dispatcher_aggregate
 
-    async def get_tool_schemas(self) -> list[dict[str, Any]]:
+    async def get_tool_schemas(self) -> list[dict[str, object]]:
         """Return tool schema list from dispatcher catalog."""
         if self._dispatcher:
             return self._dispatcher.discover_actions()

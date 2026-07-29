@@ -1,7 +1,7 @@
 """BlenderArwaky MCP Server - Modularized
 
 FR-MCP-001: Expose MCP Tools — main() registers all tools/prompts via SurfaceHandler
-FR-MCP-002: Route Tool Calls — ServerInstanceHandler.get_mcp_instance() wires routing to agent container
+FR-MCP-002: Route Tool Calls — ServerInstanceSurface.get_mcp_instance() wires routing to agent container
 FR-MCP-003: Format MCP Responses — MCP server wraps all responses in Prompt type
 
 Main entry point that runs the MCP server.
@@ -12,14 +12,14 @@ import sys
 
 from modules.mcp.src.capabilities_mcp_bootstrap import ServerBootstrapManager
 
-from .surface_server_instance import ServerInstanceHandler
+from .surface_server_instance import ServerInstanceSurface
 
 # --- Logging configuration ---
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ServerStartHandler:
-    """Handler for server startup sequence and entry point."""
+class ServerStartSurface:
+    """Surface for server startup sequence and entry point."""
 
     @staticmethod
     def _setup_logging() -> None:
@@ -34,8 +34,8 @@ class ServerStartHandler:
     @staticmethod
     def main() -> None:
         """Run the MCP server (stdio or SSE). Register all surfaces."""
-        ServerStartHandler._setup_logging()
-        mcp = ServerInstanceHandler.get_mcp_instance()
+        ServerStartSurface._setup_logging()
+        mcp = ServerInstanceSurface.get_mcp_instance()
 
         # NOTE: Tools and prompts are already registered inside
         # get_mcp_instance() — do NOT re-register here.

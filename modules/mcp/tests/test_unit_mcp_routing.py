@@ -16,10 +16,10 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from modules.mcp.src.surface_execute_command import ExecuteCommandHandler
-from modules.mcp.src.surface_health_check import HealthCheckHandler
-from modules.mcp.src.surface_list_commands import ListCommandsHandler
-from modules.mcp.src.surface_read_skill import SkillDocumentationReader, SkillReadHandler
+from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
+from modules.mcp.src.surface_health_check import HealthCheckSurface
+from modules.mcp.src.surface_list_commands import ListCommandsSurface
+from modules.mcp.src.surface_read_skill import SkillDocumentationReader, SkillReadSurface
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
@@ -124,7 +124,7 @@ class TestExecuteCommandRouting:
             mock_container.response = response
             mock_create.return_value = mock_container
 
-            ExecuteCommandHandler.register_execute_command(mcp)
+            ExecuteCommandSurface.register(mcp, mock_container)
             fn = mcp.tools["execute_command"]
             result = await fn("action_x", {"a": 1})
 
@@ -147,7 +147,7 @@ class TestExecuteCommandRouting:
             mock_container.response = response
             mock_create.return_value = mock_container
 
-            ExecuteCommandHandler.register_execute_command(mcp)
+            ExecuteCommandSurface.register(mcp, mock_container)
             await mcp.tools["execute_command"]("action_y", None)
 
         assert orch.calls[0][1] == ("action_y", {})
@@ -172,7 +172,7 @@ class TestListCommandsRouting:
             mock_container.response = response
             mock_create.return_value = mock_container
 
-            ListCommandsHandler.register_list_commands(mcp)
+            ListCommandsSurface.register(mcp, mock_container)
             result = await mcp.tools["list_commands"]()
 
         assert orch.calls[0][0] == "discover_actions"
@@ -186,7 +186,7 @@ class TestReadSkillContextRouting:
     def test_routes_to_read_skill_context(self):
         mcp = FakeMCP()
         with patch.object(SkillDocumentationReader, "read_skill", return_value="# skill_x\n\nSkill content."):
-            SkillReadHandler.register_read_skill_context(mcp)
+            SkillReadSurface.register_read_skill_context(mcp)
             result = mcp.tools["read_skill_context"]("skill_x", None)
 
         assert result == Prompt("# skill_x\n\nSkill content.")
@@ -211,7 +211,7 @@ class TestHealthCheckRouting:
             mock_container.response = response
             mock_create.return_value = mock_container
 
-            HealthCheckHandler.register_health_check(mcp)
+            HealthCheckSurface.register(mcp, mock_container)
             result = await mcp.tools["health_check"]()
 
         assert len(diag.calls) == 1

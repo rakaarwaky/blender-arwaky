@@ -11,27 +11,27 @@ from . import (
     surface_server_start,
     surface_tool_registry,
 )
-from .surface_execute_command import ExecuteCommandHandler
-from .surface_get_config import GetConfigHandler
-from .surface_health_check import HealthCheckHandler
-from .surface_list_commands import ListCommandsHandler
-from .surface_prompt_register import PromptHandlerModule
-from .surface_read_skill import SkillDocumentationReader, SkillReadHandler
-from .surface_server_instance import ServerInstanceHandler
-from .surface_server_start import ServerStartHandler
-from .surface_tool_registry import ToolRegistryHandler
+from .surface_execute_command import ExecuteCommandSurface
+from .surface_get_config import GetConfigSurface
+from .surface_health_check import HealthCheckSurface
+from .surface_list_commands import ListCommandsSurface
+from .surface_prompt_register import PromptRegistrationModule
+from .surface_read_skill import SkillDocumentationReader, SkillReadSurface
+from .surface_server_instance import ServerInstanceSurface
+from .surface_server_start import ServerStartSurface
+from .surface_tool_registry import ToolRegistrySurface
 
 __all__ = [
-    "ExecuteCommandHandler",
-    "GetConfigHandler",
-    "HealthCheckHandler",
-    "ListCommandsHandler",
-    "PromptHandlerModule",
-    "ServerInstanceHandler",
-    "ServerStartHandler",
+    "ExecuteCommandSurface",
+    "GetConfigSurface",
+    "HealthCheckSurface",
+    "ListCommandsSurface",
+    "PromptRegistrationModule",
+    "ServerInstanceSurface",
+    "ServerStartSurface",
     "SkillDocumentationReader",
-    "SkillReadHandler",
-    "ToolRegistryHandler",
+    "SkillReadSurface",
+    "ToolRegistrySurface",
     "surface_execute_command",
     "surface_get_config",
     "surface_health_check",

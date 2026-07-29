@@ -12,11 +12,15 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
 )
+from modules.mcp.src.root_mcp_container import McpContainer
 
 logger = logging.getLogger("BlenderMCPServer")
 
+#: Maximum allowed payload size for tool call arguments (bytes)
+MAX_PAYLOAD_SIZE = 1_000_000  # 1MB
 
-class ExecuteCommandHandler:
+
+class ExecuteCommandSurface:
     """Surface handler for execute_command MCP tool.
 
     Delegates all logic to contract protocols — zero business logic.
@@ -31,11 +35,8 @@ class ExecuteCommandHandler:
         self._response = response
 
     @staticmethod
-    def register_execute_command(mcp):
-        """Register the execute_command tool (MCP Tool #1)."""
-        from modules.mcp.src.root_mcp_container import create_mcp_feature
-
-        container = create_mcp_feature()
+    def register(mcp, container: McpContainer) -> None:
+        """Register execute_command tool with MCP server."""
 
         async def execute_command(
             action: str,
@@ -44,6 +45,17 @@ class ExecuteCommandHandler:
             """Execute ANY BlenderArwaky action via dispatcher aggregate."""
             if args is None:
                 args = {}
+
+            # Oversized payload protection (FR-MCP-002)
+            import json
+            payload_size = len(json.dumps({"action": action, "args": args}).encode("utf-8"))
+            if payload_size > MAX_PAYLOAD_SIZE:
+                return await container.response.format_response(
+                    result={"error": f"Payload exceeds maximum size of {MAX_PAYLOAD_SIZE} bytes"},
+                    tool_name="execute_command",
+                    tracking_id="",
+                    error_category="validation",
+                )
 
             # Surface-level validation only (FR-MCP-002)
             errors = await container.routing.validate_tool_input(
