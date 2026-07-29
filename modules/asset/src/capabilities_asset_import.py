@@ -18,41 +18,10 @@ from modules.shared.src.common.taxonomy_core_vo import (
     AssetType,
     FilePath,
 )
+from modules.shared.src.asset.utility.utility_file_format_detector import detect_format_by_magic
 from modules.shared.src.gateway.contract_gateway_client_protocol import GatewayClientProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
-
-# Magic bytes signatures for supported asset formats.
-# Used by _detect_format_by_magic to validate actual file content.
-_MAGIC_SIGNATURES: dict[str, list[bytes]] = {
-    "glb": [b"glTF"],
-    "gltf": [b"{", b"["],  # JSON-based; check heuristically
-    "png": [b"\x89PNG"],
-    "jpg": [b"\xFF\xD8\xFF"],
-    "jpeg": [b"\xFF\xD8\xFF"],
-    "fbx": [b"FBX"],
-    "exr": [b"\x76\x2f\x31\x01"],
-}
-
-
-def _detect_format_by_magic(file_path: str) -> str | None:
-    """Detect file format from magic bytes (first 16 bytes).
-
-    Returns the format key (e.g. 'glb', 'png') or None if
-    the signature is not recognised.
-    """
-    try:
-        with open(file_path, "rb") as f:
-            header = f.read(16)
-    except OSError:
-        return None
-
-    for fmt, signatures in _MAGIC_SIGNATURES.items():
-        for sig in signatures:
-            if header[: len(sig)] == sig:
-                return fmt
-
-    return None
 
 
 class AssetImportCapability(AssetImportProtocol):
@@ -186,13 +155,13 @@ class AssetImportCapability(AssetImportProtocol):
         # Extension check (fast path)
         if f".{ext}" in valid_formats:
             # L04: Also validate via magic bytes
-            detected = _detect_format_by_magic(file_path)
+            detected = detect_format_by_magic(file_path)
             if detected is not None and detected != ext and detected not in valid_formats:
                 return False
             return True
 
         # No extension match — try magic bytes as fallback
-        detected = _detect_format_by_magic(file_path)
+        detected = detect_format_by_magic(file_path)
         if detected is not None and detected in valid_formats:
             return True
 
