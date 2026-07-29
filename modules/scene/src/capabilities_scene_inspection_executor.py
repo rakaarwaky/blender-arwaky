@@ -12,14 +12,19 @@ from __future__ import annotations
 
 import logging
 
+# ─── Taxonomy imports ─────────────────────────────────────
 from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
+from modules.shared.src.scene.taxonomy_scene_error import SceneErrorCategory
+from modules.shared.src.scene.taxonomy_scene_event import SceneInspectionCompletedEvent
+from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
+
+# ─── Contract imports ─────────────────────────────────────
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
 from modules.shared.src.scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
-from modules.shared.src.scene.taxonomy_scene_error import SceneErrorCategory
-from modules.shared.src.scene.taxonomy_scene_event import SceneInspectionCompletedEvent
-from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
+
+# ─── Utility imports ──────────────────────────────────────
 from modules.shared.src.scene.utility_scene_code_builder import build_inspection_code
 from modules.shared.src.scene.utility_scene_result_parser import parse_scene_state_summary
 

@@ -4,11 +4,26 @@ FR-MCP-001: Expose MCP Tools — bootstrap resolves config before tool registrat
 FR-MCP-003: Format MCP Responses — logging config for server startup
 """
 
+from __future__ import annotations
+
 import os
 import tempfile
+from abc import ABC, abstractmethod
 
 
-class ServerBootstrapManager:
+class BootstrapProtocol(ABC):
+    """Protocol for MCP server bootstrap operations."""
+
+    @abstractmethod
+    def resolve_log_file(self) -> str:
+        ...
+
+    @abstractmethod
+    def resolve_transport_config(self) -> tuple[str, str, str]:
+        ...
+
+
+class ServerBootstrapManager(BootstrapProtocol):
     """Manages MCP server startup configuration and transport resolution."""
 
     @staticmethod

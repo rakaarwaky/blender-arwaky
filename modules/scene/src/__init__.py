@@ -16,8 +16,6 @@ Layers:
 from .agent_scene_orchestrator import SceneOrchestrator
 from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
 from .capabilities_scene_inspection_executor import SceneInspectionExecutor
-from .root_scene_container import SceneContainer, create_scene_container
-
 __all__ = [
     "SceneOrchestrator",
     "SceneCleanupExecutor",
@@ -25,3 +23,13 @@ __all__ = [
     "SceneContainer",
     "create_scene_container",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy-load root module to break circular surface↔root import chain."""
+    if name in ("SceneContainer", "create_scene_container"):
+        from .root_scene_container import SceneContainer as _sc, create_scene_container as _csc
+        if name == "SceneContainer":
+            return _sc
+        return _csc
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

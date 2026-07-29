@@ -24,6 +24,7 @@ from modules.shared.src.diagnostics.contract_metrics_collection_protocol import 
 from modules.shared.src.diagnostics.contract_snapshot_provision_protocol import (
     SnapshotProvisionProtocol,
 )
+from modules.shared.src.diagnostics.contract_diagnostics_aggregate import IDiagnosticsAggregate
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     AuditRecordVO,
     DiagnosticsSnapshotVO,
@@ -35,7 +36,7 @@ from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
 logger = logging.getLogger(__name__)
 
 
-class DiagnosticsOrchestrator:
+class DiagnosticsOrchestrator(IDiagnosticsAggregate)(IDiagnosticsAggregate):
     """Orchestrates diagnostics operations across all subsystems.
 
     Provides a unified facade for health composition, metrics collection,

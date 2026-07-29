@@ -36,10 +36,12 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
 
 from .utility_scene_coordinator import SceneCoordinatorUtility
 
+from modules.shared.src.gateway.contract_gateway_aggregate import IBlenderServerAggregate
+
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class GatewayOrchestrator:
+class GatewayOrchestrator(IBlenderServerAggregate):
     """Aggregate facade for the Gateway feature.
 
     Coordinates connection, transport, and execution via protocol delegation.
