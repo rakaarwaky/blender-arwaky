@@ -12,9 +12,8 @@ Orchestration only — no business logic, depends on individual capability proto
 Structure:
   1. Constants & imports
   2. SecurityOrchestrator — implements aggregate, delegates to 5 individual protocols
+  3. Helpers moved to Block 3
 """
-
-import logging
 
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.contract_extract_archive_protocol import ExtractArchiveProtocol
@@ -22,15 +21,16 @@ from modules.shared.src.security.contract_redact_sensitive_protocol import Redac
 from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_constant import SECURITY_SOURCE_FEATURE
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
+    AuditSeverity,
     CodeValidationVO,
     PathValidationVO,
     RedactionVO,
     SecurityAuditEventVO,
+    ViolationCategory,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class SecurityOrchestrator(ISecurityOperateAggregate):
@@ -53,31 +53,81 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
-    async def _delegate(self, method, request):
-        """Delegate to a capability method with correlation_id logging."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating %s corr=%s", method.__name__, corr)
-        return await method(request)
-
     async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
-        """Delegate path validation to the capabilities layer."""
-        return await self._delegate(self._validate_path.validate_path, request)
+        """Delegate path validation to the capabilities layer and emit audit on denial."""
+        result = await self._validate_path.validate_path(request)
+
+        if not result.allowed:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.PATH_TRAVERSAL,
+                    operation_type="validate_path",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason=result.denial_reason or "Path validation denied",
+                )
+            )
+
+        return result
 
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
-        """Delegate archive extraction validation to the capabilities layer."""
-        return await self._delegate(self._validate_archive.validate_extraction, request)
+        """Delegate archive extraction validation and emit audit on denial/rejection."""
+        result = await self._validate_archive.validate_extraction(request)
+
+        if not result.allowed or result.rejected_entries:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.UNSAFE_ARCHIVE_ENTRY,
+                    operation_type="validate_extraction",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Archive extraction denied or entries rejected",
+                )
+            )
+
+        return result
 
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
-        """Delegate code validation to the capabilities layer."""
-        return await self._delegate(self._validate_code.validate_code, request)
+        """Delegate code validation and emit audit on denial/violations."""
+        result = await self._validate_code.validate_code(request)
+
+        if not result.allowed or result.violations:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.CODE_VIOLATION,
+                    operation_type="validate_code",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Code validation denied",
+                )
+            )
+
+        return result
 
     async def redact(self, request: RedactionVO) -> RedactionVO:
-        """Delegate redaction to the capabilities layer."""
-        return await self._delegate(self._redact.redact, request)
+        """Delegate redaction and emit audit on failure."""
+        result = await self._redact.redact(request)
+
+        if result.failed:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.REDACTION_FAILURE,
+                    operation_type="redact",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata={},
+                    severity=AuditSeverity.ERROR,
+                    redacted_reason=result.failure_reason or "Redaction failed",
+                )
+            )
+
+        return result
 
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
         """Delegate audit emission to the capabilities layer."""
-        return await self._delegate(self._emit_audit.emit_audit, event)
+        return await self._emit_audit.emit_audit(event)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
