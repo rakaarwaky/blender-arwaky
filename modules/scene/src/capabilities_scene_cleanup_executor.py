@@ -13,7 +13,7 @@ Capabilities layer:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Protocol, runtime_checkable
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
 from modules.shared.src.gateway.contract_code_execution_protocol import (
@@ -37,12 +37,22 @@ from modules.shared.src.scene.taxonomy_scene_event import (
 )
 from modules.shared.src.scene.taxonomy_scene_vo import (
     ObjectCount,
+    SceneCleanupMetricsVO,
     SceneCleanupVO,
 )
 from modules.shared.src.scene.utility_scene_code_builder import build_cleanup_code
 from modules.shared.src.scene.utility_scene_result_parser import parse_cleanup_metrics
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class IEventEmitterProtocol(Protocol):
+    """Minimal event emitter interface for capability events."""
+
+    async def emit(self, event: object) -> None:
+        """Emit a domain event."""
+        ...  # pragma: no cover
 
 
 class SceneCleanupExecutor(ISceneCleanupProtocol):
@@ -52,7 +62,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
     def __init__(
         self,
         code_executor: ICodeExecutionProtocol,
-        event_emitter: Any = None,
+        event_emitter: IEventEmitterProtocol | None = None,
     ) -> None:
         if code_executor is None:
             raise ValueError("code_executor must be provided")
@@ -209,7 +219,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
     def _build_result(
         self,
         request: SceneCleanupVO,
-        metrics: object,  # SceneCleanupMetricsVO
+        metrics: SceneCleanupMetricsVO,
         message: str,
     ) -> SceneCleanupVO:
         """Build success result from parsed metrics."""

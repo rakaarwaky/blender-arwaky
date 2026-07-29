@@ -5,8 +5,6 @@ Wires capabilities to the agent orchestrator.
 
 from __future__ import annotations
 
-import threading
-
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
@@ -18,18 +16,11 @@ class SceneContainer:
 
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
         self._code_executor = code_executor
-        self._lock = threading.Lock()
         self._aggregate: ISceneAggregate | None = None
 
     def get_aggregate(self) -> ISceneAggregate:
         """Return fully wired ISceneAggregate singleton."""
-        if self._aggregate is not None:
-            return self._aggregate
-
-        with self._lock:
-            if self._aggregate is not None:
-                return self._aggregate
-
+        if self._aggregate is None:
             from .agent_scene_orchestrator import SceneOrchestrator
             from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
             from .capabilities_scene_inspection_executor import SceneInspectionExecutor

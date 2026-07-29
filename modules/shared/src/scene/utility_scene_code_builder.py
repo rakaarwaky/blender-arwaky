@@ -272,14 +272,3 @@ def build_cleanup_code(request: SceneCleanupPolicyVO, dry_run: bool = False) -> 
     ]
 
     return PythonCode("\n".join(lines))
-
-
-# Deprecated — use build_cleanup_code() instead
-def build_cleanup_execution_code(request: SceneCleanupPolicyVO) -> PythonCode:
-    """Deprecated: use build_cleanup_code(request, dry_run=False) instead."""
-    return build_cleanup_code(request, dry_run=False)
-
-
-def build_cleanup_preview_code(request: SceneCleanupPolicyVO) -> PythonCode:
-    """Deprecated: use build_cleanup_code(request, dry_run=True) instead."""
-    return build_cleanup_code(request, dry_run=True)
