@@ -64,8 +64,10 @@ class StatePersistence(PersistStateProtocol):
             return None
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _contains_secret(self, _state: RuntimeStateVO) -> bool:
-        return False
+    def _contains_secret(self, state: RuntimeStateVO) -> bool:
+        """Check if state contains secret-like field names."""
+        data = self._to_dict(state)
+        return any(key in data for key in _SECRET_KEYS)
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {

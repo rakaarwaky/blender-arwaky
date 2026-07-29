@@ -144,7 +144,13 @@ class LauncherContainer:
         self._wired = True
         logger.info("Launcher feature module wired successfully")
 
-    def _resolve_active_pid(self):
+    def _resolve_active_pid(self) -> int | None:
+        """Resolve active process PID from config or persisted state."""
+        if self._state_path:
+            persist_cap = StatePersistence(path_resolver=lambda: self._state_path)
+            state = persist_cap.load()
+            if state and state.process_id is not None:
+                return state.process_id
         return None
 
     @property
