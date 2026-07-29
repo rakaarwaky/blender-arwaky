@@ -235,11 +235,19 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                         ParseWarning(f"failed to parse {resolved}; using defaults")
                     )
                     file_data = {}
-                except Exception as exc:
+                except (UnicodeDecodeError, OSError) as exc:
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
                     parse_warnings.append(
                         ParseWarning(f"failed to load {resolved}; using defaults")
+                    )
+                    file_data = {}
+                except Exception as exc:
+                    # Catch-all for unexpected errors — re-raise in strict mode
+                    if self._policy_mode == POLICY_MODE_STRICT:
+                        raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
+                    parse_warnings.append(
+                        ParseWarning(f"unexpected error loading {resolved}; using defaults")
                     )
                     file_data = {}
 

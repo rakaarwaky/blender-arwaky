@@ -6,10 +6,11 @@ about settings loading without leaking secrets.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
-from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
+from modules.shared.src.config.contract_settings_metadata_protocol import (
+    _IMetadataSource,
+    ISettingsMetadataProtocol,
+)
 from modules.shared.src.config.taxonomy_config_vo import EventPayload
 
 
@@ -22,9 +23,10 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
 
     The metadata supplier is a bound method (e.g. loader.get_last_metadata)
     wired by the composition root — no capability-to-capability imports.
+    Uses _IMetadataSource protocol instead of primitive Callable.
     """
 
-    def __init__(self, metadata_supplier: Callable[[], ConfigMetadata] | None = None) -> None:
+    def __init__(self, metadata_supplier: _IMetadataSource | None = None) -> None:
         self._metadata_supplier = metadata_supplier
 
 # ─── Block 2: Protocol Method Implementation ──────────────

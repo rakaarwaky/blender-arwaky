@@ -7,9 +7,19 @@ about how settings were loaded, merged, and validated.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Protocol
 
 from ..common.taxonomy_core_vo import ConfigMetadata
+
+
+class _IMetadataSource(Protocol):
+    """Protocol for providing ConfigMetadata (FR-CFG-004).
+
+    Replaces primitive Callable type with a proper protocol for DI inversion.
+    Implemented by SettingsLoaderCapability.get_last_metadata bound method.
+    """
+
+    def __call__(self) -> ConfigMetadata: ...
 
 
 class ISettingsMetadataProtocol(ABC):
