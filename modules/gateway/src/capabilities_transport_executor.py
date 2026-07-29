@@ -173,11 +173,10 @@ class TransportExecutor(TransportProtocol):
             raise
         except Exception as e:
             logger.error("Transport error: %s", e)
-            return TransportOutcomeVO(
-                tracking_id=request.tracking_id,
-                status="error",
-                error=str(e),
-            )
+            raise ProviderError(
+                message=f"Transport failed: {e}",
+                details={"tracking_id": request.tracking_id},
+            ) from e
 
     def _create_frame(self, request: TransportMessageVO) -> bytes:
         message = json.dumps(

@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import uuid
 from dataclasses import dataclass, field
 
 from modules.shared.src.gateway.contract_code_execution_protocol import (
@@ -435,7 +436,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
             raise SecurityViolationError(f"Security policy validation error: {e}") from e
 
     def _execute_via_transport(self, request: CodeExecutionVO, timeout_seconds: float) -> TransportOutcomeVO:
-        tracking_id = request.tracking_id or str(hash(request.code))
+        tracking_id = request.tracking_id or str(uuid.uuid4())
         transport_request = TransportMessageVO(
             tracking_id=tracking_id,
             operation_class="code_execution",

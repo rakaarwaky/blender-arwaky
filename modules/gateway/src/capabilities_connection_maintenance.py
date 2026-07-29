@@ -72,7 +72,11 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         )
         backoff = self._calculate_backoff()
         logger.debug("Applying %.1fs backoff before reconnect", backoff)
-        time.sleep(min(backoff, 0.1))
+        # Sync context only — non-blocking delay for reconnect backoff.
+        # Async callers should use asyncio.sleep() instead.
+        import threading
+        if threading.current_thread().name != "MainThread":
+            time.sleep(min(backoff, 0.1))
         try:
             if self._reconnect_fn is not None:
                 outcome = self._reconnect_fn()
