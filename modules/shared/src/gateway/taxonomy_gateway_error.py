@@ -173,7 +173,7 @@ class ConnectionClosedError(ServerError):
         super().__init__("connection_closed", "Connection already closed", _details)
 
 
-class BlenderConnectionExhausted(ServerError):  # noqa: N818
+class BlenderConnectionExhausted(ServerError):
     """Raised after all reconnect attempts have been exhausted."""
 
     def __init__(self, attempts: int = 3, _details: dict | None = None) -> None:
@@ -182,7 +182,7 @@ class BlenderConnectionExhausted(ServerError):  # noqa: N818
         )
 
 
-class BlenderConnectionFailure(ServerError):  # noqa: N818
+class BlenderConnectionFailure(ServerError):
     """Raised when connection is lost or unavailable."""
 
     def __init__(self, message: str = "Blender connection failure", _details: dict | None = None) -> None:
