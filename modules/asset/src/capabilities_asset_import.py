@@ -13,9 +13,13 @@ from typing import Any
 
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
+    AssetCollectionName,
+    AssetFormatHint,
     AssetType,
     FilePath,
 )
+from modules.shared.src.asset.utility.utility_file_format_detector import detect_format_by_magic
+from modules.shared.src.gateway.contract_gateway_client_protocol import GatewayClientProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,7 +35,7 @@ class AssetImportCapability(AssetImportProtocol):
 
     def __init__(
         self,
-        gateway_client: Any | None = None,
+        gateway_client: GatewayClientProtocol | None = None,
         config_getter: Any | None = None,
     ) -> None:
         """Initialize with dependencies.
@@ -47,10 +51,10 @@ class AssetImportCapability(AssetImportProtocol):
         self,
         file_path: FilePath,
         asset_type: AssetType,
-        target_collection: str | None = None,
+        target_collection: AssetCollectionName | None = None,
         scale_normalization: bool = False,
         duplicate_policy: str = "rename",
-        format_hint: str | None = None,
+        format_hint: AssetFormatHint | None = None,
     ) -> dict[str, Any]:
         """Import a locally available asset file into Blender.
 
@@ -93,7 +97,7 @@ class AssetImportCapability(AssetImportProtocol):
                 "error": "empty_file",
             }
 
-        # Validate supported format
+        # Validate supported format (extension + magic bytes)
         if not self._is_supported_format(file_path, asset_type, format_hint):
             return {
                 "success": False,
@@ -131,26 +135,50 @@ class AssetImportCapability(AssetImportProtocol):
                 "error": str(e),
             }
 
-    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: str | None) -> bool:
-        """Check if file format is supported for import."""
+    def _is_supported_format(
+        self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None
+    ) -> bool:
+        """Check if file format is supported for import.
+
+        Validates both the file extension and the actual content
+        via magic bytes detection (FR-AST-004 / L04).
+        """
         supported_formats = {
             "model": [".glb", ".gltf", ".fbx", ".obj", ".mtl", ".dae"],
             "texture": [".png", ".jpg", ".jpeg", ".exr", ".tga"],
             "hdri": [".hdr", ".exr"],
         }
 
-        ext = Path(file_path).suffix.lower()
+        ext = Path(file_path).suffix.lower().lstrip(".")
         valid_formats = supported_formats.get(str(asset_type), [])
-        return ext in valid_formats or format_hint is not None
+
+        # Extension check (fast path)
+        if f".{ext}" in valid_formats:
+            # L04: Also validate via magic bytes
+            detected = detect_format_by_magic(file_path)
+            if detected is not None and detected != ext and detected not in valid_formats:
+                return False
+            return True
+
+        # No extension match — try magic bytes as fallback
+        detected = detect_format_by_magic(file_path)
+        if detected is not None and detected in valid_formats:
+            return True
+
+        # format_hint can override format detection
+        if format_hint is not None:
+            return True
+
+        return False
 
     def _build_import_command(
         self,
         file_path: str,
         asset_type: AssetType,
-        target_collection: str | None,
+        target_collection: AssetCollectionName | None,
         scale_normalization: bool,
         duplicate_policy: str,
-        format_hint: str | None,
+        format_hint: AssetFormatHint | None,
     ) -> dict[str, Any]:
         """Build import command for gateway transport."""
         command = {

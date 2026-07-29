@@ -1,30 +1,22 @@
 """Job feature module — AES implementation.
 
-Layers:
-  - Taxonomy (shared/src/job/)      → VOs, Entities, Events, Errors, Constants
-  - Contract (shared/src/job/)      → individual protocols + aggregate
-  - Capabilities (executors)        → One per FR operation
-  - Agent                           → JobOrchestrator (implements Aggregate facade)
-  - Root                            → JobContainer (DI wiring)
-
-Surface layer is intentionally absent — MCP/CLI command handlers live in
-their respective feature modules (modules/mcp, modules/cli).
+5 FRs → 5 protocols → 5 capabilities → 1 agent → 1 root.
 """
-
 from .agent_job_orchestrator import JobOrchestrator
-from .capabilities_job_cancel import JobCancel
-from .capabilities_job_capacity import CapacityError, JobCapacityEnforcer
-from .capabilities_job_cleanup import JobCleanup
-from .capabilities_job_monitor import JobMonitor
-from .capabilities_job_tracker import JobTracker, StateError
+from .capabilities_job_checker import JobCapacityChecker
+from .capabilities_job_evaluator import JobCancellationEvaluator
+from .capabilities_job_monitor import JobStatusMonitor
+from .capabilities_job_repository import InMemoryJobLifecycleRepository
+from .capabilities_job_resolver import JobCleanupResolver
+from .root_job_container import JobContainer, create_job_feature
 
 __all__ = [
-    "JobCancel",
-    "JobCapacityEnforcer",
-    "CapacityError",
-    "JobCleanup",
-    "JobMonitor",
+    "JobCapacityChecker",
+    "JobCancellationEvaluator",
     "JobOrchestrator",
-    "JobTracker",
-    "StateError",
+    "JobStatusMonitor",
+    "JobCleanupResolver",
+    "InMemoryJobLifecycleRepository",
+    "JobContainer",
+    "create_job_feature",
 ]

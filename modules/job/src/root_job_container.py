@@ -1,54 +1,76 @@
+# modules/job/src/root_job_container.py
 """Root: Job feature composition container.
 
-Wires the job orchestrator (self-contained lifecycle state machine) and
-bootstraps the job module. The JobOrchestrator owns task state directly and
-delegates to no external capabilities.
-
-This file is the composition root for the job feature.
+Wires 5 capabilities to 5 protocols, assembles the agent.
 """
-
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 
-from .agent_orchestrator import JobOrchestrator
+from modules.shared.src.common.taxonomy_core_vo import Timestamp
+from modules.shared.src.job.taxonomy_job_vo import JobPolicy
+
+from .agent_job_orchestrator import JobOrchestrator
+from .capabilities_job_checker import JobCapacityChecker
+from .capabilities_job_evaluator import JobCancellationEvaluator
+from .capabilities_job_monitor import JobStatusMonitor
+from .capabilities_job_repository import InMemoryJobLifecycleRepository
+from .capabilities_job_resolver import JobCleanupResolver
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class JobContainer:
-    """Dependency injection container for the job feature module."""
+    """Composition root for the job feature module."""
 
-    def __init__(self, max_active: int = 100) -> None:
-        self._max_active = max_active
+    def __init__(
+        self,
+        policy: JobPolicy | None = None,
+        clock: Callable[[], Timestamp] | None = None,
+    ) -> None:
+        self._policy = policy or JobPolicy()
+        self._clock = clock
         self._orchestrator: JobOrchestrator | None = None
         self._wired: bool = False
 
     def wire(self) -> None:
-        """Wire the job orchestrator."""
         if self._wired:
             return
 
         logger.info("Wiring job feature module")
 
-        self._orchestrator = JobOrchestrator(max_active=self._max_active)
+        clock = self._clock or (lambda: Timestamp(time.time()))
 
+        lifecycle = InMemoryJobLifecycleRepository(policy=self._policy, clock=clock)
+        monitor = JobStatusMonitor()
+        cancellation = JobCancellationEvaluator()
+        cleanup = JobCleanupResolver()
+        capacity = JobCapacityChecker()
+
+        self._orchestrator = JobOrchestrator(
+            lifecycle=lifecycle,
+            monitor=monitor,
+            cancellation=cancellation,
+            cleanup=cleanup,
+            capacity=capacity,
+            policy=self._policy,
+        )
         self._wired = True
-        logger.info("Job feature module wired successfully")
+        logger.info("Job feature module wired: 5 capabilities composed")
 
     @property
     def agent(self) -> JobOrchestrator:
-        """Return the assembled job orchestrator facade.
-
-        Must call wire() first, or this property will raise RuntimeError.
-        """
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("JobContainer not wired — call wire() first")
         return self._orchestrator
 
 
-def create_job_feature(max_active: int = 100) -> JobOrchestrator:
-    """Factory function to create and wire the job feature module."""
-    container = JobContainer(max_active=max_active)
+def create_job_feature(
+    policy: JobPolicy | None = None,
+    clock: Callable[[], Timestamp] | None = None,
+) -> JobOrchestrator:
+    container = JobContainer(policy=policy, clock=clock)
     container.wire()
     return container.agent

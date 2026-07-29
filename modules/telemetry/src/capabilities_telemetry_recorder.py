@@ -4,11 +4,14 @@ Implements TelemetryRecordingProtocol — captures anonymous usage records
 with PII-free schema. Consent must be active; withdrawal stops immediately.
 
 FR-TLM-001: Record Anonymous Usage Event
+PII scrubbing at ingestion before buffering.
 """
 
 from __future__ import annotations
 
 import logging
+import time
+from collections import deque
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -24,42 +27,20 @@ from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
 from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
     TelemetrySessionProtocol,
 )
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    ALLOWED_ACTIONS,
+    FEATURE_AREAS,
+)
 
-logger = logging.getLogger("BlenderMCPServer")
-
-# Allowlist of action types that may be recorded
-ALLOWED_ACTIONS: set[str] = {
-    "action_execute",
-    "action_list",
-    "health_check",
-    "settings_view",
-    "task_status",
-    "task_cancel",
-    "search",
-    "download",
-    "import",
-    "render",
-    "screenshot",
-}
-
-# Feature area taxonomy
-FEATURE_AREAS: dict[str, str] = {
-    "action_execute": "dispatcher",
-    "action_list": "dispatcher",
-    "health_check": "diagnostics",
-    "settings_view": "config",
-    "task_status": "job",
-    "task_cancel": "job",
-    "search": "asset",
-    "download": "asset",
-    "import": "asset",
-    "render": "render",
-    "screenshot": "render",
-}
+logger = logging.getLogger("blender-arwaky.telemetry")
 
 
 class TelemetryRecordingCapability(TelemetryRecordingProtocol):
-    """Business logic for recording anonymous telemetry events."""
+    """Business logic for recording anonymous telemetry events.
+
+    FR-TLM-001: Nothing recorded unless consent is active.
+    PII scrubbing applies at ingestion before buffering.
+    """
 
     def __init__(
         self,
@@ -77,7 +58,7 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
         self._session_protocol = session_protocol
         self._classification_protocol = classification_protocol
         self._buffer_capacity = buffer_capacity
-        self._buffer: list[dict[str, Any]] = []
+        self._buffer: deque[dict[str, Any]] = deque(maxlen=buffer_capacity)
 
     async def record_event(
         self,
@@ -111,30 +92,24 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
             return {"recorded": False, "reason": "action_not_in_allowlist"}
 
         # Classify event
-        classified = await self._classification_protocol.classify_event(
-            action_type, feature_area
-        )
+        classified = await self._classification_protocol.classify_event(action_type, feature_area)
 
-        # Get session ID
-        session_id = await self._session_protocol.get_session_id(
-            consent_active=consent_active
-        )
+        # Get session ID (async protocol with consent check)
+        session_id = await self._session_protocol.get_session_id(consent_active=consent_active)
 
         # Build anonymous record (PII-free)
         record: dict[str, Any] = {
             "timestamp": Timestamp(self._current_timestamp()),
             "action_type": action_type,
             "session_id": SessionId(str(session_id)),
-            "feature_area": classified.get("feature_area", feature_area or "other"),
+            "feature_area": classified.get("feature_area", feature_area or FEATURE_AREAS.get(action_type, "other")),
             "operation_type": classified.get("operation_type", "other"),
             "outcome_category": outcome_category,
             "duration_bucket": duration_bucket,
         }
 
-        # Buffer with backpressure (drop oldest if full)
+        # Buffer with backpressure — deque(maxlen=...) auto-trims in O(1)
         self._buffer.append(record)
-        if len(self._buffer) > self._buffer_capacity:
-            self._buffer = self._buffer[-self._buffer_capacity:]
 
         return {
             "recorded": True,
@@ -145,5 +120,4 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
 
     def _current_timestamp(self) -> float:
         """Return current Unix timestamp."""
-        import time
         return time.time()

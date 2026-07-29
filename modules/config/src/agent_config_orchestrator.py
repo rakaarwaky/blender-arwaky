@@ -13,9 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import deque
-from collections.abc import Mapping
 from dataclasses import asdict
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
@@ -25,7 +23,15 @@ from modules.shared.src.config.contract_settings_metadata_protocol import ISetti
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
-from modules.shared.src.config.taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
+from modules.shared.src.config.taxonomy_config_vo import (
+    EventPayload,
+    RedactionRule,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSnapshot,
+    SettingsValue,
+    WorkspacePath,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -52,14 +58,14 @@ class ConfigOrchestrator(IConfigAggregate):
         self._metadata_provider = metadata_provider
         self._redaction_rules = redaction_rules
         self._snapshot: SettingsSnapshot | None = None
-        self._event_buffer: deque[dict[str, Any]] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
+        self._event_buffer: deque[EventPayload] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
 # ─── Block 2: Aggregate Method Implementation ─────────────
 
     def load(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings, record events, cache snapshot."""
         self._snapshot = self._loader.load_settings(path, overrides)
@@ -81,7 +87,7 @@ class ConfigOrchestrator(IConfigAggregate):
             self._snapshot = self._loader.load_settings()
         return self._snapshot
 
-    def get(self, path: ConfigPath = "", default: Any = None) -> Any:
+    def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path."""
         return self._retriever.get_value(self.get_snapshot(), path, default)
 
@@ -115,7 +121,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate metadata retrieval (reflects latest load)."""
         return self._metadata_provider.get_metadata()
 
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return the most recent config domain events, oldest → newest."""
         items = list(self._event_buffer)
         return tuple(items[-limit:])
@@ -124,17 +130,19 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate redaction rule retrieval."""
         return self._redaction_rules.get_redaction_rule()
 
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
 # ─── Block 3: Event Recording ─────────────────────────────
 
-    def _record_event(self, event: Any) -> None:
+    def _record_event(self, event: object) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
         payload = asdict(event)
-        self._event_buffer.append(payload)
-        logger.info("config_event %s", json.dumps(payload, default=str))
+        # Apply redaction to prevent secret leakage in event logs
+        redacted_payload = self._redaction_rules.redact_dict(payload) if isinstance(payload, dict) else payload
+        self._event_buffer.append(redacted_payload)
+        logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 
 # ─── Dunder ────────────────────────────────────────────────
 

@@ -28,3 +28,19 @@ AUDIT_EVENT_POLICY_OVERRIDE: str = "policy_override"
 # ─── Source Feature Name ────────────────────────────────────────
 
 SECURITY_SOURCE_FEATURE: str = "security"
+
+# ============================================================
+# Shared Redaction Patterns (AES305 — single source of truth)
+# ============================================================
+
+# Quoted-key aware value half — matches shell (password=secret), YAML
+# (password: secret), and JSON ("password": "secret") forms.
+KV_VALUE: str = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
+
+REDACTION_SENSITIVE_PATTERNS: tuple[str, ...] = (
+    r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + KV_VALUE,
+    r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*",
+    r"(?i)sk-[A-Za-z0-9]{20,}",
+    r"(?i)ghp_[A-Za-z0-9]{36}",
+    r"(?i)AKIA[0-9A-Z]{16}",
+)

@@ -1,9 +1,8 @@
 """Telemetry domain contract: event classification protocol (ABC based).
 
-Defines the protocol for assigning events to fixed, low-cardinality
-taxonomy so analytics remain comparable across versions.
-
 FR-TLM-002: Classify and Categorize Events
+Assigns events to fixed, low-cardinality taxonomy.
+No PII parameters — only category strings for classification.
 """
 
 from __future__ import annotations
@@ -11,9 +10,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryCategory
+
 
 class TelemetryClassificationProtocol(ABC):
-    """Protocol for classifying telemetry events into fixed taxonomy."""
+    """Async protocol for classifying telemetry events into fixed taxonomy."""
 
     @abstractmethod
     async def classify_event(
@@ -34,4 +35,17 @@ class TelemetryClassificationProtocol(ABC):
         Returns:
             Dict with categorized event including feature_area, operation_type, outcome_category.
         """
-        pass
+        ...
+
+
+class TelemetryClassificationPort(ABC):
+    """Sync facade for orchestrator consumption."""
+
+    @abstractmethod
+    def classify_event(self, raw_type: str) -> TelemetryCategory:
+        """Classify an event into a standardized category.
+
+        FR-TLM-002: Tag the event with a high-level category.
+        If unrecognized or missing category, default to ERROR (unknown).
+        """
+        ...

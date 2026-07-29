@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # ─── Contracts (Protocols) ─────────────────────────────────────
 from .contract_config_aggregate import IConfigAggregate
+from .contract_config_protocol import ConfigGetterProtocol
 from .contract_redaction_rules_protocol import IRedactionRulesProtocol
 from .contract_settings_loader_protocol import ISettingsLoaderProtocol
 from .contract_settings_metadata_protocol import ISettingsMetadataProtocol
@@ -13,7 +14,6 @@ from .contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 # ─── Taxonomy: Constants ───────────────────────────────────────
 from .taxonomy_config_constant import (
     CONFIG_PATH_ENV,
-    STRICT_MODE_FLAG_ENV,
     DEFAULT_CONFIG_FILENAME,
     DEFAULT_POLICY_MODE,
     DEFAULT_SETTINGS,
@@ -27,6 +27,7 @@ from .taxonomy_config_constant import (
     RESERVED_ENV_KEYS,
     SENSITIVE_KEY_PATTERNS,
     SETTINGS_SCHEMA,
+    STRICT_MODE_FLAG_ENV,
     WORKSPACE_ROOT_ENV,
 )
 
@@ -61,6 +62,7 @@ from .utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
     "IConfigAggregate",
+    "ConfigGetterProtocol",
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
     "IWorkspaceResolverProtocol",

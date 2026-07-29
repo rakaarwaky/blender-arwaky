@@ -15,7 +15,6 @@ adapters:
 ignored_rules: []
 
 ignored_paths:
-ignored_paths:
   - "/target"
   - "/.git"
   - "/.github"
@@ -28,7 +27,6 @@ ignored_paths:
   - ".min.css"
   - "/.dsc_cache"
   - "/tests"
-  - "/modules/config/tests"
   - "/test-workspaces"
   - "/mimocode"
   - "build.rs"
@@ -47,6 +45,8 @@ ignored_paths:
   - "/venv"
   - "/.mypy_cache"
   - "/.ruff_cache"
+  - ".pytest_cache"
+  - "blender_mcp_addon"
 
 architecture:
   enabled: true
@@ -163,12 +163,6 @@ architecture:
                   "auditor",
                   "actions",
                   "helper",
-                  "adapter",
-                  "connector",
-                  "connection",
-                  "client",
-                  "gateway",
-                  "dispatcher",
                 ]
             - forbidden:
                 [

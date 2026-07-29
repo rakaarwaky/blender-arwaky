@@ -7,6 +7,7 @@ FR-DSP-002: Discover Actions
 """
 
 import logging
+from typing import Any
 
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
     ActionDiscoveryProtocol,
@@ -25,8 +26,8 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, catalog: dict[str, any] = None) -> None:
-        self._catalog = catalog or {}
+    def __init__(self, catalog: dict[str, Any] | None = None) -> None:
+        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -41,17 +42,22 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
         FR-DSP-002: Returns canonical shape to all consumers.
         Filter matching nothing returns empty list, not error.
         """
+        if detail_level not in ("standard", "full"):
+            raise ValueError(f"Unsupported detail level: {detail_level}")
+
         actions = list(self._catalog.values())
 
         if name_filter:
-            actions = [a for a in actions if name_filter.lower() in str(a.action_name).lower()]
+            name_filter_l = name_filter.lower()
+            actions = [a for a in actions if name_filter_l in str(a.action_name).lower()]
 
         if capability_filter:
+            # FR-DSP-002: capability/category filter matches the owning feature reference.
+            capability_filter_l = capability_filter.lower()
             actions = [
                 a
                 for a in actions
-                if capability_filter.lower() in str(a.owning_feature_ref).lower()
-                or capability_filter.lower() in str(a.risk_level).lower()
+                if capability_filter_l in str(a.owning_feature_ref).lower()
             ]
 
         result = DiscoveryOutcomeVO(
@@ -71,7 +77,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _format_action(self, metadata: any, detail_level: str) -> dict[str, any]:
+    def _format_action(self, metadata: Any, detail_level: str) -> dict[str, Any]:
         """Format action metadata for discovery output."""
         base = {
             "action_name": metadata.action_name,

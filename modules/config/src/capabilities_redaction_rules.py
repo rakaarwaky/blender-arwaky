@@ -6,14 +6,12 @@ and redaction rules used by consuming features for masking.
 
 from __future__ import annotations
 
-from typing import Any
-
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     REDACTION_PLACEHOLDER,
     SENSITIVE_KEY_PATTERNS,
 )
-from modules.shared.src.config.taxonomy_config_vo import RedactionRule
+from modules.shared.src.config.taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -47,15 +45,15 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
         """Return the authoritative redaction rule."""
         return self._rule
 
-    def redact_value(self, key: str, value: Any) -> Any:
+    def redact_value(self, key: str, value: SettingsValue) -> SettingsValue:
         """Redact a value if its key matches a sensitive pattern."""
         if self._rule.matches_key(key):
             return self._rule.placeholder
         return value
 
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact all sensitive values in a dictionary."""
-        result: dict[str, Any] = {}
+        result: SettingsData = {}
         for key, value in data.items():
             if self._rule.matches_key(key):
                 result[key] = self._rule.placeholder

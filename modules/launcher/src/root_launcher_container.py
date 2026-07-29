@@ -12,9 +12,7 @@ orchestrator for dependency injection by callers.
 from __future__ import annotations
 
 import logging
-import os
-import signal
-import subprocess
+import time
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
@@ -31,6 +29,14 @@ from .capabilities_process_launcher import ProcessLauncher
 from .capabilities_process_shutdown import ProcessShutdown
 from .capabilities_runtime_status import RuntimeStatusChecker
 from .capabilities_state_persistence import StatePersistence
+from modules.shared.src.launcher.utility_process_ops import (
+    process_alive,
+    process_kill,
+    process_probe_readiness,
+    process_signal_term,
+    process_spawn,
+    process_version_check,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -47,57 +53,6 @@ class LauncherContainer:
         self._orchestrator: LauncherOrchestrator | None = None
         self._wired: bool = False
 
-    # ─── Real OS seams (default; overridable in tests) ──────
-    @staticmethod
-    def _real_runner(args: list[str], timeout: float = 5.0) -> tuple[int, str]:
-        proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
-        return proc.returncode, proc.stdout
-
-    @staticmethod
-    def _real_spawn(executable: str, mode: str, readiness_timeout_seconds: float) -> int:
-        args = [executable]
-        if mode == "headless":
-            args += ["--background", "--python-exit-code", "1"]
-        proc = subprocess.Popen(args)
-        return proc.pid
-
-    @staticmethod
-    def _real_probe(process_id: int, timeout_seconds: float) -> bool:
-        import time
-
-        deadline = time.monotonic() + timeout_seconds
-        while time.monotonic() < deadline:
-            if not LauncherContainer._real_alive(process_id):
-                return False
-            time.sleep(0.2)
-        return True
-
-    @staticmethod
-    def _real_alive(process_id: int) -> bool:
-        if process_id is None:
-            return False
-        try:
-            os.kill(process_id, 0)
-            return True
-        except OSError:
-            return False
-
-    @staticmethod
-    def _real_signal(process_id: int) -> bool:
-        try:
-            os.kill(process_id, signal.SIGTERM)
-            return True
-        except OSError:
-            return False
-
-    @staticmethod
-    def _real_kill(process_id: int) -> bool:
-        try:
-            os.kill(process_id, signal.SIGKILL)
-            return True
-        except OSError:
-            return False
-
     def wire(self) -> None:
         """Wire the five launcher capabilities to the orchestrator."""
         if self._wired:
@@ -106,26 +61,29 @@ class LauncherContainer:
         logger.info("Wiring launcher feature module")
 
         status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
-            liveness_checker=self._real_alive,
+            liveness_checker=process_alive,
             pid_resolver=self._resolve_active_pid,
-            bridge_probe=self._real_probe,
-            persisted_state_resolver=lambda: None,
+            bridge_probe=None,
+            persisted_state_resolver=self._load_persisted_status,
         )
+
+        # Track launch time for uptime calculation (FR-LAU-004)
+        status_cap.mark_launched(time.monotonic())
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
-            command_runner=self._real_runner,
+            command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
         )
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=self._real_spawn,
-            readiness_probe=self._real_probe,
+            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
+            readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
-            signal_sender=self._real_signal,
-            killer=self._real_kill,
+            signal_sender=process_signal_term,
+            killer=process_kill,
             timeout_seconds=self._config.shutdown_timeout_seconds,
             force_enabled=self._config.force_termination_enabled,
         )
@@ -144,7 +102,31 @@ class LauncherContainer:
         self._wired = True
         logger.info("Launcher feature module wired successfully")
 
-    def _resolve_active_pid(self):
+    def _load_persisted_status(self) -> dict | None:
+        """Load persisted runtime state for status resolution.
+
+        Returns dict with process_id or None if no state/missing/corrupt.
+        """
+        if not self._state_path:
+            return None
+        try:
+            import json
+            import os as _os
+
+            with open(self._state_path, encoding="utf-8") as fh:
+                data = json.load(fh)
+            if not isinstance(data, dict):
+                return None
+            pid = data.get("process_id")
+            return {"process_id": pid} if pid else None
+        except (OSError, json.JSONDecodeError, ValueError):
+            return None
+
+    def _resolve_active_pid(self) -> int | None:
+        """Resolve active process PID from persisted state."""
+        status = self._load_persisted_status()
+        if status and isinstance(status.get("process_id"), int):
+            return status["process_id"]
         return None
 
     @property

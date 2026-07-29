@@ -1,4 +1,12 @@
-"""Agent: Object feature orchestrator.
+"""Object feature orchestrator implementing ObjectOperateAggregate.
+
+FR-OBJ-001: Place Existing Object — place_object() validates and places object from file
+FR-OBJ-002: Create Primitive — create_primitive() spawns cube/sphere/cylinder/etc.
+FR-OBJ-003: Set Transform — set_transform() applies position/rotation/scale to object
+FR-OBJ-004: Set Material — set_material() applies material by name to object
+FR-OBJ-005: Manage Modifiers — apply_modifier() adds/removes/modifies object modifiers
+FR-OBJ-006: Delete Object — delete_object() removes object with protection checks
+FR-OBJ-007: Get Object Info — get_object_info() returns object metadata and state
 
 Coordinates object manipulation flows via the ObjectOperateAggregate contract.
 Orchestration only — no business logic, depends on individual capability protocols.
@@ -16,7 +24,7 @@ from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModi
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
-from modules.shared.src.object.contract_object_operate_aggregate import ObjectOperateAggregate
+from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.contract_set_transform_protocol import SetObjectTransformProtocol
@@ -33,7 +41,7 @@ from modules.shared.src.object.taxonomy_object_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class ObjectOrchestrator(ObjectOperateAggregate):
+class ObjectOrchestrator(IObjectOperateAggregate):
     """Orchestrates object operations through 7 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -90,7 +98,7 @@ class ObjectOrchestrator(ObjectOperateAggregate):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
     @property
-    def object_operate_capability(self) -> ObjectOperateAggregate:
+    def object_operate_capability(self) -> IObjectOperateAggregate:
         return self
 
     @property

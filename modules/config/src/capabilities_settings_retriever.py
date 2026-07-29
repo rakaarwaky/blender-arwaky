@@ -7,13 +7,11 @@ and escaped-separator path support.
 
 from __future__ import annotations
 
-from typing import Any
-
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT
 from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
-from modules.shared.src.config.taxonomy_config_vo import _MISSING, SettingsSnapshot
+from modules.shared.src.config.taxonomy_config_vo import _MISSING, SettingsSnapshot, SettingsValue
 from modules.shared.src.config.utility_config_helpers import parse_settings_path
 
 
@@ -36,8 +34,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         self,
         snapshot: SettingsSnapshot,
         path: str,
-        default: Any = None,
-    ) -> Any:
+        default: SettingsValue = None,
+    ) -> SettingsValue:
         """Retrieve value by dot-separated path. Returns deep copy."""
         segments = parse_settings_path(path, self._escape_enabled)
         return snapshot.get_segments(segments, default)
@@ -70,10 +68,10 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         snapshot: SettingsSnapshot,
         path: str,
         expected: type,
-        default: Any,
+        default: SettingsValue,
         exclude_bool: bool = False,
         coerce_int: bool = False,
-    ) -> Any:
+    ) -> SettingsValue:
         segments = parse_settings_path(path, self._escape_enabled)
         raw = snapshot.get_segments(segments, _MISSING)
         if raw is _MISSING:
@@ -84,7 +82,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
                 return raw
         elif expected is float:
             if isinstance(raw, bool):
-                pass
+                pass  # falls through to strict-mode check below
             elif isinstance(raw, int):
                 return float(raw) if coerce_int else default
             elif isinstance(raw, float):

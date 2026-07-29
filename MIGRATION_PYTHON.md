@@ -188,13 +188,12 @@ ruff check . && ruff format --check .
 
 ## Supplementary Skills (Post-Migration)
 
-
-| Skill                        | When to Use                                |
-| ------------------------------ | -------------------------------------------- |
-| `add-docs-python`            | Add docstrings, type hints after migration |
-| `fix-bypass-python`          | Remove`# type: ignore`, `noqa`             |
-| `cleanup-consolidate-python` | Remove dead code, merge duplicates         |
-| `create-test-python`         | Generate test suites                       |
+| Skill | When to Use |
+|-------|-------------|
+| `add-docs-python` | Add docstrings, type hints after migration |
+| `fix-bypass-python` | Remove `# type: ignore`, `noqa` |
+| `cleanup-consolidate-python` | Remove dead code, merge duplicates |
+| `create-test-python` | Generate test suites |
 
 ---
 
@@ -202,16 +201,15 @@ ruff check . && ruff format --check .
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) §3 (Naming Convention) and §11 (Import Rules).
 
-
-| Layer        | Pattern                              |
-| -------------- | -------------------------------------- |
-| taxonomy     | `taxonomy_<concept>_<suffix>.py`     |
-| contract     | `contract_<concept>_<suffix>.py`     |
-| utility      | `utility_<concept>_<suffix>.py`      |
+| Layer | Pattern |
+|-------|---------|
+| taxonomy | `taxonomy_<concept>_<suffix>.py` |
+| contract | `contract_<concept>_<suffix>.py` |
+| utility | `utility_<concept>_<suffix>.py` |
 | capabilities | `capabilities_<concept>_<suffix>.py` |
-| agent        | `agent_<concept>_orchestrator.py`    |
-| surface      | `surface_<concept>_<suffix>.py`      |
-| root         | `root_<concept>_<suffix>.py`         |
+| agent | `agent_<concept>_orchestrator.py` |
+| surface | `surface_<concept>_<suffix>.py` |
+| root | `root_<concept>_<suffix>.py` |
 
 ---
 

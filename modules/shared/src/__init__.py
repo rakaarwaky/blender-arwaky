@@ -9,9 +9,6 @@ Organized by domain:
 - diagnostics/: Diagnostics observability protocols
 """
 
-# MCP domain — Protocols (server lifecycle, discovery, execute, health, response)
-from modules.mcp.src.contract_server_bootstrap import ServerBootstrapManagerAggregate
-
 from . import (
     asset,
     common,
@@ -25,15 +22,12 @@ from . import (
     scene,
     telemetry,
 )
+from .asset.contract_asset_aggregate import IAssetAggregate
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol
 from .asset.contract_asset_extract_protocol import AssetExtractProtocol
 from .asset.contract_asset_import_protocol import AssetImportProtocol
-from .asset.contract_asset_provider import AssetProviderPort
-from .asset.contract_asset_provider_metadata_protocol import AssetProviderMetadataProtocol
+from .asset.contract_asset_provider_protocol import AssetProviderProtocol
 from .asset.contract_asset_search_protocol import AssetSearchProtocol
-from .asset.contract_import_export_protocol import ImportExportProtocol
-from .asset.contract_polyhaven_api import PolyhavenApiPort
-from .asset.contract_sketchfab_api import SketchfabApiPort
 
 # === Asset domain exports ===
 from .asset.taxonomy_asset_constant import (
@@ -61,13 +55,8 @@ from .asset.taxonomy_asset_vo import (
     ImportGlbVO,
 )
 
-# CLI domain — Protocols (command routing, render output, error display)
-from .cli.contract_cli_command_protocol import CliCommandProtocol
-from .cli.contract_cli_error_protocol import CliErrorProtocol
-from .cli.contract_cli_render_protocol import CliRenderProtocol
-
 # Protocols (inbound behavior interfaces — Capabilities implement these)
-from .common.contract_command_catalog import CommandCatalogPort
+from .common.contract_command_catalog_protocol import CommandCatalogProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 from .common.contract_workflow_protocol import WorkflowProtocol
 from .common.taxonomy_app_config_vo import ApplicationConfig
@@ -167,9 +156,8 @@ from .common.taxonomy_core_vo import (
 )
 from .common.taxonomy_domain_error import (
     AssetNotFoundError,
-    BlenderConnectionFailure,
+    BlenderConnectionError,
     BlenderMCPError,
-    ConnectionError,
     DomainError,
     ExecutionError,
     InvalidCommandError,
@@ -214,30 +202,7 @@ from .config.taxonomy_config_vo import (
     SettingsSnapshot,
     WorkspacePath,
 )
-from .diagnostics.contract_audit_emission_protocol import AuditEmissionProtocol
-from .diagnostics.contract_diagnostics_snapshot_protocol import DiagnosticsSnapshotProtocol
-
-# Diagnostics domain — Protocols (health, metrics, audit, logging, snapshot)
-from .diagnostics.contract_health_composition_protocol import HealthCompositionProtocol
-from .diagnostics.contract_logging_policy_protocol import LoggingPolicyProtocol
-from .diagnostics.contract_metrics_collection_protocol import MetricsCollectionProtocol
-from .job.contract_job_cancel_protocol import JobCancelProtocol
-from .job.contract_job_cleanup_protocol import JobCleanupProtocol
-from .job.contract_job_monitor_protocol import JobMonitorProtocol
-from .job.contract_job_tracker_protocol import JobTrackerProtocol
-
-# === Job domain exports ===
-from .job.taxonomy_job_state_constant import (
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
-)
-from .job.taxonomy_job_status_entity import (
-    JobStatus,
-    create_job_id,
-    create_progress,
-)
+from .diagnostics.contract_diagnostics_aggregate import IDiagnosticsAggregate
 
 # === Dispatcher domain exports ===
 from .dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
@@ -246,33 +211,10 @@ from .dispatcher.contract_catalog_registration_protocol import CatalogRegistrati
 from .dispatcher.contract_request_validation_protocol import RequestValidationProtocol
 from .dispatcher.contract_result_normalization_protocol import ResultNormalizationProtocol
 from .dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
-from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from .dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from .dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from .dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-
-# === Launcher domain exports ===
-from .launcher.contract_launch_protocol import LaunchProtocol
-from .launcher.contract_launcher_operate_aggregate import LauncherOperateAggregate
-from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
-from .launcher.contract_persist_state_protocol import PersistStateProtocol
-from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
-from .launcher.contract_shutdown_protocol import ShutdownProtocol
-from .launcher.taxonomy_launcher_vo import (
-    ExecutableReferenceVO,
-    LauncherConfigVO,
-    LaunchOutcomeVO,
-    PersistenceOutcomeVO,
-    RegistrationOutcomeVO,
-    RegistrationSource,
-    RuntimeState,
-    RuntimeStateVO,
-    RuntimeStatusVO,
-    ShutdownOutcomeVO,
-    StatusCheckOutcomeVO,
-    StatePersistenceOutcomeVO,
-    VersionCompatibility,
-)
 
 # === Gateway domain exports ===
 from .gateway.contract_code_execution_protocol import CodeExecutionProtocol
@@ -292,11 +234,11 @@ from .gateway.taxonomy_gateway_error import (
     TransportParseError,
 )
 from .gateway.taxonomy_gateway_vo import (
-    CodeExecutionVO,
     CodeExecutionOutcomeVO,
-    ConnectionState,
+    CodeExecutionVO,
     ConnectionConfigVO,
     ConnectionOutcomeVO,
+    ConnectionState,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationOutcomeVO,
@@ -306,10 +248,37 @@ from .gateway.taxonomy_gateway_vo import (
     TransportType,
 )
 
-from .mcp.contract_server_discovery_protocol import ServerDiscoveryProtocol
-from .mcp.contract_server_execute_protocol import ServerExecuteProtocol
-from .mcp.contract_server_health_protocol import ServerHealthProtocol
-from .mcp.contract_server_response_protocol import ServerResponseProtocol
+# === Job domain exports ===
+from .job.taxonomy_job_constant import (
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_PENDING,
+    JOB_STATE_RUNNING,
+)
+from .job.taxonomy_job_vo import JobStatusSnapshot
+
+# === Launcher domain exports ===
+from .launcher.contract_launch_protocol import LaunchProtocol
+from .launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from .launcher.contract_persist_state_protocol import PersistStateProtocol
+from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+from .launcher.contract_shutdown_protocol import ShutdownProtocol
+from .launcher.taxonomy_launcher_vo import (
+    ExecutableReferenceVO,
+    LauncherConfigVO,
+    LaunchOutcomeVO,
+    PersistenceOutcomeVO,
+    RegistrationOutcomeVO,
+    RegistrationSource,
+    RuntimeState,
+    RuntimeStateVO,
+    RuntimeStatusVO,
+    ShutdownOutcomeVO,
+    StatePersistenceOutcomeVO,
+    StatusCheckOutcomeVO,
+    VersionCompatibility,
+)
 from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from .object.contract_delete_object_protocol import DeleteObjectProtocol
@@ -348,46 +317,35 @@ from .object.taxonomy_object_vo import (
     SetMaterialVO,
     SetObjectTransformVO,
 )
-from .render.contract_camera_config_protocol import CameraConfigProtocol
-from .render.contract_hdri_config_protocol import HdriConfigProtocol
-from .render.contract_render_operate_protocol import RenderOperateProtocol
-from .render.contract_viewport_capture import ViewportCapturePort
-from .render.contract_viewport_capture_protocol import ViewportCaptureProtocol
+from .render.contract_render_camera_config_protocol import IRenderCameraConfigProtocol
+from .render.contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
+from .render.contract_render_scene_image_protocol import IRenderSceneImageProtocol
+from .render.contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
 
 # === Render domain exports ===
 from .render.taxonomy_render_vo import (
     CameraConfigVO,
-    CameraSetupVO,
-    GetScreenshotVO,
     HdriConfigVO,
-    HdriSetupVO,
-    RenderVO,
+    RenderSceneVO,
+    ViewportCaptureVO,
 )
-from .scene.contract_scene_inspection import SceneInspectionPort
 
 # Protocols (business behavior contracts)
-from .scene.contract_scene_operate_protocol import SceneOperateProtocol
-
-# === Scene domain exports ===
-from .scene.taxonomy_scene_info_vo import (
-    RENDER_ENGINE_CYCLES,
-    RENDER_ENGINE_EEVEE,
-    SceneInfo,
-)
-from .scene.taxonomy_scene_command_vo import (
+from .scene.contract_scene_cleanup_protocol import ISceneCleanupProtocol
+from .scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
+from .scene.taxonomy_scene_vo import (
     SceneCleanupVO,
     SceneInspectionVO,
 )
-from .telemetry.contract_telemetry_classification import TelemetryClassificationPort
 
 # Telemetry domain — Protocols (recording, classification, session, enrichment)
-from .telemetry.contract_telemetry_classification_protocol import TelemetryClassificationProtocol
-from .telemetry.contract_telemetry_enrichment import TelemetryEnrichmentPort
-from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
-from .telemetry.contract_telemetry_recording import TelemetryRecordingPort
-from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
-from .telemetry.contract_telemetry_session_management import TelemetrySessionManagementPort
-from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
+from .telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationPort,
+    TelemetryClassificationProtocol,
+)
+from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentPort, TelemetryEnrichmentProtocol
+from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingPort, TelemetryRecordingProtocol
+from .telemetry.contract_telemetry_session_protocol import TelemetrySessionManagementPort, TelemetrySessionProtocol
 
 # === Telemetry domain exports ===
 from .telemetry.taxonomy_event_constant import (
@@ -397,14 +355,19 @@ from .telemetry.taxonomy_event_constant import (
     EVENT_TYPE_STARTUP,
     EVENT_TYPE_TOOL_EXECUTION,
 )
-from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
+from .telemetry.taxonomy_telemetry_event import TelemetryCategory, TelemetryEvent
 
 __all__ = [
+    "asset",
     "common",
-    "scene",
+    "config",
+    "diagnostics",
+    "dispatcher",
+    "job",
+    "launcher",
     "object",
     "render",
-    "job",
+    "scene",
     "telemetry",
     "UserId",
     "SceneId",
@@ -517,16 +480,15 @@ __all__ = [
     "CameraConfigVO",
     "HdriConfigVO",
     "BlenderObject",
-    "JobStatus",
+    "JobStatusSnapshot",
     "BlenderMCPError",
     "DomainError",
     "SceneValidationError",
     "AssetNotFoundError",
     "ValidationError",
-    "ConnectionError",
     "ProviderError",
     "ExecutionError",
-    "BlenderConnectionFailure",
+    "BlenderConnectionError",
     "InvalidCommandError",
     "EventType",
     "TelemetryEvent",
@@ -539,6 +501,14 @@ __all__ = [
     "JOB_STATE_RUNNING",
     "JOB_STATE_COMPLETED",
     "JOB_STATE_FAILED",
+    "IRenderCameraConfigProtocol",
+    "IRenderHdriConfigProtocol",
+    "IRenderSceneImageProtocol",
+    "IRenderViewportCaptureProtocol",
+    "RenderSceneVO",
+    "ViewportCaptureVO",
+    "ISceneCleanupProtocol",
+    "ISceneInspectionProtocol",
     "OBJECT_TYPE_MESH",
     "OBJECT_TYPE_CAMERA",
     "OBJECT_TYPE_LIGHT",
@@ -551,6 +521,7 @@ __all__ = [
     "OBJECT_TYPE_LATTICE",
     "OBJECT_TYPE_GPENCIL",
     "OBJECT_TYPE_VOLUME",
+    "OBJECT_TYPE_POINTCLOUD",
     "ALLOWED_OBJECT_TYPES",
     "COMMAND_CATALOG",
     "CommandCatalog",
@@ -565,10 +536,12 @@ __all__ = [
     "EVENT_TYPE_ERROR",
     "create_asset_id",
     "create_object_id",
-    "create_job_id",
+
     "create_provider_name",
-    "create_progress",
+
     "SceneOperateProtocol",
+    "SceneCleanupVO",
+    "SceneInspectionVO",
     "PlaceAssetProtocol",
     "CreatePrimitiveProtocol",
     "SetObjectTransformProtocol",
@@ -576,49 +549,29 @@ __all__ = [
     "ApplyModifierProtocol",
     "DeleteObjectProtocol",
     "GetObjectInfoProtocol",
-    "JobTrackerProtocol",
-    "JobMonitorProtocol",
-    "JobCancelProtocol",
-    "JobCleanupProtocol",
     "RenderOperateProtocol",
     "ViewportCaptureProtocol",
     "CameraConfigProtocol",
     "HdriConfigProtocol",
-    "ImportExportProtocol",
     "AssetSearchProtocol",
     "AssetDownloadProtocol",
     "AssetExtractProtocol",
     "AssetImportProtocol",
-    "AssetProviderMetadataProtocol",
+    "AssetProviderProtocol",
+    "IAssetAggregate",
     "WorkflowProtocol",
     "ExecuteActionProtocol",
-    "CommandCatalogPort",
+    "CommandCatalogProtocol",
     "SceneInspectionPort",
-    "ViewportCapturePort",
-    "AssetProviderPort",
-    "SketchfabApiPort",
-    "PolyhavenApiPort",
     "TelemetryClassificationPort",
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
-    "ServerBootstrapManagerAggregate",
-    "ServerDiscoveryProtocol",
-    "ServerExecuteProtocol",
-    "ServerHealthProtocol",
-    "ServerResponseProtocol",
-    "CliCommandProtocol",
-    "CliRenderProtocol",
-    "CliErrorProtocol",
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
     "TelemetrySessionProtocol",
-    "HealthCompositionProtocol",
-    "MetricsCollectionProtocol",
-    "AuditEmissionProtocol",
-    "LoggingPolicyProtocol",
-    "DiagnosticsSnapshotProtocol",
+    "IDiagnosticsAggregate",
     "IConfigAggregate",
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
@@ -651,7 +604,7 @@ __all__ = [
     "DiscoveryOutcomeVO",
     "UnifiedResultEnvelopeVO",
     "LaunchProtocol",
-    "LauncherOperateAggregate",
+    "ILauncherOperateAggregate",
     "LocateRegisterProtocol",
     "PersistStateProtocol",
     "RuntimeStatusProtocol",
@@ -695,4 +648,11 @@ __all__ = [
     "QueueStatusVO",
     "CodeExecutionVO",
     "CodeExecutionOutcomeVO",
+
+    # Utility layer exports
+    "enrich_response_with_tracking",
+    "normalize_payload",
+    "truncate_oversized_payload",
+    "utility_envelope",
+    "validate_execute_command_input",
 ]

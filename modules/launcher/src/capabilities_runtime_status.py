@@ -13,9 +13,13 @@ from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
-from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_STATUS_CHECKED
+from modules.shared.src.launcher.taxonomy_launcher_constant import (
+    LAUNCHER_EVENT_STALE_STATE_DETECTED,
+    LAUNCHER_EVENT_STATUS_CHECKED,
+)
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    ProbeDepth,
     RuntimeState,
     RuntimeStatusVO,
 )
@@ -57,7 +61,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         self._launch_time: float | None = None
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
+    def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Verify actual process liveness and classify runtime state."""
         pid = self._resolve_pid()
         if pid is None:
@@ -73,11 +77,21 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=pid, depth=depth)
 
         ready = True
-        if depth == "full" and self._bridge is not None:
+        if depth == ProbeDepth.FULL and self._bridge is not None:
             ready = self._bridge(timeout_seconds=1.0)
 
         state = RuntimeState.RUNNING_READY if ready else RuntimeState.RUNNING_UNRESPONSIVE
         uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
+
+        if self._events is not None:
+            self._events(LauncherLifecycleEvent(
+                event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                state_before=state,
+                state_after=state,
+                process_reference=str(pid),
+                reason_summary=f"status_check_depth={depth.value}",
+            ))
+
         return RuntimeStatusVO(state=state, process_id=pid, ready=ready, uptime_seconds=uptime, depth=depth)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
@@ -88,7 +102,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
     def _emit_stale(self, pid: int) -> None:
         if self._events is not None:
             self._events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                event_category=LAUNCHER_EVENT_STALE_STATE_DETECTED,
                 state_before=RuntimeState.RUNNING_READY, state_after=RuntimeState.STALE,
                 process_reference=str(pid), reason_summary="stale_state_detected",
             ))

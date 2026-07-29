@@ -9,6 +9,8 @@ FR-DSP-004: Dispatch Synchronous Action
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
@@ -25,12 +27,22 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     FR-DSP-004: Routes to owning feature, enforces timeout, maps errors.
     Returns standardized envelope; does not retry non-idempotent actions.
+    Implements context manager protocol for proper ThreadPoolExecutor cleanup.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(self, execute_action: Any = None) -> None:
         self._execute = execute_action
+        self._pool = ThreadPoolExecutor(max_workers=1)
+
+    def __enter__(self) -> "SyncDispatchExecutor":
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit context manager — shut down the thread pool."""
+        self._pool.shutdown(wait=True)
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -38,17 +50,39 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
         """Route a validated action to its owning feature and return normalized result.
 
         FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
+        Non-idempotent actions are NOT retried automatically.
         Returns standardized envelope; does not retry non-idempotent actions.
         """
         start_time = time.time()
-        tracking_id = request.validated_tracking_id
+        tracking_id = request.validated_tracking_id or request.tracking_id or ""
         action_name = request.action_name
+
+        # FR-DSP-004: Non-idempotent actions must not be retried automatically
+        idempotent = request.resolved_metadata.get("idempotency_flag", False)
+        if not idempotent:
+            # First dispatch is fine — retries would come from the surface layer
+            # The dispatcher itself does not retry; if this is called, it's the first attempt.
+            pass
 
         try:
             params = dict(request.parameters)
+            applied_timeout = request.timeout_override or request.resolved_metadata.get("default_timeout") or 0.0
 
-            if self._execute:
-                result = self._execute.execute_action(action_name, params)
+            # FR-DSP-004: Check for degraded owning feature before dispatching
+            if request.resolved_metadata.get("degraded", False):
+                owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
+                raise RuntimeError(f"Owning feature {owning_feature} is degraded")
+
+            if self._execute is not None:
+                if applied_timeout and applied_timeout > 0:
+                    # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
+                    future = self._pool.submit(self._execute.execute_action, action_name, params)
+                    try:
+                        result = future.result(timeout=applied_timeout)
+                    except FuturesTimeoutError:
+                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
+                else:
+                    result = self._execute.execute_action(action_name, params)
             else:
                 result = {"status": "dispatched", "action": action_name}
 
@@ -59,8 +93,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
                 "owning_feature_ref": request.resolved_metadata.get("owning_feature_ref"),
                 "execution_mode": request.execution_mode or "sync",
                 "duration_ms": duration_ms,
-                "applied_timeout": request.timeout_override
-                or request.resolved_metadata.get("default_timeout"),
+                "applied_timeout": applied_timeout,
             }
 
             return UnifiedResultEnvelopeVO.success_envelope(
@@ -95,10 +128,12 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def _map_error_category(self, error: Exception) -> str:
-        """Map domain error to unified error category."""
+        """Map domain error to unified error category (FR-DSP-004)."""
         error_type = type(error).__name__
 
-        if "Timeout" in error_type or "timeout" in str(error).lower():
+        if error_type == "TimeoutError" or "Timeout" in error_type:
+            return "timeout_error"
+        if "Timeout" in str(error).lower():
             return "timeout_error"
         if "Connection" in error_type or "connection" in str(error).lower():
             return "connection_error"

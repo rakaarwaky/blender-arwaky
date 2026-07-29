@@ -1,82 +1,58 @@
-"""Root layer: Dependency injection container for the scene feature.
+"""Root layer: Scene DI container.
 
-Wires scene capabilities to the agent orchestrator and bootstraps the system.
-Provides a single entry point to obtain a fully configured SceneOrchestrator.
-
-FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
+Wires capabilities to the agent orchestrator.
 """
 
 from __future__ import annotations
 
-import logging
 import threading
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .agent_orchestrator import SceneOrchestrator
-
-logger = logging.getLogger("BlenderMCPServer")
+from modules.shared.src.gateway.contract_code_execution_protocol import (
+    ICodeExecutionProtocol,
+)
+from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 
 
 class SceneContainer:
-    """DI container that wires scene capabilities to the agent orchestrator.
+    """Dependency injection container for scene feature."""
 
-    Thread-safe singleton pattern for shared scene management.
-    All components are lazy-instantiated on first access.
-
-    FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
-    """
-
-    def __init__(self, code_executor: object) -> None:
-        """Initialize with a code executor from the server module.
-
-        Args:
-            code_executor: A callable or server capability that executes Python code.
-        """
+    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
         self._code_executor = code_executor
+        self._aggregate: ISceneAggregate | None = None
         self._lock = threading.Lock()
-        self._orchestrator: SceneOrchestrator | None = None
 
-    def get_orchestrator(self) -> SceneOrchestrator:
-        """Return a fully wired SceneOrchestrator (singleton).
+    def get_aggregate(self) -> ISceneAggregate:
+        """Return fully wired ISceneAggregate singleton (thread-safe)."""
+        # Fast path — no lock needed when already initialized
+        if self._aggregate is not None:
+            return self._aggregate
 
-        Lazy-initializes all dependencies on first call.
-        Subsequent calls return the same orchestrator instance.
-
-        FR-SCN-001, FR-SCN-002: Enhanced with preservation policy, dry-run, child/dependent handling.
-        """
-        if self._orchestrator is not None:
-            return self._orchestrator
-
+        # Double-checked locking for thread-safe lazy initialization
         with self._lock:
-            if self._orchestrator is not None:
-                return self._orchestrator
+            if self._aggregate is None:
+                from .agent_scene_orchestrator import SceneOrchestrator
+                from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
+                from .capabilities_scene_inspection_executor import SceneInspectionExecutor
 
-            from .agent_orchestrator import SceneOrchestrator
-            from .capabilities_scene_operate_executor import SceneOperateExecutor
+                inspection = SceneInspectionExecutor(self._code_executor)
+                cleanup = SceneCleanupExecutor(self._code_executor)
 
-            executor = SceneOperateExecutor(self._code_executor)
-            self._orchestrator = SceneOrchestrator(executor=executor)
+                self._aggregate = SceneOrchestrator(
+                    inspection=inspection,
+                    cleanup=cleanup,
+                )
 
-        logger.info("Scene container fully wired")
-        return self._orchestrator
+        return self._aggregate
 
     def shutdown(self) -> None:
-        """Shut down scene components."""
+        """Reset container state."""
         with self._lock:
-            self._orchestrator = None
+            self._aggregate = None
 
     def __repr__(self) -> str:
         return "SceneContainer()"
 
 
-def create_scene_container(code_executor: object) -> SceneContainer:
-    """Factory function to create a new scene container.
-
-    Args:
-        code_executor: A callable or server capability that executes Python code.
-
-    Returns:
-        Configured SceneContainer instance.
-    """
+def create_scene_container(code_executor: ICodeExecutionProtocol) -> SceneContainer:
+    """Factory for SceneContainer."""
     return SceneContainer(code_executor=code_executor)

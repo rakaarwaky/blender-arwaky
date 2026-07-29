@@ -1,56 +1,155 @@
-"""TDD suite for FR-JOB-005 (Background Capacity Enforcement).
+"""Tests for JobCapacityChecker — FR-JOB-005.
 
-Exercises JobCapacityEnforcer in isolation via injected active-count source.
-
-RED → GREEN: targets the committed JobCapacityProtocol + JobCapacityEnforcer.
+Exercises capacity evaluation, decision outcomes, and context inclusion.
+Run via pytest from repo root.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from modules.job.src.capabilities_job_capacity import CapacityError, JobCapacityEnforcer
-from modules.shared.src.common.taxonomy_core_vo import JobId
+from modules.job.src.capabilities_job_checker import JobCapacityChecker
+from modules.shared.src.job.taxonomy_job_vo import (
+    JobPolicy,
+)
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _enforcer(max_concurrent: int, active: int) -> JobCapacityEnforcer:
-    return JobCapacityEnforcer(max_concurrent=max_concurrent, active_source=lambda: active)
+def _make_policy(**overrides: object) -> JobPolicy:
+    """Build a JobPolicy with optional field overrides."""
+    base = JobPolicy()
+    update = {k: v for k, v in overrides.items()}
+    return JobPolicy(**{**dict(base.__dict__), **update})
 
 
-def test_fr_job_005_accepts_when_under_limit():
-    e = _enforcer(max_concurrent=3, active=1)
-    accepted, current = e.check_capacity(1)
-    assert accepted is True
-    assert current == 1
+# ─── Fixtures ────────────────────────────────────────────────────────────────
 
 
-def test_fr_job_005_rejects_when_at_limit():
-    e = _enforcer(max_concurrent=3, active=3)
-    accepted, current = e.check_capacity(1)
-    assert accepted is False
-    assert current == 3
+@pytest.fixture
+def checker() -> JobCapacityChecker:
+    """Fresh JobCapacityChecker instance."""
+    return JobCapacityChecker()
 
 
-def test_fr_job_005_reserve_slot_succeeds_under_limit():
-    e = _enforcer(max_concurrent=3, active=1)
-    assert e.reserve_slot(JobId("job-1")) is True
-    # reservation counts as active
-    assert e.active_count() == 2
+# ─── FR-JOB-005: Enforce Background Capacity ────────────────────────────────
 
 
-def test_fr_job_005_reserve_slot_rejected_at_limit():
-    e = _enforcer(max_concurrent=3, active=3)
-    assert e.reserve_slot(JobId("job-x")) is False
-    assert e.active_count() == 3
+def test_fr_job_005_accepts_under_limit(checker: JobCapacityChecker) -> None:
+    """Test that capacity evaluation accepts when under limit."""
+    policy = _make_policy(max_active=10)
+    decision = checker.evaluate(active_count=5, policy=policy)
+
+    assert decision.accepted is True
+    assert decision.available == 5
+    assert decision.active == 5
+    assert decision.limit == 10
+    assert decision.reason == ""
 
 
-def test_fr_job_005_release_slot_frees_capacity():
-    e = _enforcer(max_concurrent=3, active=2)
-    e.reserve_slot(JobId("job-1"))
-    assert e.active_count() == 3
-    e.release_slot(JobId("job-1"))
-    assert e.active_count() == 2
+def test_fr_job_005_accepts_one_over_limit(checker: JobCapacityChecker) -> None:
+    """Test that capacity accepts when one slot remaining."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=4, policy=policy)
+
+    assert decision.accepted is True
+    assert decision.available == 1
 
 
-def test_fr_job_005_capacity_error_type_exists():
-    assert issubclass(CapacityError, Exception)
+def test_fr_job_005_rejects_at_limit(checker: JobCapacityChecker) -> None:
+    """Test that capacity rejects when at limit with context."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=5, policy=policy)
+
+    assert decision.accepted is False
+    assert decision.available == 0
+    assert decision.active == 5
+    assert decision.limit == 5
+    assert "Background capacity exceeded" in decision.reason
+    assert "5/5" in decision.reason
+
+
+def test_fr_job_005_rejects_over_limit(checker: JobCapacityChecker) -> None:
+    """Test that capacity rejects when over limit."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=10, policy=policy)
+
+    assert decision.accepted is False
+    assert decision.available == 0
+    assert decision.active == 10
+
+
+def test_fr_job_005_zero_active_accepted(checker: JobCapacityChecker) -> None:
+    """Test that zero active tasks are accepted."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=0, policy=policy)
+
+    assert decision.accepted is True
+    assert decision.available == 5
+
+
+def test_fr_job_005_capacity_includes_active_count_context(checker: JobCapacityChecker) -> None:
+    """Test that capacity error includes current active count for retry decisions."""
+    policy = _make_policy(max_active=3)
+    decision = checker.evaluate(active_count=3, policy=policy)
+
+    assert decision.reason == "Background capacity exceeded: 3/3 active tasks"
+
+
+def test_fr_job_005_large_limit(checker: JobCapacityChecker) -> None:
+    """Test with large limit value."""
+    policy = _make_policy(max_active=1000)
+    decision = checker.evaluate(active_count=999, policy=policy)
+
+    assert decision.accepted is True
+    assert decision.available == 1
+
+
+def test_fr_job_005_limit_one(checker: JobCapacityChecker) -> None:
+    """Test with limit of one — single slot capacity."""
+    policy = _make_policy(max_active=1)
+    decision = checker.evaluate(active_count=0, policy=policy)
+
+    assert decision.accepted is True
+    assert decision.available == 1
+
+    decision_rejected = checker.evaluate(active_count=1, policy=policy)
+    assert decision_rejected.accepted is False
+    assert decision_rejected.available == 0
+
+
+# ─── Utility & Edge Cases ────────────────────────────────────────────────────
+
+
+def test_checker_repr(checker: JobCapacityChecker) -> None:
+    """Test checker string representation."""
+    assert repr(checker) == "<JobCapacityChecker>"
+
+
+def test_decision_fields_complete(checker: JobCapacityChecker) -> None:
+    """Test that CapacityDecision includes all required fields."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=3, policy=policy)
+
+    assert isinstance(decision.accepted, bool)
+    assert isinstance(decision.active, int)
+    assert isinstance(decision.limit, int)
+    assert isinstance(decision.available, int)
+    assert isinstance(decision.reason, str)
+
+
+def test_decision_rejected_has_reason(checker: JobCapacityChecker) -> None:
+    """Test that rejected decisions always have a reason."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=5, policy=policy)
+
+    assert decision.reason != ""
+    assert len(decision.reason) > 0
+
+
+def test_decision_accepted_empty_reason(checker: JobCapacityChecker) -> None:
+    """Test that accepted decisions have empty reason."""
+    policy = _make_policy(max_active=5)
+    decision = checker.evaluate(active_count=2, policy=policy)
+
+    assert decision.reason == ""

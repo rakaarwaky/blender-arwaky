@@ -1,17 +1,11 @@
 """Asset domain — taxonomy types and contracts."""
 
+from .contract_asset_aggregate import IAssetAggregate
 from .contract_asset_download_protocol import AssetDownloadProtocol
 from .contract_asset_extract_protocol import AssetExtractProtocol
 from .contract_asset_import_protocol import AssetImportProtocol
-from .contract_asset_provider import AssetProviderPort
+from .contract_asset_provider_protocol import AssetProviderProtocol
 from .contract_asset_search_protocol import AssetSearchProtocol
-from .contract_import_export_protocol import ImportExportProtocol
-from .contract_library_download_protocol import LibraryDownloadProtocol
-from .contract_library_search_protocol import LibrarySearchProtocol
-from .contract_marketplace_download_protocol import MarketplaceDownloadProtocol
-from .contract_marketplace_search_protocol import MarketplaceSearchProtocol
-from .contract_polyhaven_api import PolyhavenApiPort
-from .contract_sketchfab_api import SketchfabApiPort
 from .taxonomy_asset_constant import (
     ASSET_TYPE_HDRIS,
     ASSET_TYPE_MODELS,
@@ -32,8 +26,10 @@ from .taxonomy_asset_vo import (
     AssetImportBlenderVO,
     AssetMetadataItem,
     AssetMetadataVO,
+    AssetSearchVO,
     ExportModelVO,
     ImportGlbVO,
+    SearchResultVO,
 )
 
 __all__ = [
@@ -53,18 +49,13 @@ __all__ = [
     "AssetImportBlenderVO",
     "ImportGlbVO",
     "ExportModelVO",
+    "SearchResultVO",
     "create_asset_id",
     "create_provider_name",
-    "AssetProviderPort",
-    "PolyhavenApiPort",
-    "SketchfabApiPort",
     "AssetSearchProtocol",
     "AssetDownloadProtocol",
     "AssetExtractProtocol",
     "AssetImportProtocol",
-    "ImportExportProtocol",
-    "LibrarySearchProtocol",
-    "LibraryDownloadProtocol",
-    "MarketplaceSearchProtocol",
-    "MarketplaceDownloadProtocol",
+    "AssetProviderProtocol",
+    "IAssetAggregate",
 ]

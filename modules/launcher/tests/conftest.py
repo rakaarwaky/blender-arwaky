@@ -39,9 +39,9 @@ def _shim_shared_src() -> None:
     mcp_pkg = types.ModuleType("modules.shared.src.mcp")
     mcp_pkg.__path__ = [os.path.join(real_dir, "mcp")]
     sys.modules["modules.shared.src.mcp"] = mcp_pkg
-    bootstrap = types.ModuleType("modules.shared.src.mcp.contract_server_bootstrap")
+    bootstrap = types.ModuleType("modules.shared.src.mcp.contract_mcp_bootstrap_protocol")
     bootstrap.ServerBootstrapManagerAggregate = object
-    sys.modules["modules.shared.src.mcp.contract_server_bootstrap"] = bootstrap
+    sys.modules["modules.shared.src.mcp.contract_mcp_bootstrap_protocol"] = bootstrap
 
     sys.modules[_SHARED_SRC_MODULE_NAME] = stub
 

@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 _SHARED_SRC_NAME = "modules.shared.src"
 _MCP_MODULE_NAME = "modules.shared.src.mcp"
-_BOOTSTRAP_MODULE_NAME = "modules.shared.src.mcp.contract_server_bootstrap"
+_BOOTSTRAP_MODULE_NAME = "modules.shared.src.mcp.contract_mcp_bootstrap_protocol"
 if _MCP_MODULE_NAME not in sys.modules:
     shared_init = ROOT / "modules" / "shared" / "src" / "__init__.py"
     assert shared_init.exists(), "modules.shared.src.__init__ not found"

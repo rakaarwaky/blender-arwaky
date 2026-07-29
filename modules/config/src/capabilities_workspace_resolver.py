@@ -6,10 +6,12 @@ directory using deterministic strategies with result caching.
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from pathlib import Path
 
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
@@ -19,6 +21,8 @@ from modules.shared.src.config.taxonomy_config_error import ConfigRootResolution
 from modules.shared.src.config.taxonomy_config_event import WorkspaceResolvedEvent
 from modules.shared.src.config.taxonomy_config_vo import WorkspacePath
 from modules.shared.src.config.utility_config_helpers import search_project_root
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -34,7 +38,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     def __init__(
         self,
         explicit_override: str | None = None,
-        config_path: object | None = None,
+        config_path: ConfigPath | None = None,
     ) -> None:
         self._explicit_override = explicit_override
         self._config_path = config_path
@@ -67,7 +71,10 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             candidate = Path(self._explicit_override).resolve()
             if candidate.is_dir():
                 return WorkspacePath(path=str(candidate), strategy="explicit_override")
-            # invalid path logs warning and falls through
+            logger.warning(
+                "Explicit workspace override is not a directory: %s",
+                self._explicit_override,
+            )
 
         # 2. Environment signal (BLENDERMCP_ROOT only — legacy removed, Q8)
         env_root = os.environ.get(WORKSPACE_ROOT_ENV)
@@ -76,14 +83,18 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
                 candidate = Path(env_root).resolve()
                 if candidate.is_dir():
                     return WorkspacePath(path=str(candidate), strategy="env_signal")
-            except (OSError, ValueError):
-                pass
+            except (OSError, ValueError) as exc:
+                logger.warning("Invalid BLENDERMCP_ROOT path '%s': %s", env_root, exc)
 
         # 3. Settings file parent (NEW)
         if self._config_path:
             candidate = Path(str(self._config_path)).resolve().parent
             if candidate.is_dir():
                 return WorkspacePath(path=str(candidate), strategy="settings_file_location")
+            logger.warning(
+                "Settings file parent is not a directory: %s",
+                str(Path(str(self._config_path)).resolve().parent),
+            )
 
         # 4. Marker search
         marker_path = search_project_root(PROJECT_MARKERS)

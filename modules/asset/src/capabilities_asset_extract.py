@@ -2,11 +2,19 @@
 
 Implements AssetExtractProtocol for extracting downloaded archive artifacts
 under security policy supervision. Never implements path traversal protection.
+
+FR-AST-003 mandates that ALL archive safety decisions (entry path validation,
+traversal/escape rejection, depth/size/entry-count limits, symbolic/hard link
+policy) are delegated to the security policy feature. This capability therefore
+performs only the mechanical extraction of entries that the security supervisor
+has explicitly approved; it contains no local traversal or link enforcement.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import tarfile
 import zipfile
 from datetime import datetime, timezone
@@ -14,10 +22,27 @@ from pathlib import Path
 from typing import Any
 
 from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
+from modules.shared.src.asset.taxonomy_asset_vo import (
+    ArchiveEntryVO,
+    ArchiveExtractionOptionsVO,
+    ArchiveExtractionVO,
+)
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.common.taxonomy_domain_error import ValidationError
+from modules.shared.src.security.contract_extract_archive_protocol import (
+    ExtractArchiveProtocol,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
+
+# PEP 706 (Python 3.12+) requires an explicit extraction filter; without it
+# tarfile emits a DeprecationWarning now and changes default behavior (rejects
+# unsafe members) in Python 3.14. "data" is the correct filter for untrusted
+# asset archives: it strips absolute/relative path escapes and blocks special
+# files. Members reaching this point were already validated by the security
+# supervisor, so "data" adds defense-in-depth without changing approved output.
+# On Python < 3.12 the kwarg does not exist, so omit it entirely.
+_TAR_EXTRACT_FILTER = {"filter": "data"} if sys.version_info >= (3, 12) else {}
 
 
 class AssetExtractCapability(AssetExtractProtocol):
@@ -25,14 +50,20 @@ class AssetExtractCapability(AssetExtractProtocol):
 
     FR-AST-003: All archive safety decisions delegated to security policy
     feature. Never implements path traversal protection locally. Extraction
-    destination validated through security policy before any entry written.
+    destination is validated through security policy before any entry is
+    written. Rejected entries are reported without exposing unsafe target
+    paths in raw form.
     """
 
-    def __init__(self, security_supervisor: Any | None = None) -> None:
-        """Initialize with optional security supervisor.
+    def __init__(self, security_supervisor: ExtractArchiveProtocol | None = None) -> None:
+        """Initialize with the security supervisor for extraction safety.
 
         Args:
-            security_supervisor: Security policy feature for extraction safety.
+            security_supervisor: Security policy feature implementing
+                ExtractArchiveProtocol. The asset feature MUST delegate all
+                archive safety decisions to it; extraction is refused when
+                no supervisor is available (the asset feature does not
+                implement its own traversal protection).
         """
         self.security_supervisor = security_supervisor
 
@@ -40,51 +71,33 @@ class AssetExtractCapability(AssetExtractProtocol):
         self,
         artifact_path: FilePath,
         destination: FilePath,
-        max_entries: int = 1000,
-        max_extracted_size: int = 1073741824,
+        max_entries: int | None = None,
+        max_extracted_size: int | None = None,
         allow_symlinks: bool = False,
     ) -> dict[str, Any]:
         """Extract downloaded archive under security policy supervision.
 
-        FR-AST-003: Extraction destination validated through security
-        policy before any entry is written. Rejected entries reported
-        without exposing unsafe target paths in raw form. Partial
-        extraction cleaned up on failure. Nested archives follow same
-        security supervision.
+        FR-AST-003: All archive safety decisions delegated to security
+        policy feature. Limits (max_entries, max_extracted_size) come
+        from the caller or config; the security supervisor enforces its own
+        limits. Extraction destination validated through security policy
+        before any entry is written. Rejected entries reported without
+        exposing unsafe target paths in raw form. Partial extraction is
+        avoided because approval is obtained before any entry is written.
 
         Args:
             artifact_path: Path to the archive file to extract.
             destination: Extraction destination within allowed directories.
-            max_entries: Maximum number of entries to extract.
+            max_entries: Maximum number of entries to extract. None
+                delegates to the ArchiveExtractionOptionsVO default.
             max_extracted_size: Maximum total extracted size in bytes.
+                None delegates to the ArchiveExtractionOptionsVO default.
             allow_symlinks: Whether to allow symbolic links.
 
         Returns:
-            Dict with success, extracted_files, rejected_entries, and message.
+            Dict with success, extracted file references, rejected entry
+            summary, and message.
         """
-        extracted_files: list[str] = []
-        rejected_entries: list[str] = []
-
-        # Validate destination through security policy
-        if self.security_supervisor:
-            try:
-                await self.security_supervisor.validate_extraction(
-                    artifact_path=artifact_path,
-                    destination=destination,
-                    max_entries=max_entries,
-                    max_size=max_extracted_size,
-                    allow_symlinks=allow_symlinks,
-                )
-            except Exception as e:
-                logger.warning("Security extraction validation failed: %s", e)
-                return {
-                    "success": False,
-                    "extracted_files": [],
-                    "rejected_entries": [f"security_validation: {e}"],
-                    "message": f"Extraction rejected by security policy: {e}",
-                }
-
-        # Validate archive exists and is readable
         if not Path(artifact_path).exists():
             return {
                 "success": False,
@@ -93,35 +106,85 @@ class AssetExtractCapability(AssetExtractProtocol):
                 "message": f"Archive file not found: {artifact_path}",
             }
 
+        # Enumerate entries for the security supervisor to evaluate.
         try:
-            # Determine archive type and extract
-            path = Path(artifact_path)
-            if path.suffix in (".zip", ".ZIP"):
-                extracted_files, rejected_entries = await self._extract_zip(
-                    artifact_path, destination, max_entries, max_extracted_size, allow_symlinks
-                )
-            elif path.suffix in (".tar", ".tar.gz", ".tgz", ".TAR", ".TAR.GZ", ".TGZ"):
-                extracted_files, rejected_entries = await self._extract_tar(
-                    artifact_path, destination, max_entries, max_extracted_size, allow_symlinks
-                )
-            else:
-                return {
-                    "success": False,
-                    "extracted_files": [],
-                    "rejected_entries": [],
-                    "message": f"Unsupported archive format: {path.suffix}",
-                }
-
+            entries = self._list_entries(str(artifact_path))
+        except ValidationError as e:
             return {
-                "success": True,
-                "extracted_files": extracted_files,
-                "rejected_entries": rejected_entries,
-                "message": f"Extracted {len(extracted_files)} files, {len(rejected_entries)} rejected",
-                "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": str(e),
+            }
+        except (zipfile.BadZipFile, tarfile.TarError) as e:
+            logger.error("Invalid archive %s: %s", artifact_path, e)
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": f"Invalid archive: {e}",
             }
 
-        except Exception as e:
+        options = ArchiveExtractionOptionsVO(
+            max_entry_count=max_entries
+            if max_entries is not None
+            else ArchiveExtractionOptionsVO.max_entry_count,
+            max_total_size=max_extracted_size
+            if max_extracted_size is not None
+            else ArchiveExtractionOptionsVO.max_total_size,
+            allow_symbolic_links=allow_symlinks,
+        )
+        request = ArchiveExtractionVO(
+            destination_directory=str(destination),
+            entries=tuple(entries),
+            options=options,
+        )
+
+        # FR-AST-003: the asset feature must not implement its own traversal
+        # protection, so without a security supervisor it cannot safely extract.
+        if self.security_supervisor is None:
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [],
+                "message": (
+                    "Archive extraction requires security supervision (FR-AST-003): "
+                    "asset feature does not implement path traversal protection."
+                ),
+            }
+
+        try:
+            result = await self.security_supervisor.validate_extraction(request)
+        except Exception as e:  # supervisor raised during validation
+            logger.warning("Security extraction validation failed: %s", e)
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": [f"security_validation: {e}"],
+                "message": f"Extraction rejected by security policy: {e}",
+            }
+
+        if not result.allowed:
+            rejected = [r.entry_path for r in result.rejected_entries]
+            return {
+                "success": False,
+                "extracted_files": [],
+                "rejected_entries": rejected,
+                "message": "Extraction rejected by security policy",
+                "warnings": list(result.warnings),
+            }
+
+        dest = result.safe_destination or str(destination)
+        os.makedirs(dest, exist_ok=True)
+        rejected_names = {r.entry_path for r in result.rejected_entries}
+
+        extracted_files: list[str] = []
+        try:
+            extracted_files = self._extract_allowed(str(artifact_path), dest, rejected_names)
+        except (zipfile.BadZipFile, tarfile.TarError) as e:
+            # FR-AST-003: partial extraction cleanup on failure
             logger.error("Extraction failed for %s: %s", artifact_path, e)
+            self._cleanup_extracted_files(extracted_files)
             return {
                 "success": False,
                 "extracted_files": [],
@@ -129,121 +192,105 @@ class AssetExtractCapability(AssetExtractProtocol):
                 "message": f"Extraction failed: {e}",
             }
 
-    async def _extract_zip(
-        self,
-        artifact_path: str,
-        destination: str,
-        max_entries: int,
-        max_size: int,
-        allow_symlinks: bool,
-    ) -> tuple[list[str], list[str]]:
-        """Extract ZIP archive with security supervision."""
-        extracted: list[str] = []
-        rejected: list[str] = []
+        return {
+            "success": True,
+            "extracted_files": extracted_files,
+            "rejected_entries": [r.entry_path for r in result.rejected_entries],
+            "message": f"Extracted {len(extracted_files)} files, {len(rejected_names)} rejected",
+            "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
-        try:
+    def _list_entries(self, artifact_path: str) -> list[ArchiveEntryVO]:
+        """Enumerate archive entries as ArchiveEntryVO for security review.
+
+        Raises ValidationError for unsupported archive formats.
+        """
+        path = Path(artifact_path)
+        suffix = path.suffix.lower()
+        name_lower = path.name.lower()
+
+        if suffix == ".zip" or name_lower.endswith(".zip"):
             with zipfile.ZipFile(artifact_path, "r") as zf:
-                entries = zf.namelist()
-                total_size = 0
+                entries: list[ArchiveEntryVO] = []
+                for info in zf.infolist():
+                    unix_mode = (info.external_attr >> 16) & 0o170000
+                    entries.append(
+                        ArchiveEntryVO(
+                            entry_path=info.filename,
+                            is_directory=info.filename.endswith("/"),
+                            is_symbolic_link=unix_mode == 0o120000,
+                            is_hard_link=False,
+                            compressed_size=info.compress_size,
+                            uncompressed_size=info.file_size,
+                        )
+                    )
+                return entries
 
-                for i, entry in enumerate(entries):
-                    # Reject if over max entries
-                    if i >= max_entries:
-                        rejected.append(f"entry_count_limit: {entry}")
-                        continue
-
-                    # Reject symlinks if not allowed
-                    if not allow_symlinks and self._is_symlink_entry(entry):
-                        rejected.append(f"symlink_rejected: {entry}")
-                        continue
-
-                    # Check entry size
-                    try:
-                        info = zf.getinfo(entry)
-                        entry_size = info.file_size if hasattr(info, 'file_size') else info.compress_size
-                    except KeyError:
-                        entry_size = 0
-
-                    if entry_size > 0 and total_size + entry_size > max_size:
-                        rejected.append(f"size_limit: {entry}")
-                        continue
-
-                    # Security: validate entry path doesn't escape destination
-                    target = str(Path(destination) / entry)
-                    if not self._is_safe_path(target, destination):
-                        rejected.append(f"path_escape: {entry}")
-                        continue
-
-                    # Extract entry
-                    zf.extract(entry, destination)
-                    extracted.append(target)
-                    total_size += entry_size
-
-        except zipfile.BadZipFile as e:
-            logger.error("Invalid ZIP archive: %s", e)
-            raise ValidationError(f"Invalid ZIP archive: {e}")
-
-        return extracted, rejected
-
-    async def _extract_tar(
-        self,
-        artifact_path: str,
-        destination: str,
-        max_entries: int,
-        max_size: int,
-        allow_symlinks: bool,
-    ) -> tuple[list[str], list[str]]:
-        """Extract TAR archive with security supervision."""
-        extracted: list[str] = []
-        rejected: list[str] = []
-
-        try:
+        if (
+            suffix == ".tar"
+            or suffix == ".tgz"
+            or (suffix == ".gz" and (name_lower.endswith(".tar.gz") or name_lower.endswith(".tgz")))
+        ):
             with tarfile.open(artifact_path, "r:*") as tf:
-                members = tf.getmembers()
-                total_size = 0
+                entries = []
+                for member in tf.getmembers():
+                    entries.append(
+                        ArchiveEntryVO(
+                            entry_path=member.name,
+                            is_directory=member.isdir(),
+                            is_symbolic_link=member.issym(),
+                            is_hard_link=member.islnk(),
+                            compressed_size=member.size,
+                            uncompressed_size=member.size,
+                        )
+                    )
+                return entries
 
-                for i, member in enumerate(members):
-                    # Reject if over max entries
-                    if i >= max_entries:
-                        rejected.append(f"entry_count_limit: {member.name}")
+        raise ValidationError(f"Unsupported archive format: {path.suffix or name_lower}")
+
+    def _extract_allowed(
+        self, artifact_path: str, dest: str, rejected_names: set[str]
+    ) -> list[str]:
+        """Extract only the entries the security supervisor approved.
+
+        No local path/symlink/size checks are performed here; safety has
+        already been enforced by the security supervisor.
+        """
+        path = Path(artifact_path)
+        suffix = path.suffix.lower()
+        name_lower = path.name.lower()
+        extracted: list[str] = []
+
+        if suffix == ".zip" or name_lower.endswith(".zip"):
+            with zipfile.ZipFile(artifact_path, "r") as zf:
+                for info in zf.infolist():
+                    if info.filename in rejected_names:
                         continue
-
-                    # Reject symlinks/hardlinks if not allowed
-                    if not allow_symlinks and member.issym() or member.isln():
-                        rejected.append(f"link_rejected: {member.name}")
+                    zf.extract(info, dest)
+                    extracted.append(str(Path(dest) / info.filename))
+        else:
+            with tarfile.open(artifact_path, "r:*") as tf:
+                for member in tf.getmembers():
+                    if member.name in rejected_names:
                         continue
+                    tf.extract(member, dest, **_TAR_EXTRACT_FILTER)
+                    extracted.append(str(Path(dest) / member.name))
 
-                    # Check size
-                    if member.size > 0 and total_size + member.size > max_size:
-                        rejected.append(f"size_limit: {member.name}")
-                        continue
+        return extracted
 
-                    # Security: validate entry path doesn't escape destination
-                    target = str(Path(destination) / member.name)
-                    if not self._is_safe_path(target, destination):
-                        rejected.append(f"path_escape: {member.name}")
-                        continue
+    def _cleanup_extracted_files(self, extracted_files: list[str]) -> None:
+        """Clean up partially extracted files on failure.
 
-                    # Extract member
-                    tf.extract(member, destination)
-                    extracted.append(target)
-                    total_size += member.size or 0
-
-        except tarfile.TarError as e:
-            logger.error("Invalid TAR archive: %s", e)
-            raise ValidationError(f"Invalid TAR archive: {e}")
-
-        return extracted, rejected
-
-    def _is_symlink_entry(self, entry: str) -> bool:
-        """Check if ZIP entry is a symlink."""
-        return entry.endswith("/") or "symlink" in entry.lower()
-
-    def _is_safe_path(self, target: str, base: str) -> bool:
-        """Check if target path is safely within base directory."""
-        try:
-            base_resolved = Path(base).resolve()
-            target_resolved = Path(target).resolve()
-            return str(target_resolved).startswith(str(base_resolved))
-        except OSError:
-            return False
+        FR-AST-003: Partial extraction is cleaned up on failure to avoid
+        leaving orphaned files on disk.
+        """
+        for file_path in extracted_files:
+            try:
+                p = Path(file_path)
+                if p.is_file():
+                    p.unlink()
+                elif p.is_dir():
+                    import shutil
+                    shutil.rmtree(p, ignore_errors=True)
+            except OSError as e:
+                logger.warning("Failed to clean up extracted file %s: %s", file_path, e)

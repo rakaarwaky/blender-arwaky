@@ -18,29 +18,26 @@ from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProto
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STOPPED,
     LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
-    LAUNCHER_TERMINATION_FORCE,
-    LAUNCHER_TERMINATION_GRACEFUL,
-    LAUNCHER_TERMINATION_NONE,
 )
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    ProbeDepth,
     RuntimeState,
     ShutdownOutcomeVO,
+    TerminationMethod,
 )
 
 
 class _SignalSender(Protocol):
     """Sends a graceful signal to a process. DI boundary."""
 
-    def __call__(self, process_id: int) -> bool:
-        ...
+    def __call__(self, process_id: int) -> bool: ...
 
 
 class _ProcessKiller(Protocol):
     """Force-kills a process. DI boundary."""
 
-    def __call__(self, process_id: int) -> bool:
-        ...
+    def __call__(self, process_id: int) -> bool: ...
 
 
 class ProcessShutdown(ShutdownProtocol):
@@ -66,17 +63,24 @@ class ProcessShutdown(ShutdownProtocol):
     # ─── Block 2: Public Contract ────────────────────────────
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force when allowed."""
-        current = self._status.check_status(depth="lightweight")
+        current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
-            self._emit(LAUNCHER_EVENT_APPLICATION_STOPPED, current.state, RuntimeState.NOT_RUNNING, method=LAUNCHER_TERMINATION_NONE)
-            return ShutdownOutcomeVO(success=True, termination_method=LAUNCHER_TERMINATION_NONE, final_state=RuntimeState.NOT_RUNNING)
+            self._emit(
+                LAUNCHER_EVENT_APPLICATION_STOPPED,
+                current.state,
+                RuntimeState.NOT_RUNNING,
+                method=TerminationMethod.NONE.value,
+            )
+            return ShutdownOutcomeVO(
+                success=True, termination_method=TerminationMethod.NONE, final_state=RuntimeState.NOT_RUNNING
+            )
 
         if current.process_id is None:
             return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
 
         start = time.monotonic()
-        method = LAUNCHER_TERMINATION_GRACEFUL
+        method = TerminationMethod.GRACEFUL
         escalated = False
 
         if self._signal is not None and not force:
@@ -86,21 +90,40 @@ class ProcessShutdown(ShutdownProtocol):
             if (force or allow_escalation) and self._force_enabled and self._kill is not None:
                 self._kill(current.process_id)
                 escalated = True
-                method = LAUNCHER_TERMINATION_FORCE
-                self._emit(LAUNCHER_EVENT_SHUTDOWN_ESCALATION, RuntimeState.STOPPING, RuntimeState.NOT_RUNNING, process_reference=str(current.process_id))
+                method = TerminationMethod.FORCE
+                self._emit(
+                    LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
+                    RuntimeState.STOPPING,
+                    RuntimeState.NOT_RUNNING,
+                    process_reference=str(current.process_id),
+                )
             else:
                 duration_ms = (time.monotonic() - start) * 1000.0
                 return ShutdownOutcomeVO(
-                    success=False, termination_method=LAUNCHER_TERMINATION_GRACEFUL,
-                    duration_ms=duration_ms, error="Graceful shutdown exceeded timeout; escalation disallowed",
+                    success=False,
+                    termination_method=TerminationMethod.GRACEFUL,
+                    duration_ms=duration_ms,
+                    error="Graceful shutdown exceeded timeout; escalation disallowed",
                 )
 
         duration_ms = (time.monotonic() - start) * 1000.0
-        self._emit(LAUNCHER_EVENT_APPLICATION_STOPPED, RuntimeState.STOPPING, RuntimeState.NOT_RUNNING, process_reference=str(current.process_id), method=method)
-        return ShutdownOutcomeVO(success=True, termination_method=method, duration_ms=duration_ms, final_state=RuntimeState.NOT_RUNNING, escalated=escalated)
+        self._emit(
+            LAUNCHER_EVENT_APPLICATION_STOPPED,
+            RuntimeState.STOPPING,
+            RuntimeState.NOT_RUNNING,
+            process_reference=str(current.process_id),
+            method=method.value,
+        )
+        return ShutdownOutcomeVO(
+            success=True,
+            termination_method=method,
+            duration_ms=duration_ms,
+            final_state=RuntimeState.NOT_RUNNING,
+            escalated=escalated,
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _wait_exit(self, process_id: int) -> bool:
+    def _wait_exit(self, _process_id: int) -> bool:
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
             st = self._status.check_status(depth="lightweight")
@@ -109,9 +132,16 @@ class ProcessShutdown(ShutdownProtocol):
             time.sleep(0.05)
         return False
 
-    def _emit(self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", method: str = "") -> None:
+    def _emit(
+        self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", method: str = ""
+    ) -> None:
         if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=category, state_before=before, state_after=after,
-                process_reference=process_reference, method=method,
-            ))
+            self._events(
+                LauncherLifecycleEvent(
+                    event_category=category,
+                    state_before=before,
+                    state_after=after,
+                    process_reference=process_reference,
+                    method=method,
+                )
+            )

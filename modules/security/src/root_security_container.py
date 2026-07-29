@@ -14,7 +14,7 @@ Structure:
 
 import logging
 
-from modules.shared.src.security.contract_security_operate_aggregate import SecurityOperateAggregate
+from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_security_orchestrator import SecurityOrchestrator
@@ -62,7 +62,7 @@ class SecurityContainer:
         validate_path_cap = PathValidator(policy=self._policy)
         validate_archive_cap = ArchiveGuard()
         validate_code_cap = CodeValidator(policy=self._policy)
-        redact_cap = SensitiveRedactor(debug_mode=self._policy.redaction_debug_mode)
+        redact_cap = SensitiveRedactor()
         emit_audit_cap = AuditEmitter()
 
         # Agent layer — implements aggregate, depends on all 5 protocols
@@ -78,7 +78,7 @@ class SecurityContainer:
         logger.info("Security feature module wired successfully (5 capabilities)")
 
     @property
-    def aggregate(self) -> SecurityOperateAggregate:
+    def aggregate(self) -> ISecurityOperateAggregate:
         """Return the assembled SecurityOperateAggregate facade.
 
         Must call wire() first, or this property will raise RuntimeError.
@@ -92,7 +92,7 @@ class SecurityContainer:
 
 def create_security_feature(
     policy: SecurityPolicyVO | None = None,
-) -> SecurityOperateAggregate:
+) -> ISecurityOperateAggregate:
     """Factory function to create and wire the security feature module.
 
     Convenience function for top-level entry points that need the aggregate.

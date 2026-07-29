@@ -53,7 +53,7 @@ git checkout -b fix/issue-number-description
 
 Follow the project's architecture and style:
 
-- **AES 6-layer architecture** — see [AGENT.md](AGENT.md)
+- **AES layered architecture** — see [AGENT.md](AGENT.md)
 - **3-word file naming**: `{domain}_{concern}_{suffix}.py`
 - **Type hints everywhere** — mypy must pass
 - **Docstrings** — public functions/classes
@@ -67,7 +67,6 @@ New code should be accompanied by tests:
 |-------|---------------|--------|
 | `taxonomy/` | `tests/unit/` | `@pytest.mark.unit` |
 | `contract/` | `tests/unit/` or `tests/integration/` | unit/integration |
-| `infrastructure/` | `tests/unit/` | `@pytest.mark.unit` |
 | `capabilities/` | `tests/unit/` or `tests/integration/` | unit/integration |
 | `agent/` | `tests/integration/` | `@pytest.mark.integration` |
 | `surfaces/` | `tests/functional/` | `@pytest.mark.functional` |
@@ -144,13 +143,18 @@ Pre-commit hooks will run automatically on commit.
 
 ```
 blender-arwaky/
-├── src/                    # Python MCP server (AES 6-layer)
-│   ├── surfaces/           # MCP tools & CLI entry points
-│   ├── agent/              # DI container, orchestrators, experts
-│   ├── capabilities/       # Use cases
-│   ├── infrastructure/     # Adapters & API clients
-│   ├── contract/           # Ports & protocols
-│   └── taxonomy/           # Foundation: data structures
+├── modules/                # Feature modules (AES layered)
+│   ├── shared/             # Taxonomy + contracts (cross-feature)
+│   ├── {feature}/          # Per feature: taxonomy, contract, capabilities, agent, surface
+│   │   ├── FRD.md
+│   │   └── src/
+│   │       ├── taxonomy_<domain>_<type>.py
+│   │       ├── contract_<domain>_<concern>_protocol.py
+│   │       ├── capabilities_<domain>_<concern>.py
+│   │       ├── agent_<domain>_orchestrator.py
+│   │       └── root_<domain>_container.py
+│   ├── cli/src/            # CLI surface — direct command per action
+│   └── mcp/src/            # MCP surface — 5 tools via execute_command
 ├── blender_mcp_addon/      # Blender addon (TCP server)
 ├── tests/                  # Test suite
 │   ├── unit/               # @pytest.mark.unit

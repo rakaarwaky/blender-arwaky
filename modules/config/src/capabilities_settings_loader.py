@@ -14,9 +14,7 @@ import copy
 import os
 import threading
 import time
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ConfigMetadata,
@@ -49,7 +47,13 @@ from modules.shared.src.config.taxonomy_config_event import (
     SettingsReloadEvent,
     SettingsValidationWarningEvent,
 )
-from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
+from modules.shared.src.config.taxonomy_config_vo import (
+    ConfigFileLoader,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSchema,
+    SettingsSnapshot,
+)
 from modules.shared.src.config.utility_config_helpers import (
     apply_env_overrides,
     deep_merge_dicts,
@@ -59,7 +63,27 @@ from modules.shared.src.config.utility_config_helpers import (
     validate_settings_schema,
 )
 
-ConfigFileLoader = Any  # Callable[[ConfigPath], dict[str, Any]]
+# ─── Module-Level Constants ────────────────────────────────
+# Cached defaults and schema copies to avoid per-instantiation deepcopy overhead.
+# Only deep-copied when the caller provides custom defaults/schema.
+_DEFAULTS_CACHE: SettingsOverrides | None = None
+_SCHEMA_CACHE: SettingsSchema | None = None
+
+
+def _get_defaults_cache() -> SettingsOverrides:
+    """Return a cached deep copy of DEFAULT_SETTINGS, creating it once."""
+    global _DEFAULTS_CACHE
+    if _DEFAULTS_CACHE is None:
+        _DEFAULTS_CACHE = copy.deepcopy(DEFAULT_SETTINGS)
+    return dict(_DEFAULTS_CACHE)
+
+
+def _get_schema_cache() -> SettingsSchema:
+    """Return a cached deep copy of SETTINGS_SCHEMA, creating it once."""
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE is None:
+        _SCHEMA_CACHE = copy.deepcopy(SETTINGS_SCHEMA)
+    return dict(_SCHEMA_CACHE)
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -76,19 +100,20 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self,
         config_file_loader: ConfigFileLoader | None = None,
         policy_mode: str = DEFAULT_POLICY_MODE,
-        defaults: Mapping[str, Any] | None = None,
-        schema: Mapping[str, Any] | None = None,
+        defaults: SettingsOverrides | None = None,
+        schema: SettingsSchema | None = None,
         strict_mode_enabled: bool = False,
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
-        self._defaults = dict(defaults) if defaults is not None else copy.deepcopy(DEFAULT_SETTINGS)
-        self._schema = dict(schema) if schema is not None else copy.deepcopy(SETTINGS_SCHEMA)
+        # Use cached copies when no custom defaults/schema provided (Finding #2/#14)
+        self._defaults = dict(defaults) if defaults is not None else _get_defaults_cache()
+        self._schema = dict(schema) if schema is not None else _get_schema_cache()
         self._strict_mode_enabled = strict_mode_enabled
         self._lock = threading.Lock()
         # cached state
         self._cached: SettingsSnapshot | None = None
-        self._cached_data: dict[str, Any] | None = None
+        self._cached_data: SettingsData | None = None
         self._last_metadata: ConfigMetadata = ConfigMetadata()
 
 # ─── Block 2: Protocol Method Implementation ──────────────
@@ -96,7 +121,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
     def load_settings(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings from sources, apply precedence, validate, return immutable snapshot."""
         with self._lock:
@@ -112,7 +137,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
 
             # Runtime overrides are caller-scoped — never cached (A5).
             if overrides is not None and self._strict_mode_enabled:
-                structured: dict[str, Any] = {}
+                structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
@@ -143,7 +168,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
                 return self._cached
-            except Exception:
+            except (ConfigLoadError, ConfigParseError, ConfigValidationError):
                 if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
                     return self._cached
                 raise
@@ -193,7 +218,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
 
     def _build_core(
         self, path: ConfigPath | None
-    ) -> tuple[dict[str, Any], dict[str, Any], ConfigMetadata]:
+    ) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
         """Build merged settings + raw file data + metadata.
 
         Returns (merged, filedata, metadata). ``filedata`` is what gets cached
@@ -203,7 +228,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         p = Path(str(resolved))
 
         parse_warnings: list[ParseWarning] = []
-        file_data: dict[str, Any] = {}
+        file_data: SettingsData = {}
 
         # Directory path
         if p.is_dir():
@@ -211,7 +236,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 raise ConfigPathError(f"{resolved} is a directory")
             parse_warnings.append(ParseWarning(f"{resolved} is a directory; using defaults"))
         elif not p.is_file():
-            # Missing file: never fatal in any mode (Q6).
+            # Missing file: never fatal (Q6).
             parse_warnings.append(
                 ParseWarning(f"settings file not found: {resolved}; using defaults")
             )
@@ -233,11 +258,19 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                         ParseWarning(f"failed to parse {resolved}; using defaults")
                     )
                     file_data = {}
-                except Exception as exc:
+                except (UnicodeDecodeError, OSError) as exc:
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
                     parse_warnings.append(
                         ParseWarning(f"failed to load {resolved}; using defaults")
+                    )
+                    file_data = {}
+                except Exception as exc:
+                    # Catch-all for unexpected errors — re-raise in strict mode
+                    if self._policy_mode == POLICY_MODE_STRICT:
+                        raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
+                    parse_warnings.append(
+                        ParseWarning(f"unexpected error loading {resolved}; using defaults")
                     )
                     file_data = {}
 

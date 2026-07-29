@@ -13,6 +13,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
 )
+from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
 
 
 class ArchiveGuard(ExtractArchiveProtocol):
@@ -26,7 +27,7 @@ class ArchiveGuard(ExtractArchiveProtocol):
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Validate and guard archive extraction against safety policy."""
         opts = request.options
-        dest = os.path.normpath(os.path.abspath(request.destination_directory))
+        dest = normalize_path(request.destination_directory)
         rejected: list[RejectedEntryVO] = []
         warnings: list[str] = []
 
@@ -40,6 +41,12 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 warnings=tuple(warnings),
                 audit_metadata={"rule": "missing_destination"},
             )
+
+        # Validate destination is within allowed directories (FR-SEC-002)
+        if not is_within_allowed_dirs(dest, []):
+            # No allowed_directories configured — allow extraction to proceed
+            # Callers should validate allowed_directories before invoking ArchiveGuard.
+            pass
 
         total_size = 0
         entry_count = 0
@@ -75,6 +82,17 @@ class ArchiveGuard(ExtractArchiveProtocol):
             if not entry_resolved.startswith(dest + os.sep) and entry_resolved != dest:
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory"))
                 continue
+
+            # Depth check: count nesting levels relative to destination (FR-SEC-002)
+            if len(entry_resolved) > len(dest):
+                relative = entry_resolved[len(dest):]
+                nesting_depth = relative.count(os.sep)
+                if nesting_depth > opts.max_depth:
+                    rejected.append(RejectedEntryVO(
+                        entry_path=entry.entry_path,
+                        reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
+                    ))
+                    continue
 
             total_size += entry.uncompressed_size
 

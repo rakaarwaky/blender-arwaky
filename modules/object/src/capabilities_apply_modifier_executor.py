@@ -134,7 +134,12 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
                 f"        break\n"
                 f"if existing_mod:\n"
                 f"    # Update existing modifier parameters\n"
-                f"    pass\n"
+                f"    params = {ApplyModifierExecutor._safe_str(str(getattr(request, 'parameters', {})))}\n"
+                f"    for param_name, param_value in params.items():\n"
+                f"        try:\n"
+                f"            setattr(existing_mod, param_name, param_value)\n"
+                f"        except Exception:\n"
+                f"            pass\n"
                 f"else:\n"
                 f"    obj.modifiers.new(name={ApplyModifierExecutor._safe_str(str(request.modifier_name))}, type=mod_type)\n"
             )

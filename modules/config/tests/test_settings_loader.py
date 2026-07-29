@@ -33,7 +33,7 @@ def test_precedence_defaults_only():
 
 
 @pytest.mark.unit
-def test_precedence_file_over_defaults(monkeypatch):
+def test_precedence_file_over_defaults(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture for test isolation)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
@@ -55,7 +55,7 @@ def test_precedence_env_over_file(monkeypatch):
 
 
 @pytest.mark.unit
-def test_runtime_override_wins(monkeypatch):
+def test_runtime_override_wins(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
@@ -76,7 +76,7 @@ def test_missing_file_not_fatal_strict_and_permissive():
 
 
 @pytest.mark.unit
-def test_malformed_strict_raises(monkeypatch):
+def test_malformed_strict_raises(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender: [unclosed\n")
@@ -86,7 +86,7 @@ def test_malformed_strict_raises(monkeypatch):
 
 
 @pytest.mark.unit
-def test_malformed_permissive_returns_defaults(monkeypatch):
+def test_malformed_permissive_returns_defaults(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender: [unclosed\n")
@@ -114,7 +114,7 @@ def test_directory_path_permissive_uses_defaults():
 
 
 @pytest.mark.unit
-def test_oversized_v2_on_strict_raises(monkeypatch):
+def test_oversized_v2_on_strict_raises(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n")
@@ -166,7 +166,7 @@ def test_schema_v2_on_permissive_warning_and_event():
 
 
 @pytest.mark.unit
-def test_overrides_caller_scoped_not_cached(monkeypatch):
+def test_overrides_caller_scoped_not_cached(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
@@ -209,7 +209,7 @@ def test_legacy_prefix_ignored(monkeypatch):
 def test_event_counts_real_env_overrides(monkeypatch):
     monkeypatch.setenv("BLENDERMCP_SERVER.TRANSPORT", "ws")
     loader = SettingsLoaderCapability()
-    snap = loader.load_settings()
+    loader.load_settings()
     ev = loader.emit_loaded_event()
     md = loader.get_last_metadata()
     assert ev.override_count == int(md.overrides)
@@ -222,7 +222,7 @@ def test_concurrency_single_load():
     calls = {"n": 0}
     lock = threading.Lock()
 
-    def counting_loader(path):
+    def counting_loader(_path):
         with lock:
             calls["n"] += 1
         return {"blender": {"port": 9876}}
@@ -246,7 +246,7 @@ def test_concurrency_single_load():
 
 
 @pytest.mark.unit
-def test_metadata_reflects_latest_load(monkeypatch):
+def test_metadata_reflects_latest_load(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 1111\n")

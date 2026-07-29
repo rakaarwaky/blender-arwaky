@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 
-from .agent_orchestrator import TelemetryOrchestrator
+from .agent_telemetry_orchestrator import TelemetryOrchestrator
 from .capabilities_telemetry_classification import TelemetryEventClassifier
 from .capabilities_telemetry_enrichment import TelemetryEventEnricher
 from .capabilities_telemetry_recorder import TelemetryRecordingCapability

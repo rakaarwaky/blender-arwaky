@@ -9,7 +9,8 @@ FR-DIA-004: Structured Logging Policy
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+
+from .taxonomy_diagnostics_vo import LogResultVO
 
 
 class LoggingPolicyProtocol(ABC):
@@ -21,14 +22,15 @@ class LoggingPolicyProtocol(ABC):
         level: str,
         source_feature: str,
         message: str,
-        fields: dict[str, Any] | None = None,
+        fields: dict | None = None,
         tracking_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> LogResultVO:
         """Write sanitized structured log entry.
 
         FR-DIA-004: All features log through diagnostics policy.
         Redaction applied at ingestion before any destination write.
         Logging must not block callers; records buffer under backpressure.
+        No raw code/tokens/credentials/passwords/paths at any level.
 
         Args:
             level: Log level (debug, info, warning, error).
@@ -38,6 +40,6 @@ class LoggingPolicyProtocol(ABC):
             tracking_id: Optional tracking identifier.
 
         Returns:
-            Dict with logging confirmation and destination metadata.
+            LogResultVO with logging confirmation and destination metadata.
         """
-        pass
+        ...

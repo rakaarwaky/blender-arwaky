@@ -3,11 +3,12 @@
 FR-DSP-005: Submit Background Action
 - Creates job through job feature, returns task reference
 - Enforces background eligibility and capacity limits
-- Returns envelope indicating polling is required
+- Returns envelope indicating polling is required for final outcome
 - Does not manage task lifecycle after handoff
 """
 
 import logging
+import uuid
 from typing import Any
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
@@ -22,8 +23,8 @@ logger = logging.getLogger("BlenderMCPServer")
 class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
     """Concrete implementation for background action submission.
 
-    FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
-    Returns envelope indicating polling is required for final outcome.
+    FR-DSP-005: Enforces background eligibility and capacity limits, creates job, returns
+    task reference. Returns envelope indicating polling is required for final outcome.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -43,19 +44,30 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
     def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Submit an action for background execution via job feature.
 
-        FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
+        FR-DSP-005: Enforces eligibility and capacity, creates job, returns task reference.
         Returns envelope indicating polling is required for final outcome.
         """
-        # Check background eligibility (would be validated by RequestValidationExecutor)
-        # In production, this would check metadata from catalog
+        tracking_id = request.validated_tracking_id or request.tracking_id or ""
 
-        # Check capacity
+        # Background eligibility (FR-DSP-005)
+        bg_eligible = request.resolved_metadata.get("background_eligibility_flag", False)
+        if not bg_eligible:
+            logger.warning(
+                "Action '%s' is not eligible for background execution", request.action_name
+            )
+            return UnifiedResultEnvelopeVO.error_envelope(
+                message=f"Action '{request.action_name}' does not support background execution",
+                tracking_id=tracking_id,
+                error_category="unsupported_error",
+            )
+
+        # Capacity enforcement (FR-DSP-005)
         current_count = self._get_active_job_count()
         if current_count >= self._capacity:
             logger.warning("Background capacity exceeded: %d/%d", current_count, self._capacity)
             return UnifiedResultEnvelopeVO.error_envelope(
                 message="Background capacity exceeded",
-                tracking_id=request.tracking_id or "",
+                tracking_id=tracking_id,
                 error_category="capacity_error",
             )
 
@@ -64,12 +76,10 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
             if self._job_tracker:
                 job_id, status = self._job_tracker.track_new_task(
                     operation_type=request.action_name,
-                    metadata={"tracking_id": request.tracking_id},
+                    metadata={"tracking_id": tracking_id},
                 )
             else:
-                # Fallback for testing: generate synthetic job ID
-                import uuid
-
+                # Fallback for testing: generate synthetic job ID (no real tracker wired)
                 job_id = str(uuid.uuid4())
                 status = {"status": "PENDING", "job_id": job_id}
 
@@ -77,7 +87,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
             logger.error("Job creation failed: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
                 message=f"Job creation failed: {e}",
-                tracking_id=request.tracking_id or "",
+                tracking_id=tracking_id,
                 error_category="execution_error",
             )
 
@@ -97,7 +107,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
         return UnifiedResultEnvelopeVO.success_envelope(
             message=f"Background job submitted for action '{request.action_name}'",
-            tracking_id=request.tracking_id or "",
+            tracking_id=tracking_id,
             data={"task_reference": job_id},
             metadata=metadata,
             warnings=["Polling required for final outcome"],
@@ -106,10 +116,34 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def _get_active_job_count(self) -> int:
-        """Count currently active (non-terminal) jobs."""
-        if self._job_tracker is None:
+        """Count currently active (non-terminal) jobs.
+
+        Delegates to the wired job tracker when it exposes an active-count method;
+        returns 0 only when no tracker is present. When a tracker is present but
+        has no recognized method, logs a warning at higher level and cannot enforce
+        capacity.
+
+        Args:
+            None (uses self._job_tracker instance attribute).
+
+        Returns:
+            Active job count, or 0 when no tracker is configured.
+        """
+        tracker = self._job_tracker
+        if tracker is None:
             return 0
-        # In production, would query job tracker state
+        for method in ("active_job_count", "get_active_count", "count_active_jobs", "active_count"):
+            fn: Any = getattr(tracker, method, None)
+            if callable(fn):
+                try:
+                    return int(fn())
+                except Exception:  # pragma: no cover - defensive against tracker faults
+                    logger.warning("Job tracker method %s failed", method)
+        logger.warning(
+            "Job tracker present but no active-count method; "
+            "capacity enforcement disabled — ensure job_tracker implements "
+            "active_job_count(), get_active_count(), count_active_jobs(), or active_count()"
+        )
         return 0
 
     def __repr__(self) -> str:

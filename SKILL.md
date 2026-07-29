@@ -2,20 +2,23 @@
 
 Reference for AI agents using BlenderArwaky. Use `read_skill_context(section="...")` to read specific sections.
 
-Sections: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`.
+Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`, `addon`, `troubleshooting`.
+
+**Architecture:** CLI accesses every action as a direct sub-command. MCP routes all actions through a single `execute_command(action=..., args=...)` tool — the `action` parameter selects the feature (scene, object, viewport, render, io, job, config, code).
 
 ---
 
 ## Section: tools
 
-4 MCP tools available:
+5 MCP tools available:
 
 | Tool | Purpose |
 |------|---------|
 | `execute_command` | Universal action executor — dispatches any action from the catalog |
 | `list_commands` | Discover available actions and parameters |
-| `read_skill_context` | Read SKILL.md sections for guidance |
 | `health_check` | Verify Blender connectivity and system health |
+| `get_config` | Retrieve BlenderArwaky configuration settings |
+| `read_skill_context` | Read SKILL.md sections for guidance |
 
 ### `execute_command`
 
@@ -36,18 +39,81 @@ Sections: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`.
 
 ## Section: commands
 
-### Scene Operations
+### CLI
+
+Setiap aksi punya sub-command sendiri dengan argument khusus:
+
+**Launcher**
+```
+blender-arwaky init --filepath <path> [--mode gui|headless] [--port <port>]
+blender-arwaky close --filepath <path>
+blender-arwaky status
+blender-arwaky register [--path <path>]
+```
+
+**Scene**
+```
+blender-arwaky scene-info
+blender-arwaky scene-cleanup --mode all|objects|meshes
+blender-arwaky set-env --hdri-id <id> [--strength <float>]
+```
+
+**Object**
+```
+blender-arwaky object-info --name <object_name>
+blender-arwaky create --type SPHERE|CUBE|CYLINDER|PLANE|CONE|TORUS [--location x,y,z] [--scale x,y,z] [--name <name>]
+blender-arwaky set-transform --name <object_name> [--location x,y,z] [--rotation x,y,z] [--scale x,y,z]
+blender-arwaky delete --name <object_name>
+blender-arwaky set-material --name <object_name> --material <material_name>
+blender-arwaky apply-modifier --name <object_name> --modifier <modifier_name>
+```
+
+**Viewport & Render**
+```
+blender-arwaky screenshot --filepath <path> --output <path> [--max-size <px>] [--view-angle PERSPECTIVE|TOP|FRONT|SIDE] [--shading WIREFRAME|SOLID|MATERIAL|RENDERED] [--no-overlays] [--focus-object <name>]
+blender-arwaky render --filepath <path> --output <path> [--resolution-x <px>] [--resolution-y <px>]
+```
+
+**Import / Export / Asset**
+```
+blender-arwaky import --file <path> [--name <object_name>]
+blender-arwaky export --name <object_name> --output <path> [--format glb|fbx|obj]
+blender-arwaky place-asset --asset-id <id> [--location x,y,z] [--rotation x,y,z] [--scale x,y,z]
+```
+
+**Job**
+```
+blender-arwaky task-status --task-id <id>
+blender-arwaky cancel-task --task-id <id>
+```
+
+**Config**
+```
+blender-arwaky config [--key <key>]
+blender-arwaky set-config --key <key> --value <value>
+```
+
+**Code Execution**
+```
+blender-arwaky run-code --code '<python code>'
+```
+
+**Universal fallback** (untuk aksi yang belum punya sub-command)
+```
+blender-arwaky run --filepath <path> --action <action_name> [--params '<json>']
+```
+
+### MCP
+
+Semua aksi via `execute_command(action="<action_name>", args={...})` — action name adalah shared identifier antara CLI dan MCP.
+
+### Parameter Details
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
 | `get_scene_info` | (none) | Full scene metadata |
-| `cleanup_scene` | `mode`: "all", "objects", "meshes" | Remove objects |
+| `cleanup_scene` | `mode`: "all" \| "objects" \| "meshes" | Remove objects |
 | `setup_environment` | `hdri_id`, `strength` | Setup HDRI lighting |
-
-### Object Operations
-
-| Action | Parameters | Description |
-|--------|------------|-------------|
 | `get_object_info` | `object_name` | Object details |
 | `create_primitive` | `primitive_type`, `location`, `scale`, `name` | Create primitive |
 | `set_object_transform` | `object_name`, `location`, `rotation`, `scale` | Update transform |
@@ -55,26 +121,21 @@ Sections: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`.
 | `set_material` | `object_name`, `material_name` | Assign material |
 | `apply_modifier` | `object_name`, `modifier_name` | Apply modifier |
 | `place_asset` | `asset_id`, `location`, `rotation`, `scale` | Position asset |
-
-### Viewport & Render
-
-| Action | Parameters | Description |
-|--------|------------|-------------|
-| `get_viewport_screenshot` | See below | AI-optimized screenshot |
+| `get_viewport_screenshot` | [screenshot params](#screenshot-parameters) | AI-optimized screenshot |
 | `render` | `output_path`, `resolution_x`, `resolution_y` | Full frame render |
-
-### Import/Export
-
-| Action | Parameters | Description |
-|--------|------------|-------------|
 | `import_glb` | `file_path`, `object_name` | Import GLB/GLTF |
 | `export_model` | `object_name`, `file_path`, `export_format` | Export model |
-
-### Code Execution
-
-| Action | Parameters | Description |
-|--------|------------|-------------|
+| `launch_blender` | `mode` ("interface" \| "headless") | Start Blender with integration active |
+| `shutdown_blender` | `force` (bool, optional) | Graceful shutdown with force fallback |
+| `get_runtime_status` | (none) | Verify true process liveness and readiness |
+| `register_executable` | `path` (optional) | Locate and register Blender executable |
+| `get_task_status` | `task_id` | Query render/compute task progress |
+| `cancel_task` | `task_id` | Cancel running task |
+| `get_config` | `key` (optional) | Get config value or all settings |
+| `set_config` | `key`, `value` | Update config setting |
 | `execute_blender_code` | `code` | Run Python in Blender |
+
+Shared identifier: CLI `--action` = MCP `action`.
 
 ### Screenshot Parameters
 
@@ -90,40 +151,26 @@ Sections: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`.
 
 ## Section: workflows
 
+All workflows use `execute_command(action=..., args=...)` for both MCP and CLI (`blender-arwaky run --action <action_name> --params '<json>'`).
+
 ### Scene Discovery
 
 ```python
-list_commands(domain="scene")
 execute_command(action="get_scene_info")
 ```
 
 ### Create and Position Object
 
 ```python
-execute_command(
-    action="create_primitive",
-    args={"primitive_type": "SPHERE", "location": [0, 0, 0]}
-)
-execute_command(
-    action="set_object_transform",
-    args={"object_name": "Sphere", "location": [2, 0, 1]}
-)
+execute_command(action="create_primitive", args={"primitive_type": "SPHERE", "location": [0, 0, 0]})
+execute_command(action="set_object_transform", args={"object_name": "Sphere", "location": [2, 0, 1]})
 ```
 
 ### AI-Optimized Viewport Analysis
 
 ```python
-# Top-down wireframe of specific object
-execute_command(
-    action="get_viewport_screenshot",
-    args={"view_angle": "TOP", "shading": "WIREFRAME", "focus_object": "Table"}
-)
-
-# Front view with materials
-execute_command(
-    action="get_viewport_screenshot",
-    args={"view_angle": "FRONT", "shading": "MATERIAL"}
-)
+execute_command(action="get_viewport_screenshot", args={"view_angle": "TOP", "shading": "WIREFRAME", "focus_object": "Table"})
+execute_command(action="get_viewport_screenshot", args={"view_angle": "FRONT", "shading": "MATERIAL"})
 ```
 
 ### Import and Place Asset
@@ -133,13 +180,17 @@ execute_command(action="import_glb", args={"file_path": "/path/to/model.glb"})
 execute_command(action="place_asset", args={"asset_id": "model", "location": [0, 0, 0]})
 ```
 
+### Submit Render and Check Status
+
+```python
+execute_command(action="render", args={"output_path": "/tmp/frame.png", "resolution_x": 1920, "resolution_y": 1080})
+execute_command(action="get_task_status", args={"task_id": "<returned_task_id>"})
+```
+
 ### Custom Blender Code
 
 ```python
-execute_command(
-    action="execute_blender_code",
-    args={"code": "import bpy; bpy.ops.mesh.primitive_monkey_add()"}
-)
+execute_command(action="execute_blender_code", args={"code": "import bpy; bpy.ops.mesh.primitive_monkey_add()"})
 ```
 
 ---
@@ -182,4 +233,4 @@ execute_command(
 
 ### Tools not showing up
 
-**Fix:** Run `health_check` to verify. Check `tool_registry_handler.py` has all 4 tools.
+**Fix:** Run `health_check` to verify. All 5 tools listed in [tools](#section-tools) should appear.

@@ -2,8 +2,9 @@
 """Export a selected module into a single consolidated Markdown file.
 
 The output includes the module's own source files, pyproject.toml (or setup.cfg),
-and any shared module transitively reachable through ``from modules.shared``
-or ``import modules.shared`` import paths.
+associated SKILL.md files from .agents/skills/<module>/, and any shared module
+transitively reachable through ``from modules.shared`` or ``import modules.shared``
+import paths.
 
 Import analysis uses AST parsing with regex fallback for robust handling of:
 - multiline imports
@@ -36,6 +37,7 @@ IMPORTANT_FILES = {
     "README.md",
     "FRD.md",
     "ARCHITECTURE.md",
+    "RULES_AES.md",
 }
 
 EXCLUDED_DIR_NAMES = {
@@ -652,11 +654,17 @@ def expand_shared_dependencies(
     return all_files
 
 
-def collect_module_files(module_path: Path) -> set[Path]:
-    """Collect Python files and important docs/config for a module."""
-    files: set[Path] = set()
+def collect_module_files(module_path: Path, workspace_root: Path) -> set[Path]:
+    """Collect Python files, important docs/config, and all skill markdown for a module.
 
-    workspace_root = module_path.parent.parent
+    Args:
+        module_path: Path to the module directory.
+        workspace_root: Path to the workspace root.
+
+    Returns:
+        Set of paths to include in the export.
+    """
+    files: set[Path] = set()
 
     # Workspace-root important files.
     if workspace_root.exists():
@@ -683,6 +691,15 @@ def collect_module_files(module_path: Path) -> set[Path]:
     for f in base_dir.rglob("*.py"):
         if f.is_file() and not _is_excluded(f):
             files.add(f)
+
+    # Include all skill markdown files from .agents/skills/*/SKILL.md
+    skills_dir = workspace_root / ".agents" / "skills"
+    if skills_dir.exists():
+        for skill_entry in sorted(skills_dir.iterdir()):
+            if skill_entry.is_dir() and not _is_excluded(skill_entry):
+                skill_md = skill_entry / "SKILL.md"
+                if skill_md.is_file() and not _is_excluded(skill_md):
+                    files.add(skill_md)
 
     return files
 
@@ -916,7 +933,7 @@ def export_module(
     shared_src_dir = modules_dir / "shared" / "src"
     symbol_to_files = index_shared_symbols(shared_src_dir)
 
-    files_to_export = collect_module_files(module_path)
+    files_to_export = collect_module_files(module_path, workspace_root)
 
     # Use AST-based transitive resolution for shared dependencies
     files_to_export = expand_shared_dependencies(

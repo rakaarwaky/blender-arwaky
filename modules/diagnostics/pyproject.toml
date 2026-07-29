@@ -1,0 +1,13 @@
+[project]
+name = "blender-arwaky-diagnostics"
+version = "1.7.0"
+description = "BlenderArwaky health and metrics diagnostics module"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["."]

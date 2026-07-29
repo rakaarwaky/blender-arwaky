@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
@@ -62,7 +64,7 @@ def test_schema_minimal_shape():
 @pytest.mark.unit
 def test_config_metadata_frozen_and_hashable():
     md = ConfigMetadata(source="x", exists=True)
-    with pytest.raises(Exception):  # FrozenInstanceError (subclass of Exception)
+    with pytest.raises(FrozenInstanceError):
         md.exists = False  # type: ignore[misc]
     # hashable
     assert hash(md) is not None

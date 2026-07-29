@@ -7,7 +7,8 @@ Implements ValidateCodeProtocol.
 from __future__ import annotations
 
 import ast
-from typing import Protocol
+import asyncio
+import logging
 
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -17,12 +18,6 @@ from modules.shared.src.security.taxonomy_security_vo import (
 )
 
 
-class _CodePayloadChecker(Protocol):
-    """Protocol for checking code payload size (DI boundary)."""
-
-    def check(self, code: str, max_bytes: int) -> None: ...
-
-
 class CodeValidator(ValidateCodeProtocol):
     """Validates untrusted code before execution using static AST analysis."""
 
@@ -30,10 +25,9 @@ class CodeValidator(ValidateCodeProtocol):
     def __init__(
         self,
         policy: SecurityPolicyVO | None = None,
-        payload_checker: _CodePayloadChecker | None = None,
     ) -> None:
         self._policy = policy
-        self._checker = payload_checker
+        self._logger = logging.getLogger(__name__)
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
@@ -63,6 +57,7 @@ class CodeValidator(ValidateCodeProtocol):
             )
 
         if self._policy and not self._policy.code_validation_enabled:
+            self._logger.warning("Code validation disabled by policy — emitting override audit event")
             return CodeValidationVO(
                 code_text=request.code_text,
                 max_code_size=request.max_code_size,
@@ -70,11 +65,12 @@ class CodeValidator(ValidateCodeProtocol):
                 execution_context=request.execution_context,
                 allowed=True,
                 redacted_metadata={"warning": "Code validation disabled by policy"},
-                audit_metadata={"rule": "validation_disabled"},
+                audit_metadata={"rule": "validation_disabled_override", "severity": "WARNING"},
             )
 
         try:
-            tree = ast.parse(request.code_text)
+            loop = asyncio.get_running_loop()
+            tree = await loop.run_in_executor(None, ast.parse, request.code_text)
         except SyntaxError as exc:
             if request.strict_mode:
                 return CodeValidationVO(
@@ -86,9 +82,18 @@ class CodeValidator(ValidateCodeProtocol):
                     audit_metadata={"rule": "syntax_error", "line": exc.lineno},
                 )
             violations.append(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"))
+            # Non-strict mode records the syntax error as a violation and stops:
+            # an unparseable tree cannot be walked, so do not fall through to ast.walk.
+            return CodeValidationVO(
+                code_text=request.code_text,
+                max_code_size=request.max_code_size,
+                strict_mode=request.strict_mode,
+                allowed=False,
+                violations=tuple(violations),
+                audit_metadata={"rule": "syntax_error", "line": exc.lineno},
+            )
 
-        blocked_modules = {"os", "subprocess", "shutil", "importlib", "sys", "socket", "ctypes", "multiprocessing", "threading", "signal", "pickle"}
-        blocked_functions = {"eval", "exec", "compile", "__import__", "breakpoint", "globals", "locals", "getattr", "setattr", "delattr"}
+        blocked_modules, blocked_functions = self._build_blocked_set()
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -120,5 +125,30 @@ class CodeValidator(ValidateCodeProtocol):
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def _build_blocked_set(self) -> tuple[frozenset[str], frozenset[str]]:
+        """Build blocked modules/functions from policy, falling back to defaults."""
+        if self._policy and self._policy.blocked_code_constructs:
+            modules = set()
+            functions = set()
+            for construct in self._policy.blocked_code_constructs:
+                if construct in {
+                    "os", "subprocess", "shutil", "importlib", "sys",
+                    "socket", "ctypes", "multiprocessing", "threading",
+                    "signal", "pickle",
+                }:
+                    modules.add(construct)
+                else:
+                    functions.add(construct)
+            return frozenset(modules), frozenset(functions)
+
+        # Defaults (preserved for backward compatibility)
+        return (
+            frozenset({"os", "subprocess", "shutil", "importlib", "sys",
+                        "socket", "ctypes", "multiprocessing", "threading",
+                        "signal", "pickle"}),
+            frozenset({"eval", "exec", "compile", "__import__", "breakpoint",
+                       "globals", "locals", "getattr", "setattr", "delattr"}),
+        )
+
     def __repr__(self) -> str:
         return "CodeValidator()"

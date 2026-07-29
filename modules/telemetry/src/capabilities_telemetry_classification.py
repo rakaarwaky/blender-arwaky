@@ -8,66 +8,67 @@ from __future__ import annotations
 
 import logging
 
-from modules.shared.src.common.taxonomy_core_vo import (
-    Details,
-    ErrorMessage,
-    Prompt,
-    ToolName,
+from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
+    TelemetryClassificationProtocol,
 )
-from modules.shared.src.telemetry.contract_telemetry_classification import (
-    TelemetryClassificationPort,
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    FEATURE_AREAS,
+    TelemetryCategory,
 )
-from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
 
-logger = logging.getLogger("blender-arwaky-telemetry-service")
+logger = logging.getLogger("blender-arwaky.telemetry")
 
 
-class TelemetryEventClassifier(TelemetryClassificationPort):
+class TelemetryEventClassifier(TelemetryClassificationProtocol):
     """Telemetry event classification implementation.
 
     FR-TLM-002: Classifies events into standardized high-level categories.
     Unrecognized or missing categories default to ERROR (unknown).
+    No PII parameters — only category strings for classification.
     """
 
     def classify_event(
         self,
-        raw_type: str | None = None,
-        tool_name: ToolName | None = None,
-        prompt_text: Prompt | None = None,
-        error_message: ErrorMessage | None = None,
-        metadata: Details | None = None,
-    ) -> EventType:
+        action_type: str,
+        feature_area: str | None = None,
+    ) -> dict[str, str]:
         """Classify an event into a standardized category.
 
         FR-TLM-002: Every event belongs to exactly one primary category.
         If unrecognized or missing category, defaults to ERROR.
+
+        Args:
+            action_type: The candidate action to classify.
+            feature_area: Optional feature area hint.
+
+        Returns:
+            Dict with categorized event including feature_area, operation_type, outcome_category.
         """
-        # Map raw type string to EventType enum
-        if raw_type is not None:
+        # Resolve feature area from taxonomy mapping or use provided value
+        resolved_feature = feature_area or FEATURE_AREAS.get(action_type, "other")
+
+        # Map raw type string to TelemetryCategory enum
+        if action_type is not None:
             try:
-                # Try to find matching EventType by value
-                for event_type in EventType:
-                    if event_type.value == raw_type:
-                        return event_type
-            except Exception as e:
-                logger.debug("Failed to classify raw type '%s': %s", raw_type, e)
-
-        # Infer category from available metadata
-        if error_message is not None:
-            # Events with errors are classified as ERROR
-            return EventType.ERROR
-
-        if tool_name is not None:
-            # Tool executions are classified as TOOL_EXECUTION
-            return EventType.TOOL_EXECUTION
-
-        if prompt_text is not None:
-            # Prompt-based events are classified as PROMPT_SENT
-            return EventType.PROMPT_SENT
+                for category in TelemetryCategory:
+                    if category.value == action_type:
+                        # ERROR category maps to "error" outcome, others to "success"
+                        outcome = "error" if category == TelemetryCategory.ERROR else "success"
+                        return {
+                            "feature_area": resolved_feature,
+                            "operation_type": "other",
+                            "outcome_category": outcome,
+                        }
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to classify raw type '%s': %s", action_type, e)
 
         # Default to ERROR for unrecognized categories (FR-TLM-002)
         logger.debug(
-            "No category metadata available, defaulting to ERROR for raw_type=%s",
-            raw_type,
+            "No category metadata available, defaulting to ERROR for action_type=%s",
+            action_type,
         )
-        return EventType.ERROR
+        return {
+            "feature_area": resolved_feature,
+            "operation_type": "other",
+            "outcome_category": "error",
+        }

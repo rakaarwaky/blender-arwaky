@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
 from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
@@ -24,15 +25,27 @@ _SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
 
 
 class StatePersistence(PersistStateProtocol):
-    """Corruption-safe runtime state persistence."""
+    """Corruption-safe runtime state persistence with concurrent access safety."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(self, path_resolver: Callable[[], str | None]) -> None:
         self._resolve_path = path_resolver
+        self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
     def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Atomically write runtime state; degrade gracefully on failure."""
+        with self._lock:
+            return self._persist_impl(state)
+
+    def load(self) -> RuntimeStateVO | None:
+        """Load persisted state; return None on missing/corrupt content."""
+        with self._lock:
+            return self._load_impl()
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def _persist_impl(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
+        """Atomic write with secret detection (FR-LAU-005)."""
         warnings: list[str] = []
         if self._contains_secret(state):
             warnings.append("state contained secret-like field; not persisted")
@@ -49,8 +62,8 @@ class StatePersistence(PersistStateProtocol):
             warnings.append(f"persistence failed: {exc}")
             return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
-    def load(self) -> RuntimeStateVO | None:
-        """Load persisted state; return None on missing/corrupt content."""
+    def _load_impl(self) -> RuntimeStateVO | None:
+        """Load persisted state with corruption fallback (FR-LAU-005)."""
         path = self._resolve_path()
         if not path or not os.path.exists(path):
             return None
@@ -65,7 +78,9 @@ class StatePersistence(PersistStateProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
-        return False
+        """Check if state contains secret-like field names."""
+        data = self._to_dict(state)
+        return any(key in data for key in _SECRET_KEYS)
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {

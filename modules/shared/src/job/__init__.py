@@ -1,10 +1,12 @@
 """Job domain — contracts, taxonomy, and shared types."""
-
-from .contract_job_cancel_protocol import JobCancelProtocol
-from .contract_job_cleanup_protocol import JobCleanupProtocol
-from .contract_job_monitor_protocol import JobMonitorProtocol
-from .contract_job_tracker_protocol import JobTrackerProtocol
-from .taxonomy_job_state_constant import (
+from .contract_job_aggregate import IJobAggregate
+from .contract_job_cancellation_protocol import IJobCancellation
+from .contract_job_capacity_protocol import IJobCapacity
+from .contract_job_cleanup_protocol import IJobCleanup
+from .contract_job_lifecycle_protocol import IJobLifecycle
+from .contract_job_monitor_protocol import IJobMonitor
+from .contract_job_protocol import JobSchedulerProtocol
+from .taxonomy_job_constant import (
     JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,
     JOB_STATE_FAILED,
@@ -12,18 +14,21 @@ from .taxonomy_job_state_constant import (
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
 )
-from .taxonomy_job_status_entity import JobStatus
+from .taxonomy_job_event import JobEvent
 
 __all__ = [
-    "JobTrackerProtocol",
-    "JobMonitorProtocol",
-    "JobCancelProtocol",
-    "JobCleanupProtocol",
+    "IJobAggregate",
+    "IJobCancellation",
+    "IJobCapacity",
+    "IJobCleanup",
+    "IJobLifecycle",
+    "IJobMonitor",
+    "JobSchedulerProtocol",
     "JOB_STATE_CANCELLED",
     "JOB_STATE_COMPLETED",
     "JOB_STATE_FAILED",
     "JOB_STATE_PENDING",
     "JOB_STATE_RUNNING",
     "JOB_STATE_TIMED_OUT",
-    "JobStatus",
+    "JobEvent",
 ]

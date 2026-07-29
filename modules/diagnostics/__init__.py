@@ -1,7 +1,31 @@
 """Diagnostics module — health, metrics, audit, structured logging."""
 
-from modules.diagnostics.src.capabilities_diagnostics_composer import DiagnosticsCapability
+from modules.diagnostics.src.agent_diagnostics_orchestrator import (
+    DiagnosticsOrchestrator,
+)
+from modules.diagnostics.src.capabilities_audit_emission import (
+    AuditEmitter,
+    InMemoryEventBus,
+)
+from modules.diagnostics.src.capabilities_health_composition import HealthComposer
+from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
+from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
+from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
+from modules.diagnostics.src.root_diagnostics_container import (
+    DiagnosticsConfigVO,
+    DiagnosticsContainer,
+    create_diagnostics_feature,
+)
 
 __all__ = [
-    "DiagnosticsCapability",
+    "DiagnosticsConfigVO",
+    "HealthComposer",
+    "MetricsCollector",
+    "AuditEmitter",
+    "LoggingPolicy",
+    "SnapshotProvisioner",
+    "InMemoryEventBus",
+    "DiagnosticsOrchestrator",
+    "DiagnosticsContainer",
+    "create_diagnostics_feature",
 ]

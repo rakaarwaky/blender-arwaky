@@ -1,7 +1,6 @@
 """Root layer: Dependency injection container for the asset feature.
 
-Wires asset capabilities (search collector, import/export executor,
-provider adapters) to the agent orchestrator and bootstraps the system.
+Wires asset capabilities to the agent orchestrator and bootstraps the system.
 Provides a single entry point to obtain a fully configured AssetOrchestrator.
 """
 
@@ -9,10 +8,13 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
 
 if TYPE_CHECKING:
-    from .agent_orchestrator import AssetOrchestrator
+    from .agent_asset_orchestrator import AssetOrchestrator
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -20,26 +22,44 @@ logger = logging.getLogger("BlenderMCPServer")
 class AssetContainer:
     """DI container that wires asset capabilities to the agent orchestrator.
 
-    Thread-safe singleton pattern for shared asset management.
-    All components are lazy-instantiated on first access.
+    CE02: FRD config keys (`overwrite_policy`, `enabled_providers`,
+    `maximum_download_size`, `cache_eviction_policy`) are read from
+    config_getter when available, otherwise fall back to defaults.
     """
 
-    def __init__(self, command_sender: object) -> None:
-        """Initialize with a command sender from the server module.
-
-        Args:
-            command_sender: A callable that sends commands to Blender.
-        """
-        self._command_sender = command_sender
+    def __init__(
+        self,
+        connection: IAssetProviderConnection,
+        security_validator: object | None = None,
+        security_supervisor: object | None = None,
+        job_scheduler: object | None = None,
+        config_getter: object | None = None,
+        gateway_client: object | None = None,
+    ) -> None:
+        self._connection = connection
+        self._security_validator = security_validator
+        self._security_supervisor = security_supervisor
+        self._job_scheduler = job_scheduler
+        self._config_getter = config_getter
+        self._gateway_client = gateway_client
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
-    def get_orchestrator(self) -> AssetOrchestrator:
-        """Return a fully wired AssetOrchestrator (singleton).
+    def _get_config_value(self, key: str, default: Any) -> Any:
+        """Read a config key from config_getter, falling back to default."""
+        if self._config_getter is None:
+            return default
+        try:
+            # Attempt to read the config value from the config getter.
+            # The config_getter protocol may or may not expose a
+            # get_value method; fall back gracefully.
+            if hasattr(self._config_getter, "get_value"):
+                return self._config_getter.get_value(key) or default
+        except Exception:
+            logger.debug("Config key %s not available, using default", key)
+        return default
 
-        Lazy-initializes all dependencies on first call.
-        Subsequent calls return the same orchestrator instance.
-        """
+    def get_orchestrator(self) -> AssetOrchestrator:
         if self._orchestrator is not None:
             return self._orchestrator
 
@@ -47,25 +67,56 @@ class AssetContainer:
             if self._orchestrator is not None:
                 return self._orchestrator
 
-            from .agent_orchestrator import AssetOrchestrator
-            from .capabilities_asset_search_collector import AssetSearchCollector
-            from .capabilities_polyhaven_adapter import PolyhavenAssetAdapter
-            from .capabilities_sketchfab_adapter import SketchfabAssetAdapter
+            from .agent_asset_orchestrator import AssetOrchestrator
+            from .capabilities_asset_download import AssetDownloadCapability
+            from .capabilities_asset_extract import AssetExtractCapability
+            from .capabilities_asset_import import AssetImportCapability
+            from .capabilities_asset_provider import AssetProviderMetadataCapability
+            from .capabilities_asset_search_handler import AssetSearchHandler
 
-            # Register provider adapters
-            providers: dict[str, object] = {
-                "Polyhaven": PolyhavenAssetAdapter(self._command_sender),
-                "Sketchfab": SketchfabAssetAdapter(self._command_sender),
-            }
+            # CE02: Read FRD config keys (wired per capability's own config_getter)
+            overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
+            enabled_providers = self._get_config_value("enabled_providers", None)
 
-            collector = AssetSearchCollector(providers)
-            self._orchestrator = AssetOrchestrator(collector=collector)
+            # Normalize overwrite_policy to DuplicatePolicy
+            from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
+
+            if isinstance(overwrite_policy, DuplicatePolicy):
+                overwrite_policy_vo = overwrite_policy
+            else:
+                overwrite_policy_vo = DuplicatePolicy(str(overwrite_policy))
+
+            search = AssetSearchHandler(
+                self._connection,
+                enabled_providers=enabled_providers if isinstance(enabled_providers, list) else None,
+            )
+            download = AssetDownloadCapability(
+                security_validator=self._security_validator,
+                job_scheduler=self._job_scheduler,
+                config_getter=self._config_getter,
+                overwrite_policy=overwrite_policy_vo,
+            )
+            extract = AssetExtractCapability(
+                security_supervisor=self._security_supervisor,
+            )
+            import_ = AssetImportCapability(
+                gateway_client=self._gateway_client,
+                config_getter=self._config_getter,
+            )
+            metadata = AssetProviderMetadataCapability()
+
+            self._orchestrator = AssetOrchestrator(
+                search_capability=search,
+                download_capability=download,
+                extract_capability=extract,
+                import_capability=import_,
+                metadata_capability=metadata,
+            )
 
         logger.info("Asset container fully wired")
         return self._orchestrator
 
     def shutdown(self) -> None:
-        """Shut down asset components."""
         with self._lock:
             self._orchestrator = None
 
@@ -73,13 +124,5 @@ class AssetContainer:
         return "AssetContainer()"
 
 
-def create_asset_container(command_sender: object) -> AssetContainer:
-    """Factory function to create a new asset container.
-
-    Args:
-        command_sender: A callable that sends commands to Blender.
-
-    Returns:
-        Configured AssetContainer instance.
-    """
-    return AssetContainer(command_sender=command_sender)
+def create_asset_container(connection: IAssetProviderConnection) -> AssetContainer:
+    return AssetContainer(connection=connection)

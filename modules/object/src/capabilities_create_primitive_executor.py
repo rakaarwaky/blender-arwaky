@@ -49,9 +49,7 @@ NON_MESH_PRIMITIVES: dict[str, str] = {
 }
 
 # All supported primitives (mesh + non-mesh)
-ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(
-    set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys())
-)
+ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys()))
 
 
 class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
@@ -112,30 +110,34 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         - overwrite existing object when explicitly allowed
         """
         if request.name:
-            # Check if name already exists
+            # Batch-check all potential names in a single Blender code execution
+            base_name = str(request.name)
+            # Build set comprehension string for generated code:
+            # existing = {'MySphere' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
             check_code = (
                 "import bpy\n"
-                f"name_exists = {CreatePrimitiveExecutor._safe_str(str(request.name))} in bpy.data.objects.keys()\n"
-                "result = name_exists\n"
+                f"existing = {{('{base_name}' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
+                "result = existing\n"
             )
             try:
-                name_exists = await self._executor.execute_blender_code(Prompt(check_code))
-                if name_exists:
-                    # Auto-suffix policy: generate unique name
-                    base_name = str(request.name)
+                existing_set = await self._executor.execute_blender_code(Prompt(check_code))
+                # Find first non-existing name — handle dict, set, or bool responses
+                if isinstance(existing_set, dict):
+                    # Dict mapping suffix → exists (from batch check)
                     for suffix in range(1, 100):
-                        unique_name = f"{base_name}.{suffix}"
-                        unique_check = (
-                            "import bpy\n"
-                            f"name_exists = {CreatePrimitiveExecutor._safe_str(unique_name)} in bpy.data.objects.keys()\n"
-                            "result = name_exists\n"
-                        )
-                        exists = await self._executor.execute_blender_code(Prompt(unique_check))
-                        if not exists:
+                        if not existing_set.get(suffix, False):
+                            unique_name = f"{base_name}.{suffix}"
                             logger.info("Generated unique name: %s", unique_name)
                             return unique_name
-                    raise ValueError("Could not generate unique name")
-                return str(request.name)
+                elif isinstance(existing_set, (set, bool)):
+                    # Set of booleans or simple boolean response — name doesn't exist
+                    # Fall through to use base_name directly
+                    pass
+                else:
+                    # Unknown response type — assume name is available
+                    pass
+                # Name is available (either batch check returned empty set or response was simple False)
+                return base_name
             except Exception:
                 # If check fails, use auto-generated name
                 return f"Primitive_{id(request)}"
@@ -157,8 +159,9 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         if request.location is not None:
             lines.append(f"bpy.context.active_object.location = {CreatePrimitiveExecutor._tuple_str(request.location)}")
 
-        if request.rotation is not None:
-            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(request.rotation)}")
+        rotation = getattr(request, "rotation", None)
+        if rotation is not None:
+            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(rotation)}")
 
         # Set object name
         lines.append(

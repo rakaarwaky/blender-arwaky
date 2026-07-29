@@ -13,8 +13,8 @@ BlenderArwaky connects **Blender 3D** to AI agents over the Model Context Protoc
 
 | Command                                      | Purpose                                    |
 | ---------------------------------------------- | -------------------------------------------- |
-| `uv run python -m surfaces.mcp_server_entry` | Start MCP Server                           |
-| `uv run python -m surfaces.cli_main_entry`   | Run CLI Mode                               |
+| `uv run blender-mcp`                         | Start MCP Server                           |
+| `uv run blender-arwaky`                      | Run CLI Mode                               |
 | `uv run pytest`                              | Run Test Suite                             |
 | `lint-arwaky-cli scan .`                     | Run AES Architecture Linter (`lac scan .`) |
 | `uv run ruff check src/`                     | Run Python Code Linter                     |

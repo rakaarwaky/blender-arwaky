@@ -11,8 +11,10 @@ from abc import ABC, abstractmethod
 
 from .taxonomy_launcher_vo import (
     LauncherConfigVO,
+    LaunchMode,
     LaunchOutcomeVO,
     PersistenceOutcomeVO,
+    ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
@@ -20,7 +22,7 @@ from .taxonomy_launcher_vo import (
 )
 
 
-class LauncherOperateAggregate(ABC):
+class ILauncherOperateAggregate(ABC):
     """Aggregate facade for all launcher operations.
 
     The Agent orchestrator implements this interface.
@@ -32,7 +34,7 @@ class LauncherOperateAggregate(ABC):
         ...
 
     @abstractmethod
-    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """FR-LAU-002: Launch Blender and confirm readiness."""
         ...
 
@@ -42,7 +44,7 @@ class LauncherOperateAggregate(ABC):
         ...
 
     @abstractmethod
-    def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
+    def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """FR-LAU-004: Verify true runtime status."""
         ...
 

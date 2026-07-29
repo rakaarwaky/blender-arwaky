@@ -64,6 +64,7 @@ ThumbnailUrl = NewType("ThumbnailUrl", str)
 MaxSize = NewType("MaxSize", int)
 IterationCount = NewType("IterationCount", int)
 PortNumber = NewType("PortNumber", int)
+Host = NewType("Host", str)
 SampleCount = NewType("SampleCount", int)
 ResolutionX = NewType("ResolutionX", int)
 ResolutionY = NewType("ResolutionY", int)
@@ -131,11 +132,24 @@ ScaleFactor = NewType("ScaleFactor", float)
 ImageBytes = NewType("ImageBytes", bytes)
 BBoxIntegers = NewType("BBoxIntegers", list[int])
 
+# ============================================================
+# ASSET-SPECIFIC VOs (for AES 402 contract protocol compliance)
+# ============================================================
+
+AssetCollectionName = NewType("AssetCollectionName", str)
+AssetFormatHint = NewType("AssetFormatHint", str | None)
+ScaleNormalization = NewType("ScaleNormalization", bool)
+DuplicatePolicy = NewType("DuplicatePolicy", str)
+ResolutionPreference = NewType("ResolutionPreference", str | None)
+
 # Server-specific VOs for request correlation
 RequestId = NewType("RequestId", str)
 QueueWaitMs = NewType("QueueWaitMs", float)
 ProtocolVersion = NewType("ProtocolVersion", str)
 AuthToken = NewType("AuthToken", str)
+
+# Job retention types
+MaxTasksCount = NewType("MaxTasksCount", int)
 
 # Details type alias (used in error handling)
 Details = dict[str, Any]

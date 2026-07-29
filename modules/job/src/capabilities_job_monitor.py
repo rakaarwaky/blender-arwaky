@@ -1,37 +1,68 @@
-"""Job monitor: read-only task status retrieval.
+# modules/job/src/capabilities_job_monitor.py
+"""Capability: Job status monitor (FR-JOB-002).
 
-FR-JOB-002: Monitor Task Status
-- Read-only snapshot of task state, progress, timestamps, results
-- Automatic redaction of sensitive metadata
-- Not found handling for expired/cleaned up tasks
+Projects raw snapshots into consumer-safe read models.
+Applies redaction, visibility rules, and applicability flags.
 """
+from __future__ import annotations
 
-import logging
+from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
+from modules.shared.src.job.taxonomy_job_constant import (
+    ACTIVE_JOB_STATES,
+    JOB_STATE_COMPLETED,
+    JOB_STATE_FAILED,
+    JOB_STATE_RUNNING,
+    TERMINAL_JOB_STATES,
+)
+from modules.shared.src.job.taxonomy_job_vo import JobStatusSnapshot
+from modules.shared.src.job.utility_job_sanitizer import redact_metadata
 
-from modules.shared.src.common.taxonomy_core_vo import JobId
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
-
-logger = logging.getLogger("BlenderMCPServer")
+# ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
 
-class JobMonitor:
-    """Business logic for monitoring task status snapshots."""
+class JobStatusMonitor(IJobMonitor):
+    """Projects raw snapshots into safe, consumer-ready read models."""
 
-    def __init__(self, jobs_store: dict[str, JobStatus]):
-        self._jobs = jobs_store
+    # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
-    def get_task_status(self, job_id: JobId) -> JobStatus | None:
-        """Retrieve current state snapshot of a task.
+    def project(self, snapshot: JobStatusSnapshot) -> JobStatusSnapshot:
+        """Project a raw snapshot into a consumer-safe read model.
 
-        FR-JOB-002: Strictly read-only, never alters task state.
-        Returns consistent snapshot with state, progress, timestamps, and results.
-        Returns None if task not found or cleaned up.
+        - Result reference visible only after COMPLETED
+        - Error detail visible only after FAILED
+        - Metadata redacted (defense-in-depth)
+        - Progress applicability indicated
+        - Cancellable flag exposed
         """
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            logger.debug("Task %s not found", job_id)
-            return None
+        safe_metadata = self._redact(snapshot.metadata)
 
-        # Return a copy to ensure read-only semantics
-        import copy
-        return copy.deepcopy(status)
+        return JobStatusSnapshot(
+            job_id=snapshot.job_id,
+            state=snapshot.state,
+            operation_type=snapshot.operation_type,
+            created_at=snapshot.created_at,
+            updated_at=snapshot.updated_at,
+            progress=snapshot.progress,
+            progress_message=snapshot.progress_message,
+            result_url=snapshot.result_url if snapshot.state == JOB_STATE_COMPLETED else None,
+            error=snapshot.error if snapshot.state == JOB_STATE_FAILED else None,
+            error_category=snapshot.error_category if snapshot.state == JOB_STATE_FAILED else None,
+            correlation_id=snapshot.correlation_id,
+            started_at=snapshot.started_at,
+            finished_at=snapshot.finished_at,
+            metadata=safe_metadata,
+            is_terminal=snapshot.state in TERMINAL_JOB_STATES,
+            is_cancellable=snapshot.state in ACTIVE_JOB_STATES,
+            progress_applicable=snapshot.state == JOB_STATE_RUNNING,
+        )
+
+    # ─── Block 3: Dunder Methods, Factories, and Private Helpers ─────────────
+
+    def __repr__(self) -> str:
+        return "<JobStatusMonitor>"
+
+    def _redact(self, metadata: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ...]:
+        if not metadata:
+            return metadata
+        redacted = redact_metadata(dict(metadata))
+        return tuple(sorted(redacted.items()))

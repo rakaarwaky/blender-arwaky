@@ -14,17 +14,17 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "mcp[cli]>=1.3.0",
-    "tomli>=2.0.0",
-    "python-dotenv>=1.0.0",
+    "mcp[cli]>=2.0.0",
+    "tomli>=2.4.1",
+    "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
-    "pillow>=12.2.0",
+    "pillow>=12.3.0",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
+    "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.15.1",
     "requests>=2.31.0",  # Used by blender_mcp_addon modules (bundled with Blender at runtime)
@@ -45,7 +45,7 @@ lint = ["blender-arwaky[lint]"]
 dev = ["blender-arwaky[dev]"]
 
 [project.scripts]
-blender-arwaky = "modules.cli.cli_main:main"
+blender-arwaky = "modules.cli.src.surface_cli_main:main"
 blender-mcp = "modules.root_mcp_entry:main"
 
 [build-system]
@@ -78,6 +78,8 @@ ignore = ["E501"]
 "blender_mcp_addon/polyhaven.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/sketchfab.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/properties.py" = []  # noqa already used inline
+"modules/shared/src/gateway/taxonomy_gateway_error.py" = ["N818"]  # BlenderConnectionExhausted/BlenderConnectionFailure are intentional names
+"modules/scene/src/__init__.py" = ["N813"]  # Lazy __getattr__ import needs lowercase alias for forward refs
 
 [tool.ruff.format]
 quote-style = "double"

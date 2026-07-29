@@ -9,7 +9,8 @@ FR-DIA-001: Compose System Health
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+
+from .taxonomy_diagnostics_vo import HealthDetailsVO
 
 
 class HealthCompositionProtocol(ABC):
@@ -22,12 +23,18 @@ class HealthCompositionProtocol(ABC):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-    ) -> dict[str, Any]:
+    ) -> HealthDetailsVO:
         """Aggregate subsystem states into one composed health view.
 
         FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
         Overall status: healthy when all required report healthy;
         degraded when any reports degraded/stale; unhealthy when any fails.
+
+        Each subsystem probe is bounded by probe_timeout_seconds configured
+        at construction — slow subsystem becomes degraded/timeout, not stalled
+        composition. Stale data carries staleness_delta_seconds indicator when
+        composition_timestamp exceeds freshness_tolerance_seconds configured
+        at construction.
 
         Args:
             launcher_status: Process liveness classification.
@@ -36,6 +43,6 @@ class HealthCompositionProtocol(ABC):
             job_capacity_available: Whether job capacity has available slots.
 
         Returns:
-            Dict with overall status, per-subsystem map, and composition timestamp.
+            HealthDetailsVO with overall_status, subsystems, staleness indicators, timestamp.
         """
-        pass
+        ...

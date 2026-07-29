@@ -2,11 +2,7 @@
 
 ## Purpose
 
-Central owner for file access, archive safety, untrusted code validation, secret redaction, and security audit policies for **blender-arwaky**.
-
-This feature acts as the single authoritative security policy layer. Other features must delegate security-sensitive decisions to this feature instead of implementing their own path validation, archive safety checks, code validation, or redaction logic.
-
-The goal is to ensure consistent security enforcement, reduce duplicated validation logic, prevent unsafe filesystem access, block dangerous code patterns, protect sensitive values from leaking into logs or diagnostics, and produce auditable security events.
+Central owner for file access, archive safety, untrusted code validation, secret redaction, and security audit policies. Other features delegate security-sensitive decisions here instead of implementing their own. Ensures consistent enforcement, prevents unsafe filesystem access, blocks dangerous code, protects sensitive values from leaking, and produces auditable events.
 
 ## Scope
 
@@ -15,280 +11,125 @@ The goal is to ensure consistent security enforcement, reduce duplicated validat
 - Symbolic link escape prevention
 - Canonical path resolution
 - Safe archive extraction policy
-- Archive depth, size, and entry count limits
-- Untrusted code validation
-- Static syntax-tree-based code analysis
+- Archive depth, size, entry count limits
+- Untrusted code validation (static syntax-tree analysis)
 - Blocked code construct policy
-- Sensitive value detection
-- Sensitive value redaction
-- Security audit event definition
-- Security violation categorization
-- Policy-driven strict and permissive behavior
-- Redaction-safe diagnostics and observability support
+- Sensitive value detection + redaction
+- Security audit event definition + categorization
+- Policy-driven strict/permissive behavior
+- Redaction-safe diagnostics + observability support
 
 ## Out of Scope
 
-- Connection authentication
-- Network transport security
-- Background task tracking
-- Asset provider logic
-- Render output generation
-- Object manipulation logic
-- Scene cleanup policy
-- Actual execution of untrusted code
-- Actual download of remote assets
-- Final legal or licensing compliance decisions
-- Secret storage or secret management infrastructure
+Connection auth, network transport security, background task tracking, asset provider logic, render output, object manipulation, scene cleanup policy, actual code execution, actual download, legal compliance decisions, secret storage/management infrastructure.
 
 ## Depends On
 
-- config feature for allowed directories, archive limits, code validation toggles, redaction rules, and audit behavior
-- shared feature for common taxonomy, result envelope, and error category concepts
-- logging or observability capability for audit event delivery and redacted diagnostics
+config (allowed directories, archive limits, code validation toggles, redaction rules, audit behavior), shared (taxonomy, result envelope, error categories), diagnostics/logging (audit event delivery, redacted diagnostics).
 
 ## Provides To
 
-- gateway feature
-- asset feature
-- render feature
-- diagnostics feature
-- command-line diagnostics feature
-- MCP layer
-- any feature that writes files, extracts archives, executes code, logs sensitive values, or reports diagnostic output
+gateway, asset, render, diagnostics, CLI, MCP — any feature that writes files, extracts archives, executes code, logs values, or reports output.
 
 ## Functional Requirements
 
 ### FR-SEC-001: Validate File Path Access
 
-All features that read or write files must delegate path validation to security.
-
-- **Description**: Validate whether a filesystem path is allowed for the requested access mode
-- **Input**: Target path concept, access mode concept such as read, write, create, delete, or extract, optional base directory, optional operation context
-- **Output**: Path validation result concept containing allowed indicator, canonical path reference, denial reason when rejected, and audit metadata
-- **Business Rules**:
-  - Security checks whether path is within allowed directories
-  - Security rejects path traversal attempts
-  - Security rejects symbolic link escape attempts
-  - Security rejects out-of-bounds paths
-  - Security rejects paths outside configured allowed directories
-  - Path must be normalized and canonicalized before final decision
-  - Relative paths must be resolved against a trusted base directory
-  - Symbolic links must be resolved safely when supported by platform
-  - Write access must be validated against write-allowed directories
-  - Read access may be validated against read-allowed directories when configured
-  - Parent directory must be allowed even if target file does not yet exist
-  - Path validation must be deterministic across supported platforms
-  - Case-insensitive filesystems must be handled consistently
-  - Validation failure must produce security violation category
-  - Every denial should emit security audit metadata
-  - Validation result should not expose sensitive path details beyond redacted diagnostic information
-- **Edge Cases**: Missing path, empty path, relative path, symbolic link, circular symbolic link, path outside allowed directory, path pointing to parent directory, case-insensitive path collision, network path, overly long path, permission denied, allowed directory missing, path is directory instead of file, path is file instead of directory
-- **Error Handling**: Security violation error for traversal or unauthorized access; permission error for insufficient filesystem permissions; validation error for malformed path concept
+- **Description**: Validate whether filesystem path is allowed for requested access mode
+- **Input**: Target path, access mode (read/write/create/delete/extract), optional base directory, optional operation context
+- **Output**: Path validation result (allowed, canonical path, denial reason, audit metadata)
+- **Rules**: Checks if path is within allowed directories. Rejects traversal attempts, symlink escape, out-of-bounds paths, paths outside configured allowed directories. Path normalized + canonicalized before final decision. Relative paths resolved against trusted base directory. Symlinks resolved safely when platform supports. Write access against write-allowed dirs. Read access against read-allowed dirs when configured. Parent directory must be allowed even if target file doesn't exist. Deterministic across platforms. Case-insensitive fs handled consistently. Denial → security violation category. Every denial emits audit metadata. Result never exposes sensitive path details beyond redacted diagnostic info.
+- **Edge Cases**: Missing/empty/relative path, symlink, circular symlink, outside allowed dir, parent directory traversal, case-insensitive collision, network path, overly long, permission denied, allowed dir missing, path is dir vs file
+- **Error Handling**: Security violation (traversal/unauthorized); permission error; validation error (malformed)
 
 ### FR-SEC-002: Safely Extract Archive
 
-Asset feature must not implement path traversal protection itself. Asset feature uses security for archive extraction safety.
-
-- **Description**: Validate and guard archive extraction so extracted entries cannot escape allowed extraction directory or exhaust system resources
-- **Input**: Archive entry metadata concept, destination directory concept, extraction options such as maximum depth, maximum size, maximum entry count, and symbolic link policy
-- **Output**: Safe extraction result concept containing allowed indicator, safe destination path, rejected entry list, warnings, and audit metadata
-- **Business Rules**:
-  - Each archive entry must be validated before extraction
-  - Destination directory must be inside allowed directories
-  - Archive entry paths must be normalized and canonicalized relative to destination
-  - Absolute entry paths must be rejected
-  - Entry paths containing traversal segments must be rejected
-  - Symbolic link entries must be rejected unless explicitly allowed by policy
-  - Hard link entries must be rejected unless explicitly allowed by policy
-  - Extraction depth must not exceed configured maximum depth
-  - Total extracted size must not exceed configured maximum total size
-  - Individual entry size must not exceed configured maximum entry size
-  - Total entry count must not exceed configured maximum entry count
-  - Archive extraction should protect against archive bomb patterns
-  - Unsupported or malformed archive metadata should be rejected safely
-  - Rejected entries must be reported without exposing unsafe target paths in raw form
-  - Extraction safety violations should emit audit metadata
-  - Security may provide guarded extraction validation hooks or safe extraction policy, but actual archive reading may remain in asset feature
-- **Edge Cases**: Archive entry outside destination, nested archive, archive bomb, excessive entry count, excessive compressed size, symbolic link entry, hard link entry, invalid entry encoding, duplicate entry names, unsupported archive format, permission denied destination, missing destination, partially extracted archive
-- **Error Handling**: Security violation error for path escape or forbidden link entry; archive safety error for depth, size, or count violation; permission error for destination access failure; validation error for malformed archive metadata
+- **Description**: Validate + guard archive extraction so entries cannot escape allowed directory or exhaust resources
+- **Input**: Archive entry metadata, destination directory, extraction options (max depth/size/entry count, symlink policy)
+- **Output**: Safe extraction result (allowed, safe destination, rejected entry list, warnings, audit metadata)
+- **Rules**: Each entry validated before extraction. Destination inside allowed dirs. Entry paths normalized relative to destination. Absolute paths rejected. Traversal segments rejected. Symlink entries rejected unless explicitly allowed. Hardlink entries rejected unless explicitly allowed. Max depth enforced. Max total extracted size enforced. Max individual entry size enforced. Max entry count enforced. Archive bomb patterns protected against. Unsupported/malformed metadata → safe reject. Rejected entries reported without exposing unsafe raw paths. Security may provide guarded validation hooks; actual archive reading may remain in asset feature.
+- **Edge Cases**: Entry outside destination, nested archive, bomb, excessive count/size, symlink/hardlink, invalid encoding, duplicate names, unsupported format, permission denied, missing destination, partially extracted
+- **Error Handling**: Security violation (escape/forbidden link); archive safety error (depth/size/count); permission error; validation error (malformed)
 
 ### FR-SEC-003: Validate Untrusted Code
 
-Gateway feature must not implement code validator separately. Gateway feature uses security for untrusted code validation.
-
-- **Description**: Validate untrusted code before execution using static syntax-tree-based analysis and configurable blocked construct policy
-- **Input**: Code text concept, validation policy, optional execution context, optional maximum code size
-- **Output**: Code validation result concept containing allowed indicator, violation list, redacted violation metadata, and audit metadata
-- **Business Rules**:
-  - Validation must occur before code is sent for execution
-  - Validation should use syntax-tree-based static analysis where possible, not only simple text matching
-  - Validation must reject code exceeding configured maximum size
-  - Validation must reject unparseable code when strict mode is enabled
-  - Blocked constructs may include:
-    - dynamic code execution
-    - dynamic compilation
-    - dynamic import mechanisms
-    - system command execution
-    - subprocess execution
-    - unsafe file access outside allowed directories
-    - reflection or sandbox escape patterns
-    - access to unsafe internal attributes
-    - network access when disabled by policy
-  - Blocked construct list must be configurable
-  - Validation may support allowed exception list for trusted operations when explicitly configured
-  - Validation result must distinguish between policy violation, syntax parse failure, and size limit failure
-  - Raw code must not be included in audit events or logs by default
-  - Violation metadata should include construct category, redacted code fragment reference, and location hint when safe
-  - Code validation is enabled by default
-  - If code validation is disabled by configuration, operation may proceed only with explicit warning and audit event
-- **Edge Cases**: Obfuscated code, encoded payload, dynamically constructed forbidden construct, unparseable code, oversized code, empty code, comment-only code, false positive on allowed pattern, validation disabled, partially supported language syntax, code containing sensitive values
-- **Error Handling**: Security violation error when blocked construct detected; validation error for malformed or unparseable code in strict mode; size limit error when code exceeds maximum size; audit warning when validation is disabled but execution is allowed
+- **Description**: Validate untrusted code via static syntax-tree analysis and configurable blocked construct policy
+- **Input**: Code text, validation policy, optional execution context, optional max code size
+- **Output**: Code validation result (allowed, violation list, redacted violation metadata, audit metadata)
+- **Rules**: Validation before code sent for execution. Syntax-tree-based static analysis (not just text matching). Rejects code exceeding max size. Rejects unparseable code in strict mode. Blocked constructs (configurable): dynamic execution/compilation/import, system/subprocess execution, unsafe file access outside allowed dirs, reflection/sandbox escape, unsafe internal attributes, network access when disabled. Optional allowed exception list for trusted operations. Distinguishes policy violation from syntax failure from size limit failure. Raw code not in audit events/logs by default. Violation metadata: construct category, redacted fragment ref, location hint when safe. Enabled by default. Disabled → explicit warning + audit event.
+- **Edge Cases**: Obfuscated/encoded/dynamically-constructed forbidden construct, unparseable, oversized, empty, comment-only, false positive, disabled, partially supported language, code containing sensitive values
+- **Error Handling**: Security violation (blocked construct); validation error (unparseable in strict); size limit error; audit warning (validation disabled)
 
 ### FR-SEC-004: Redact Sensitive Values
 
-Security provides redaction capability for log, diagnostics, command-line output, and MCP responses.
-
-- **Description**: Detect and redact sensitive values before they are written to logs, diagnostics, or user-facing output
-- **Input**: Text or structured data concept, redaction policy, optional sensitivity level
-- **Output**: Redacted data concept with sensitive values replaced by safe placeholders
-- **Business Rules**:
-  - Raw code must not appear in logs by default
-  - Tokens must not appear in logs
-  - Credentials must not appear in logs
-  - Passwords must not appear in logs
-  - Sensitive paths must be redacted or generalized when configured
-  - Connection strings containing secrets must be redacted
-  - Redaction should support both key-based detection and pattern-based detection
-  - Redaction should preserve data structure when input is structured
-  - Redaction should replace sensitive values with stable placeholder concepts
-  - Redaction should support nested mappings and lists
-  - Redaction should truncate overly large payloads safely
-  - Redaction should avoid destroying non-sensitive diagnostic context
-  - Redaction should be applied before audit event emission
-  - If redaction fails, system should prefer dropping or masking the entire payload over leaking sensitive data
-  - Debug mode may expose more detail only when explicitly enabled and still should not expose secrets
-- **Edge Cases**: Secret inside text blob, secret inside nested structure, encoded secret, multiline secret, binary data, unknown secret format, oversized payload, sensitive path in error message, token in query parameter, credential in connection string, redaction rule conflict
-- **Error Handling**: Redaction error results in safe fallback placeholder or payload suppression; redaction failure should emit diagnostic warning without exposing sensitive value
+- **Description**: Detect + redact sensitive values before logs, diagnostics, CLI, MCP output
+- **Input**: Text/structured data, redaction policy, optional sensitivity level
+- **Output**: Redacted data (sensitive values replaced by safe placeholders)
+- **Rules**: Raw code not in logs by default. Tokens/credentials/passwords/sensitive paths/connection strings redacted. Key-based + pattern-based detection. Preserves structure when input structured. Replaces with stable placeholders. Supports nested mappings/lists. Truncates overly large payloads safely. Preserves non-sensitive diagnostic context. Applied before audit event emission. Failure → drop or mask entire payload (never leak). Debug mode may expose more detail only when explicitly enabled — still no secrets.
+- **Edge Cases**: Secret in text blob/nested structure/encoded/multiline/binary, unknown format, oversized payload, sensitive path in error message, token in query param, credential in connection string, rule conflict
+- **Error Handling**: Redaction error → safe fallback placeholder or payload suppression; diagnostic warning without exposing value
 
 ### FR-SEC-005: Emit Security Audit Events
 
-Every security violation produces an audit event. Diagnostics feature consumes these audit events.
-
-- **Description**: Emit structured security audit events for violations, suspicious activity, redaction failures, and policy overrides
-- **Input**: Audit context concept containing violation category, operation type, source feature, target metadata, severity, timestamp, correlation identifier, and redacted reason
-- **Output**: Security audit event concept
-- **Business Rules**:
-  - Every security violation must produce an audit event
-  - Audit event must be emitted for:
-    - path traversal violation
-    - unauthorized file access attempt
-    - unsafe archive entry rejection
-    - untrusted code violation
-    - redaction failure
-    - permission denied security event
-    - validation disabled override
-  - Audit event must not include raw secrets
-  - Audit event must not include raw untrusted code by default
-  - Audit event must use redacted metadata
-  - Audit event should include severity level
-  - Audit event should include correlation identifier when available
-  - Audit event should include source feature and operation type
-  - Audit event should be immutable once emitted
-  - Audit event delivery may be synchronous or asynchronous depending on observability configuration
-  - If audit sink is unavailable, violation must still be returned to caller and local fallback audit record should be created
-  - Audit emission failure must not suppress original security violation
-  - High-frequency violations may be rate-limited or grouped to avoid observability overload
-- **Edge Cases**: Audit sink unavailable, high-frequency violations, duplicate violations, sensitive data in audit context, missing correlation identifier, clock skew, oversized audit metadata, redaction failure during audit construction
-- **Error Handling**: Audit emission error produces fallback audit record or local warning; original security violation remains primary error; audit failure must not leak sensitive data
+- **Description**: Emit structured security audit events for violations, suspicious activity, redaction failures, policy overrides
+- **Input**: Audit context (violation category, operation type, source feature, target metadata, severity, timestamp, correlation ID, redacted reason)
+- **Output**: Security audit event
+- **Rules**: Every security violation produces audit event. Categories: path traversal, unauthorized access, archive entry rejection, code violation, redaction failure, permission denied, validation disabled override. No raw secrets. No raw untrusted code by default. Redacted metadata only. Includes severity level, correlation ID (when available), source feature, operation type. Immutable once emitted. Sync or async delivery per config. Sink unavailable → violation still returned to caller + local fallback record. Emission failure never suppresses original violation. High-frequency: rate-limited or grouped.
+- **Edge Cases**: Sink unavailable, high-frequency/duplicate violations, sensitive data in context, missing correlation ID, clock skew, oversized metadata, redaction failure during construction
+- **Error Handling**: Emission → fallback record or local warning; original violation remains primary error; never leaks sensitive data
 
 ## Error Categories
 
-- security violation error — path traversal, unauthorized access, forbidden code construct, unsafe archive entry
-- permission error — insufficient filesystem or runtime permissions
-- archive safety error — archive depth, size, entry count, or link policy violation
-- code validation error — unparseable code, oversized code, or invalid code submission
-- redaction error — failure to safely redact sensitive value
-- audit emission error — failure to deliver audit event to observability sink
-- validation error — malformed request or invalid security policy input
+- security violation — traversal/unauthorized access/forbidden construct/unsafe entry
+- permission error — insufficient filesystem/runtime permissions
+- archive safety error — depth/size/entry count/link policy violation
+- code validation error — unparseable/oversized/invalid
+- redaction error — failure to safely redact
+- audit emission error — failure to deliver audit event
+- validation error — malformed request or invalid input
 
 ## Events
 
-- security violation event — emitted when a security policy violation is detected
-- security audit event — emitted for auditable security-related activity
-- redaction failure event — emitted when sensitive value redaction cannot be safely completed
-- policy override event — emitted when a security control is explicitly disabled or bypassed by configuration
+- security violation (detected)
+- security audit (auditable activity)
+- redaction failure (cannot safely complete)
+- policy override (control disabled/bypassed)
 
-Event payloads should include:
-
-- event category
-- severity
-- source feature
-- operation type
-- redacted target metadata
-- correlation identifier when available
-- timestamp
-- policy mode
-
-Event payloads must avoid:
-
-- raw secrets
-- raw tokens
-- raw credentials
-- raw untrusted code
-- sensitive filesystem paths beyond redacted form
+Payloads: category, severity, source feature, operation type, redacted target metadata, correlation ID, timestamp, policy mode. Never: raw secrets/tokens/credentials/code, sensitive paths beyond redacted form.
 
 ## Configuration Keys
 
-
-| Configuration Concept        | Description                                                                          | Typical Default                                   |
-| ------------------------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Allowed directories          | List of directories permitted for file read, write, extraction, or output operations | Application-managed safe directories              |
-| Archive maximum depth        | Maximum allowed nested extraction depth                                              | Conservative depth limit                          |
-| Archive maximum total size   | Maximum allowed total extracted size                                                 | Conservative size limit                           |
-| Archive maximum entry count  | Maximum allowed number of archive entries                                            | Conservative entry limit                          |
-| Archive symbolic link policy | Whether symbolic link entries are allowed during extraction                          | Disallowed                                        |
-| Code validation enabled      | Toggle for untrusted code validation before execution                                | Enabled                                           |
-| Blocked code constructs      | Configurable list of forbidden code construct categories                             | Dangerous execution and import constructs blocked |
-| Maximum code size            | Maximum allowed untrusted code payload size                                          | Conservative payload limit                        |
-| Redaction patterns           | Patterns or key names used to detect sensitive values                                | Common secret and credential patterns             |
-| Redaction debug mode         | Whether debug output may include less-redacted diagnostic context                    | Disabled                                          |
-| Audit retention behavior     | How long audit events are retained or forwarded                                      | Observability-managed retention                   |
-| Security policy mode         | Strict or permissive behavior for non-fatal policy issues                            | Strict                                            |
+| Key | Description | Default |
+|---|---|---|
+| allowed_directories | Permitted for read/write/extract/output | App-managed safe dirs |
+| archive_maximum_depth | Max nested extraction depth | Conservative |
+| archive_maximum_total_size | Max extracted size | Conservative |
+| archive_maximum_entry_count | Max entries | Conservative |
+| archive_symlink_policy | Allow symlink entries | Disallowed |
+| code_validation_enabled | Untrusted code validation | Enabled |
+| blocked_code_constructs | Forbidden construct categories | Dangerous execution + imports |
+| maximum_code_size | Max untrusted code payload | Conservative |
+| redaction_patterns | Key/pattern detection | Common secret patterns |
+| redaction_debug_mode | Less-redacted output | Disabled |
+| audit_retention_behavior | Retention/forwarding | Observability-managed |
+| security_policy_mode | strict/permissive | strict |
 
 ## QA Checklist
 
-- [ ]  Path traversal rejected for all write operations
-- [ ]  Path traversal rejected for read operations when read policy enabled
-- [ ]  Symbolic link escape rejected during path validation
-- [ ]  Out-of-bounds path rejected when outside allowed directories
-- [ ]  Relative path resolved safely against trusted base directory
-- [ ]  Case-insensitive filesystem handled consistently
-- [ ]  Permission denied produces permission error category
-- [ ]  Archive extraction enforces allowed destination policy
-- [ ]  Archive extraction rejects entry path traversal
-- [ ]  Archive extraction rejects absolute entry paths
-- [ ]  Archive extraction rejects symbolic link entries by default
-- [ ]  Archive extraction enforces maximum depth
-- [ ]  Archive extraction enforces maximum total size
-- [ ]  Archive extraction enforces maximum entry count
-- [ ]  Archive bomb pattern is detected or limited
-- [ ]  Untrusted code validated before gateway execution
-- [ ]  Dangerous code construct rejected by policy
-- [ ]  Oversized code payload rejected
-- [ ]  Unparseable code rejected in strict mode
-- [ ]  Code validation disabled override emits audit warning
-- [ ]  Raw code not included in logs by default
-- [ ]  Sensitive values redacted in log output
-- [ ]  Sensitive values redacted in diagnostics output
-- [ ]  Sensitive values redacted in command-line output
-- [ ]  Sensitive values redacted in MCP-facing output
-- [ ]  Nested sensitive values redacted correctly
-- [ ]  Redaction failure falls back to safe placeholder or payload suppression
-- [ ]  Audit events emitted on path violations
-- [ ]  Audit events emitted on archive violations
-- [ ]  Audit events emitted on code violations
-- [ ]  Audit events emitted on redaction failures
-- [ ]  Audit events do not contain raw secrets
-- [ ]  Audit events do not contain raw untrusted code
-- [ ]  Audit emission failure does not suppress original security violation
-- [ ]  Security policy decisions are delegated from other features instead of duplicated
+- [ ] Path traversal rejected for all write/read ops
+- [ ] Symlink escape rejected; out-of-bounds rejected
+- [ ] Relative path resolved safely; case-insensitive consistent
+- [ ] Permission denied → permission error
+- [ ] Archive: allowed destination enforcement, traversal rejection, absolute path rejection
+- [ ] Archive: symlink rejected by default; depth/size/entry count enforced
+- [ ] Archive bomb limited; unsafe patterns detected
+- [ ] Code validated before execution; dangerous constructs rejected
+- [ ] Oversized/unparseable code rejected (strict)
+- [ ] Disabled override → audit warning
+- [ ] Raw code not in logs by default
+- [ ] Secrets redacted in logs/diagnostics/CLI/MCP output
+- [ ] Nested values redacted correctly; failure → safe fallback
+- [ ] Audit events on path/archive/code/redaction violations
+- [ ] No raw secrets or untrusted code in audit events
+- [ ] Emission failure doesn't suppress original violation
+- [ ] Delegation: other features use security instead of implementing own validation

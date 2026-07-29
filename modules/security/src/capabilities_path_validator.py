@@ -14,6 +14,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
     PathValidationVO,
     SecurityPolicyVO,
 )
+from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
 
 
 class _PathResolver(Protocol):
@@ -50,11 +51,19 @@ class PathValidator(ValidatePathProtocol):
             )
 
         if not os.path.isabs(target):
-            base = request.base_directory or (self._policy.allowed_directories[0] if self._policy.allowed_directories else ".")
+            base = request.base_directory or (self._policy.allowed_directories[0] if self._policy.allowed_directories else None)
+            if base is None:
+                return PathValidationVO(
+                    target_path=request.target_path,
+                    access_mode=request.access_mode,
+                    allowed=False,
+                    denial_reason="No base directory configured and policy has no allowed directories",
+                    audit_metadata={"rule": "no_allowed_directory"},
+                )
             target = os.path.join(base, target)
 
         try:
-            normalized = os.path.normpath(os.path.abspath(target))
+            normalized = normalize_path(target)
         except (OSError, ValueError) as exc:
             return PathValidationVO(
                 target_path=request.target_path,
@@ -64,13 +73,13 @@ class PathValidator(ValidatePathProtocol):
                 audit_metadata={"rule": "path_resolution_failed"},
             )
 
-        if ".." in target.split(os.sep):
+        if ".." in normalized.split(os.sep):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Path traversal detected",
-                audit_metadata={"rule": "path_traversal", "path": _redact_path(normalized)},
+                audit_metadata={"rule": "path_traversal"},
             )
 
         if self._resolver:
@@ -93,13 +102,13 @@ class PathValidator(ValidatePathProtocol):
                     audit_metadata={"rule": "symlink_resolution_failed"},
                 )
 
-        if not self._is_within_allowed_dirs(normalized):
+        allowed_dirs = list(self._policy.allowed_directories) if self._policy.allowed_directories else []
+        if not is_within_allowed_dirs(normalized, allowed_dirs):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Path outside allowed directories",
-                canonical_path=normalized,
                 audit_metadata={"rule": "unauthorized_access", "path": _redact_path(normalized)},
             )
 
@@ -114,15 +123,6 @@ class PathValidator(ValidatePathProtocol):
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _is_within_allowed_dirs(self, normalized_path: str) -> bool:
-        if not self._policy.allowed_directories:
-            return True
-        for allowed_dir in self._policy.allowed_directories:
-            norm_allowed = os.path.normpath(os.path.abspath(allowed_dir))
-            if normalized_path.startswith(norm_allowed + os.sep) or normalized_path == norm_allowed:
-                return True
-        return False
-
     def __repr__(self) -> str:
         return "PathValidator()"
 

@@ -6,12 +6,14 @@ Layers:
   - Contract (shared/src/dispatcher/) → 6 individual protocols
   - Capabilities (6 executors)        → One per FR operation
   - Agent                             → DispatcherOrchestrator (Aggregate facade)
+  - Surface action schemas            → Shared action parameter definitions for CLI + MCP
 
 Surface layer is intentionally absent — MCP/CLI command handlers live in
-their respective feature modules (modules/mcp, modules/cli).
+their respective feature modules (modules/mcp, modules/cli). Action schemas
+live here so both surfaces share a single source of truth.
 """
 
-from .agent_orchestrator import DispatcherOrchestrator
+from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor

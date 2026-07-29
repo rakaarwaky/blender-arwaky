@@ -1,60 +1,64 @@
-Act as an Expert Business Analyst specializing in requirements engineering, process optimization, and stakeholder communication. Based on the uploaded file , review the requirement clarity, completeness, and testability. Identify any gaps, ambiguities, or conflicting requirements. Provide recommendations to improve . Focus on business value alignment, traceability, and stakeholder satisfaction.
+- Write proposed **Fixed Code** inside the plan document
+- Write modular file per feature-member if you work on multiple features
 
-IMPORTANT: Before making any changes, you MUST read and follow the rules in `.agents/rules/RULES_AES.md` and check available skills in `.agents/skills/` for relevant workflows.
+## Plan Output
 
----
-
-## Report Output
-
-When your review is complete, save the report to:
-
-### Report Structure
+**File path:** `.agents/plans/todo-<feature-name>-business-analyst-<timestamp>.md`
 
 ```markdown
-# Review Report: {{feature-name}} — Business Analyst
+# Review Plan: {feature-name} — Business Analyst
 
 ## Summary
 
-{{One-paragraph overview of requirements health and key findings.}}
+{One-paragraph overview and key findings.}
 
 ## Findings by Category
 
-### Requirements Clarity & Completeness
+### Requirements Clarity
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+|   |          |       |                      |                |
 
-| #   | Severity | Issue | Location | Recommendation |
-| --- | -------- | ----- | -------- | -------------- |
+### Business Flow
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+|   |          |       |                      |                |
+
+### Logic Implementation
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+|   |          |       |                      |                |
 
 ### Testability & Acceptance Criteria
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+|   |          |       |                      |                |
 
-| #   | Severity | Issue | Location | Recommendation |
-| --- | -------- | ----- | -------- | -------------- |
+### Traceability 
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+|   |          |       |                      |                |
 
-### Scope & Dependencies
+## Violations
 
-| #   | Severity | Issue | Location | Recommendation |
-| --- | -------- | ----- | -------- | -------------- |
-
-### Traceability (FRD ↔ Code)
-
-| #   | Severity | Issue | Location | Recommendation |
-| --- | -------- | ----- | -------- | -------------- |
-
-## Violations (if any)
-
-{{List specific AES layer violations, import rule breaks, or convention deviations.}}
+{List specific AES violations or write "None".}
 
 ## Action Items
 
-- [ ] {{Priority}} {{Action item description}}
+- [ ] {Priority} {Action item}
 
-## Gap Analysis Table
+## Fixed Code
 
-| Current State | Issue | Recommendation | Priority |
-| ------------- | ----- | -------------- | -------- |
+{Show corrected code blocks for each fix. Group by file.}
 ```
 
-### Severity Convention
+## Severity Convention
 
-- 🔴 **CRITICAL** — Unimplemented feature, broken FRD promise, major scope gap
-- 🟡 **WARNING** — Ambiguity, missing acceptance criteria, documentation gap
-- 🟢 **INFO** — Suggestion, nice-to-have improvement
+Use these levels consistently:
+
+
+| Level          | Meaning                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| 🔴**CRITICAL** | Missing core requirement, wrong business logic, or data integrity risk. Requires immediate fix. |
+| 🟡**WARNING**  | Ambiguous requirement, missing edge case, or incomplete acceptance criteria. Fix in this cycle. |
+| 🟢**INFO**     | Suggestion, nice-to-have feature, or optimization. Can be deferred.                             |

@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import RuntimeStatusVO
+from .taxonomy_launcher_vo import ProbeDepth, RuntimeStatusVO
 
 
 class RuntimeStatusProtocol(ABC):
     """Protocol interface for verifying true process liveness and staleness."""
 
     @abstractmethod
-    def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
+    def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Verify actual liveness (not persisted state) and classify runtime state."""
         ...

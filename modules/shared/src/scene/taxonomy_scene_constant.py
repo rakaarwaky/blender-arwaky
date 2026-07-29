@@ -1,48 +1,88 @@
-"""Scene domain constants.
+"""Scene taxonomy constants.
 
-Compile-time literal values for scene management.
-No classes, no functions — only ALL_CAPS declarations.
+Stable domain constants for scene inspection and cleanup.
 """
 
-from __future__ import annotations
+from typing import Final
 
-# ─── Scene Management Defaults (FR-SCN-001, FR-SCN-002) ──────────────
+# ─── Defaults ────────────────────────────────────────────────
+DEFAULT_PRESERVATION_LIST: Final[tuple[str, ...]] = ("camera", "light")
+DEFAULT_DRY_RUN_MODE: Final[bool] = False
+DEFAULT_INCLUDE_HIDDEN_OBJECTS: Final[bool] = False
+DEFAULT_CHILD_HANDLING_POLICY: Final[str] = "detach"
+DEFAULT_DEPENDENT_HANDLING_POLICY: Final[str] = "reject"
 
-# Default preservation list — categories preserved during cleanup when request does not specify explicit preservation.
-DEFAULT_PRESERVATION_LIST: tuple[str, ...] = (
-    "camera",
-    "light",
-    "active_camera",
-    "sole_camera",
-    "protected",
+# ─── Policy / limits ─────────────────────────────────────────
+CLEANUP_CONFIRMATION_REQUIRED: Final[bool] = True
+CLEANUP_TIMEOUT_SECONDS: Final[float] = 30.0
+INSPECTION_TIMEOUT_SECONDS: Final[float] = 15.0
+MAX_INSPECTION_DETAIL_LIMIT: Final[int] = 500
+
+# ─── Protection policy defaults ──────────────────────────────
+PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA: Final[bool] = True
+PROTECTED_OBJECT_POLICY_SOLE_CAMERA: Final[bool] = True
+PROTECTED_OBJECT_POLICY_LIGHTS: Final[bool] = True
+PROTECTED_OBJECT_POLICY_PROTECTED: Final[bool] = True
+
+# ─── Cleanup modes ───────────────────────────────────────────
+CLEANUP_MODE_ALL: Final[str] = "all"
+CLEANUP_MODE_OBJECTS: Final[str] = "objects"
+CLEANUP_MODE_MESHES: Final[str] = "meshes"
+
+VALID_CLEANUP_MODES: Final[frozenset[str]] = frozenset(
+    (
+        CLEANUP_MODE_ALL,
+        CLEANUP_MODE_OBJECTS,
+        CLEANUP_MODE_MESHES,
+    )
 )
 
-# Default dry-run mode — whether cleanup defaults to preview-only mode.
-DEFAULT_DRY_RUN_MODE: bool = False
+# ─── Child handling policies ─────────────────────────────────
+CHILD_POLICY_DELETE: Final[str] = "delete"
+CHILD_POLICY_DETACH: Final[str] = "detach"
+CHILD_POLICY_REJECT: Final[str] = "reject"
 
-# Include hidden objects in inspection — whether hidden objects are included by default.
-DEFAULT_INCLUDE_HIDDEN_OBJECTS: bool = False
+VALID_CHILD_HANDLING_POLICIES: Final[frozenset[str]] = frozenset(
+    (
+        CHILD_POLICY_DELETE,
+        CHILD_POLICY_DETACH,
+        CHILD_POLICY_REJECT,
+    )
+)
 
-# Maximum inspection detail limit — limit for object detail returned during inspection.
-MAX_INSPECTION_DETAIL_LIMIT: int = 1000
+# ─── Dependent handling policies ─────────────────────────────
+DEPENDENT_POLICY_IGNORE: Final[str] = "ignore"
+DEPENDENT_POLICY_REJECT: Final[str] = "reject"
+DEPENDENT_POLICY_REMOVE_SAFE: Final[str] = "remove_safe"
 
-# Default cleanup timeout in seconds.
-CLEANUP_TIMEOUT_SECONDS: float = 30.0
+VALID_DEPENDENT_HANDLING_POLICIES: Final[frozenset[str]] = frozenset(
+    (
+        DEPENDENT_POLICY_IGNORE,
+        DEPENDENT_POLICY_REJECT,
+        DEPENDENT_POLICY_REMOVE_SAFE,
+    )
+)
 
-# Default inspection timeout in seconds.
-INSPECTION_TIMEOUT_SECONDS: float = 15.0
+# ─── Inspection detail levels ────────────────────────────────
+DETAIL_LEVEL_MINIMAL: Final[str] = "minimal"
+DETAIL_LEVEL_STANDARD: Final[str] = "standard"
+DETAIL_LEVEL_DETAILED: Final[str] = "detailed"
+DETAIL_LEVEL_SUMMARY: Final[str] = "summary"
 
-# Cleanup confirmation required — whether destructive cleanup requires explicit confirmation when undo is unavailable.
-CLEANUP_CONFIRMATION_REQUIRED: bool = True
+VALID_DETAIL_LEVELS: Final[frozenset[str]] = frozenset(
+    (
+        DETAIL_LEVEL_MINIMAL,
+        DETAIL_LEVEL_STANDARD,
+        DETAIL_LEVEL_DETAILED,
+        DETAIL_LEVEL_SUMMARY,
+    )
+)
 
-# Default child handling policy — behavior for children of deleted objects.
-DEFAULT_CHILD_HANDLING_POLICY: str = "detach"  # "delete", "detach", "reject"
+# ─── Preservation tokens ─────────────────────────────────────
+PRESERVATION_CAMERA: Final[str] = "camera"
+PRESERVATION_LIGHT: Final[str] = "light"
 
-# Default dependent handling policy — behavior for dependents such as constraints or references.
-DEFAULT_DEPENDENT_HANDLING_POLICY: str = "reject"  # "ignore", "reject", "remove_safe"
-
-# Protected object policy defaults.
-PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA: bool = True
-PROTECTED_OBJECT_POLICY_SOLE_CAMERA: bool = True
-PROTECTED_OBJECT_POLICY_LIGHTS: bool = True
-PROTECTED_OBJECT_POLICY_PROTECTED: bool = True
+# ─── Blender object types ────────────────────────────────────
+OBJECT_TYPE_CAMERA: Final[str] = "CAMERA"
+OBJECT_TYPE_LIGHT: Final[str] = "LIGHT"
+OBJECT_TYPE_MESH: Final[str] = "MESH"

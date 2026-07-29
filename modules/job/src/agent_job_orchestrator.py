@@ -1,125 +1,150 @@
+# modules/job/src/agent_job_orchestrator.py
 """Agent: Job feature orchestrator.
 
-Coordinates job state tracking, monitoring, cancellation, and cleanup.
-Wires capabilities together per FR-JOB requirements.
+Composes 5 capabilities into executable flows.
+Controls sequence and movement, not business calculation.
 """
+from __future__ import annotations
 
-import logging
+import time
 
-from modules.shared.src.job.taxonomy_job_status_entity import JobStatus
-
-from modules.shared.src.common.taxonomy_core_vo import (
-    ErrorString,
-    JobId,
-    Progress,
-    ResultUrl,
+from modules.shared.src.common.taxonomy_core_vo import JobId, Timestamp
+from modules.shared.src.job.contract_job_aggregate import IJobAggregate
+from modules.shared.src.job.contract_job_cancellation_protocol import IJobCancellation
+from modules.shared.src.job.contract_job_capacity_protocol import IJobCapacity
+from modules.shared.src.job.contract_job_cleanup_protocol import IJobCleanup
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
+from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
+from modules.shared.src.job.taxonomy_job_constant import (
+    CANCELLATION_ALREADY_TERMINAL,
+    CANCELLATION_NOT_FOUND,
+)
+from modules.shared.src.job.taxonomy_job_error import (
+    CapacityError,
+    InvalidStateTransitionError,
+    TaskNotFoundError,
+)
+from modules.shared.src.job.taxonomy_job_vo import (
+    ActiveCount,
+    CancellationResult,
+    CancelTaskCommand,
+    CapacityStatus,
+    CleanupSummary,
+    CompleteTaskCommand,
+    CreateTaskCommand,
+    DeletedCount,
+    FailTaskCommand,
+    JobPolicy,
+    JobStatusSnapshot,
+    ProgressUpdateCommand,
 )
 
-logger = logging.getLogger("BlenderMCPServer")
 
+class JobOrchestrator(IJobAggregate):
+    """Thin agent facade composing 5 job capabilities."""
 
-class JobOrchestrator:
-    """Orchestrates job lifecycle operations via capabilities layer."""
+    def __init__(
+        self,
+        lifecycle: IJobLifecycle,
+        monitor: IJobMonitor,
+        cancellation: IJobCancellation,
+        cleanup: IJobCleanup,
+        capacity: IJobCapacity,
+        policy: JobPolicy,
+    ) -> None:
+        self._lifecycle = lifecycle
+        self._monitor = monitor
+        self._cancellation = cancellation
+        self._cleanup = cleanup
+        self._capacity = capacity
+        self._policy = policy
 
-    def __init__(self, max_active: int = 100):
-        self._jobs: dict[str, JobStatus] = {}
-        self._max_active = max_active
+    def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
+        active = ActiveCount(self._lifecycle.active_count())
+        decision = self._capacity.evaluate(active, self._policy)
+        if not decision.accepted:
+            raise CapacityError(max_active=ActiveCount(decision.limit), current_active=ActiveCount(decision.active))
+        return self._lifecycle.create_task(command)
 
-    # FR-JOB-001: Track and Update Task Lifecycle
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot:
+        return self._lifecycle.start_task(job_id)
 
-    def track_new_task(self, operation_type: str, metadata: dict | None = None) -> tuple[JobId, JobStatus]:
-        """Register a new background task. Returns unique tracking ID."""
-        import uuid
-        job_id = JobId(str(uuid.uuid4()))
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot:
+        return self._lifecycle.update_progress(command)
 
-        running = sum(1 for j in self._jobs.values() if j.status.value in ("RUNNING", "PENDING"))
-        if running >= self._max_active:
-            raise OverflowError(f"Maximum active tasks ({self._max_active}) reached")
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
+        return self._lifecycle.complete_task(command)
 
-        status = JobStatus(job_id=job_id)
-        self._jobs[str(job_id)] = status
-        logger.info("New task tracked: %s (type=%s)", job_id, operation_type)
-        return job_id, status
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
+        return self._lifecycle.fail_task(command)
 
-    def update_progress(self, job_id: JobId, progress: float, message: str = "") -> JobStatus:
-        """Update progress of a running task (0-100%)."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+    def cancel_task(self, command: CancelTaskCommand) -> CancellationResult:
+        try:
+            snapshot = self._lifecycle.get_record(command.job_id)
+        except TaskNotFoundError:
+            return CancellationResult(
+                job_id=command.job_id,
+                accepted=False,
+                outcome=CANCELLATION_NOT_FOUND,
+                message="Task not found",
+            )
 
-        status = self._jobs[str(job_id)]
-        if progress < 0 or progress > 100:
-            raise ValueError(f"Invalid progress value: {progress} (must be 0-100)")
-        if status.status.value not in ("RUNNING", "PENDING"):
-            raise RuntimeError(f"Cannot update progress on task in {status.status.value} state")
+        decision = self._cancellation.evaluate(command, snapshot.state)
+        if not decision.accepted:
+            return decision
 
-        status.progress = Progress(progress)
-        return status
+        try:
+            self._lifecycle.apply_cancel(command.job_id, command.reason)
+        except TaskNotFoundError:
+            return CancellationResult(
+                job_id=command.job_id,
+                accepted=False,
+                outcome=CANCELLATION_NOT_FOUND,
+                message="Task not found",
+            )
+        except InvalidStateTransitionError:
+            return CancellationResult(
+                job_id=command.job_id,
+                accepted=False,
+                outcome=CANCELLATION_ALREADY_TERMINAL,
+                message="Task reached terminal state before cancellation applied",
+            )
 
-    def finalize_task_success(self, job_id: JobId, result_url: ResultUrl | None = None, summary: str = "") -> JobStatus:
-        """Mark a task as successfully completed."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+        return decision
 
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
+    def get_task_status(self, job_id: JobId) -> JobStatusSnapshot:
+        raw = self._lifecycle.get_record(job_id)
+        return self._monitor.project(raw)
 
-        status.mark_completed(result_url)
-        logger.info("Task completed: %s", job_id)
-        return status
+    def cleanup_expired_tasks(self) -> CleanupSummary:
+        now = Timestamp(time.time())
+        terminal = self._lifecycle.list_terminal()
+        running = self._lifecycle.list_running()
 
-    def finalize_task_failure(self, job_id: JobId, error_message: ErrorString, error_category: str = "") -> JobStatus:
-        """Mark a task as failed with error details."""
-        if job_id not in self._jobs:
-            raise KeyError(f"Task {job_id} not found")
+        decision = self._cleanup.resolve(terminal, running, now, self._policy)
 
-        status = self._jobs[str(job_id)]
-        if status.status.value in ("COMPLETED", "FAILED", "CANCELLED"):
-            raise RuntimeError(f"Cannot finalize task already in {status.status.value} state")
+        reclaimed = 0
+        for job_id in decision.stale_timeout_ids:
+            try:
+                self._lifecycle.apply_timeout(job_id)
+                reclaimed += 1
+            except (TaskNotFoundError, InvalidStateTransitionError):
+                pass
 
-        status.mark_failed(error_message)
-        logger.info("Task failed: %s (%s)", job_id, error_category)
-        return status
+        purged = self._lifecycle.delete_records(decision.purge_ids)
 
-    # FR-JOB-002: Monitor Task Status
+        return CleanupSummary(
+            purged=int(purged),
+            retained=len(terminal) - int(purged) + int(self._lifecycle.active_count()),
+            reclaimed_capacity=reclaimed,
+            warnings=decision.warnings,
+        )
 
-    def get_task_status(self, job_id: JobId) -> JobStatus | None:
-        """Retrieve current state snapshot of a task (read-only)."""
-        import copy
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return None
-        return copy.deepcopy(status)
-
-    # FR-JOB-003: Cancel a Task
-
-    def cancel_task(self, job_id: JobId, reason: ErrorString = "") -> tuple[bool, str]:
-        """Request cancellation of a waiting or running task."""
-        status = self._jobs.get(str(job_id))
-        if status is None:
-            return False, f"Task {job_id} not found"
-
-        state = status.status.value
-        if state in ("COMPLETED", "FAILED", "CANCELLED"):
-            return False, f"Cannot cancel task already in {state} state"
-
-        status.mark_cancelled(ErrorString(f"Cancelled: {reason}") if reason else ErrorString("Cancelled"))
-        logger.info("Task cancelled: %s (reason=%s)", job_id, reason)
-        return True, f"Task {job_id} cancellation accepted"
-
-    # FR-JOB-004: Automatic Task Record Cleanup
-
-    def cleanup_expired_tasks(self, max_retained: int = 100) -> dict[str, int]:
-        """Remove old, finished task records."""
-        terminal_states = {"COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT"}
-
-        terminal = [jid for jid, s in self._jobs.items() if s.status.value in terminal_states]
-        to_remove = terminal[max_retained:] if len(terminal) > max_retained else []
-
-        for jid in to_remove:
-            del self._jobs[jid]
-
-        return {
-            "removed": len(to_remove),
-            "retained": len(self._jobs) - len(to_remove),
-        }
+    def get_capacity_status(self) -> CapacityStatus:
+        active = ActiveCount(self._lifecycle.active_count())
+        decision = self._capacity.evaluate(active, self._policy)
+        return CapacityStatus(
+            active=decision.active,
+            limit=decision.limit,
+            available=decision.available,
+        )

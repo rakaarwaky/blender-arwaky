@@ -14,7 +14,7 @@ Structure:
 
 import logging
 
-from modules.shared.src.object.contract_object_operate_aggregate import ObjectOperateAggregate
+from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
 
 # Lazy imports to avoid circular deps — resolved at wiring time
 from .agent_object_orchestrator import ObjectOrchestrator
@@ -96,7 +96,7 @@ class ObjectContainer:
         logger.info("Object feature module wired successfully (7 capabilities)")
 
     @property
-    def aggregate(self) -> ObjectOperateAggregate:
+    def aggregate(self) -> IObjectOperateAggregate:
         """Return the assembled ObjectOperateAggregate facade.
 
         Must call wire() first, or this property will raise RuntimeError.
@@ -110,7 +110,7 @@ class ObjectContainer:
 
 def create_object_feature(
     code_executor: object,
-) -> ObjectOperateAggregate:
+) -> IObjectOperateAggregate:
     """Factory function to create and wire the object feature module.
 
     Convenience function for top-level entry points that need the aggregate.
