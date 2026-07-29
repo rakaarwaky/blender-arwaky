@@ -15,6 +15,7 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     AssetType,
+    DuplicatePolicy,
     FilePath,
     MaxSize,
     ProviderName,
@@ -39,7 +40,7 @@ class AssetDownloadProtocol(ABC):
         asset_type: AssetType,
         cache_dir: FilePath,
         resolution: ResolutionPreference | None = None,
-        overwrite_policy: str = "reuse",
+        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
         max_size: MaxSize | None = None,
         background: bool = False,
     ) -> dict[str, Any]:

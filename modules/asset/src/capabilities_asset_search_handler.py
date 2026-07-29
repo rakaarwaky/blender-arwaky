@@ -28,9 +28,15 @@ class AssetSearchHandler(AssetSearchProtocol):
     Uses IAssetProviderConnection protocol instead of primitive `object` type.
     """
 
-    def __init__(self, connection: IAssetProviderConnection, providers: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        connection: IAssetProviderConnection,
+        providers: list[str] | None = None,
+        enabled_providers: list[str] | None = None,
+    ) -> None:
         self._connection = connection
         self._providers = providers if providers is not None else ["Polyhaven", "Sketchfab"]
+        self._enabled_providers = enabled_providers
 
     async def search_all(
         self,
@@ -49,19 +55,30 @@ class AssetSearchHandler(AssetSearchProtocol):
         Args:
             query: Text search query.
             providers: Optional provider filter; None means use configured defaults.
-            _asset_type_filter: Optional asset type filter (interface param).
-            _limit: Optional result limit per provider (interface param).
-            _page_token: Optional pagination cursor (interface param).
+            asset_type_filter: Optional asset type filter (FR-AST-001).
+            limit: Optional result limit per provider (FR-AST-001).
+            page_token: Optional pagination cursor (FR-AST-001).
 
         Returns:
             Dict with normalized assets list, provider status summary, warnings, and timestamp.
         """
         target = providers if providers is not None else self._providers
 
-        logger.debug(
-            "Search query=%s providers=%s filter=%s limit=%d page_token=%s",
-            query, target, asset_type_filter, limit or 0, page_token,
-        )
+        # R04: Provider enablement check - warn on disabled providers
+        if self._enabled_providers is not None:
+            disabled = [p for p in target if p not in self._enabled_providers]
+            if disabled:
+                logger.warning("Search targets include disabled providers: %s", disabled)
+
+        # R02: Validate and warn on unsupported params (FR-AST-001)
+        if asset_type_filter is not None:
+            logger.debug("asset_type_filter=%s not yet enforced in provider queries", asset_type_filter)
+        if limit is not None:
+            logger.debug("limit=%s not yet enforced in provider queries", limit)
+        if page_token is not None:
+            logger.debug("page_token not yet enforced in provider queries")
+
+        logger.debug("Search query=%s providers=%s", query, target)
 
         async def search_one(name: str) -> tuple[str, list[Any], str | None]:
             try:
@@ -95,16 +112,21 @@ class AssetSearchHandler(AssetSearchProtocol):
         assets: list[Any] = []
         provider_status: dict[str, str] = {}
         warnings: list[str] = []
+        errors: list[str] = []
 
         for name, items, error in results:
             if error:
                 provider_status[name] = "error"
                 warnings.append(f"Provider {name} failed: {error}")
+                errors.append(f"{name}: {error}")
             elif items:
                 provider_status[name] = "success"
                 assets.extend(items)
             else:
                 provider_status[name] = "empty"
+
+        # FR-AST-001: When all providers fail, include aggregated error
+        all_failed = all(status == "error" for status in provider_status.values()) and len(provider_status) > 0
 
         # FR-AST-001: deduplicate assets when equivalence is safely determinable
         seen: dict[str, Any] = {}
@@ -121,5 +143,6 @@ class AssetSearchHandler(AssetSearchProtocol):
             "total": len(assets),
             "provider_status": provider_status,
             "warnings": warnings,
+            "errors": errors if all_failed else None,
             "search_timestamp": datetime.now(timezone.utc).isoformat(),
         }

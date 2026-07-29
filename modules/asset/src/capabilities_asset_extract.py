@@ -71,24 +71,27 @@ class AssetExtractCapability(AssetExtractProtocol):
         self,
         artifact_path: FilePath,
         destination: FilePath,
-        max_entries: int = 1000,
-        max_extracted_size: int = 1073741824,
+        max_entries: int | None = None,
+        max_extracted_size: int | None = None,
         allow_symlinks: bool = False,
     ) -> dict[str, Any]:
         """Extract downloaded archive under security policy supervision.
 
-        FR-AST-003: Extraction destination validated through security
-        policy before any entry is written. Rejected entries reported
-        without exposing unsafe target paths in raw form. Partial
-        extraction is avoided because approval is obtained before any
-        entry is written. Nested archives follow the same security
-        supervision.
+        FR-AST-003: All archive safety decisions delegated to security
+        policy feature. Limits (max_entries, max_extracted_size) come
+        from the caller or config; the security supervisor enforces its own
+        limits. Extraction destination validated through security policy
+        before any entry is written. Rejected entries reported without
+        exposing unsafe target paths in raw form. Partial extraction is
+        avoided because approval is obtained before any entry is written.
 
         Args:
             artifact_path: Path to the archive file to extract.
             destination: Extraction destination within allowed directories.
-            max_entries: Maximum number of entries to extract.
+            max_entries: Maximum number of entries to extract. None
+                delegates to the ArchiveExtractionOptionsVO default.
             max_extracted_size: Maximum total extracted size in bytes.
+                None delegates to the ArchiveExtractionOptionsVO default.
             allow_symlinks: Whether to allow symbolic links.
 
         Returns:
@@ -123,8 +126,12 @@ class AssetExtractCapability(AssetExtractProtocol):
             }
 
         options = ArchiveExtractionOptionsVO(
-            max_entry_count=max_entries,
-            max_total_size=max_extracted_size,
+            max_entry_count=max_entries
+            if max_entries is not None
+            else ArchiveExtractionOptionsVO.max_entry_count,
+            max_total_size=max_extracted_size
+            if max_extracted_size is not None
+            else ArchiveExtractionOptionsVO.max_total_size,
             allow_symbolic_links=allow_symlinks,
         )
         request = ArchiveExtractionVO(

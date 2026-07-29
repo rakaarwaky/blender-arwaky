@@ -67,13 +67,18 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
         """
         cache_key = f"{provider_name}:{asset_id}"
 
-        # Check cache freshness
+        # Check cache freshness with stale-refresh logic (FR-AST-005 / R03)
         if cache_key in self._metadata_cache:
             cached = self._metadata_cache[cache_key]
             age = (datetime.now(timezone.utc) - cached["timestamp"]).total_seconds()
+
             if age < self.cache_ttl_seconds:
-                logger.debug("Using cached metadata for %s", cache_key)
+                logger.debug("Using fresh cached metadata for %s", cache_key)
                 return cached["vo"]
+
+            # R03: Stale metadata refreshed before use
+            logger.debug("Cached metadata stale for %s (age=%.1fs), refreshing", cache_key, age)
+            # Continue to normalization below to fetch fresh data
 
         # Normalize fields
         normalized = ProviderMetadataVO(

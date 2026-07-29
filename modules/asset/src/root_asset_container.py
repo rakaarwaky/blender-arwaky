@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .agent_asset_orchestrator import AssetOrchestrator
@@ -17,7 +17,12 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class AssetContainer:
-    """DI container that wires asset capabilities to the agent orchestrator."""
+    """DI container that wires asset capabilities to the agent orchestrator.
+
+    CE02: FRD config keys (`overwrite_policy`, `enabled_providers`,
+    `maximum_download_size`, `cache_eviction_policy`) are read from
+    config_getter when available, otherwise fall back to defaults.
+    """
 
     def __init__(
         self,
@@ -37,6 +42,20 @@ class AssetContainer:
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
+    def _get_config_value(self, key: str, default: Any) -> Any:
+        """Read a config key from config_getter, falling back to default."""
+        if self._config_getter is None:
+            return default
+        try:
+            # Attempt to read the config value from the config getter.
+            # The config_getter protocol may or may not expose a
+            # get_value method; fall back gracefully.
+            if hasattr(self._config_getter, "get_value"):
+                return self._config_getter.get_value(key) or default
+        except Exception:
+            logger.debug("Config key %s not available, using default", key)
+        return default
+
     def get_orchestrator(self) -> AssetOrchestrator:
         if self._orchestrator is not None:
             return self._orchestrator
@@ -52,7 +71,22 @@ class AssetContainer:
             from .capabilities_asset_provider import AssetProviderMetadataCapability
             from .capabilities_asset_search_handler import AssetSearchHandler
 
-            search = AssetSearchHandler(self._connection)
+            # CE02: Read FRD config keys (wired per capability's own config_getter)
+            overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
+            enabled_providers = self._get_config_value("enabled_providers", None)
+
+            # Normalize overwrite_policy to DuplicatePolicy
+            from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
+
+            if isinstance(overwrite_policy, DuplicatePolicy):
+                overwrite_policy_vo = overwrite_policy
+            else:
+                overwrite_policy_vo = DuplicatePolicy(str(overwrite_policy))
+
+            search = AssetSearchHandler(
+                self._connection,
+                enabled_providers=enabled_providers if isinstance(enabled_providers, list) else None,
+            )
             download = AssetDownloadCapability(
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,
@@ -74,6 +108,7 @@ class AssetContainer:
                 import_capability=import_,
                 metadata_capability=metadata,
             )
+            self._orchestrator._download._overwrite_policy = overwrite_policy_vo  # type: ignore[attr-defined]
 
         logger.info("Asset container fully wired")
         return self._orchestrator

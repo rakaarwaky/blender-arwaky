@@ -22,6 +22,38 @@ from modules.shared.src.gateway.contract_gateway_client_protocol import GatewayC
 
 logger = logging.getLogger("BlenderMCPServer")
 
+# Magic bytes signatures for supported asset formats.
+# Used by _detect_format_by_magic to validate actual file content.
+_MAGIC_SIGNATURES: dict[str, list[bytes]] = {
+    "glb": [b"glTF"],
+    "gltf": [b"{", b"["],  # JSON-based; check heuristically
+    "png": [b"\x89PNG"],
+    "jpg": [b"\xFF\xD8\xFF"],
+    "jpeg": [b"\xFF\xD8\xFF"],
+    "fbx": [b"FBX"],
+    "exr": [b"\x76\x2f\x31\x01"],
+}
+
+
+def _detect_format_by_magic(file_path: str) -> str | None:
+    """Detect file format from magic bytes (first 16 bytes).
+
+    Returns the format key (e.g. 'glb', 'png') or None if
+    the signature is not recognised.
+    """
+    try:
+        with open(file_path, "rb") as f:
+            header = f.read(16)
+    except OSError:
+        return None
+
+    for fmt, signatures in _MAGIC_SIGNATURES.items():
+        for sig in signatures:
+            if header[: len(sig)] == sig:
+                return fmt
+
+    return None
+
 
 class AssetImportCapability(AssetImportProtocol):
     """Asset import capability with object reference handoff.
@@ -96,7 +128,7 @@ class AssetImportCapability(AssetImportProtocol):
                 "error": "empty_file",
             }
 
-        # Validate supported format
+        # Validate supported format (extension + magic bytes)
         if not self._is_supported_format(file_path, asset_type, format_hint):
             return {
                 "success": False,
@@ -134,17 +166,41 @@ class AssetImportCapability(AssetImportProtocol):
                 "error": str(e),
             }
 
-    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None) -> bool:
-        """Check if file format is supported for import."""
+    def _is_supported_format(
+        self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None
+    ) -> bool:
+        """Check if file format is supported for import.
+
+        Validates both the file extension and the actual content
+        via magic bytes detection (FR-AST-004 / L04).
+        """
         supported_formats = {
             "model": [".glb", ".gltf", ".fbx", ".obj", ".mtl", ".dae"],
             "texture": [".png", ".jpg", ".jpeg", ".exr", ".tga"],
             "hdri": [".hdr", ".exr"],
         }
 
-        ext = Path(file_path).suffix.lower()
+        ext = Path(file_path).suffix.lower().lstrip(".")
         valid_formats = supported_formats.get(str(asset_type), [])
-        return ext in valid_formats or format_hint is not None
+
+        # Extension check (fast path)
+        if f".{ext}" in valid_formats:
+            # L04: Also validate via magic bytes
+            detected = _detect_format_by_magic(file_path)
+            if detected is not None and detected != ext and detected not in valid_formats:
+                return False
+            return True
+
+        # No extension match — try magic bytes as fallback
+        detected = _detect_format_by_magic(file_path)
+        if detected is not None and detected in valid_formats:
+            return True
+
+        # format_hint can override format detection
+        if format_hint is not None:
+            return True
+
+        return False
 
     def _build_import_command(
         self,

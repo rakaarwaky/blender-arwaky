@@ -6,6 +6,7 @@ with integrity verification, overwrite policy, and background coordination.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -17,6 +18,7 @@ from modules.shared.src.asset.contract_asset_download_protocol import AssetDownl
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     AssetType,
+    DuplicatePolicy,
     FilePath,
     MaxSize,
     ProviderName,
@@ -62,7 +64,9 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self.config_getter = config_getter
         self._cache_dir: FilePath = FilePath("")
         self._max_size: MaxSize | None = None
-        self._overwrite_policy: str = "reuse"
+        self._overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse")
+        # Concurrency control: lock per asset_id during download
+        self._download_locks: dict[str, asyncio.Lock] = {}
 
     async def download_to_cache(
         self,
@@ -71,7 +75,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         asset_type: AssetType,
         cache_dir: FilePath,
         resolution: ResolutionPreference | None = None,
-        overwrite_policy: str = "reuse",
+        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
         max_size: MaxSize | None = None,
         background: bool = False,
         expected_checksum: str | None = None,
@@ -127,22 +131,36 @@ class AssetDownloadCapability(AssetDownloadProtocol):
 
         # Check cache for existing valid artifact
         cache_key = f"{provider}:{asset_id}:{resolution or 'default'}"
-        cached_path = self._get_cache_path(cache_key)
 
-        if cached_path and os.path.exists(cached_path):
-            # Check overwrite policy
-            if overwrite_policy == "reuse":
-                logger.info("Cache hit: %s", cache_key)
-                return {
-                    "success": True,
-                    "file_path": cached_path,
-                    "cached": True,
-                    "integrity_ok": self._verify_integrity(cached_path, expected_checksum),
-                    "message": "Cached artifact served without network access",
-                    "cache_key": cache_key,
-                }
-            elif overwrite_policy == "unique":
-                cached_path = self._get_unique_cache_path(cache_key)
+        # FR-AST-002: Concurrent same-asset downloads resolve to one transfer
+        lock = await self._get_download_lock(cache_key)
+        async with lock:
+            cached_path = self._get_cache_path(cache_key)
+
+            if cached_path and os.path.exists(cached_path):
+                # Check overwrite policy
+                if overwrite_policy == DuplicatePolicy("reuse"):
+                    # Verify integrity of cached artifact
+                    if self._verify_integrity(cached_path, expected_checksum):
+                        logger.info("Cache hit: %s", cache_key)
+                        return {
+                            "success": True,
+                            "file_path": cached_path,
+                            "cached": True,
+                            "integrity_ok": True,
+                            "message": "Cached artifact served without network access",
+                            "cache_key": cache_key,
+                        }
+                    else:
+                        # Corrupted cache — remove and re-download
+                        logger.warning("Corrupted cache entry, removing: %s", cache_key)
+                        try:
+                            os.remove(cached_path)
+                        except OSError:
+                            pass
+
+                elif overwrite_policy == DuplicatePolicy("create_unique"):
+                    cached_path = self._get_unique_cache_path(cache_key)
 
         # All overwrite policies are handled above; no further branching needed.
 
@@ -211,6 +229,12 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """Get unique cache path with timestamp suffix."""
         hash_value = hashlib.sha256(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
+
+    async def _get_download_lock(self, cache_key: str) -> asyncio.Lock:
+        """Get or create a lock for a specific download key."""
+        if cache_key not in self._download_locks:
+            self._download_locks[cache_key] = asyncio.Lock()
+        return self._download_locks[cache_key]
 
     def _verify_integrity(self, file_path: str, expected_checksum: str | None = None) -> bool:
         """Verify cached artifact integrity.
