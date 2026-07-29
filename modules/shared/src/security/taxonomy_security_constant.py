@@ -35,10 +35,10 @@ SECURITY_SOURCE_FEATURE: str = "security"
 
 # Quoted-key aware value half — matches shell (password=secret), YAML
 # (password: secret), and JSON ("password": "secret") forms.
-_KV_VALUE = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
+KV_VALUE: str = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
 
 REDACTION_SENSITIVE_PATTERNS: tuple[str, ...] = (
-    r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + _KV_VALUE,
+    r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + KV_VALUE,
     r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*",
     r"(?i)sk-[A-Za-z0-9]{20,}",
     r"(?i)ghp_[A-Za-z0-9]{36}",

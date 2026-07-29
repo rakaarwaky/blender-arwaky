@@ -20,8 +20,8 @@ class ArchiveGuard(ExtractArchiveProtocol):
     """Validates archive extraction against safety policy."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, policy: SecurityPolicyVO | None = None) -> None:
-        self._policy = policy
+    def __init__(self) -> None:
+        pass
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:

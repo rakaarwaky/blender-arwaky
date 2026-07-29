@@ -37,7 +37,7 @@ class FakeOrchestrator:
 
 
 class FakeDiagnostics:
-    """Matches DiagnosticsCapability's async get_snapshot interface."""
+    """Matches DiagnosticsOrchestrator's async get_snapshot interface."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple]] = []

@@ -30,7 +30,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
     SecurityAuditEventVO,
 )
 
-logger = logging.getLogger("BlenderMCPServer")
+logger = logging.getLogger(__name__)
 
 
 class SecurityOrchestrator(ISecurityOperateAggregate):
@@ -53,35 +53,31 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
+    async def _delegate(self, method, request):
+        """Delegate to a capability method with correlation_id logging."""
+        corr = getattr(request, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating %s corr=%s", method.__name__, corr)
+        return await method(request)
+
     async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
         """Delegate path validation to the capabilities layer."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating validate_path corr=%s", corr)
-        return await self._validate_path.validate_path(request)
+        return await self._delegate(self._validate_path.validate_path, request)
 
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Delegate archive extraction validation to the capabilities layer."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating validate_extraction corr=%s", corr)
-        return await self._validate_archive.validate_extraction(request)
+        return await self._delegate(self._validate_archive.validate_extraction, request)
 
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
         """Delegate code validation to the capabilities layer."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating validate_code corr=%s", corr)
-        return await self._validate_code.validate_code(request)
+        return await self._delegate(self._validate_code.validate_code, request)
 
     async def redact(self, request: RedactionVO) -> RedactionVO:
         """Delegate redaction to the capabilities layer."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating redact corr=%s", corr)
-        return await self._redact.redact(request)
+        return await self._delegate(self._redact.redact, request)
 
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
         """Delegate audit emission to the capabilities layer."""
-        corr = getattr(event, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating emit_audit corr=%s", corr)
-        return await self._emit_audit.emit_audit(event)
+        return await self._delegate(self._emit_audit.emit_audit, event)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 

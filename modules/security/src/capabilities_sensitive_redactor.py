@@ -9,11 +9,8 @@ from __future__ import annotations
 import re
 
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-from modules.shared.src.security.taxonomy_security_constant import _KV_VALUE, REDACTION_SENSITIVE_PATTERNS
+from modules.shared.src.security.taxonomy_security_constant import KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
-
-# Re-export shared patterns as module-level constant for backward compat.
-_DEFAULT_PATTERNS: tuple[str, ...] = REDACTION_SENSITIVE_PATTERNS
 
 
 class SensitiveRedactor(RedactSensitiveProtocol):
@@ -25,7 +22,7 @@ class SensitiveRedactor(RedactSensitiveProtocol):
         extra_patterns: tuple[str, ...] = (),
         extra_key_names: tuple[str, ...] = (),
     ) -> None:
-        self._patterns = _DEFAULT_PATTERNS + extra_patterns
+        self._patterns = REDACTION_SENSITIVE_PATTERNS + extra_patterns
         self._key_names = extra_key_names
 
     # ─── Block 2: Public Contract  ────────────────────────
@@ -42,10 +39,10 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
             all_keys = self._key_names + request.key_names
             for key in all_keys:
-                # Quoted-key aware (mirrors _DEFAULT_PATTERNS) so custom key names
-                # also match JSON/`"key": "value"` forms — FR-SEC-004 nested/structured.
-                # Value half reuses _KV_VALUE so spaced quoted values are consumed whole.
-                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + _KV_VALUE
+                # Quoted-key aware so custom key names also match JSON/`"key": "value"` forms
+                # — FR-SEC-004 nested/structured. Value half reuses KV_VALUE so spaced
+                # quoted values are consumed whole.
+                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + KV_VALUE
                 text, count = re.subn(pattern, "[REDACTED]", text)
                 redacted_count += count
 

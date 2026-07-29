@@ -62,7 +62,7 @@ class SecurityContainer:
         validate_path_cap = PathValidator(policy=self._policy)
         validate_archive_cap = ArchiveGuard()
         validate_code_cap = CodeValidator(policy=self._policy)
-        redact_cap = SensitiveRedactor(debug_mode=self._policy.redaction_debug_mode)
+        redact_cap = SensitiveRedactor()
         emit_audit_cap = AuditEmitter()
 
         # Agent layer — implements aggregate, depends on all 5 protocols

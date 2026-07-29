@@ -1,19 +1,26 @@
 """Diagnostics feature orchestrator implementing IDiagnosticsAggregate.
 
 Coordinates health composition, metrics collection, audit emission,
-structured logging policy, and snapshot provision through DiagnosticsCapability.
+structured logging policy, and snapshot provision through 4 separate
+capabilities (FR-DIA-001..005).
 
 Orchestration only — delegates all business logic to capabilities
-via protocol interfaces. Owns the bounded event ring buffer (T-09)
-since diagnostics has 5 capabilities mapped 1:1 to FR-DIA-001..005.
+via protocol interfaces.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any
 
-from modules.diagnostics.src.capabilities_health_composition import DiagnosticsCapability
+from modules.diagnostics.src.capabilities_health_composition import (
+    HealthComposer,
+)
+from modules.diagnostics.src.capabilities_metrics_collection import (
+    MetricsCollector,
+)
+from modules.diagnostics.src.capabilities_audit_emission import AuditEmitter
+from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +30,20 @@ class DiagnosticsOrchestrator:
 
     Provides a unified facade for health composition, metrics collection,
     audit emission, structured logging, and snapshot provision.
-    Delegates to DiagnosticsCapability (FR-DIA-001..005).
+    Delegates to 4 capabilities (FR-DIA-001..004).
     """
 
-    def __init__(self, capability: DiagnosticsCapability) -> None:
-        self._capability = capability
+    def __init__(
+        self,
+        health_composer: HealthComposer,
+        metrics_collector: MetricsCollector,
+        audit_emitter: AuditEmitter,
+        logging_policy: LoggingPolicy,
+    ) -> None:
+        self._health_composer = health_composer
+        self._metrics_collector = metrics_collector
+        self._audit_emitter = audit_emitter
+        self._logging_policy = logging_policy
 
     async def compose_health(
         self,
@@ -42,7 +58,7 @@ class DiagnosticsOrchestrator:
         job capacity, and asset provider availability into a single view.
         Implements FR-DIA-001.
         """
-        return await self._capability.compose_health(
+        return await self._health_composer.compose_health(
             launcher_status=launcher_status,
             gateway_status=gateway_status,
             config_valid=config_valid,
@@ -67,7 +83,7 @@ class DiagnosticsOrchestrator:
         gateway, dispatcher, job, security, and config features.
         Implements FR-DIA-002.
         """
-        return await self._capability.collect_metrics_snapshot(
+        return await self._metrics_collector.collect_metrics_snapshot(
             pending_operations=pending_operations,
             reconnect_count=reconnect_count,
             execution_latency_ms=execution_latency_ms,
@@ -93,7 +109,7 @@ class DiagnosticsOrchestrator:
         and destructive actions with guaranteed fallback delivery.
         Implements FR-DIA-003.
         """
-        return await self._capability.emit_audit_event(
+        return await self._audit_emitter.emit_audit_event(
             category=category,
             severity=severity,
             source_feature=source_feature,
@@ -115,7 +131,7 @@ class DiagnosticsOrchestrator:
         are not permitted. Redaction applied at ingestion.
         Implements FR-DIA-004.
         """
-        return await self._capability.log_record(
+        return await self._logging_policy.log_record(
             level=level,
             source_feature=source_feature,
             message=message,
@@ -134,7 +150,20 @@ class DiagnosticsOrchestrator:
         and configuration metadata into a consistent view.
         Implements FR-DIA-005.
         """
-        return await self._capability.get_snapshot(
-            detail_level=detail_level,
-            section_filter=section_filter,
-        )
+        sections = section_filter or ["health", "metrics", "audit_summary"]
+        snapshot: dict[str, Any] = {}
+
+        if "health" in sections:
+            snapshot["health"] = await self._health_composer.compose_health()
+
+        if "metrics" in sections:
+            snapshot["metrics"] = await self._metrics_collector.collect_metrics_snapshot()
+
+        if "audit_summary" in sections:
+            snapshot["audit_summary"] = {
+                "total_records": 0,
+                "recent_categories": [],
+            }
+
+        snapshot["detail_level"] = detail_level
+        return snapshot

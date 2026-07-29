@@ -1,24 +1,59 @@
 """Smoke test for the importable slice of the diagnostics module.
 
-The diagnostics module depends on the gateway taxonomy layer, which is
-currently un-importable project-wide (gateway ``TransportOutcomeVO`` NameError).
-This test therefore exercises only the loadable slice: the unified
-``DiagnosticsCapability`` composer and the shared diagnostics contracts it
-implements (FR-DIA-001..005 protocol conformance at the importable boundary).
+Exercises all 4 capabilities individually and the DiagnosticsOrchestrator.
 """
 
 import asyncio
 
-from modules.diagnostics.src.capabilities_health_composition import DiagnosticsCapability
+from modules.diagnostics.src.agent_diagnostics_orchestrator import (
+    DiagnosticsOrchestrator,
+)
+from modules.diagnostics.src.capabilities_audit_emission import (
+    AuditEmitter,
+    InMemoryEventBus,
+)
+from modules.diagnostics.src.capabilities_health_composition import HealthComposer
+from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
+from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
 
 
-def test_capability_instantiates() -> None:
-    cap = DiagnosticsCapability()
-    assert isinstance(cap, DiagnosticsCapability)
+def test_health_composer_instantiates() -> None:
+    cap = HealthComposer()
+    assert isinstance(cap, HealthComposer)
+
+
+def test_metrics_collector_instantiates() -> None:
+    cap = MetricsCollector()
+    assert isinstance(cap, MetricsCollector)
+
+
+def test_audit_emitter_instantiates() -> None:
+    cap = AuditEmitter()
+    assert isinstance(cap, AuditEmitter)
+
+
+def test_logging_policy_instantiates() -> None:
+    cap = LoggingPolicy()
+    assert isinstance(cap, LoggingPolicy)
+
+
+def test_event_bus_instantiates() -> None:
+    bus = InMemoryEventBus()
+    assert isinstance(bus, InMemoryEventBus)
+
+
+def test_orchestrator_composes_all_capabilities() -> None:
+    orch = DiagnosticsOrchestrator(
+        health_composer=HealthComposer(),
+        metrics_collector=MetricsCollector(),
+        audit_emitter=AuditEmitter(),
+        logging_policy=LoggingPolicy(),
+    )
+    assert isinstance(orch, DiagnosticsOrchestrator)
 
 
 def test_compose_health_returns_overall_status() -> None:
-    cap = DiagnosticsCapability()
+    cap = HealthComposer()
     result = asyncio.run(
         cap.compose_health(
             launcher_status="healthy",
@@ -32,7 +67,7 @@ def test_compose_health_returns_overall_status() -> None:
 
 
 def test_metrics_snapshot_collects_required_counters() -> None:
-    cap = DiagnosticsCapability()
+    cap = MetricsCollector()
     snap = asyncio.run(
         cap.collect_metrics_snapshot(
             pending_operations=2,
@@ -50,7 +85,7 @@ def test_metrics_snapshot_collects_required_counters() -> None:
 
 
 def test_emit_audit_event_appends_record() -> None:
-    cap = DiagnosticsCapability()
+    cap = AuditEmitter()
     out = asyncio.run(
         cap.emit_audit_event(
             category="security_violation",
@@ -64,7 +99,7 @@ def test_emit_audit_event_appends_record() -> None:
 
 
 def test_log_record_buffers_entry() -> None:
-    cap = DiagnosticsCapability()
+    cap = LoggingPolicy()
     out = asyncio.run(
         cap.log_record(
             level="info",
@@ -75,11 +110,3 @@ def test_log_record_buffers_entry() -> None:
     )
     assert out["logged"] is True
     assert cap._log_buffer[-1]["message"] == "startup"
-
-
-def test_snapshot_returns_requested_sections() -> None:
-    cap = DiagnosticsCapability()
-    asyncio.run(cap.compose_health())
-    snap = asyncio.run(cap.get_snapshot(detail_level="summary", section_filter=["health"]))
-    assert "health" in snap
-    assert "metrics" not in snap

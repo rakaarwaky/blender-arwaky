@@ -12,7 +12,7 @@ If no plan files exist in `.agents/plans/`, **stop immediately** and report: "No
 Before starting, read:
 
 1. **`ARCHITECTURE.md`** — 7-layer spec (to avoid breaking architecture during implementation)
-3. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
+2. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
 
 ## Workflow
 
@@ -59,6 +59,8 @@ rm .agents/plans/todo-<feature-name>-tech-lead-<timestamp>.md
 **Write a  report:**
 `.agents/reports/done-<feature-name>-<role>-YYYY-MM-DD-HHmmss.md`
 Where `<role>` = `tech-lead`, `business-analyst`, or `architect`.
+
+Do not write Fullstack Developer as role
 
 **Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`).
 

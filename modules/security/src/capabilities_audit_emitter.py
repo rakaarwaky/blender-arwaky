@@ -11,10 +11,13 @@ complements SensitiveRedactor and protects against callers passing raw secrets.
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 import uuid
 from typing import Any, Protocol
+
+logger = logging.getLogger(__name__)
 
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
@@ -92,7 +95,7 @@ class AuditEmitter(EmitAuditProtocol):
                     target_metadata=_redact_sensitive(event.target_metadata),
                     severity=AuditSeverity.ERROR,
                     correlation_id=event.correlation_id,
-                    redacted_reason=event.redacted_reason,
+                    redacted_reason=_redact_sensitive(event.redacted_reason) if event.redacted_reason else None,
                     event_id=uuid.uuid4().hex[:16],
                     timestamp=time.time(),
                     policy_mode="fallback",

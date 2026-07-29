@@ -20,7 +20,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from modules.diagnostics.src.capabilities_health_composition import DiagnosticsCapability
+    from modules.diagnostics.src.agent_diagnostics_orchestrator import (
+        DiagnosticsOrchestrator,
+    )
     from modules.dispatcher.src.agent_dispatcher_orchestrator import DispatcherOrchestrator
     from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
     from modules.mcp.src.surface_skill_read import SkillDocumentationReader
@@ -37,73 +39,57 @@ class MCPContainer:
 
     _instance: MCPContainer | None = None
     _orchestrator: IDispatcherAggregate | None = None
-    _diagnostics: DiagnosticsCapability | None = None
+    _diagnostics: DiagnosticsOrchestrator | None = None
     _skill_reader: SkillDocumentationReader | None = None
 
+    def __init__(self) -> None:
+        raise RuntimeError("Use MCPContainer.get_container() instead")
+
     @classmethod
-    def get_instance(cls) -> MCPContainer:
-        """Return the singleton MCPContainer instance."""
+    def get_container(cls) -> MCPContainer:
+        """Return the singleton MCPContainer."""
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls.__new__(cls)
+            cls._instance._wired = False
         return cls._instance
 
     @classmethod
-    def _init_orchestrator(cls) -> None:
-        """Lazy-initialize a fully-wired core agent orchestrator on first access.
-
-        Uses the dispatcher composition root so the orchestrator's capabilities
-        (catalog, discovery, validation, dispatch, normalization) are present and
-        routed tool calls return real results instead of raising on unwired deps.
-        """
-        if cls._orchestrator is not None:
-            return
-        # Import here to avoid circular imports at module level.
-        from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
-
-        cls._orchestrator = create_dispatcher_feature()
-
-    @property
-    def core_agent_orchestrator(self) -> IDispatcherAggregate:
-        """Return the core agent orchestrator (DispatcherOrchestrator)."""
-        if self._orchestrator is None:
-            self._init_orchestrator()
-        assert self._orchestrator is not None
-        return self._orchestrator
+    def wire(
+        cls,
+        orchestrator: IDispatcherAggregate | None = None,
+        diagnostics: DiagnosticsOrchestrator | None = None,
+        skill_reader: SkillDocumentationReader | None = None,
+    ) -> None:
+        """Wire the MCP module with the given aggregates."""
+        container = cls.get_container()
+        container._orchestrator = orchestrator
+        container._diagnostics = diagnostics
+        container._skill_reader = skill_reader
+        container._wired = True
 
     @property
-    def diagnostics(self) -> DiagnosticsCapability:
-        """Return the diagnostics capability for health snapshots.
-
-        FR-MCP-001 / FR-MCP-002: the health_check tool is owned by the diagnostics
-        feature, not the dispatcher. Lazily constructed (stateless snapshot source).
-        """
-        if self._diagnostics is None:
-            from modules.diagnostics.src.capabilities_health_composition import DiagnosticsCapability
-
-            self._diagnostics = DiagnosticsCapability()
-        assert self._diagnostics is not None
+    def diagnostics(self) -> DiagnosticsOrchestrator:
+        """Return the diagnostics aggregate facade."""
+        if not self._wired or self._diagnostics is None:
+            raise RuntimeError("MCP diagnostics not wired")
         return self._diagnostics
 
     @property
+    def core_agent_orchestrator(self) -> IDispatcherAggregate:
+        """Return the core agent orchestrator implementing IDispatcherAggregate."""
+        if not self._wired or self._orchestrator is None:
+            raise RuntimeError("MCP orchestrator not wired")
+        return self._orchestrator
+
+    @property
     def skill_reader(self) -> SkillDocumentationReader:
-        """Return the static SKILL.md documentation reader.
-
-        FR-MCP-001 / FR-MCP-002: the read_skill_context tool reads from the static
-        documentation surface (versioned SKILL.md files), not a live aggregate.
-        """
-        if self._skill_reader is None:
-            from modules.mcp.src.surface_skill_read import SkillDocumentationReader
-
-            self._skill_reader = SkillDocumentationReader()
-        assert self._skill_reader is not None
+        """Return the skill documentation reader."""
+        if not self._wired or self._skill_reader is None:
+            raise RuntimeError("MCP skill reader not wired")
         return self._skill_reader
 
 
-def get_container() -> MCPContainer:
-    """Return the singleton MCPContainer for MCP surface handlers.
-
-    Usage:
-        orchestrator = get_container().core_agent_orchestrator
-        result = orchestrator.execute_action(action, args)  # sync facade
-    """
-    return MCPContainer.get_instance()
+def create_container() -> MCPContainer:
+    """Factory function to create and wire the MCP container."""
+    container = MCPContainer.get_container()
+    return container

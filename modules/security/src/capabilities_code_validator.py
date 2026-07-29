@@ -6,6 +6,8 @@ Implements ValidateCodeProtocol.
 
 from __future__ import annotations
 
+import asyncio
+
 import ast
 
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
@@ -65,7 +67,8 @@ class CodeValidator(ValidateCodeProtocol):
             )
 
         try:
-            tree = ast.parse(request.code_text)
+            loop = asyncio.get_running_loop()
+            tree = await loop.run_in_executor(None, ast.parse, request.code_text)
         except SyntaxError as exc:
             if request.strict_mode:
                 return CodeValidationVO(
