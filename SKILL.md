@@ -2,7 +2,9 @@
 
 Reference for AI agents using BlenderArwaky. Use `read_skill_context(section="...")` to read specific sections.
 
-Sections: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`.
+Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`, `addon`, `troubleshooting`.
+
+**Architecture:** CLI accesses every action as a direct sub-command. MCP routes all actions through a single `execute_command(action=..., args=...)` tool — the `action` parameter selects the feature (scene, object, viewport, render, io, job, config, code).
 
 ---
 
