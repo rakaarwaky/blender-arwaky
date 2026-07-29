@@ -19,9 +19,7 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class ServerStartHandler:
-    """Handler for server startup sequence."""
-
-    """Handler for server startup and entry point."""
+    """Handler for server startup sequence and entry point."""
 
     @staticmethod
     def _setup_logging() -> None:

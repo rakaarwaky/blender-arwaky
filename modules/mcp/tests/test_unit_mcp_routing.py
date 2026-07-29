@@ -6,12 +6,15 @@ reinterprets the result. This suite injects fake container services, captures
 the registered tool functions, invokes them, and asserts they delegate to the
 correct service method with the correct arguments and pass the result through
 unchanged.
+
+Updated for MCP contract-based architecture: routing is now via McpRoutingProtocol
+and responses via McpResponseProtocol instead of direct root container imports.
 """
 
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from modules.mcp.src.surface_execute_command import ExecuteCommandHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
@@ -58,42 +61,92 @@ class FakeMCP:
         return decorator
 
 
+class FakeRoutingProtocol:
+    """Fake McpRoutingProtocol implementation for testing."""
+
+    def __init__(self, dispatcher=None, diagnostics=None):
+        self._dispatcher = dispatcher
+        self._diagnostics = diagnostics
+
+    async def route_tool_call(self, tool_name, payload, tracking_id=None):
+        if tool_name == "execute_command":
+            action = payload.get("action", "")
+            args = payload.get("args", {})
+            if self._dispatcher:
+                return self._dispatcher.execute_action(action, args)
+            raise RuntimeError("Dispatcher aggregate not configured")
+        elif tool_name == "list_commands":
+            if self._dispatcher:
+                return self._dispatcher.discover_actions()
+            return {}
+        elif tool_name == "health_check":
+            if self._diagnostics:
+                return await self._diagnostics.get_snapshot()
+            return {"health": "ok"}
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    async def validate_tool_input(self, tool_name, payload, strict_mode=True):
+        errors = []
+        if tool_name == "execute_command":
+            action = payload.get("action")
+            if not action or not str(action).strip():
+                errors.append("action is required")
+        return errors
+
+
+class FakeResponseProtocol:
+    """Fake McpResponseProtocol implementation for testing."""
+
+    async def format_response(self, result, tool_name, tracking_id="", error_category=None):
+        return {"result": result, "tool": tool_name}
+
+    async def mask_secrets(self, response):
+        return response
+
+
 class TestExecuteCommandRouting:
-    """execute_command -> orchestrator.execute_action (sync facade, FR-DSP-004)."""
+    """execute_command -> container.routing.route_tool_call (FR-MCP-002)."""
 
     async def test_routes_to_execute_action(self):
         orch = FakeOrchestrator()
+        routing = FakeRoutingProtocol(dispatcher=orch)
+        response = FakeResponseProtocol()
         mcp = FakeMCP()
-        with (
-            patch(
-                "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
-                return_value=orch,
-            ),
-            patch(
-                "modules.mcp.src.surface_execute_command.validate_action_args",
-                return_value=[],
-            ),
-        ):
+
+        # Patch create_mcp_feature to return a container with our fakes
+        with patch(
+            "modules.mcp.src.root_mcp_container.create_mcp_feature",
+        ) as mock_create:
+            from modules.mcp.src.root_mcp_container import McpContainer
+
+            mock_container = MagicMock(spec=McpContainer)
+            mock_container.routing = routing
+            mock_container.response = response
+            mock_create.return_value = mock_container
+
             ExecuteCommandHandler.register_execute_command(mcp)
             fn = mcp.tools["execute_command"]
             result = await fn("action_x", {"a": 1})
 
         assert orch.calls == [("execute_action", ("action_x", {"a": 1}))]
-        assert result == {"routed": "execute_action", "action": "action_x"}
+        assert result == {"result": {"routed": "execute_action", "action": "action_x"}, "tool": "execute_command"}
 
     async def test_defaults_args_to_empty_dict(self):
         orch = FakeOrchestrator()
+        routing = FakeRoutingProtocol(dispatcher=orch)
+        response = FakeResponseProtocol()
         mcp = FakeMCP()
-        with (
-            patch(
-                "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
-                return_value=orch,
-            ),
-            patch(
-                "modules.mcp.src.surface_execute_command.validate_action_args",
-                return_value=[],
-            ),
-        ):
+
+        with patch(
+            "modules.mcp.src.root_mcp_container.create_mcp_feature",
+        ) as mock_create:
+            from modules.mcp.src.root_mcp_container import McpContainer
+
+            mock_container = MagicMock(spec=McpContainer)
+            mock_container.routing = routing
+            mock_container.response = response
+            mock_create.return_value = mock_container
+
             ExecuteCommandHandler.register_execute_command(mcp)
             await mcp.tools["execute_command"]("action_y", None)
 
@@ -101,20 +154,30 @@ class TestExecuteCommandRouting:
 
 
 class TestListCommandsRouting:
-    """list_commands -> orchestrator.discover_actions (FR-DSP-002)."""
+    """list_commands -> container.routing.route_tool_call (FR-MCP-002)."""
 
-    def test_routes_to_list_commands(self):
+    async def test_routes_to_list_commands(self):
         orch = FakeOrchestrator()
+        routing = FakeRoutingProtocol(dispatcher=orch)
+        response = FakeResponseProtocol()
         mcp = FakeMCP()
+
         with patch(
-            "modules.mcp.src.surface_list_commands.create_dispatcher_feature",
-            return_value=orch,
-        ):
+            "modules.mcp.src.root_mcp_container.create_mcp_feature",
+        ) as mock_create:
+            from modules.mcp.src.root_mcp_container import McpContainer
+
+            mock_container = MagicMock(spec=McpContainer)
+            mock_container.routing = routing
+            mock_container.response = response
+            mock_create.return_value = mock_container
+
             ListCommandsHandler.register_list_commands(mcp)
-            result = mcp.tools["list_commands"](None, None)
+            result = await mcp.tools["list_commands"]()
 
         assert orch.calls[0][0] == "discover_actions"
-        assert result == {"routed": "discover_actions", "filter": None}
+        assert result["tool"] == "list_commands"
+        assert "routed" in result["result"]
 
 
 class TestReadSkillContextRouting:
@@ -130,17 +193,27 @@ class TestReadSkillContextRouting:
 
 
 class TestHealthCheckRouting:
-    """health_check -> diagnostics.get_snapshot (FR-DIA-001)."""
+    """health_check -> container.routing.route_tool_call (FR-MCP-002)."""
 
     async def test_routes_to_health_check(self):
         diag = FakeDiagnostics()
+        routing = FakeRoutingProtocol(diagnostics=diag)
+        response = FakeResponseProtocol()
         mcp = FakeMCP()
+
         with patch(
-            "modules.mcp.src.surface_health_check.create_diagnostics_feature",
-            return_value=diag,
-        ):
+            "modules.mcp.src.root_mcp_container.create_mcp_feature",
+        ) as mock_create:
+            from modules.mcp.src.root_mcp_container import McpContainer
+
+            mock_container = MagicMock(spec=McpContainer)
+            mock_container.routing = routing
+            mock_container.response = response
+            mock_create.return_value = mock_container
+
             HealthCheckHandler.register_health_check(mcp)
             result = await mcp.tools["health_check"]()
 
-        assert diag.calls == [("get_snapshot", ("summary", None))]
+        assert len(diag.calls) == 1
+        assert diag.calls[0][0] == "get_snapshot"
         assert "health" in str(result)

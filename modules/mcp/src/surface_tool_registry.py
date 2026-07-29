@@ -14,7 +14,7 @@ Tool list:
 
 
 class ToolRegistryHandler:
-    """Registry for all MCP tools. Handlers never call capabilities directly."""
+    """Registry for all MCP tools. Handlers delegate to contract protocols."""
 
     @staticmethod
     def register_tools(mcp):

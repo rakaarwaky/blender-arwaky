@@ -1,44 +1,60 @@
 """MCP Tool 2: list_commands — Returns command catalog from dispatcher catalog + action schemas.
 
-FR-MCP-001: Expose MCP Tools — register_list_commands registers tool with MCP
-FR-MCP-002: Route Tool Calls — dispatcher aggregate discover_actions provides catalog
-FR-MCP-003: Format MCP Responses — discovery outcome from orchestrator
+FR-MCP-001: Expose MCP Tools — register via contract protocol
+FR-MCP-002: Route Tool Calls — dispatcher aggregate discover_actions via routing protocol
+FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
+import logging
 from typing import Any
 
-from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
-from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef
+from modules.shared.src.mcp.contract_mcp_protocol import (
+    McpResponseProtocol,
+    McpRoutingProtocol,
+)
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 class ListCommandsHandler:
-    """Handler for the list_commands MCP tool."""
+    """Surface handler for list_commands MCP tool.
+
+    Delegates all logic to contract protocols — zero business logic.
+    """
+
+    def __init__(self, routing: McpRoutingProtocol, response: McpResponseProtocol) -> None:
+        self._routing = routing
+        self._response = response
 
     @staticmethod
     def register_list_commands(mcp):
         """Register the list_commands tool (MCP Tool #2)."""
+        from modules.mcp.src.root_mcp_container import create_mcp_feature
 
-        @mcp.tool()
-        def list_commands(
-            domain: DomainRef | None = None,
-            format: FormatRef | None = None,
-        ) -> Any:
-            """
-            List all available BlenderArwaky actions.
+        container = create_mcp_feature()
 
-            Args:
-                domain: Filter by domain (scene, object, viewport, render, io, infrastructure, asset, generation). Omit to list all.
-                format: Output format — 'detailed' (full spec per action) or 'summary' (names + descriptions only)
+        async def list_commands(
+            domain: str | None = None,
+            format: str | None = None,
+        ) -> dict[str, Any]:
+            """List all available BlenderArwaky actions."""
+            try:
+                result = await container.routing.route_tool_call(
+                    tool_name="list_commands",
+                    payload={"domain": domain, "format": format},
+                )
+                return await container.response.format_response(
+                    result=result,
+                    tool_name="list_commands",
+                    tracking_id="",
+                )
+            except Exception as e:
+                logger.error("list_commands failed: %s", e, exc_info=True)
+                return await container.response.format_response(
+                    result={"error": str(e)},
+                    tool_name="list_commands",
+                    tracking_id="",
+                    error_category="execution",
+                )
 
-            Returns:
-                Discovery outcome with the command catalog
-            """
-            orchestrator = create_dispatcher_feature()
-            resolved_format = format or FormatRef("detailed")
-            detail_level = "full" if str(resolved_format) == "detailed" else "standard"
-
-            return orchestrator.discover_actions(
-                name_filter=None,
-                capability_filter=domain,
-                detail_level=detail_level,
-            )
+        mcp.tool()(list_commands)

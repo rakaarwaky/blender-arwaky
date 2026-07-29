@@ -75,6 +75,3 @@ def get_text_to_scene_orchestrator_prompt():
     from modules.mcp.src.prompts import get_text_to_scene_orchestrator_prompt as _get
 
     return _get()
-
-
-register_prompts = PromptHandlerModule.register_prompts
