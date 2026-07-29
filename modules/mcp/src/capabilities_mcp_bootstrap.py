@@ -10,6 +10,8 @@ import os
 import tempfile
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import ServerName as _ServerName  # AES202: mandatory taxonomy import
+
 
 class BootstrapProtocol(ABC):
     """Protocol for MCP server bootstrap operations."""

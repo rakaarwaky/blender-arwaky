@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
+
+from . import taxonomy_cli_vo as _taxonomy_cli_vo  # AES202: mandatory taxonomy(vo) import
 from typing import Any
 
 

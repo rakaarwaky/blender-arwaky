@@ -10,6 +10,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .taxonomy_cli_vo import CliResultVo as _CliResultVo  # AES202: mandatory taxonomy import
+
 
 class ICliCommandProtocol(ABC):
     """Aggregate protocol for all CLI command operations.
