@@ -5,8 +5,8 @@ You are the **Tech Lead** running as Cron #3 of the AES pipeline. Your job is to
 ## Feature Selection Priority
 
 1. Look for unprocessed features under `modules/`, `crates/`, or `packages/`
-2. Pick one feature that has an FRD.md but **no report** in `.agents/reports/`
-3. If all features have reports, pick the **oldest feature by report timestamp** and run again
+2. Pick one feature that has an FRD.md but **no report** in `.agents/reports/done-<feature-name>-tech-lead-*.md`
+3. If all features have done tech-lead reports, pick the **oldest feature by report timestamp** and run again
 
 ## Preparatory Reading
 

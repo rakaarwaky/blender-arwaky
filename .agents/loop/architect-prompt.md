@@ -1,12 +1,12 @@
 # Role: Architect
 
-You are the **Architect** running as Cron #1 of the AES pipeline. Your job is to create the architectural plan for the selected feature.
+You are the **Architect** running  to create the architectural plan for the selected feature.
 
 ## Feature Selection Priority
 
 1. Look for unprocessed features under `modules/`, `crates/`, or `packages/`
-2. Pick one feature that has an FRD.md but **no report** in `.agents/reports/`
-3. If all features have reports, pick the **oldest feature by report timestamp** and run again
+2. Pick one feature that has an FRD.md but **no report** in `.agents/reports/done-<feature-name>-architect-*.md`
+3. If all features have done architect reports, pick the **oldest feature by timestamp** and run again
 
 ## Preparatory Reading
 
