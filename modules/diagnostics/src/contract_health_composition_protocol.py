@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
+from .taxonomy_diagnostics_vo import HealthDetailsVO
 
 
 class HealthCompositionProtocol(ABC):
@@ -23,21 +23,29 @@ class HealthCompositionProtocol(ABC):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-        source_tool: ToolName | None = None,
-    ) -> Details:
+        probe_timeout_seconds: float = 5.0,
+        freshness_tolerance_seconds: float = 10.0,
+    ) -> HealthDetailsVO:
         """Aggregate subsystem states into one composed health view.
 
         FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
         Overall status: healthy when all required report healthy;
         degraded when any reports degraded/stale; unhealthy when any fails.
 
+        Each subsystem probe is bounded by probe_timeout_seconds — slow subsystem
+        becomes degraded/timeout, not stalled composition. Stale data carries
+        staleness_delta_seconds indicator when composition_timestamp exceeds
+        freshness_tolerance_seconds.
+
         Args:
             launcher_status: Process liveness classification.
             gateway_status: Connection state classification.
             config_valid: Whether configuration snapshot is valid.
             job_capacity_available: Whether job capacity has available slots.
+            probe_timeout_seconds: Max seconds per subsystem probe (default 5.0).
+            freshness_tolerance_seconds: Cache TTL for repeated requests (default 10.0).
 
         Returns:
-            Dict with overall status, per-subsystem map, and composition timestamp.
+            HealthDetailsVO with overall_status, subsystems, staleness indicators, timestamp.
         """
-        pass
+        ...

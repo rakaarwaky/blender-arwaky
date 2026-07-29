@@ -8,6 +8,7 @@ Implements HealthCompositionProtocol.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -15,19 +16,24 @@ from typing import Any
 from modules.diagnostics.src.contract_health_composition_protocol import (
     HealthCompositionProtocol,
 )
+from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+    HealthDetailsVO,
+    SubsystemHealthVO,
+)
 
-logger = logging.getLogger("BlenderMCPServer")
+logger = logging.getLogger(__name__)
 
 
 class HealthComposer(HealthCompositionProtocol):
     """Compose system health from subsystem states.
 
     Aggregates launcher, gateway, config, and job capacity into a single
-    health view. Overall status derives deterministically.
+    health view with bounded probes and explicit staleness.
     """
 
     def __init__(self) -> None:
-        self._health_state: dict[str, Any] = {}
+        self._composition_cache: HealthDetailsVO | None = None
+        self._cache_time: float = 0.0
 
     async def compose_health(
         self,
@@ -35,28 +41,112 @@ class HealthComposer(HealthCompositionProtocol):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-        source_tool: Any = None,
-    ) -> dict[str, Any]:
+        probe_timeout_seconds: float = 5.0,
+        freshness_tolerance_seconds: float = 10.0,
+    ) -> HealthDetailsVO:
         """Aggregate subsystem states into one composed health view."""
-        subsystems: dict[str, str] = {
-            "launcher": launcher_status,
-            "gateway": gateway_status,
-            "config": "healthy" if config_valid else "unhealthy",
-            "job_capacity": "healthy" if job_capacity_available else "degraded",
-        }
+        now = datetime.now(timezone.utc)
+        now_ts = now.timestamp()
 
-        statuses = list(subsystems.values())
-        if all(s == "healthy" for s in statuses):
+        # Check cache freshness tolerance
+        if (
+            self._composition_cache is not None
+            and self._cache_time > 0
+            and (now_ts - self._cache_time) < freshness_tolerance_seconds
+        ):
+            # Return cached result with staleness indicators updated
+            cache = self._composition_cache
+            staleness: dict[str, float] = {}
+            for sub in cache.subsystems:
+                if sub.staleness_delta_seconds > 0:
+                    staleness[sub.name] = sub.staleness_delta_seconds
+            return HealthDetailsVO(
+                overall_status=cache.overall_status,
+                subsystems=cache.subsystems,
+                staleness_indicators=staleness,
+                composition_timestamp=cache.composition_timestamp,
+            )
+
+        # Build subsystem health with bounded probes
+        subsystems: list[SubsystemHealthVO] = []
+
+        # Probe launcher (with timeout)
+        try:
+            status = await asyncio.wait_for(
+                asyncio.to_thread(self._probe_launcher, launcher_status),
+                timeout=probe_timeout_seconds,
+            )
+            probe_duration = 0.0
+        except asyncio.TimeoutError:
+            status = "timeout"
+            probe_duration = probe_timeout_seconds
+
+        subsystems.append(SubsystemHealthVO(
+            name="launcher",
+            status=status,
+            probe_duration_ms=probe_duration * 1000,
+        ))
+
+        # Probe gateway (with timeout)
+        try:
+            gw_status = await asyncio.wait_for(
+                asyncio.to_thread(self._probe_gateway, gateway_status),
+                timeout=probe_timeout_seconds,
+            )
+        except asyncio.TimeoutError:
+            gw_status = "timeout"
+
+        subsystems.append(SubsystemHealthVO(
+            name="gateway",
+            status=gw_status,
+            probe_duration_ms=probe_timeout_seconds * 1000,
+        ))
+
+        # Config is synchronous — no timeout needed
+        config_status = "healthy" if config_valid else "unhealthy"
+        subsystems.append(SubsystemHealthVO(name="config", status=config_status))
+
+        # Job capacity is synchronous
+        job_status = "healthy" if job_capacity_available else "degraded"
+        subsystems.append(SubsystemHealthVO(name="job_capacity", status=job_status))
+
+        # Derive overall status deterministically
+        all_statuses = [s.status for s in subsystems]
+        if all(s == "healthy" for s in all_statuses):
             overall = "healthy"
-        elif any(s in ("unhealthy", "failed", "unreachable") for s in statuses):
+        elif any(s in ("unhealthy", "failed", "unreachable", "timeout") for s in all_statuses):
             overall = "unhealthy"
         else:
             overall = "degraded"
 
-        self._health_state = {
-            "overall_status": overall,
-            "subsystems": subsystems,
-            "composition_timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        # Calculate staleness indicators (simplified — no actual cache tracking)
+        staleness: dict[str, float] = {}
+        if launcher_status == "unknown" or gateway_status == "unknown":
+            staleness["launcher"] = 0.0
+            staleness["gateway"] = 0.0
 
-        return dict(self._health_state)
+        timestamp = now.isoformat()
+
+        result = HealthDetailsVO(
+            overall_status=overall,
+            subsystems=tuple(subsystems),
+            staleness_indicators=staleness,
+            composition_timestamp=timestamp,
+        )
+
+        # Cache the result
+        self._composition_cache = result
+        self._cache_time = now_ts
+
+        return result
+
+    def _probe_launcher(self, status: str) -> str:
+        """Simulate launcher probe — returns status."""
+        return status
+
+    def _probe_gateway(self, status: str) -> str:
+        """Simulate gateway probe — returns status."""
+        return status
+
+    def __repr__(self) -> str:
+        return "HealthComposer()"

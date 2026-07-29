@@ -34,7 +34,7 @@
 - **Out of Scope:**
   - Real-time multi-user collaboration, cloud rendering, non-Blender software support, custom AI model training, payment integrations, or advanced animation rigging.
 
-## Feature Requirements Overview (Prioritized)
+## Feature  Overview
 
 ### P0 — Must Have (Core Foundation)
 

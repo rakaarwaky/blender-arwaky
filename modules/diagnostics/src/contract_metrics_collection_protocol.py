@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from modules.shared.src.common.taxonomy_core_vo import Details, ToolName
+from .taxonomy_diagnostics_vo import MetricsSnapshotVO
 
 
 class MetricsCollectionProtocol(ABC):
@@ -27,15 +27,18 @@ class MetricsCollectionProtocol(ABC):
         security_violations: int = 0,
         tasks_created: int = 0,
         tasks_failed: int = 0,
-        source_tool: ToolName | None = None,
         tasks_completed: int = 0,
-    ) -> Details:
+    ) -> MetricsSnapshotVO:
         """Pull operational metrics from features and return snapshot.
 
         FR-DIA-002: Collection is pull-based at configured interval.
         Required metrics include pending operations, reconnect count,
         execution latency, command latency, failed requests, security violations,
         and task lifecycle counters.
+
+        Latency summaries include count, min, max, mean, p50, p95.
+        Counters are monotonic per lifetime; restart resets with indicator.
+        Snapshot is immutable, safe for concurrent consumers.
 
         Args:
             pending_operations: Current pending operation count.
@@ -49,6 +52,6 @@ class MetricsCollectionProtocol(ABC):
             tasks_completed: Total tasks completed counter.
 
         Returns:
-            Dict with metrics snapshot including counters, gauges, and timestamps.
+            MetricsSnapshotVO with counters, latency summaries, freshness indicators, timestamp.
         """
-        pass
+        ...
