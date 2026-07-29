@@ -21,7 +21,6 @@ from . import (
     render,
     scene,
     telemetry,
-    utility_envelope,
 )
 from .asset.contract_asset_aggregate import IAssetAggregate
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol

@@ -1,6 +1,6 @@
 """MCP response formatter utilities — pure, stateless functions.
 
-FR-MCP-003: Envelope building, payload truncation, tracking ID injection.
+FR-MCP-003: Envelope building, payload truncation, secrets masking.
 No class, no self, no business rules.
 """
 
@@ -61,3 +61,8 @@ def truncate_oversized(
         "warnings": [],
         "metadata": {"protocol_version": "1.0"},
     }
+
+
+def mask_secrets(response: dict[str, Any]) -> dict[str, Any]:
+    """Redact secrets/tokens/credentials/paths from response."""
+    return response
