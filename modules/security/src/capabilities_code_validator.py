@@ -7,6 +7,7 @@ Implements ValidateCodeProtocol.
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import ast
 
@@ -27,6 +28,7 @@ class CodeValidator(ValidateCodeProtocol):
         policy: SecurityPolicyVO | None = None,
     ) -> None:
         self._policy = policy
+        self._logger = logging.getLogger(__name__)
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
@@ -56,6 +58,7 @@ class CodeValidator(ValidateCodeProtocol):
             )
 
         if self._policy and not self._policy.code_validation_enabled:
+            self._logger.warning("Code validation disabled by policy — emitting override audit event")
             return CodeValidationVO(
                 code_text=request.code_text,
                 max_code_size=request.max_code_size,
@@ -63,7 +66,7 @@ class CodeValidator(ValidateCodeProtocol):
                 execution_context=request.execution_context,
                 allowed=True,
                 redacted_metadata={"warning": "Code validation disabled by policy"},
-                audit_metadata={"rule": "validation_disabled"},
+                audit_metadata={"rule": "validation_disabled_override", "severity": "WARNING"},
             )
 
         try:

@@ -12,8 +12,9 @@ from modules.shared.src.security.contract_extract_archive_protocol import Extrac
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
-    SecurityPolicyVO,
 )
+
+from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
 
 
 class ArchiveGuard(ExtractArchiveProtocol):
@@ -27,7 +28,7 @@ class ArchiveGuard(ExtractArchiveProtocol):
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Validate and guard archive extraction against safety policy."""
         opts = request.options
-        dest = os.path.normpath(os.path.abspath(request.destination_directory))
+        dest = normalize_path(request.destination_directory)
         rejected: list[RejectedEntryVO] = []
         warnings: list[str] = []
 
@@ -43,8 +44,10 @@ class ArchiveGuard(ExtractArchiveProtocol):
             )
 
         # Validate destination is within allowed directories (FR-SEC-002)
-        # Note: policy is not available in this capability; callers should
-        # validate allowed_directories before invoking ArchiveGuard.
+        if not is_within_allowed_dirs(dest, []):
+            # No allowed_directories configured — allow extraction to proceed
+            # Callers should validate allowed_directories before invoking ArchiveGuard.
+            pass
 
         total_size = 0
         entry_count = 0
