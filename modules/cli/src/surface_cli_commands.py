@@ -2,7 +2,7 @@
 
 FR-CLI-001: Parse and Route Commands — commands module routes CLI intents to owning feature aggregates
 FR-CLI-002: Render Terminal Output — commands return structured results for terminal rendering
-FR-CLI-003: Display Errors — commands wrap upstream errors for user-facing display
+FR-CLI-003: Display Errors — commands wrap upstream errors with category + actionable message, masking secrets
 """
 
 import os
@@ -11,6 +11,23 @@ from typing import Any
 from .surface_cli_blender_manager import is_running, kill_blender, launch_blender
 from .surface_cli_registry import Registry
 from .surface_cli_socket_client import BlenderSocketClient
+
+
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+    """Return a categorized error dict with masked details."""
+    return {"success": False, "error": message, "category": category, "ref": ref}
+
+
+def _resolve_active(registry: Registry, filepath: str) -> tuple[str | None, int | None]:
+    """Validate active Blender instance and return (error, port).
+
+    Returns:
+        (error_message_or_empty, port_or_None) — port is None when error is non-empty
+    """
+    error = registry.assert_active(filepath)
+    if error:
+        return error, None
+    return "", registry.get_port()
 
 
 def init(filepath: str, mode: str = "headless", port: int = 9876) -> dict[str, Any]:
@@ -22,35 +39,31 @@ def init(filepath: str, mode: str = "headless", port: int = 9876) -> dict[str, A
         port: TCP port for addon
 
     Returns:
-        Success/error dict
+        Success/error dict with category and reference code
     """
     registry = Registry()
 
     # Check if Blender is already active
     error = registry.assert_no_active()
     if error:
-        return {"success": False, "error": error}
+        return _mask_error("state", "cli-409", error)
 
-    # Resolve absolute path
+    # Resolve absolute path — mask in any error response
     filepath = os.path.abspath(filepath)
 
     try:
-        # Launch Blender
         pid = launch_blender(filepath, mode=mode, port=port)
-
-        # Register in registry
         registry.set_active(filepath, pid, port)
-
         return {
             "success": True,
-            "message": f"Blender started for '{os.path.basename(filepath)}'",
+            "message": "Blender session started",
             "filepath": filepath,
             "pid": pid,
             "port": port,
             "mode": mode,
         }
-    except Exception as e:
-        return {"success": False, "error": f"Gagal memulai Blender: {e}"}
+    except Exception:
+        return _mask_error("unexpected", "cli-500")
 
 
 def run(filepath: str, action: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -62,23 +75,22 @@ def run(filepath: str, action: str, params: dict[str, Any] | None = None) -> dic
         params: Action parameters
 
     Returns:
-        Action result dict
+        Action result dict with category
     """
     registry = Registry()
 
-    # Validate entity is active
-    error = registry.assert_active(filepath)
+    error, port = _resolve_active(registry, filepath)
     if error:
-        return {"success": False, "error": error}
-
-    port = registry.get_port()
+        return _mask_error("state", "cli-409", error)
 
     try:
         with BlenderSocketClient(port=port) as client:
             result = client.send_command(action, params or {})
             return result
-    except Exception as e:
-        return {"success": False, "error": f"Command '{action}' failed: {e}"}
+    except ConnectionError:
+        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
+    except Exception:
+        return _mask_error("unexpected", "cli-500")
 
 
 def screenshot(
@@ -102,16 +114,13 @@ def screenshot(
         focus_object: Object name to frame
 
     Returns:
-        Success/error dict with filepath
+        Success/error dict with category
     """
     registry = Registry()
 
-    # Validate entity is active
-    error = registry.assert_active(filepath)
+    error, port = _resolve_active(registry, filepath)
     if error:
-        return {"success": False, "error": error}
-
-    port = registry.get_port()
+        return _mask_error("state", "cli-409", error)
 
     params = {
         "filepath": output,
@@ -126,18 +135,19 @@ def screenshot(
         with BlenderSocketClient(port=port) as client:
             result = client.send_command("get_viewport_screenshot", params)
 
-            # Check if file was created
             if os.path.exists(output):
                 return {
                     "success": True,
-                    "message": f"Screenshot saved to '{output}'",
+                    "message": "Screenshot saved",
                     "filepath": output,
                     "result": result,
                 }
             else:
-                return {"success": False, "error": "Screenshot file was not created"}
-    except Exception as e:
-        return {"success": False, "error": f"Screenshot failed: {e}"}
+                return _mask_error("unexpected", "cli-500", "Screenshot file was not created")
+    except ConnectionError:
+        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
+    except Exception:
+        return _mask_error("unexpected", "cli-500")
 
 
 def render(
@@ -155,16 +165,13 @@ def render(
         resolution_y: Render height in pixels
 
     Returns:
-        Success/error dict with filepath
+        Success/error dict with category
     """
     registry = Registry()
 
-    # Validate entity is active
-    error = registry.assert_active(filepath)
+    error, port = _resolve_active(registry, filepath)
     if error:
-        return {"success": False, "error": error}
-
-    port = registry.get_port()
+        return _mask_error("state", "cli-409", error)
 
     params = {
         "output_path": output,
@@ -175,15 +182,16 @@ def render(
     try:
         with BlenderSocketClient(port=port) as client:
             result = client.send_command("render", params)
-
             return {
                 "success": True,
-                "message": f"Render saved to '{output}'",
+                "message": "Render started",
                 "filepath": output,
                 "result": result,
             }
-    except Exception as e:
-        return {"success": False, "error": f"Render failed: {e}"}
+    except ConnectionError:
+        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
+    except Exception:
+        return _mask_error("unexpected", "cli-500")
 
 
 def close(filepath: str) -> dict[str, Any]:
@@ -193,24 +201,23 @@ def close(filepath: str) -> dict[str, Any]:
         filepath: Path to .blend file (must match active entity)
 
     Returns:
-        Success/error dict
+        Success/error dict with category
     """
     registry = Registry()
 
-    # Validate entity is active
-    error = registry.assert_active(filepath)
+    error, port = _resolve_active(registry, filepath)
     if error:
-        return {"success": False, "error": error}
+        return _mask_error("state", "cli-409", error)
 
     pid = registry.get_pid()
-    port = registry.get_port()
 
-    # Try to save the file first
+    # Try to save the file first — log failure but continue to kill process
+    save_failed = False
     try:
         with BlenderSocketClient(port=port) as client:
             client.send_command("execute_code", {"code": "import bpy\nbpy.ops.wm.save_mainfile()"})
     except Exception:
-        pass  # Best effort save
+        save_failed = True
 
     # Kill Blender process
     if pid and is_running(pid):
@@ -219,9 +226,16 @@ def close(filepath: str) -> dict[str, Any]:
     # Clear registry
     registry.clear()
 
+    if save_failed:
+        return {
+            "success": True,
+            "message": "Blender closed (save may have failed)",
+            "warnings": ["File may not have been saved before close"],
+        }
+
     return {
         "success": True,
-        "message": f"Blender closed for '{os.path.basename(filepath)}'",
+        "message": "Blender closed",
     }
 
 
@@ -237,14 +251,13 @@ def status() -> dict[str, Any]:
         return {
             "success": True,
             "active": False,
-            "message": "Tidak ada Blender yang aktif",
+            "message": "No Blender instance is active",
         }
 
     filepath = registry.get_active()
     pid = registry.get_pid()
     port = registry.get_port()
 
-    # Check if process is still running
     running = pid is not None and is_running(pid)
 
     return {

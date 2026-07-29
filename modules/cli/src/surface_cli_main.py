@@ -3,6 +3,7 @@
 
 FR-CLI-001: Parse and Route Commands — argparse-based command parsing with subcommand routing
 FR-CLI-002: Render Terminal Output — structured text output with JSON fallback support
+FR-CLI-003: Display Errors — categorized, actionable errors with masked details
 
 Usage:
   blender-arwaky init --filepath <path> [--mode gui|headless]
@@ -15,8 +16,37 @@ Usage:
 
 import argparse
 import json
+import logging
 import sys
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# FRD-mapped exit codes per outcome class
+EXIT_SUCCESS = 0
+EXIT_VALIDATION = 2
+EXIT_UPSTREAM = 3
+EXIT_UNEXPECTED = 4
+
+ERROR_CATEGORIES: dict[str, int] = {
+    "validation_error": EXIT_VALIDATION,
+    "configuration_error": EXIT_VALIDATION,
+    "not_found": EXIT_UPSTREAM,
+    "capacity": EXIT_UPSTREAM,
+    "timeout": EXIT_UPSTREAM,
+    "security_violation": EXIT_UPSTREAM,
+    "connection": EXIT_UPSTREAM,
+    "state": EXIT_UPSTREAM,
+    "task": EXIT_UPSTREAM,
+}
+
+
+def _exit_code(result: dict[str, Any]) -> int:
+    """Map result category to deterministic exit code."""
+    if result.get("success"):
+        return EXIT_SUCCESS
+    category = result.get("category", "unexpected")
+    return ERROR_CATEGORIES.get(category, EXIT_UNEXPECTED)
 
 
 def main() -> int:
@@ -71,7 +101,7 @@ def main() -> int:
 
     if not args.command:
         parser.print_help()
-        return 1
+        return EXIT_VALIDATION
 
     # Import commands lazily
     from . import commands
@@ -86,7 +116,13 @@ def main() -> int:
             try:
                 params = json.loads(args.params)
             except json.JSONDecodeError as e:
-                result = {"success": False, "error": f"Invalid JSON params: {e}"}
+                logger.debug("Invalid JSON params: %s", e)
+                result = {
+                    "success": False,
+                    "error": "Invalid JSON parameters",
+                    "category": "validation_error",
+                    "ref": "cli-400",
+                }
             else:
                 result = commands.run(args.filepath, args.action, params)
 
@@ -115,8 +151,22 @@ def main() -> int:
         elif args.command == "status":
             result = commands.status()
 
-    except Exception as e:
-        result = {"success": False, "error": str(e)}
+        else:
+            result = {
+                "success": False,
+                "error": f"Unknown command: {args.command}",
+                "category": "validation_error",
+                "ref": "cli-400",
+            }
+
+    except Exception:
+        logger.exception("Unexpected CLI error")
+        result = {
+            "success": False,
+            "error": "Unexpected error",
+            "category": "unexpected",
+            "ref": "cli-500",
+        }
 
     # Output
     if args.json or not sys.stdout.isatty():
@@ -127,7 +177,7 @@ def main() -> int:
         else:
             print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
 
-    return 0 if result.get("success") else 1
+    return _exit_code(result)
 
 
 if __name__ == "__main__":
