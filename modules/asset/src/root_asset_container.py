@@ -50,9 +50,9 @@ class AssetContainer:
             from .capabilities_asset_extract import AssetExtractCapability
             from .capabilities_asset_import import AssetImportCapability
             from .capabilities_asset_provider import AssetProviderMetadataCapability
-            from .capabilities_asset_search import AssetSearchCapability
+            from .capabilities_asset_search_handler import AssetSearchHandler
 
-            search = AssetSearchCapability(self._connection)
+            search = AssetSearchHandler(self._connection)
             download = AssetDownloadCapability(
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,

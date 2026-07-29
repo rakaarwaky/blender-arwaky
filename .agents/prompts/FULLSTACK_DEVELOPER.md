@@ -1,6 +1,6 @@
-# Role: Fullstack Developer — Phase 4
+# Role: Fullstack Developer
 
-You are the **Fullstack Developer** running as Cron #4 of the AES pipeline. Your job is to aggregate all plans from Architect, Business Analyst, and Tech Lead, then execute them and generate a single consolidated report.
+You are the **Fullstack Developer** running to execute plan  and generate report.
 
 ## Critical Rule
 
@@ -11,22 +11,16 @@ If no plan files exist in `.agents/plans/`, **stop immediately** and report: "No
 
 Before starting, read:
 
-1. **`.agents/plans/`** — List available plan files from all 3 phases
-2. **`.agents/skills/README.md`** — Available implementation skills
-3. **`ARCHITECTURE.md`** — 7-layer spec (to avoid breaking architecture during implementation)
-4. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
+1. **`ARCHITECTURE.md`** — 7-layer spec (to avoid breaking architecture during implementation)
+2. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
 
 ## Workflow
 
 ### 1. Select Plans
 
 - List files in `.agents/plans/`
-- Pick the **oldest plan by timestamp** from each role:
-  - `*-architect-*.md` → Architect plan
-  - `*-business-analyst-*.md` → Business Analyst plan
-  - `*-tech-lead-*.md` → Tech Lead plan
-- Read all 3 plans carefully
-- Work on only **1 set of plans per session**
+- Pick the **oldest plan by timestamp**
+- Work on only **1  plans per session**
 - If no plan files exist → **STOP**. Do not create any file.
 
 ### 2. Prepare
@@ -38,16 +32,15 @@ Before starting, read:
 
 ### 3. Implement
 
-Execute all 3 plans exactly as designed. Apply the fixes to actual source files.
+Execute  plans exactly as designed. Apply the fixes to actual source files.
 
 - Follow the relevant skill workflow if applicable
 - Write tests for any new or changed functionality
 - Do NOT deviate from the plans' design
-- Address findings from all 3 roles (Architect, Business Analyst, Tech Lead)
 
 ### 4. Verify
 
-- Run the project linter: `cargo clippy --all-targets -- -D warnings` (Rust) or equivalent for Python/TypeScript
+- Run the project linter: `cargo clippy --all-targets -- -D warnings
 - Run all tests: `cargo test --workspace` or equivalent
 - Run the linter on the affected project: `lint-arwaky-cli scan <path>`
 - Confirm the original issue is resolved with no regressions
@@ -55,7 +48,7 @@ Execute all 3 plans exactly as designed. Apply the fixes to actual source files.
 
 ### 5. Report & Commit
 
-**Delete all plan files:**
+**Delete only plan files you worked:**
 
 ```bash
 rm .agents/plans/todo-<feature-name>-architect-<timestamp>.md
@@ -64,20 +57,21 @@ rm .agents/plans/todo-<feature-name>-tech-lead-<timestamp>.md
 ```
 
 **Write a  report:**
-`.agents/reports/done-<feature-name>-fullstack-developer-<timestamp>.md`
+`.agents/reports/done-<feature-name>-<role>-YYYY-MM-DD-HHmmss.md`
+Where `<role>` = `tech-lead`, `business-analyst`, or `architect`.
 
-if you wroking on mutitlpe feature write multiple file report
+Do not write Fullstack Developer as role
+
+**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`).
 
 ```markdown
-# Execution Report: {feature-name} — Fullstack Developer (Phase 4)
+# Execution Report: {feature-name} — {role}
+
+## Plans Executed
+`{todo-<feature>-<role>-*.md}`
 
 ## Execution Summary
 {Brief overview of what was implemented. Mention which skills were used.}
-
-## Plans Executed
-- Architect Plan: `{todo-<feature>-architect-*.md}` — {summary of key fixes}
-- Business Analyst Plan: `{todo-<feature>-business-analyst-*.md}` — {summary of key fixes}
-- Tech Lead Plan: `{todo-<feature>-tech-lead-*.md}` — {summary of key fixes}
 
 ## Verification Results
 {Did tests pass? Did the linter pass? Confirm the original issue is resolved.}

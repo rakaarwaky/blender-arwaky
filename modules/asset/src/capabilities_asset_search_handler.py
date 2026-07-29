@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
-from modules.shared.src.asset.taxonomy_asset_vo import SearchResultVO
 from modules.shared.src.asset.utility.utility_polyhaven_search import polyhaven_search
 from modules.shared.src.asset.utility.utility_sketchfab_search import sketchfab_search
 from modules.shared.src.common.taxonomy_core_vo import SearchQuery
@@ -34,10 +34,10 @@ class AssetSearchHandler(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[str] | None = None,
-        _asset_type_filter: Any = None,  # noqa: ARG002 (intentional interface param, not used in impl)
-        _limit: Any = None,  # noqa: ARG002 (intentional interface param, not used in impl)
-        _page_token: Any = None,  # noqa: ARG002 (intentional interface param, not used in impl)
-    ) -> SearchResultVO:
+        asset_type_filter: Any = None,  # noqa: ARG002
+        limit: Any = None,  # noqa: ARG002
+        page_token: Any = None,  # noqa: ARG002
+    ) -> dict[str, Any]:
         """Search across all enabled providers with unified response.
 
         FR-AST-001: Each enabled provider queried independently.
@@ -52,7 +52,7 @@ class AssetSearchHandler(AssetSearchProtocol):
             _page_token: Optional pagination cursor (interface param).
 
         Returns:
-            SearchResultVO with normalized assets list, provider status summary, and warnings.
+            Dict with normalized assets list, provider status summary, warnings, and timestamp.
         """
         target = providers if providers is not None else self._providers
 
@@ -97,9 +97,10 @@ class AssetSearchHandler(AssetSearchProtocol):
             else:
                 provider_status[name] = "empty"
 
-        return SearchResultVO(
-            assets=assets,
-            total=len(assets),
-            provider_status=provider_status,
-            warnings=warnings,
-        )
+        return {
+            "assets": assets,
+            "total": len(assets),
+            "provider_status": provider_status,
+            "warnings": warnings,
+            "search_timestamp": datetime.now(timezone.utc).isoformat(),
+        }

@@ -19,13 +19,30 @@ from unittest import mock
 
 import pytest
 
-SRC = os.path.join(os.path.dirname(__file__), "..", "src")
-if SRC not in sys.path:
-    sys.path.insert(0, SRC)
+import importlib.util as _importlib_util
 
-import utility_cli_blender_process as bm_mod  # noqa: E402
-import utility_cli_registry as registry_mod  # noqa: E402
-import utility_cli_socket_client as socket_mod  # noqa: E402
+_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
+
+_spec = _importlib_util.spec_from_file_location(
+    "utility_blender_process",
+    os.path.join(_ROOT, "shared", "src", "launcher", "utility_blender_process.py"),
+)
+bm_mod = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(bm_mod)
+
+_spec = _importlib_util.spec_from_file_location(
+    "utility_runtime_registry",
+    os.path.join(_ROOT, "shared", "src", "launcher", "utility_runtime_registry.py"),
+)
+registry_mod = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(registry_mod)
+
+_spec = _importlib_util.spec_from_file_location(
+    "utility_socket_client",
+    os.path.join(_ROOT, "shared", "src", "gateway", "utility_socket_client.py"),
+)
+socket_mod = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(socket_mod)
 
 
 # ── Registry ────────────────────────────────────────────────────────────────

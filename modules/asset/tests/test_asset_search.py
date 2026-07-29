@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from modules.asset.src.capabilities_asset_search import AssetSearchCapability
+from modules.asset.src.capabilities_asset_search_handler import AssetSearchHandler
 from modules.shared.src.common.taxonomy_core_vo import AssetTypeFilter, ProviderName, SearchQuery
 from modules.shared.src.common.taxonomy_domain_error import ProviderError
 
@@ -57,7 +57,7 @@ def connection_with_failures() -> MockConnection:
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_all_returns_assets(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query())
 
     assert result["total"] == 2
@@ -69,7 +69,7 @@ async def test_fr_ast_001_search_all_returns_assets(healthy_connection: MockConn
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_normalizes_provider_results(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query())
 
     for asset in result["assets"]:
@@ -83,7 +83,7 @@ async def test_fr_ast_001_search_normalizes_provider_results(healthy_connection:
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_provider_filter(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query(), providers=[ProviderName("Polyhaven")])
 
     assert result["total"] == 1
@@ -93,7 +93,7 @@ async def test_fr_ast_001_search_provider_filter(healthy_connection: MockConnect
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_partial_failure(connection_with_failures: MockConnection):
-    capability = AssetSearchCapability(connection_with_failures)
+    capability = AssetSearchHandler(connection_with_failures)
     result = await capability.search_all(_make_query())
 
     assert result["total"] == 1
@@ -107,7 +107,7 @@ async def test_fr_ast_001_search_all_failures(connection_with_failures: MockConn
     conn = connection_with_failures
     conn.fail_polyhaven = ProviderError("down")
     conn.fail_sketchfab = ProviderError("down")
-    capability = AssetSearchCapability(conn)
+    capability = AssetSearchHandler(conn)
     result = await capability.search_all(_make_query())
 
     assert result["total"] == 0
@@ -121,7 +121,7 @@ def test_fr_ast_001_search_empty_providers():
         async def send_command(self, _action: str, _params: dict | None = None) -> dict:
             return {}
 
-    capability = AssetSearchCapability(EmptyMock())
+    capability = AssetSearchHandler(EmptyMock())
     result = asyncio.run(capability.search_all(_make_query(), providers=[]))
 
     assert result["total"] == 0
@@ -131,14 +131,14 @@ def test_fr_ast_001_search_empty_providers():
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_asset_type_filter(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query(), asset_type_filter=AssetTypeFilter("hdri"))
     assert result["total"] >= 0
 
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_concurrent_execution(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query())
 
     assert "Polyhaven" in result["provider_status"]
@@ -150,7 +150,7 @@ def test_fr_ast_001_search_pagination_included():
         async def send_command(self, _action: str, _params: dict | None = None) -> dict:
             return {}
 
-    capability = AssetSearchCapability(EmptyMock())
+    capability = AssetSearchHandler(EmptyMock())
     result = asyncio.run(capability.search_all(_make_query(), providers=[]))
 
     assert "total" in result
@@ -160,7 +160,7 @@ def test_fr_ast_001_search_pagination_included():
 
 @pytest.mark.asyncio
 async def test_fr_ast_001_search_credentials_not_exposed(healthy_connection: MockConnection):
-    capability = AssetSearchCapability(healthy_connection)
+    capability = AssetSearchHandler(healthy_connection)
     result = await capability.search_all(_make_query())
 
     for asset in result["assets"]:
@@ -174,7 +174,7 @@ async def test_fr_ast_001_search_credentials_not_exposed(healthy_connection: Moc
 async def test_search_with_exception_handling(healthy_connection: MockConnection):
     conn = healthy_connection
     conn.fail_polyhaven = Exception("unexpected")
-    capability = AssetSearchCapability(conn)
+    capability = AssetSearchHandler(conn)
     result = await capability.search_all(_make_query())
 
     assert "Polyhaven" in result["provider_status"]

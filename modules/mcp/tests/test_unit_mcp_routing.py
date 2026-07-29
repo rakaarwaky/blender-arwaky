@@ -65,9 +65,15 @@ class TestExecuteCommandRouting:
     async def test_routes_to_execute_action(self):
         orch = FakeOrchestrator()
         mcp = FakeMCP()
-        with patch(
-            "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
-            return_value=orch,
+        with (
+            patch(
+                "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
+                return_value=orch,
+            ),
+            patch(
+                "modules.mcp.src.surface_execute_command.validate_action_args",
+                return_value=[],
+            ),
         ):
             ExecuteCommandHandler.register_execute_command(mcp)
             fn = mcp.tools["execute_command"]
@@ -79,9 +85,15 @@ class TestExecuteCommandRouting:
     async def test_defaults_args_to_empty_dict(self):
         orch = FakeOrchestrator()
         mcp = FakeMCP()
-        with patch(
-            "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
-            return_value=orch,
+        with (
+            patch(
+                "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
+                return_value=orch,
+            ),
+            patch(
+                "modules.mcp.src.surface_execute_command.validate_action_args",
+                return_value=[],
+            ),
         ):
             ExecuteCommandHandler.register_execute_command(mcp)
             await mcp.tools["execute_command"]("action_y", None)
