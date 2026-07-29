@@ -18,6 +18,7 @@ from modules.shared.src.config.taxonomy_config_constant import (
     DEFAULT_POLICY_MODE,
     STRICT_MODE_FLAG_ENV,
 )
+from modules.shared.src.config.taxonomy_config_vo import ConfigFileLoader
 from modules.shared.src.config.utility_config_helpers import (
     load_yaml_safe,
     parse_env_value,
@@ -41,7 +42,7 @@ class ConfigContainer:
 
     def __init__(
         self,
-        config_file_loader: object | None = None,
+        config_file_loader: ConfigFileLoader | None = None,
         policy_mode: str = DEFAULT_POLICY_MODE,
         explicit_workspace: str | None = None,
         extra_redaction_patterns: tuple[str, ...] = (),

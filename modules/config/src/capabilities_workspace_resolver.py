@@ -11,6 +11,7 @@ import os
 import threading
 from pathlib import Path
 
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
@@ -37,7 +38,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     def __init__(
         self,
         explicit_override: str | None = None,
-        config_path: object | None = None,
+        config_path: ConfigPath | None = None,
     ) -> None:
         self._explicit_override = explicit_override
         self._config_path = config_path

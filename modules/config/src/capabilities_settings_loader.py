@@ -145,7 +145,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
                 return self._cached
-            except Exception:
+            except (ConfigLoadError, ConfigParseError, ConfigValidationError):
                 if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
                     return self._cached
                 raise

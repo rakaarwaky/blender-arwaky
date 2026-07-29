@@ -34,13 +34,30 @@ The config module is well-structured with clean separation of concerns across 5 
 | 7 | 🟢 INFO | Orchestrator owns event buffer state — `ConfigOrchestrator` maintains `_event_buffer` and `_snapshot` state. While documented as intentional ("Owns the bounded event ring buffer (T-09)"), this mixes orchestration with internal state storage. Event buffer could be a separate capability or injected | `agent_config_orchestrator.py:47-48` | Consider extracting event buffer to its own capability or making it injectable via protocol |
 | 8 | 🟢 INFO | Unconventional ellipsis fallthrough — `_typed()` in `capabilities_settings_retriever.py` uses `...` as a "do nothing, fall through" marker. Not an AES304 bypass but unconventional Python style that could confuse readers | `capabilities_settings_retriever.py:68` | Replace with explicit `pass` or restructure to avoid need for fallthrough |
 
+### Additional Findings (Phase 3b)
+| # | Severity | Issue | Location (File:Line) | Recommendation |
+|---|----------|-------|----------------------|----------------|
+| 9 | 🟡 WARNING | `_record_event` serializes events via `asdict()` then `json.dumps()` without applying redaction — if event payloads contain settings values with secrets, they could leak in logs despite redaction rules being available | `agent_config_orchestrator.py:89-92` | Apply `redact_dict()` to event data before serialization |
+| 10 | 🟡 WARNING | `reload_settings` catches bare `Exception` — the catch-all at line 103 could hide unexpected errors that should propagate. Should narrow to specific config error types | `capabilities_settings_loader.py:102-109` | Use `except (ConfigLoadError, ConfigParseError, ConfigValidationError)` instead of bare `Exception` |
+| 11 | 🟡 WARNING | Workspace resolver raises `ConfigRootResolutionError` without preserving exception chain — the OSError at strategy 6 is caught but root cause traceback is lost | `capabilities_workspace_resolver.py:68-70` | Use `raise ConfigRootResolutionError(...) from exc` to preserve debugging info |
+| 12 | 🟡 WARNING | `WorkspaceResolverCapability.__init__` uses `config_path: object` — violates AES 405 (Any type annotation); should use `ConfigPath | None` or proper protocol type | `capabilities_workspace_resolver.py:32` | Replace `object` with `ConfigPath | None` for type safety |
+| 13 | 🟡 WARNING | `ConfigContainer.__init__` uses `config_file_loader: object | None` — same pattern, should use proper `ConfigFileLoader | None` type | `root_config_container.py:39` | Use `ConfigFileLoader | None` from taxonomy instead of bare `object` |
+| 14 | 🟢 INFO | `copy.deepcopy(DEFAULT_SETTINGS)` on every instantiation — if defaults are static, cache at module level to avoid redundant allocations | `capabilities_settings_loader.py:54-55` | Cache defaults at module level; deepcopy only when mutating |
+| 15 | 🟢 INFO | Event serialization uses `asdict()` without schema validation — if event classes change structure, serialization could silently break | `agent_config_orchestrator.py:89` | Add explicit field selection or schema validation for event serialization |
+
 ## Action Items
 - ✅ COMPLETED Replace bare `except Exception` with specific types in `_build_core()` (finding #1)
-- ⏳ DEFERRED Cache defaults/schema deepcopy at module level (finding #2) — negligible performance impact
+- ⏳ DEFERRED Cache defaults/schema deepcopy at module level (finding #2, #14) — negligible performance impact
 - ✅ COMPLETED Add logging for failed workspace resolution candidates (findings #4, #5)
 - ✅ COMPLETED Replace `Callable` with protocol interface in ISettingsMetadataProtocol (finding #6)
 - ⏳ DEFERRED Consider extracting event buffer to injectable component (finding #7) — documented design decision
 - ✅ COMPLETED Replace ellipsis fallthrough with explicit pass (finding #8)
+- [ ] P2 FIX #9: Apply redaction to event payloads before JSON serialization in `_record_event`
+- [ ] P1 FIX #10: Narrow exception handling in `reload_settings` from bare `Exception` to specific config error types
+- [ ] P1 FIX #11: Preserve exception chain in workspace resolver with `raise ... from exc`
+- [ ] P2 FIX #12: Replace `object` type annotation in `WorkspaceResolverCapability.__init__` with `ConfigPath | None`
+- [ ] P2 FIX #13: Replace `object | None` in `ConfigContainer.__init__` with proper `ConfigFileLoader | None`
+- [ ] P3 FIX #15: Add schema validation or explicit field selection for event serialization
 
 ## Fixed Code
 
@@ -152,4 +169,82 @@ from modules.shared.src.config.contract_settings_metadata_protocol import (
         elif expected is float:
             if isinstance(raw, bool):
                 pass  # falls through to strict-mode check below
+```
+
+### File: `modules/config/src/agent_config_orchestrator.py`
+
+**Finding #9:** Apply redaction before event serialization:
+
+```python
+def _record_event(self, event: object) -> None:
+    """Serialize and store a domain event into the bounded ring buffer."""
+    payload = asdict(event)
+    # Apply redaction to prevent secret leakage in event logs
+    redacted_payload = self._redaction_rules.redact_dict(payload) if isinstance(payload, dict) else payload
+    self._event_buffer.append(redacted_payload)
+    logger.info("config_event %s", json.dumps(redacted_payload, default=str))
+```
+
+### File: `modules/config/src/capabilities_settings_loader.py`
+
+**Finding #10:** Narrow exception handling in reload_settings:
+
+```python
+def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
+    """Atomically replace cached snapshot. Retains previous on failure (permissive)."""
+    with self._lock:
+        try:
+            merged, filedata, metadata = self._build_core(path)
+            # build-then-swap = atomic; never set cache to None before build
+            self._cached_data = filedata
+            self._cached = SettingsSnapshot(_data=merged)
+            self._last_metadata = metadata
+            return self._cached
+        except (ConfigLoadError, ConfigParseError, ConfigValidationError):
+            if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
+                return self._cached
+            raise
+```
+
+### File: `modules/config/src/capabilities_workspace_resolver.py`
+
+**Finding #11:** Preserve exception chain in workspace resolver:
+
+```python
+# 6. CWD fallback
+try:
+    cwd = Path.cwd().resolve()
+    if cwd.is_dir():
+        return WorkspacePath(path=str(cwd), strategy="cwd_fallback")
+except OSError as exc:
+    raise ConfigRootResolutionError("All workspace resolution strategies failed") from exc
+```
+
+**Finding #12:** Replace `object` type annotation:
+
+```python
+def __init__(
+    self,
+    explicit_override: str | None = None,
+    config_path: ConfigPath | None = None,
+) -> None:
+    self._explicit_override = explicit_override
+    self._config_path = config_path
+    self._lock = threading.Lock()
+    self._cached: WorkspacePath | None = None
+```
+
+### File: `modules/config/src/root_config_container.py`
+
+**Finding #13:** Replace `object | None` with proper type:
+
+```python
+def __init__(
+    self,
+    config_file_loader: ConfigFileLoader | None = None,
+    policy_mode: str = DEFAULT_POLICY_MODE,
+    explicit_workspace: str | None = None,
+    extra_redaction_patterns: tuple[str, ...] = (),
+    strict_mode_enabled: bool | None = None,
+) -> None:
 ```
