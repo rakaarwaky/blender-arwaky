@@ -21,8 +21,13 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 )
 from modules.shared.src.scene.contract_scene_cleanup_protocol import ISceneCleanupProtocol
 from modules.shared.src.scene.taxonomy_scene_constant import (
+    CHILD_POLICY_DELETE,
+    CHILD_POLICY_DETACH,
+    CHILD_POLICY_REJECT,
     CLEANUP_CONFIRMATION_REQUIRED,
-    PRESERVATION_CAMERA,
+    DEPENDENT_POLICY_IGNORE,
+    DEPENDENT_POLICY_REJECT,
+    DEPENDENT_POLICY_REMOVE_SAFE,
 )
 from modules.shared.src.scene.taxonomy_scene_error import SceneError, SceneErrorCategory
 from modules.shared.src.scene.taxonomy_scene_event import (
@@ -174,6 +179,23 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
                 category=SceneErrorCategory.CONFIRMATION,
                 message=Prompt("Destructive cleanup requires explicit confirmation"),
             )
+
+        # FR-SCN-002: validate child handling policy
+        valid_child_policies = (CHILD_POLICY_DELETE, CHILD_POLICY_DETACH, CHILD_POLICY_REJECT)
+        if request.child_handling_policy not in valid_child_policies:
+            return SceneError(
+                category=SceneErrorCategory.VALIDATION,
+                message=Prompt(f"Invalid child handling policy: {request.child_handling_policy}"),
+            )
+
+        # FR-SCN-002: validate dependent handling policy
+        valid_dependent_policies = (DEPENDENT_POLICY_IGNORE, DEPENDENT_POLICY_REJECT, DEPENDENT_POLICY_REMOVE_SAFE)
+        if request.dependent_handling_policy not in valid_dependent_policies:
+            return SceneError(
+                category=SceneErrorCategory.VALIDATION,
+                message=Prompt(f"Invalid dependent handling policy: {request.dependent_handling_policy}"),
+            )
+
         return None
 
     async def _execute_code(self, code: PythonCode) -> str:
@@ -271,8 +293,9 @@ class SceneCleanupPolicy:
         )
 
     @staticmethod
-    def _should_preserve_camera(preservation: set[str]) -> bool:
-        return PRESERVATION_CAMERA in preservation or True  # active camera always protected
+    def _should_preserve_camera(_preservation: set[str]) -> bool:
+        # FR-SCN-002: cameras are always protected regardless of preservation list
+        return True
 
     @staticmethod
     def _should_preserve_light(preservation: set[str]) -> bool:

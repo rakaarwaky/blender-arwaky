@@ -118,6 +118,7 @@ def parse_scene_state_summary(raw: Prompt | None) -> SceneStateSummaryVO:
         unit_system=str(data.get("unit_system", "METRIC")),
         collection_count=ObjectCount(len(collections)),
         collections=collections,
+        capability_flags={"inspection": True},  # FR-SCN-001: capability flags for supported operations
     )
 
 
