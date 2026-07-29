@@ -25,9 +25,6 @@ from modules.shared.src.common.taxonomy_domain_error import (
 )
 from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
 from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
-from modules.shared.src.security.contract_extract_archive_protocol import (
-    ExtractArchiveProtocol,
-)
 from modules.shared.src.security.contract_validate_path_protocol import (
     ValidatePathProtocol,
 )
