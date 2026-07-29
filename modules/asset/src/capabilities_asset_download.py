@@ -24,6 +24,14 @@ from modules.shared.src.common.taxonomy_core_vo import (
 from modules.shared.src.common.taxonomy_domain_error import (
     ProviderError,
 )
+from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
+from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
+from modules.shared.src.security.contract_extract_archive_protocol import (
+    ExtractArchiveProtocol,
+)
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -39,9 +47,9 @@ class AssetDownloadCapability(AssetDownloadProtocol):
 
     def __init__(
         self,
-        security_validator: Any | None = None,
-        job_scheduler: Any | None = None,
-        config_getter: Any | None = None,
+        security_validator: ValidatePathProtocol | None = None,
+        job_scheduler: JobSchedulerProtocol | None = None,
+        config_getter: ConfigGetterProtocol | None = None,
     ) -> None:
         """Initialize with dependencies.
 
@@ -214,10 +222,13 @@ class AssetDownloadCapability(AssetDownloadProtocol):
     async def _estimate_download_size(self, _provider: ProviderName, _asset_id: AssetId) -> int:
         """Estimate download size from provider metadata.
 
-        TODO: Wire provider adapter and replace with real size query.
-        Returns a conservative default (5 MB) when adapter not available.
+        Raises NotImplementedError when the size query adapter
+        is not wired into the container.
         """
-        return 5000000  # 5 MB default estimate
+        raise NotImplementedError(
+            "AssetDownloadCapability._estimate_download_size requires "
+            "a wired size query adapter; configure via AssetContainer constructor.",
+        )
 
     async def _submit_background_download(self, _provider: ProviderName, _asset_id: AssetId, _cache_path: str) -> str:
         """Submit download as background job.

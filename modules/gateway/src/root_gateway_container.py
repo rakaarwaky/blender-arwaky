@@ -12,7 +12,7 @@ from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
-from .gateway_scene_coordinator import GatewaySceneCoordinator
+from .utility_scene_coordinator import SceneCoordinatorUtility
 
 
 class GatewayContainer:
@@ -51,7 +51,7 @@ class GatewayContainer:
 
         # Wire SceneQueueExecutor + Coordinator (delegated to keep orchestrator under AES405 limit)
         self._scene_queue = SceneQueueExecutor(max_depth=50, wait_timeout_seconds=30.0)
-        self._scene_coordinator = GatewaySceneCoordinator(self._scene_queue)
+        self._scene_coordinator = SceneCoordinatorUtility(self._scene_queue)
 
         # Wire CodeExecutionExecutor with security policy + transport
         self._code_executor = CodeExecutionExecutor(

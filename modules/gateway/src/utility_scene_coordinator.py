@@ -1,4 +1,4 @@
-"""Gateway scene coordinator — Scene queue orchestration logic.
+"""Utility: Gateway scene coordinator — Scene queue orchestration logic.
 
 FR-GWY-004: Coordinates scene-mutating operations through the queue.
 Keeps GatewayOrchestrator type count under AES405 limit (max 3 types).
@@ -18,7 +18,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class GatewaySceneCoordinator:
+class SceneCoordinatorUtility:
     """Coordinates scene-mutating operations via the queue.
 
     Delegates to SceneQueueProtocol; keeps orchestrator lean per AES405.

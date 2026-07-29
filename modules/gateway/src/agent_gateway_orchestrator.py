@@ -34,7 +34,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportOutcomeVO,
 )
 
-from .gateway_scene_coordinator import GatewaySceneCoordinator
+from .utility_scene_coordinator import SceneCoordinatorUtility
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -59,7 +59,7 @@ class GatewayOrchestrator:
         self._connection = connection
         self._maintenance = maintenance
         self._transport = transport
-        self._coordinator = GatewaySceneCoordinator(scene_queue)
+        self._coordinator = SceneCoordinatorUtility(scene_queue)
         self._code_executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
