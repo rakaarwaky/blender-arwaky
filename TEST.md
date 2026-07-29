@@ -7,8 +7,6 @@ cd /path/to/blender-arwaky
 uv run pytest
 ```
 
-455+ tests across unit, integration, and functional categories.
-
 ---
 
 ## Test Structure
@@ -19,21 +17,6 @@ tests/
   integration/    # Layer interactions, DI wiring, service integration
   functional/     # End-to-end command flows within project boundaries
 ```
-
----
-
-## Coverage Targets
-
-| Layer | Target | Notes |
-|-------|--------|-------|
-| `taxonomy/` | 100% | Pure data — must be fully covered |
-| `contract/` | 90% | Interface definitions |
-| `capabilities/` | 90% | Business logic |
-| `agent/` | 80% | Orchestration (where applicable) |
-| `surfaces/` | 85% | Handlers |
-| **Overall** | **85%** | minimum |
-
----
 
 ## Running Tests
 
@@ -60,21 +43,6 @@ uv run pytest tests/integration/test_tool_registry.py::test_register_tools -v
 ```bash
 uv run pytest -v --tb=short
 ```
-
-### Exclude slow tests
-
-```bash
-uv run pytest -m "not slow"
-```
-
-### Run by marker
-
-```bash
-uv run pytest -m unit       # only unit tests
-uv run pytest -m "not slow" # skip slow tests
-```
-
----
 
 ## Test Categories
 
@@ -111,18 +79,21 @@ uv run pytest -m "not slow" # skip slow tests
 ### Test Steps
 
 **Step 1: Health Check**
+
 ```python
 health_check()
 # Expect: blender_connected=true, tool_count=5
 ```
 
 **Step 2: Scene Discovery**
+
 ```python
 execute_command(action="get_scene_info")
 # Expect: JSON with scene_name, object_count, frame info
 ```
 
 **Step 3: Create Object**
+
 ```python
 execute_command(
     action="create_primitive",
@@ -132,6 +103,7 @@ execute_command(
 ```
 
 **Step 4: AI-Optimized Screenshot**
+
 ```python
 execute_command(
     action="get_viewport_screenshot",
