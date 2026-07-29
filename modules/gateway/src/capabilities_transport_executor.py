@@ -19,11 +19,11 @@ import socket
 import time
 import uuid
 
-from modules.shared.src.gateway.contract_event_protocol import (
-    IEventPublisher,
-)
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
+)
+from modules.shared.src.gateway.contract_event_protocol import (
+    IEventPublisher,
 )
 from modules.shared.src.gateway.contract_transport_protocol import (
     IBlenderCommandProtocol,

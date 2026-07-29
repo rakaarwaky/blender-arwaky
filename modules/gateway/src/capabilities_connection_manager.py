@@ -23,12 +23,12 @@ import time
 import uuid
 from contextlib import suppress
 
-from modules.shared.src.gateway.contract_event_protocol import (
-    IEventPublisher,
-)
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
     IBlenderConnectionProtocol,
+)
+from modules.shared.src.gateway.contract_event_protocol import (
+    IEventPublisher,
 )
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
@@ -529,11 +529,9 @@ class ConnectionExecutor(ConnectionProtocol):
 
     def _safe_close_socket(self, sock: socket.SocketType | None) -> None:
         """Close a socket without raising exceptions."""
-        if sock is not None:
-            try:
+        with suppress(Exception):
+            if sock is not None:
                 sock.close()
-            except Exception:
-                pass
 
     def _perform_handshake(self) -> dict:
         handshake_request = TransportMessageVO(

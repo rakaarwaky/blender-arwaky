@@ -8,8 +8,8 @@ from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionExecutor
-from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_connection_maintenance import MaintenanceExecutor
+from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
 from .gateway_scene_coordinator import GatewaySceneCoordinator

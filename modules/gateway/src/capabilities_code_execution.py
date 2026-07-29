@@ -24,6 +24,9 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
     CodeExecutionProtocol,
     ICodeExecutionProtocol,
 )
+from modules.shared.src.gateway.contract_code_validation_protocol import (
+    CodeValidationProtocol,
+)
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
 )
@@ -66,9 +69,6 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TaskStatus,
     TransportMessageVO,
     TransportOutcomeVO,
-)
-from modules.shared.src.gateway.contract_code_validation_protocol import (
-    CodeValidationProtocol,
 )
 from modules.shared.src.gateway.utility.utility_validator_checker import (
     check_payload_size,
