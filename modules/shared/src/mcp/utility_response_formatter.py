@@ -7,12 +7,15 @@ Includes tracking ID injection, oversized protection, secrets masking.
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Any, Protocol
 
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpSchemaProtocol,
+)
+from modules.shared.src.utility_envelope import (
+    enrich_response_with_tracking,
+    truncate_oversized_payload,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -45,33 +48,15 @@ class McpResponseImpl(McpResponseProtocol):
         FR-MCP-003: Every response has tracking ID, unified envelope structure,
         bounded payload size, and masked secrets.
         """
-        # Generate tracking ID if omitted (FR-MCP-002)
-        tid = tracking_id or str(uuid.uuid4())[:8]
-
-        # Build unified envelope
-        envelope: dict[str, Any] = {
-            "tracking_id": tid,
-            "tool": tool_name,
-            "success": True,
-            "data": result if isinstance(result, dict) else {"value": result},
-            "error_category": error_category,
-            "message": None,
-            "warnings": [],
-            "metadata": {
-                "protocol_version": "1.0",
-                "catalog_version": await self._get_catalog_version(),
-            },
-        }
-
-        # Handle error case
-        if error_category:
-            envelope["success"] = False
-            envelope["message"] = str(result) if isinstance(result, (str, int, float)) else "Execution failed"
+        catalog_version = await self._get_catalog_version()
+        envelope = enrich_response_with_tracking(
+            result, tool_name, tracking_id, error_category, catalog_version
+        )
 
         # Enforce payload size bound (FR-MCP-003)
         response_bytes = str(envelope).encode("utf-8")
         if len(response_bytes) > self._max_size:
-            envelope = self._truncate_response(envelope, tool_name, tid)
+            envelope = truncate_oversized_payload(envelope, self._max_size)
 
         # Mask secrets (FR-MCP-003)
         envelope = await self.mask_secrets(envelope)
@@ -87,19 +72,6 @@ class McpResponseImpl(McpResponseProtocol):
         # Placeholder for security policy integration
         # In production, integrate with security redaction patterns
         return response
-
-    def _truncate_response(self, envelope: dict[str, Any], tool_name: str, tid: str) -> dict[str, Any]:
-        """Truncate oversized response per FR-MCP-003 strategy."""
-        return {
-            "tracking_id": tid,
-            "tool": tool_name,
-            "success": True,
-            "data": {"truncated": True, "note": f"Response exceeded {self._max_size} bytes"},
-            "error_category": None,
-            "message": "Response truncated due to size limit",
-            "warnings": [],
-            "metadata": {"protocol_version": "1.0"},
-        }
 
     async def _get_catalog_version(self) -> str:
         """Get dispatcher catalog version."""

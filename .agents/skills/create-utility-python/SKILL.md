@@ -16,13 +16,12 @@ metadata:
     - create-capabilities-python
     - create-agent-python
 ---
-
 # create-utility-python
 
 Utility = stateless standalone functions. No class, no `self`, no domain rules. File: `utility_<domain>_<role>.py`.
 
 **Allowed imports:** Taxonomy only.
-**Forbidden:** Capabilities, Agent, Surface, Contract.
+**Forbidden imports :** Capabilities, Agent, Surface, Contract.
 
 ## Role Naming
 
@@ -52,11 +51,11 @@ parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer
 
 ## Checklist
 
-- [ ] Only module-level functions — no class.
-- [ ] No `self`, no instance state.
-- [ ] Pure/deterministic (or I/O justified: domain-agnostic + reusable).
-- [ ] No business rules or layer-name knowledge.
-- [ ] Used by ≥2 modules.
-- [ ] No import from Capabilities, Agent, Surface, Contract.
-- [ ] No magic constants (→ `taxonomy_*_constant.py`).
-- [ ] `python -c "import <module>"` passes.
+- [ ]  Only module-level functions — no class.
+- [ ]  No `self`, no instance state.
+- [ ]  Pure/deterministic (or I/O justified: domain-agnostic + reusable).
+- [ ]  No business rules or layer-name knowledge.
+- [ ]  Used by ≥2 modules.
+- [ ]  No import from Capabilities, Agent, Surface, Contract.
+- [ ]  No magic constants (→ `taxonomy_*_constant.py`).
+- [ ]  `python -c "import <module>"` passes.

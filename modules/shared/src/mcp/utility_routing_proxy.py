@@ -10,6 +10,10 @@ import logging
 from typing import Protocol
 
 from modules.shared.src.mcp.contract_mcp_protocol import McpRoutingProtocol
+from modules.shared.src.utility_envelope import (
+    normalize_payload,
+    validate_execute_command_input,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -43,9 +47,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         """
         if tool_name == "execute_command":
             action = payload.get("action", "")
-            args = payload.get("args", {})
-            if not isinstance(args, dict):
-                args = {}
+            args = normalize_payload(payload.get("args"))
             if self._dispatcher:
                 return self._dispatcher.execute_action(action, args)
             raise RuntimeError("Dispatcher aggregate not configured")
@@ -75,11 +77,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         FR-MCP-002: Surface validates shape only (recognized, parsed, required fields).
         Semantic validation delegated to dispatcher + owning features.
         """
-        errors: list[str] = []
-
         if tool_name == "execute_command":
-            action = payload.get("action")
-            if not action or not str(action).strip():
-                errors.append("action is required")
+            return validate_execute_command_input(payload, strict_mode)
 
-        return errors
+        return []

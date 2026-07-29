@@ -21,6 +21,7 @@ from . import (
     render,
     scene,
     telemetry,
+    utility_envelope,
 )
 from .asset.contract_asset_aggregate import IAssetAggregate
 from .asset.contract_asset_download_protocol import AssetDownloadProtocol
@@ -648,4 +649,11 @@ __all__ = [
     "QueueStatusVO",
     "CodeExecutionVO",
     "CodeExecutionOutcomeVO",
+
+    # Utility layer exports
+    "enrich_response_with_tracking",
+    "normalize_payload",
+    "truncate_oversized_payload",
+    "utility_envelope",
+    "validate_execute_command_input",
 ]

@@ -2,8 +2,8 @@
 
 from . import (
     contract_mcp_protocol,
-    mcp_response_formatter,
-    mcp_routing_proxy,
+    utility_response_formatter,
+    utility_routing_proxy,
 )
 from .taxonomy_mcp_constant import (
     DEFAULT_HOST,
@@ -25,8 +25,8 @@ from .contract_mcp_protocol import (
 )
 
 # Implementation classes
-from .mcp_response_formatter import McpResponseImpl, McpSchemaImpl
-from .mcp_routing_proxy import McpRoutingImpl
+from .utility_response_formatter import McpResponseImpl, McpSchemaImpl
+from .utility_routing_proxy import McpRoutingImpl
 
 __all__ = [
     "DEFAULT_SERVER_NAME",
