@@ -11,10 +11,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Protocol
 
-from modules.diagnostics.src.contract_snapshot_provision_protocol import (
+from modules.shared.src.diagnostics.contract_snapshot_provision_protocol import (
     SnapshotProvisionProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     AuditSummaryVO,
     DiagnosticsSnapshotVO,
     HealthDetailsVO,

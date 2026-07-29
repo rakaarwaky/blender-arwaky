@@ -30,12 +30,28 @@ _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(p) for p in REDACTION_SENSITIVE_PATTERNS
 )
 
+# Pre-compiled patterns for sensitive key names (case-insensitive).
+_SENSITIVE_KEY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(rf"(?i)\b({p})\b", re.IGNORECASE)
+    for p in [
+        "password", "passwd", "secret", "token", "api[_-]?key",
+        "access[_-]?key", "private[_-]?key", "credential",
+    ]
+)
+
+
+def _is_sensitive_key(key: str) -> bool:
+    """Return True if the key name looks like a secret holder."""
+    return any(p.search(key) for p in _SENSITIVE_KEY_PATTERNS)
+
 
 def _redact_sensitive(value: object) -> Any:
     """Recursively mask obvious secret shapes in structured fields.
 
     Strings are pattern-redacted; dict/list/tuple are walked without mutating the
-    caller's input object. Non-text scalars pass through untouched.
+    caller's input object. Dict values whose keys match sensitive names are also
+    redacted (handles bare-token shapes like {"api_key": "abc123"}).
+    Non-text scalars pass through untouched.
     """
     if isinstance(value, str):
         text = value
@@ -43,7 +59,19 @@ def _redact_sensitive(value: object) -> Any:
             text = pattern.sub("[REDACTED]", text)
         return text
     if isinstance(value, dict):
-        return {key: _redact_sensitive(val) for key, val in value.items()}
+        new_dict: dict[str, Any] = {}
+        for key, val in value.items():
+            if _is_sensitive_key(key) and isinstance(val, str):
+                # Redact bare secret values behind sensitive keys.
+                new_val: Any = "[REDACTED]"
+                for pattern in _SENSITIVE_PATTERNS:
+                    new_val = pattern.sub("[REDACTED]", val)
+                if new_val == val:  # no pattern matched — value is a secret shape
+                    new_val = "[REDACTED]"
+                new_dict[key] = new_val
+            else:
+                new_dict[key] = _redact_sensitive(val)
+        return new_dict
     if isinstance(value, (list, tuple)):
         return type(value)(_redact_sensitive(item) for item in value)
     return value

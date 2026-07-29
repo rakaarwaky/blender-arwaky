@@ -12,10 +12,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.diagnostics.src.contract_metrics_collection_protocol import (
+from modules.shared.src.diagnostics.contract_metrics_collection_protocol import (
     MetricsCollectionProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     LatencySummaryVO,
     MetricsSnapshotVO,
 )

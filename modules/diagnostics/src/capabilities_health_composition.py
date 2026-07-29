@@ -34,6 +34,7 @@ class HealthComposer(HealthCompositionProtocol):
     def __init__(self) -> None:
         self._composition_cache: HealthDetailsVO | None = None
         self._cache_time: float = 0.0
+        self._cache_key: tuple[Any, ...] | None = None
 
     async def compose_health(
         self,
@@ -48,24 +49,28 @@ class HealthComposer(HealthCompositionProtocol):
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
 
+        # Build input key for cache validation
+        current_key = (launcher_status, gateway_status, config_valid, job_capacity_available)
+
         # Check cache freshness tolerance — only return cached result if inputs match
         if (
             self._composition_cache is not None
             and self._cache_time > 0
+            and self._cache_key == current_key
             and (now_ts - self._cache_time) < freshness_tolerance_seconds
         ):
-            # Verify cached inputs match current inputs — only reuse cache on match
-            cached_key = (
-                launcher_status,
-                gateway_status,
-                config_valid,
-                job_capacity_available,
+            # Return cached result with staleness indicators updated
+            cache = self._composition_cache
+            staleness: dict[str, float] = {}
+            for sub in cache.subsystems:
+                if sub.staleness_delta_seconds > 0:
+                    staleness[sub.name] = sub.staleness_delta_seconds
+            return HealthDetailsVO(
+                overall_status=cache.overall_status,
+                subsystems=cache.subsystems,
+                staleness_indicators=staleness,
+                composition_timestamp=cache.composition_timestamp,
             )
-            # We don't store the key, so we recompute and compare only if cache is recent
-            # If freshness tolerance allows, return fresh computation (cache is optimization)
-            pass
-
-        # Build subsystem health with bounded probes
 
         # Build subsystem health with bounded probes
         subsystems: list[SubsystemHealthVO] = []
@@ -137,6 +142,7 @@ class HealthComposer(HealthCompositionProtocol):
         # Cache the result
         self._composition_cache = result
         self._cache_time = now_ts
+        self._cache_key = current_key
 
         return result
 
