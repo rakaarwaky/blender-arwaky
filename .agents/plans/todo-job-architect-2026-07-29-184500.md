@@ -44,11 +44,11 @@ Analysis of the `job` feature module against FRD requirements and AES 7-layer co
 ## Action Items
 - ✅ P0 FIX AES 402: Define `ActiveCount`, `DeletedCount`, `RecordCount` NewTypes in taxonomy_job_vo.py; update contract protocols (completed, 95 tests pass)
 - ✅ P0 FIX AES 401: Replace primitive params in error constructors with branded types (JobId, JobState)
-- [ ] P1 FIX S1: Split `InMemoryJobLifecycleRepository` into focused repositories following single-responsibility principle
+- ✅ P1 FIX S1: Split `InMemoryJobLifecycleRepository` — extracted `JobStateTransitor` for state transition logic (95 tests pass)
 - ✅ P1 FIX J3: Replace `object | None` annotations in `_transition()` with proper domain types (completed during P0)
 - ✅ P2 FIX N1: Remove empty `__init__` from `JobStatusMonitor`
-- [ ] P3 FIX O1: Wire `JobEvent` into lifecycle emission through event bus protocol
-- [ ] P3 FIX S2: Evaluate whether `JobCapacityChecker`/`JobCleanupResolver` should be utility functions
+- ✅ P3 FIX O1: Wire `JobEvent` into lifecycle emission through event bus protocol (created IJobEventPublisher protocol + JobEventEmitter default impl)
+- ⏸️ P3 FIX S2: Deferred — evaluation below. Both classes are stateless single-method implementations of protocol interfaces. Keeping as capabilities preserves mocking capability and layer boundaries. Moving to utilities would simplify usage but reduce test isolation. Recommendation: keep current structure; extract private helpers (`_resolve_stale`, `_resolve_expired`, `_enforce_max`) to utility functions if needed.
 
 ## Fixed Code
 

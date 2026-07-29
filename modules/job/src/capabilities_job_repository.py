@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import threading
-import uuid
 from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -18,6 +17,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Progress,
     Timestamp,
 )
+from modules.shared.src.job.contract_job_event_protocol import IJobEventPublisher
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 from modules.shared.src.job.taxonomy_job_constant import (
     EVENT_TASK_CANCELLED,
@@ -34,9 +34,9 @@ from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
     TERMINAL_JOB_STATES,
-    VALID_JOB_TRANSITIONS,
 )
 from modules.shared.src.job.taxonomy_job_entity import JobRecord
+from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
     TaskNotFoundError,
@@ -63,6 +63,8 @@ from modules.shared.src.job.utility_job_sanitizer import (
     sanitize_operation_type,
     sanitize_progress_message,
 )
+from modules.job.src.capabilities_job_transitor import JobStateTransitor
+from modules.job.src.utility_job_event_emitter import JobEventEmitter
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -78,13 +80,15 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         policy: JobPolicy,
         clock: Callable[[], Timestamp],
         id_generator: Callable[[], JobId] | None = None,
+        event_publisher: IJobEventPublisher | None = None,
     ) -> None:
         self._policy = policy
         self._clock = clock
-        self._new_id = id_generator or (lambda: JobId(str(uuid.uuid4())))
+        self._transitor = JobStateTransitor(policy, clock, id_generator)
         self._lock = threading.RLock()
         self._records: dict[str, JobRecord] = {}
         self._active_count: int = 0
+        self._event_publisher = event_publisher or JobEventEmitter()
 
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
@@ -97,19 +101,12 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         metadata = redact_metadata(command.metadata)
 
         with self._lock:
-            job_id = self._new_id()
-            record = JobRecord(
-                job_id=job_id,
-                operation_type=operation,
-                correlation_id=command.correlation_id,
-                metadata=metadata,
-                created_at=now,
-                updated_at=now,
+            job_id, snapshot = self._transitor.create_record(
+                self._records, operation, command.correlation_id, metadata
             )
-            self._records[str(job_id)] = record
-            if self._counts_toward_capacity(record.state):
+            # Track capacity for newly created pending task
+            if self._counts_toward_capacity(snapshot.state):
                 self._active_count += 1
-            snapshot = record.to_snapshot()
 
         self._emit(EVENT_TASK_CREATED, snapshot)
         return snapshot
@@ -259,11 +256,6 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
             return self._policy.count_pending_toward_capacity
         return False
 
-    def _assert_transition(self, current: JobState, target: JobState) -> None:
-        allowed = VALID_JOB_TRANSITIONS.get(current, frozenset())
-        if target not in allowed:
-            raise InvalidStateTransitionError(str(current), str(target))
-
     def _transition(
         self,
         job_id: JobId,
@@ -275,48 +267,37 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         cancellation_reason: CancellationReason | None = None,
         progress_message: ProgressMessage | None = None,
     ) -> JobStatusSnapshot:
-        now = self._now()
         with self._lock:
             record = self._get_or_raise(job_id)
-            self._assert_transition(record.state, target)
-
             was_active = self._counts_toward_capacity(record.state)
-            record.state = target
-            record.updated_at = now
 
-            if target == JOB_STATE_RUNNING:
-                record.started_at = now
-                record.progress = Progress(0.0)
-                record.progress_message = None
-                record.last_progress_at = None
-
-            if target in TERMINAL_JOB_STATES:
-                record.finished_at = now
-
-            if target == JOB_STATE_COMPLETED:
-                record.progress = Progress(100.0)
-                record.result_url = str(result_url) if result_url is not None else None
-                if progress_message is not None:
-                    record.progress_message = str(progress_message) if progress_message is not None else None
-
-            if target == JOB_STATE_FAILED:
-                record.error = error or ErrorString("Unknown error")
-                record.error_category = error_category
-
-            if target == JOB_STATE_CANCELLED:
-                record.cancellation_reason = cancellation_reason
+            snapshot = self._transitor.transition(
+                self._records,
+                job_id,
+                target,
+                result_url=result_url,
+                error=error,
+                error_category=error_category,
+                cancellation_reason=cancellation_reason,
+                progress_message=progress_message,
+            )
 
             now_active = self._counts_toward_capacity(target)
             delta = (1 if now_active else 0) - (1 if was_active else 0)
             self._active_count = max(0, self._active_count + delta)
 
-            return record.to_snapshot()
+            return snapshot
 
     def _emit(self, event_type: str, snapshot: JobStatusSnapshot) -> None:
-        logger.info(
-            "Job event: %s job=%s state=%s op=%s",
-            event_type,
-            snapshot.job_id,
-            snapshot.state,
-            snapshot.operation_type,
+        """Emit a job event through the configured event publisher."""
+        event = JobEvent(
+            event_type=event_type,
+            job_id=snapshot.job_id,
+            operation_type=snapshot.operation_type,
+            state_after=snapshot.state,
+            timestamp=snapshot.updated_at,
+            state_before=None,
+            progress=snapshot.progress,
+            correlation_id=snapshot.correlation_id,
         )
+        self._event_publisher.emit(event)

@@ -36,9 +36,6 @@ from modules.shared.src.render.utility_render_code_builder import (
 from modules.shared.src.render.utility_render_result_parser import (
     parse_camera_config_result,
 )
-from modules.shared.src.security.contract_validate_path_protocol import (
-    ValidatePathProtocol,
-)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -50,10 +47,8 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
     def __init__(
         self,
         code_executor: ICodeExecutionProtocol,
-        security_validator: ValidatePathProtocol | None = None,
     ) -> None:
         self._code_executor = code_executor
-        self._security_validator = security_validator
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def configure_camera(self, request: CameraConfigVO) -> CameraConfigVO:

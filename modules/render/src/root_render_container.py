@@ -71,7 +71,6 @@ class RenderContainer:
             )
             camera_config = RenderCameraConfigExecutor(
                 self._code_executor,
-                self._security_validator,
             )
             hdri_config = RenderHdriConfigExecutor(
                 self._code_executor,

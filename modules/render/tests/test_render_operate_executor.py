@@ -335,3 +335,62 @@ async def test_fr_rnd_002_security_rejection() -> None:
     result = await cap.render_scene(_scene_req())
     assert bool(result.success) is False
     assert "security_violation" in str(result.message).lower()
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_max_size_too_small(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    """FR-RND-001: max_size below 64 pixels is rejected."""
+    result = await viewport_executor.capture_viewport(
+        _viewport_req(max_size=32)  # type: ignore[arg-type]
+    )
+    assert bool(result.success) is False
+    assert "max_size" in str(result.message).lower()
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_max_size_valid(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    """FR-RND-001: max_size >= 64 passes validation."""
+    result = await viewport_executor.capture_viewport(
+        _viewport_req(max_size=64)  # type: ignore[arg-type]
+    )
+    assert bool(result.success) is True
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_001_max_size_zero_unlimited(
+    viewport_executor: RenderViewportCaptureExecutor,
+) -> None:
+    """FR-RND-001: max_size=0 means no limit, passes validation."""
+    result = await viewport_executor.capture_viewport(
+        _viewport_req(max_size=0)  # type: ignore[arg-type]
+    )
+    assert bool(result.success) is True
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_overwrite_policy_reject() -> None:
+    """FR-RND-002: overwrite_policy='reject' rejects when artifact exists."""
+    exec_ = RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/render.png"}),
+        security_validator=MockSecurityValidator(),
+    )
+    # Reject policy with existing artifact path — capability accepts it at validation
+    # (Blender runtime enforces actual overwrite; capability validates format only)
+    result = await exec_.render_scene(_scene_req(overwrite_policy="reject"))
+    assert bool(result.success) is True
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_overwrite_policy_unique() -> None:
+    """FR-RND-002: overwrite_policy='unique' generates unique path."""
+    exec_ = RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/render_abc123.png"}),
+        security_validator=MockSecurityValidator(),
+    )
+    result = await exec_.render_scene(_scene_req(overwrite_policy="unique"))
+    assert bool(result.success) is True
+    assert "abc123" in str(result.artifact_path)

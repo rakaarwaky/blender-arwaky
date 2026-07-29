@@ -204,3 +204,25 @@ async def test_fr_rnd_004_security_rejection() -> None:
     result = await cap.configure_hdri(_req())
     assert bool(result.success) is False
     assert "security_violation" in str(result.message).lower()
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_004_missing_world_environment() -> None:
+    """FR-RND-004: HDRI config with no world resolved returns environment_state error."""
+    bad = RenderHdriConfigExecutor(
+        code_executor=MockCodeExecutor(payload={"environment_ref": ""})
+    )
+    result = await bad.configure_hdri(_req())
+    assert bool(result.success) is False
+    assert "environment_state" in str(result.message).lower()
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_004_world_created_if_missing() -> None:
+    """FR-RND-004: World created if missing + policy allows (success path)."""
+    good = RenderHdriConfigExecutor(
+        code_executor=MockCodeExecutor(payload={"environment_ref": "World.HDRI"})
+    )
+    result = await good.configure_hdri(_req())
+    assert bool(result.success) is True
+    assert str(result.environment_ref) == "World.HDRI"
