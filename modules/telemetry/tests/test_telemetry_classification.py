@@ -4,14 +4,18 @@ FR-TLM-002: Event Categorization through Fixed Feature and Operation Taxonomy
 - Events classified into standardized high-level categories
 - Unrecognized or missing categories default to ERROR (unknown)
 - Every event belongs to exactly one primary category
+- No PII parameters — only action type strings for classification
 """
 
 from __future__ import annotations
 
-from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
+import pytest
+
+from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryCategory
 from modules.telemetry.src.capabilities_telemetry_classification import (
     TelemetryEventClassifier,
 )
+
 
 # ─── FR-TLM-002: Known Event Types ────────────────────────────────────────
 
@@ -22,24 +26,20 @@ class TestKnownEventTypes:
     def test_error_event_classified(self) -> None:
         """FR-TLM-002: Error events are classified as ERROR."""
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(error_message="something broke")
-        assert result == EventType.ERROR
+        result = classifier.classify_event("error")
+        assert result["outcome_category"] == "error"
+
+    def test_startup_event_classified(self) -> None:
+        """FR-TLM-002: Startup events are classified as STARTUP."""
+        classifier = TelemetryEventClassifier()
+        result = classifier.classify_event("startup")
+        assert result["outcome_category"] == "success"
 
     def test_tool_execution_classified(self) -> None:
         """FR-TLM-002: Tool execution events are classified as TOOL_EXECUTION."""
-        from modules.shared.src.common.taxonomy_core_vo import ToolName
-
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(tool_name=ToolName("my_tool"))
-        assert result == EventType.TOOL_EXECUTION
-
-    def test_prompt_sent_classified(self) -> None:
-        """FR-TLM-002: Prompt events are classified as PROMPT_SENT."""
-        from modules.shared.src.common.taxonomy_core_vo import Prompt
-
-        classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(prompt_text=Prompt("hello"))
-        assert result == EventType.PROMPT_SENT
+        result = classifier.classify_event("tool_execution")
+        assert result["outcome_category"] == "success"
 
 
 # ─── FR-TLM-002: Default to ERROR ─────────────────────────────────────────
@@ -48,72 +48,61 @@ class TestKnownEventTypes:
 class TestDefaultError:
     """FR-TLM-002: Unrecognized events default to ERROR per FR-TLM-002."""
 
-    def test_no_metadata_defaults_to_error(self) -> None:
-        """FR-TLM-002: Events with no metadata default to ERROR."""
+    def test_unknown_action_defaults_to_error(self) -> None:
+        """FR-TLM-002: Unrecognized action defaults to ERROR."""
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event()
-        assert result == EventType.ERROR
+        result = classifier.classify_event("unknown_type")
+        assert result["outcome_category"] == "error"
 
-    def test_unknown_raw_type_defaults_to_error(self) -> None:
-        """FR-TLM-002: Unrecognized raw type defaults to ERROR."""
+    def test_empty_action_defaults_to_error(self) -> None:
+        """FR-TLM-002: Empty action defaults to ERROR."""
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(raw_type="unknown_type")
-        assert result == EventType.ERROR
+        result = classifier.classify_event("")
+        assert result["outcome_category"] == "error"
 
-    def test_none_raw_type_defaults_to_error(self) -> None:
-        """FR-TLM-002: None raw type defaults to ERROR when no other metadata."""
+
+# ─── FR-TLM-002: Feature Area Resolution ──────────────────────────────────
+
+
+class TestFeatureAreaResolution:
+    """FR-TLM-002: Feature area resolution from action type."""
+
+    @pytest.mark.parametrize(
+        "action_type,expected_feature",
+        [
+            ("action_execute", "dispatcher"),
+            ("health_check", "diagnostics"),
+            ("search", "asset"),
+            ("render", "render"),
+        ],
+    )
+    def test_action_maps_to_feature_area(self, action_type: str, expected_feature: str) -> None:
+        """FR-TLM-002: Known actions resolve to correct feature area."""
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(raw_type=None)
-        assert result == EventType.ERROR
+        result = classifier.classify_event(action_type)
+        assert result["feature_area"] == expected_feature
 
-
-# ─── FR-TLM-002: Raw Type Matching ────────────────────────────────────────
-
-
-class TestRawTypeMatching:
-    """FR-TLM-002: Raw type string matching to EventType enum."""
-
-    def test_matching_raw_type_returns_correct_event(self) -> None:
-        """FR-TLM-002: Valid raw type string matches corresponding EventType."""
+    def test_unknown_action_defaults_to_other(self) -> None:
+        """FR-TLM-002: Unknown actions default to 'other' feature area."""
         classifier = TelemetryEventClassifier()
-        # Assuming EventType has values that match raw strings
-        for event_type in EventType:
-            result = classifier.classify_event(raw_type=event_type.value)
-            assert result == event_type
+        result = classifier.classify_event("unknown_action")
+        assert result["feature_area"] == "other"
 
-    def test_raw_type_overrides_no_metadata(self) -> None:
-        """FR-TLM-002: Raw type is recognized when no other metadata present."""
+    def test_custom_feature_area_preserved(self) -> None:
+        """FR-TLM-002: Explicit feature area overrides default resolution."""
         classifier = TelemetryEventClassifier()
-        for event_type in EventType:
-            result = classifier.classify_event(raw_type=event_type.value)
-            assert result == event_type
+        result = classifier.classify_event("action_execute", feature_area="custom")
+        assert result["feature_area"] == "custom"
 
 
-# ─── FR-TLM-002: Priority Resolution ──────────────────────────────────────
+# ─── FR-TLM-002: Operation Type Resolution ────────────────────────────────
 
 
-class TestPriorityResolution:
-    """FR-TLM-002: Event classification priority resolution."""
+class TestOperationType:
+    """FR-TLM-002: Operation type defaults to 'other' for unknown actions."""
 
-    def test_error_overrides_tool_name(self) -> None:
-        """FR-TLM-002: Error message takes priority over tool_name when both present."""
-        from modules.shared.src.common.taxonomy_core_vo import Prompt, ToolName
-
+    def test_default_operation_type_is_other(self) -> None:
+        """FR-TLM-002: Default operation type is 'other' for unknown actions."""
         classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(
-            tool_name=ToolName("test"),
-            prompt_text=Prompt("hello"),
-            error_message="broken",
-        )
-        assert result == EventType.ERROR
-
-    def test_tool_name_overrides_prompt(self) -> None:
-        """FR-TLM-002: Tool name takes priority over prompt when both present."""
-        from modules.shared.src.common.taxonomy_core_vo import Prompt
-
-        classifier = TelemetryEventClassifier()
-        result = classifier.classify_event(
-            tool_name="my_tool",
-            prompt_text=Prompt("hello"),
-        )
-        assert result == EventType.TOOL_EXECUTION
+        result = classifier.classify_event("unknown_action")
+        assert result["operation_type"] == "other"

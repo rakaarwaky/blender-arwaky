@@ -355,7 +355,7 @@ from .telemetry.taxonomy_event_constant import (
     EVENT_TYPE_STARTUP,
     EVENT_TYPE_TOOL_EXECUTION,
 )
-from .telemetry.taxonomy_telemetry_event import EventType, TelemetryEvent
+from .telemetry.taxonomy_telemetry_event import TelemetryCategory, TelemetryEvent
 
 __all__ = [
     "asset",

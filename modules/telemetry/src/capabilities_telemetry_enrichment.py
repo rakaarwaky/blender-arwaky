@@ -7,6 +7,7 @@ environment metadata to telemetry events per FR-TLM-004.
 from __future__ import annotations
 
 import logging
+import os
 import platform
 import sys
 import threading
@@ -24,7 +25,6 @@ except ImportError:
 
 from modules.shared.src.common.taxonomy_core_vo import (
     BlenderVersion,
-    Details,
     PlatformName,
     VersionString,
 )
@@ -32,7 +32,7 @@ from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import 
     TelemetryEnrichmentProtocol,
 )
 
-logger = logging.getLogger("blender-arwaky-telemetry-service")
+logger = logging.getLogger("blender-arwaky.telemetry")
 
 
 class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
@@ -43,10 +43,10 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
     """
 
     def __init__(self) -> None:
-        self._metadata_cache: Details | None = None
+        self._metadata_cache: dict[str, Any] | None = None
         self._cache_lock = threading.Lock()
 
-    def enrich_event_metadata(self) -> Details:
+    def enrich_event_metadata(self) -> dict[str, Any]:
         """Gather and attach environment metadata to events.
 
         FR-TLM-004: Attaches application version, OS type, and Blender version.
@@ -56,10 +56,10 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
             if self._metadata_cache is not None:
                 return self._metadata_cache
 
-            # Build metadata dict
+            # Build metadata dict (DO NOT convert to string)
             metadata: dict[str, Any] = {
-                "app_version": self.get_app_version(),
-                "platform": self.get_platform(),
+                "app_version": str(self.get_app_version()),
+                "platform": str(self.get_platform()),
                 "blender_version": str(self.get_blender_version()) if self.get_blender_version() else "unknown",
             }
 
@@ -76,8 +76,8 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
                 logger.debug("Failed to get OS version: %s", e)
                 metadata["os_version"] = "unknown"
 
-            # Cache the metadata (non-sensitive, safe to cache)
-            self._metadata_cache = Details(str(metadata))
+            # Cache the metadata dict directly — not stringified
+            self._metadata_cache = metadata
             return self._metadata_cache
 
     def get_app_version(self) -> VersionString:
@@ -133,11 +133,6 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
             if env_version:
                 return BlenderVersion(env_version)
 
-            # Check sys.version for running Blender instance
-            sys_version = self._get_sys_blender_version()
-            if sys_version:
-                return BlenderVersion(sys_version)
-
         except Exception as e:
             logger.debug("Failed to detect Blender version: %s", e)
 
@@ -145,16 +140,4 @@ class TelemetryEventEnricher(TelemetryEnrichmentProtocol):
 
     def _get_env_blender_version(self) -> str | None:
         """Get Blender version from environment variables."""
-        try:
-            import os
-
-            return os.environ.get("BLENDER_VERSION")
-        except Exception:
-            return None
-
-    def _get_sys_blender_version(self) -> str | None:
-        """Get Blender version from sys.version or platform.python_version."""
-        # Check if running inside Blender (sys.prefix contains blender)
-        if hasattr(sys, "version"):
-            return None
-        return None
+        return os.environ.get("BLENDER_VERSION")

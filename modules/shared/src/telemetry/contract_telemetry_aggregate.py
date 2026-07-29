@@ -12,7 +12,6 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     DurationMs,
-    ErrorMessage,
     ErrorString,
     SessionId,
     SuccessFlag,
@@ -20,6 +19,8 @@ from modules.shared.src.common.taxonomy_core_vo import (
 
 
 class ITelemetryAggregate(ABC):
+    """Aggregate facade for telemetry operations."""
+
     @abstractmethod
     def record_startup_event(self) -> None: ...
 
@@ -32,14 +33,10 @@ class ITelemetryAggregate(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def record_system_error(
-        self,
-        error_category: ErrorString,
-        context: ErrorMessage,
-    ) -> None: ...
+    def record_system_error(self, error_category: ErrorString) -> None: ...
 
     @abstractmethod
-    def get_session_id(self) -> SessionId: ...
+    def get_session_id(self) -> SessionId | None: ...
 
     @abstractmethod
     def initialize_session(self) -> None: ...

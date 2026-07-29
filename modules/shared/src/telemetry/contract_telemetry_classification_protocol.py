@@ -1,9 +1,8 @@
 """Telemetry domain contract: event classification protocol (ABC based).
 
-Defines the protocol for assigning events to fixed, low-cardinality
-taxonomy so analytics remain comparable across versions.
-
 FR-TLM-002: Classify and Categorize Events
+Assigns events to fixed, low-cardinality taxonomy.
+No PII parameters — only category strings for classification.
 """
 
 from __future__ import annotations
@@ -11,17 +10,16 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, ErrorMessage, Prompt, ToolName
-from modules.shared.src.telemetry.taxonomy_telemetry_event import EventType
+from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryCategory
 
 
 class TelemetryClassificationProtocol(ABC):
-    """Protocol for classifying telemetry events into fixed taxonomy."""
+    """Async protocol for classifying telemetry events into fixed taxonomy."""
 
     @abstractmethod
     async def classify_event(
         self,
-        action_type: ActionName,
+        action_type: str,
         feature_area: str | None = None,
     ) -> dict[str, Any]:
         """Assign event to fixed taxonomy (feature area, operation type, outcome).
@@ -37,24 +35,17 @@ class TelemetryClassificationProtocol(ABC):
         Returns:
             Dict with categorized event including feature_area, operation_type, outcome_category.
         """
-        pass
+        ...
 
 
 class TelemetryClassificationPort(ABC):
-    """Port interface for telemetry event classification and categorization."""
+    """Sync facade for orchestrator consumption."""
 
     @abstractmethod
-    def classify_event(
-        self,
-        raw_type: str | None = None,
-        tool_name: ToolName | None = None,
-        prompt_text: Prompt | None = None,
-        error_message: ErrorMessage | None = None,
-        metadata: Details | None = None,
-    ) -> EventType:
+    def classify_event(self, raw_type: str) -> TelemetryCategory:
         """Classify an event into a standardized category.
 
         FR-TLM-002: Tag the event with a high-level category.
         If unrecognized or missing category, default to ERROR (unknown).
         """
-        pass
+        ...

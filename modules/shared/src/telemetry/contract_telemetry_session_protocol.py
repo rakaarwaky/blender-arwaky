@@ -1,9 +1,8 @@
 """Telemetry domain contract: session management protocol (ABC based).
 
-Defines the protocol for maintaining random, unlinkable session identifiers
-that survive restarts within a rotation window.
-
 FR-TLM-003: Manage Analytics Sessions
+Session identifiers persist across restarts within rotation window.
+Consent withdrawal deletes local session state entirely.
 """
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ from modules.shared.src.common.taxonomy_core_vo import SessionId, SuccessFlag
 
 
 class TelemetrySessionProtocol(ABC):
-    """Protocol for managing anonymous telemetry sessions."""
+    """Async protocol for managing anonymous telemetry sessions."""
 
     @abstractmethod
     async def get_session_id(
@@ -26,7 +25,7 @@ class TelemetrySessionProtocol(ABC):
 
         FR-TLM-003: Session ID generated from collision-resistant random source.
         Persists across restarts within rotation window.
-        Consent withdrawal deletes local session state entirely.
+        Consent withdrawal raises error — no session returned.
 
         Args:
             force_new: Whether to generate a new session ID.
@@ -34,8 +33,11 @@ class TelemetrySessionProtocol(ABC):
 
         Returns:
             Anonymous session identifier string.
+
+        Raises:
+            RuntimeError: If consent is inactive.
         """
-        pass
+        ...
 
     @abstractmethod
     async def rotate_session(self) -> SessionId:
@@ -44,25 +46,26 @@ class TelemetrySessionProtocol(ABC):
         Returns:
             New session identifier string.
         """
-        pass
+        ...
 
     @abstractmethod
     async def clear_session(self) -> None:
         """Clear session state (e.g., on consent withdrawal)."""
-        pass
+        ...
 
 
 class TelemetrySessionManagementPort(ABC):
-    """Port interface for telemetry session management."""
+    """Sync facade for orchestrator consumption."""
 
     @abstractmethod
-    def get_session_id(self) -> SessionId:
+    def get_session_id(self) -> SessionId | None:
         """Return the current anonymous session identifier.
 
         FR-TLM-003: The session ID persists for the entire application runtime.
         A new unique ID is generated on each application restart.
+        Returns None if no session exists.
         """
-        pass
+        ...
 
     @abstractmethod
     def initialize_session(self) -> SuccessFlag:
@@ -71,4 +74,4 @@ class TelemetrySessionManagementPort(ABC):
         FR-TLM-003: Called on application startup to create a fresh session.
         The identifier must be completely anonymous and not traceable to a user.
         """
-        pass
+        ...
