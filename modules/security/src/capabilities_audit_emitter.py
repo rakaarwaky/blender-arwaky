@@ -57,8 +57,15 @@ class AuditEmitter(EmitAuditProtocol):
     """Emits structured security audit events with fallback on sink failure."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, sink: _AuditSink | None = None) -> None:
+    def __init__(
+        self,
+        sink: _AuditSink | None = None,
+        fallback_buffer: list[SecurityAuditEventVO] | None = None,
+    ) -> None:
         self._sink = sink
+        self._fallback_buffer: list[SecurityAuditEventVO] = (
+            fallback_buffer if fallback_buffer is not None else []
+        )
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
@@ -67,6 +74,9 @@ class AuditEmitter(EmitAuditProtocol):
         FR-SEC-004: redact sensitive values from `target_metadata` / `redacted_reason`
         before emission so secrets never reach the observability sink, regardless of
         whether the caller pre-redacted. The caller's input event is never mutated.
+
+        FR-SEC-005: when sink delivery fails, creates a fallback record stored in
+        _fallback_buffer instead of discarding it.
         """
         emitted = SecurityAuditEventVO(
             violation_category=event.violation_category,
@@ -86,19 +96,26 @@ class AuditEmitter(EmitAuditProtocol):
                 self._sink.deliver(emitted)
             except Exception as exc:
                 # FR-SEC-005: audit sink unavailable — create local fallback record
-                logger.warning("Audit sink delivery failed: %s", exc)
-                SecurityAuditEventVO(
+                fallback = SecurityAuditEventVO(
                     violation_category=event.violation_category,
                     operation_type=event.operation_type,
                     source_feature=event.source_feature,
                     target_metadata=_redact_sensitive(event.target_metadata),
                     severity=AuditSeverity.ERROR,
                     correlation_id=event.correlation_id,
-                    redacted_reason=_redact_sensitive(event.redacted_reason) if event.redacted_reason else None,
+                    redacted_reason=_redact_sensitive(str(exc)),
                     event_id=uuid.uuid4().hex[:16],
                     timestamp=time.time(),
                     policy_mode="fallback",
                 )
+                self._fallback_buffer.append(fallback)
+                logger.warning(
+                    "Audit sink delivery failed; fallback record created: %s",
+                    _redact_sensitive(str(exc)),
+                )
+        else:
+            # No sink configured — buffer as fallback
+            self._fallback_buffer.append(emitted)
 
         return emitted
 

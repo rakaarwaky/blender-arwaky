@@ -16,6 +16,7 @@ import logging
 
 from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
+from modules.shared.src.security.utility_security_path import resolve_path
 
 from .agent_security_orchestrator import SecurityOrchestrator
 from .capabilities_archive_guard import ArchiveGuard
@@ -25,6 +26,13 @@ from .capabilities_path_validator import PathValidator
 from .capabilities_sensitive_redactor import SensitiveRedactor
 
 logger = logging.getLogger("BlenderMCPServer")
+
+
+class _OsPathResolver:
+    """Adapter exposing utility resolve_path as a resolver protocol."""
+
+    def resolve(self, path: str) -> str:
+        return resolve_path(path)
 
 
 class SecurityContainer:
@@ -59,11 +67,17 @@ class SecurityContainer:
         logger.info("Wiring security feature module (5 individual capabilities)")
 
         # Capabilities layer — each implements its own protocol
-        validate_path_cap = PathValidator(policy=self._policy)
-        validate_archive_cap = ArchiveGuard()
+        validate_path_cap = PathValidator(
+            policy=self._policy,
+            path_resolver=_OsPathResolver(),
+        )
+        validate_archive_cap = ArchiveGuard(policy=self._policy)
         validate_code_cap = CodeValidator(policy=self._policy)
-        redact_cap = SensitiveRedactor()
-        emit_audit_cap = AuditEmitter()
+        redact_cap = SensitiveRedactor(
+            extra_patterns=self._policy.redaction_patterns,
+            extra_key_names=self._policy.redaction_key_names,
+        )
+        emit_audit_cap = AuditEmitter(sink=None, fallback_buffer=[])
 
         # Agent layer — implements aggregate, depends on all 5 protocols
         self._orchestrator = SecurityOrchestrator(
