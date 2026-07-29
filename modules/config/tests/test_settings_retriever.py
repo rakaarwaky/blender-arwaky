@@ -14,7 +14,9 @@ def _retriever(mode="strict", escape=False):
 
 
 def _snap():
-    return SettingsSnapshot(_data={"a": {"b": 1}, "port": 9876, "flag": True, "name": "x", "floaty": 3.5, "dotted": {"a.b": 1}})
+    return SettingsSnapshot(
+        _data={"a": {"b": 1}, "port": 9876, "flag": True, "name": "x", "floaty": 3.5, "dotted": {"a.b": 1}}
+    )
 
 
 @pytest.mark.unit

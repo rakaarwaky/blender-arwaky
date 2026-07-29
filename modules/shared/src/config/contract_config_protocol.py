@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_config_vo import SettingsSnapshot as _SettingsSnapshot  # AES202: mandatory taxonomy import
-
 
 class ConfigGetterProtocol(ABC):
     """Protocol for retrieving configuration values.

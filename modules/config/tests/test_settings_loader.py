@@ -209,7 +209,7 @@ def test_legacy_prefix_ignored(monkeypatch):
 def test_event_counts_real_env_overrides(monkeypatch):
     monkeypatch.setenv("BLENDERMCP_SERVER.TRANSPORT", "ws")
     loader = SettingsLoaderCapability()
-    _snap = loader.load_settings()
+    loader.load_settings()
     ev = loader.emit_loaded_event()
     md = loader.get_last_metadata()
     assert ev.override_count == int(md.overrides)
