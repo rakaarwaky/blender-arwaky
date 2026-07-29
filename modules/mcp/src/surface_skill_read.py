@@ -1,7 +1,7 @@
 """MCP Tool 3: read_skill_context — Read SKILL.md documentation for any skill.
 
 FR-MCP-001: Expose MCP Tools — register_skill_read registers tool with MCP
-FR-MCP-002: Route Tool Calls — get_container().skill_reader reads SKILL.md from static files
+FR-MCP-002: Route Tool Calls — SkillDocumentationReader reads SKILL.md from static files
 FR-MCP-003: Format MCP Responses — Prompt type wraps skill context result
 
 This provides in-context documentation without leaving the chat.
@@ -10,7 +10,6 @@ Surface delegates to the static documentation reader via the DI container.
 
 from pathlib import Path
 
-from modules.mcp.src.agent_mcp_orchestrator import get_container
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SectionRef, SkillName
 
 
@@ -85,6 +84,5 @@ class SkillReadHandler:
             Returns:
                 Markdown content of the SKILL.md (or empty string if not found)
             """
-            reader = get_container().skill_reader
-            content = reader.read_skill(str(skill_name), section=section)
+            content = SkillDocumentationReader().read_skill(str(skill_name), section=section)
             return Prompt(content)

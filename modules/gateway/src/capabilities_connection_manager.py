@@ -324,7 +324,10 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     details={"host": self._host},
                 )
         except ConnectionClosedError:
-            raise AuthenticationError(message="Authentication connection lost") from None
+            raise AuthenticationError(
+                message="Authentication connection lost",
+                details={"host": self._host},
+            ) from None
 
     async def _receive_response(self, timeout_ms: float | None = None) -> bytes:
         timeout_s = timeout_ms / 1000.0 if timeout_ms else 30.0

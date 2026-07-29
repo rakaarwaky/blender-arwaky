@@ -2,7 +2,7 @@
 MCP Tool 1: execute_command — Thin wrapper delegating execution directly to the Agent container.
 
 FR-MCP-001: Expose MCP Tools — register_execute_command registers tool with MCP
-FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.execute_action routes to dispatcher
+FR-MCP-002: Route Tool Calls — create_dispatcher_feature().execute_action routes to dispatcher
 FR-MCP-003: Format MCP Responses — unified result envelope returned from the orchestrator
 
 Direct delegation to the Agent container via its aggregate contract (AES compliant).
@@ -14,7 +14,7 @@ import json
 import logging
 from typing import Any
 
-from modules.mcp.src.agent_mcp_orchestrator import get_container
+from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -45,7 +45,7 @@ class CommandExecuteHandler:
             if args is None:
                 args = {}
             try:
-                orchestrator = get_container().core_agent_orchestrator
+                orchestrator = create_dispatcher_feature()
                 # FR-MCP-002: route to the dispatcher aggregate facade.
                 # execute_action is synchronous (FR-DSP-004) — do NOT await it.
                 result = orchestrator.execute_action(action, args)

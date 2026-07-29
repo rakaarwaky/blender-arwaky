@@ -17,7 +17,7 @@ from unittest.mock import patch
 from modules.mcp.src.surface_command_execute import CommandExecuteHandler
 from modules.mcp.src.surface_commands_list import CommandsListHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
-from modules.mcp.src.surface_skill_read import SkillReadHandler
+from modules.mcp.src.surface_skill_read import SkillDocumentationReader, SkillReadHandler
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
@@ -47,29 +47,6 @@ class FakeDiagnostics:
         return {"health": "ok", "detail_level": detail_level}
 
 
-class FakeSkillReader:
-    """Matches SkillDocumentationReader's read_skill interface."""
-
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, tuple]] = []
-
-    def read_skill(self, skill_name, section=None):
-        self.calls.append(("read_skill", (skill_name, section)))
-        return f"# {skill_name}\n\nSkill content."
-
-
-class FakeContainer:
-    def __init__(
-        self,
-        orchestrator: FakeOrchestrator,
-        diagnostics: FakeDiagnostics,
-        skill_reader: FakeSkillReader,
-    ) -> None:
-        self.core_agent_orchestrator = orchestrator
-        self.diagnostics = diagnostics
-        self.skill_reader = skill_reader
-
-
 class FakeMCP:
     def __init__(self) -> None:
         self.tools: dict[str, Any] = {}
@@ -87,31 +64,24 @@ class TestExecuteCommandRouting:
 
     async def test_routes_to_execute_action(self):
         orch = FakeOrchestrator()
-        diag = FakeDiagnostics()
-        reader = FakeSkillReader()
-        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_command_execute.get_container",
-            return_value=container,
+            "modules.mcp.src.surface_command_execute.create_dispatcher_feature",
+            return_value=orch,
         ):
             CommandExecuteHandler.register_execute_command(mcp)
             fn = mcp.tools["execute_command"]
             result = await fn("action_x", {"a": 1})
 
         assert orch.calls == [("execute_action", ("action_x", {"a": 1}))]
-        # Result is passed through unchanged (no reinterpretation).
         assert result == {"routed": "execute_action", "action": "action_x"}
 
     async def test_defaults_args_to_empty_dict(self):
         orch = FakeOrchestrator()
-        diag = FakeDiagnostics()
-        reader = FakeSkillReader()
-        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_command_execute.get_container",
-            return_value=container,
+            "modules.mcp.src.surface_command_execute.create_dispatcher_feature",
+            return_value=orch,
         ):
             CommandExecuteHandler.register_execute_command(mcp)
             await mcp.tools["execute_command"]("action_y", None)
@@ -124,13 +94,10 @@ class TestListCommandsRouting:
 
     def test_routes_to_list_commands(self):
         orch = FakeOrchestrator()
-        diag = FakeDiagnostics()
-        reader = FakeSkillReader()
-        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_commands_list.get_container",
-            return_value=container,
+            "modules.mcp.src.surface_commands_list.create_dispatcher_feature",
+            return_value=orch,
         ):
             CommandsListHandler.register_list_commands(mcp)
             result = mcp.tools["list_commands"](None, None)
@@ -140,22 +107,14 @@ class TestListCommandsRouting:
 
 
 class TestReadSkillContextRouting:
-    """read_skill_context -> skill_reader.read_skill (static docs surface)."""
+    """read_skill_context -> SkillDocumentationReader.read_skill (static docs surface)."""
 
     def test_routes_to_read_skill_context(self):
-        orch = FakeOrchestrator()
-        diag = FakeDiagnostics()
-        reader = FakeSkillReader()
-        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
-        with patch(
-            "modules.mcp.src.surface_skill_read.get_container",
-            return_value=container,
-        ):
+        with patch.object(SkillDocumentationReader, "read_skill", return_value="# skill_x\n\nSkill content."):
             SkillReadHandler.register_read_skill_context(mcp)
             result = mcp.tools["read_skill_context"]("skill_x", None)
 
-        assert reader.calls[0][0] == "read_skill"
         assert result == Prompt("# skill_x\n\nSkill content.")
 
 
@@ -163,14 +122,11 @@ class TestHealthCheckRouting:
     """health_check -> diagnostics.get_snapshot (FR-DIA-001)."""
 
     async def test_routes_to_health_check(self):
-        orch = FakeOrchestrator()
         diag = FakeDiagnostics()
-        reader = FakeSkillReader()
-        container = FakeContainer(orch, diag, reader)
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_health_check.get_container",
-            return_value=container,
+            "modules.mcp.src.surface_health_check.create_diagnostics_feature",
+            return_value=diag,
         ):
             HealthCheckHandler.register_health_check(mcp)
             result = await mcp.tools["health_check"]()

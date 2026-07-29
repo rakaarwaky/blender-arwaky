@@ -94,17 +94,14 @@ Serialize aggregate outcomes into MCP-compliant structured responses.
 
 ## Tool Mapping
 
-| MCP Tool | Target Feature |
-|---|---|
-| execute_command | dispatcher feature |
-| list_commands | dispatcher feature |
-| health_check | diagnostics feature |
-| get_config | config feature |
-| read_skill_context | static documentation surface |
-| get_task_status | job feature |
-| cancel_task | job feature |
 
-Mapping rules: 1 tool = 1 aggregate. Semantics identical to CLI counterparts — divergence = defect. New capabilities reachable via catalog registration alone, no surface code changes.
+| MCP Tool           | Target Feature               | Notes                                           |
+| -------------------- | ------------------------------ | ------------------------------------------------- |
+| execute_command    | dispatcher feature           | Universal entry point  action name as argument |
+| list_commands      | dispatcher feature           | Command catalog discovery                       |
+| health_check       | diagnostics feature          | System health snapshot                          |
+| get_config         | config feature               | Settings retrieval                              |
+| read_skill_context | static documentation surface | Versioned SKILL.md reader                       |
 
 ## Error Categories
 
@@ -117,43 +114,44 @@ None. Session lifecycle and tool calls appear in structured logs via diagnostics
 
 ## Configuration Keys
 
-| Key | Description | Default |
-|---|---|---|
-| server_identity | Name + version advertised at init | Product name + semver |
-| max_response_payload | Upper bound before oversized strategy | Conservative |
-| protocol_version | Negotiated at handshake | Current |
-| input_strictness | strict/tolerant for unknown fields | strict |
-| oversized_strategy | summarize/substitute/truncate | substitute |
-| skill_context_version | Static docs version | Release version |
-| tracking_id_injection | Generate when client omits | enabled |
-| schema_detail | Depth of examples + metadata in schemas | full |
+
+| Key                   | Description                             | Default               |
+| ----------------------- | ----------------------------------------- | ----------------------- |
+| server_identity       | Name + version advertised at init       | Product name + semver |
+| max_response_payload  | Upper bound before oversized strategy   | Conservative          |
+| protocol_version      | Negotiated at handshake                 | Current               |
+| input_strictness      | strict/tolerant for unknown fields      | strict                |
+| oversized_strategy    | summarize/substitute/truncate           | substitute            |
+| skill_context_version | Static docs version                     | Release version       |
+| tracking_id_injection | Generate when client omits              | enabled               |
+| schema_detail         | Depth of examples + metadata in schemas | full                  |
 
 ## QA Checklist
 
-- [ ] Tool schemas exposed with names, descriptions, param schemas, examples
-- [ ] Schema content from dispatcher catalog + owning features, never redefined at surface
-- [ ] Deterministic schema output for identical catalog
-- [ ] Catalog version in schema output
-- [ ] Degraded features indicated, not hidden
-- [ ] Protocol negotiation rejects incompatible versions
-- [ ] Calls accepted only after init completes
-- [ ] Tool calls route to correct aggregate, identical semantics to CLI
-- [ ] Unknown tool → unsupported error
-- [ ] Malformed input → validation error with field detail
-- [ ] Unknown extra fields handled per strict/tolerant policy
-- [ ] Oversized input rejected before routing
-- [ ] Tracking ID in all responses
-- [ ] Responses structured per MCP spec with unified envelope
-- [ ] Payload size enforced (summarize/substitute/truncate)
-- [ ] Binary content as ref or bounded excerpt
-- [ ] Non-serializable values → safe text
-- [ ] Errors: MCP-spec format, unified category, actionable message
-- [ ] Secrets masked in every response path
-- [ ] Masking failure → suppress fragment, not expose
-- [ ] Warnings preserved alongside results
-- [ ] Concurrent calls accepted; mutation serialization delegated to gateway
-- [ ] Client disconnect doesn't corrupt execution
-- [ ] Skill context: versioned static docs, no live state access
-- [ ] 1:1 parity with CLI verified — same aggregates, same semantics
-- [ ] No business logic in MCP layer — no retries, composition, reinterpretation
-- [ ] New catalog capability reachable via schema exposure, no surface code changes
+- [ ]  Tool schemas exposed with names, descriptions, param schemas, examples
+- [ ]  Schema content from dispatcher catalog + owning features, never redefined at surface
+- [ ]  Deterministic schema output for identical catalog
+- [ ]  Catalog version in schema output
+- [ ]  Degraded features indicated, not hidden
+- [ ]  Protocol negotiation rejects incompatible versions
+- [ ]  Calls accepted only after init completes
+- [ ]  Tool calls route to correct aggregate, identical semantics to CLI
+- [ ]  Unknown tool → unsupported error
+- [ ]  Malformed input → validation error with field detail
+- [ ]  Unknown extra fields handled per strict/tolerant policy
+- [ ]  Oversized input rejected before routing
+- [ ]  Tracking ID in all responses
+- [ ]  Responses structured per MCP spec with unified envelope
+- [ ]  Payload size enforced (summarize/substitute/truncate)
+- [ ]  Binary content as ref or bounded excerpt
+- [ ]  Non-serializable values → safe text
+- [ ]  Errors: MCP-spec format, unified category, actionable message
+- [ ]  Secrets masked in every response path
+- [ ]  Masking failure → suppress fragment, not expose
+- [ ]  Warnings preserved alongside results
+- [ ]  Concurrent calls accepted; mutation serialization delegated to gateway
+- [ ]  Client disconnect doesn't corrupt execution
+- [ ]  Skill context: versioned static docs, no live state access
+- [ ]  1:1 parity with CLI verified — same aggregates, same semantics
+- [ ]  No business logic in MCP layer — no retries, composition, reinterpretation
+- [ ]  New catalog capability reachable via schema exposure, no surface code changes

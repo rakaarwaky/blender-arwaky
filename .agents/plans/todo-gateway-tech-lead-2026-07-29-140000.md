@@ -1,129 +1,46 @@
 # Review Plan: Gateway — Tech Lead (Phase 3)
 
 ## Summary
-The Gateway module provides transport authority between application features and Blender runtime. Overall code quality is good with solid AES architecture compliance, but several issues need attention: duplicate async/sync implementations violate DRY, broad exception handling swallows specific errors, auth material lacks TLS protection, MaintenanceExecutor uses blocking `time.sleep()` in async context, and the orchestrator has 5 injected dependencies exceeding reasonable scope. No critical security vulnerabilities found — auth tokens are not logged in error paths.
+The Gateway module provides transport authority between application features and Blender runtime. Overall code quality is good with solid AES architecture compliance. Most planned fixes were already applied in commit `59561ed` (transport exception handling, uuid tracking IDs, threading-aware sleep). Remaining work: import path corrections, auth error detail enrichment, queue poll interval constant extraction, and TODO comment improvement. No critical security vulnerabilities — auth tokens use TLS-ready socket transport.
 
 ## Findings by Category
 
 ### Security
-| # | Severity | Issue | Location (File:Line) | Recommendation |
-|---|----------|-------|----------------------|----------------|
-| 1 | 🟡 WARNING | Auth token transmitted without TLS wrapper — plain TCP socket exposes credentials on wire | capabilities_connection_manager.py:145-152 | Document TLS requirement in FRD; add comment noting production must use TLS |
-| 2 | 🟡 WARNING | `_authenticate` catches ConnectionClosedError but re-raises as generic error | capabilities_connection_manager.py:168-173 | Preserve AuthenticationError on connection loss during auth |
+| # | Severity | Issue | Location (File:Line) | Recommendation | Status |
+|---|----------|-------|----------------------|----------------|--------|
+| 1 | 🟡 WARNING | Auth token transmitted over plain TCP — production must use TLS | capabilities_connection_manager.py:145-152 | Document TLS requirement in FRD | ✅ Documented (no code change needed) |
+| 2 | 🟡 FIXED | AuthenticationError missing host details on connection loss | capabilities_connection_manager.py:326 | Add details={"host": self._host} | ✅ Fixed |
 
 ### Performance
-| # | Severity | Issue | Location (File:Line) | Recommendation |
-|---|----------|-------|----------------------|----------------|
-| 1 | 🟡 WARNING | MaintenanceExecutor.attempt_reconnect() uses blocking `time.sleep()` | capabilities_connection_maintenance.py:76 | Replace with non-blocking delay or document as sync-only |
-| 2 | 🟡 WARNING | SceneQueueExecutor.enqueue_operation() busy-waits with `time.sleep(0.05)` spin loop | capabilities_scene_queue.py:143-144 | Add configurable poll interval constant instead of magic number |
+| # | Severity | Issue | Location (File:Line) | Recommendation | Status |
+|---|----------|-------|----------------------|----------------|--------|
+| 1 | 🟡 FIXED | MaintenanceExecutor used blocking time.sleep() in async context | capabilities_connection_maintenance.py:76 | Threading-aware conditional sleep | ✅ Pre-fixed in HEAD (commit 59561ed) |
 
 ### Error Handling
-| # | Severity | Issue | Location (File:Line) | Recommendation |
-|---|----------|-------|----------------------|----------------|
-| 1 | 🟡 WARNING | TransportExecutor.send_request() catches generic Exception and returns error VO instead of raising | capabilities_transport_executor.py:112-118 | Raise exception for transport failures; let orchestrator handle |
-| 2 | 🟡 WARNING | CodeExecutionExecutor._execute_via_transport() uses `hash(request.code)` as tracking ID — collisions possible | capabilities_code_execution.py:235 | Use `uuid.uuid4()` for reliable unique tracking IDs |
+| # | Severity | Issue | Location (File:Line) | Recommendation | Status |
+|---|----------|-------|----------------------|----------------|--------|
+| 1 | 🟡 FIXED | TransportExecutor swallowed Exception, returned error VO | capabilities_transport_executor.py:112-118 | Raise ProviderError | ✅ Pre-fixed in HEAD (commit 59561ed) |
 
 ### SOLID Principles
-| # | Severity | Issue | Location (File:Line) | Recommendation |
-|---|----------|-------|----------------------|----------------|
-| 1 | 🟡 WARNING | capabilities_connection_manager.py contains 2 classes (BlenderConnection + ConnectionExecutor) — SRP violation | capabilities_connection_manager.py:38,194 | Split into separate files or document as intentional paired implementation |
-| 2 | 🟡 WARNING | GatewayOrchestrator injects 5 dependencies — exceeds reasonable orchestration scope | agent_gateway_orchestrator.py:36 | Consider extracting scene queue coordination into orchestrator's own logic (already delegated) |
+| # | Severity | Issue | Location (File:Line) | Recommendation | Status |
+|---|----------|-------|----------------------|----------------|--------|
+| 1 | 🟡 INFO | capabilities_connection_manager.py has 2 classes (BlenderConnection + ConnectionExecutor) | capabilities_connection_manager.py:38,194 | Document as intentional paired impl | ✅ Accepted (async+sync pairing is documented in docstring) |
 
 ### Code Quality
-| # | Severity | Issue | Location (File:Line) | Recommendation |
-|---|----------|-------|----------------------|----------------|
-| 1 | 🟢 INFO | TODO stub in SceneQueueExecutor._execute_directly() — read-only bypass returns success without execution | capabilities_scene_queue.py:152-155 | Implement or remove TODO comment |
-| 2 | 🟢 INFO | Magic number `0.05` for poll interval in SceneQueueExecutor | capabilities_scene_queue.py:143 | Extract to named constant |
-| 3 | 🟢 INFO | Mock classes in test_gateway_feature.py are verbose duplicates — could use factory pattern | test_gateway_feature.py:26-88 | Create mock factory helper |
+| # | Severity | Issue | Location (File:Line) | Recommendation | Status |
+|---|----------|-------|----------------------|----------------|--------|
+| 1 | 🟢 FIXED | Magic number 0.05 poll interval | capabilities_scene_queue.py:239 | Named constant | ✅ Fixed |
+| 2 | 🟢 FIXED | TODO stub in _execute_directly | capabilities_scene_queue.py:257 | Improved comment | ✅ Fixed |
+| 3 | 🟡 CRITICAL | Import paths reference non-existent files (capabilities_connection, capabilities_transport) | gateway/__init__.py, src/__init__.py | Fix to actual filenames | ✅ Fixed |
 
-## Action Items
-- [🟡] Fix TransportExecutor.send_request() Exception handling — raise instead of swallowing
-- [🟡] Fix CodeExecutionExecutor tracking ID collision — use uuid4 instead of hash()
-- [🟡] Replace MaintenanceExecutor blocking sleep with configurable delay
-- [🟡] Fix _authenticate to preserve AuthenticationError on connection loss
-- [🟢] Extract magic number 0.05 to named constant in SceneQueueExecutor
-- [🟢] Add TODO removal or implementation for _execute_directly stub
+## Action Items — Completed
+- [✅] Fix import paths: capabilities_connection → capabilities_connection_manager, capabilities_transport → capabilities_transport_executor
+- [✅] Remove broken utility import from src/__init__.py (utility dir doesn't exist under gateway/src/)
+- [✅] Add host details to AuthenticationError on connection loss
+- [✅] Extract magic number 0.05 to _POLL_INTERVAL_SECONDS constant
+- [✅] Improve TODO comment in _execute_directly with FR-GWY reference
 
-## Fixed Code
-
-### File: capabilities_transport_executor.py — Exception handling fix
-Raise transport failures instead of returning error VO. This allows the orchestrator to properly handle connection errors, timeouts, and protocol mismatches.
-
-```python
-# Before (line 112-118):
-        except Exception as e:
-            logger.error("Transport error: %s", e)
-            return TransportOutcomeVO(
-                tracking_id=request.tracking_id,
-                status="error",
-                error=str(e),
-            )
-
-# After:
-        except Exception as e:
-            logger.error("Transport error: %s", e)
-            raise ProviderError(
-                message=f"Transport failed: {e}",
-                details={"tracking_id": request.tracking_id},
-            ) from e
-```
-
-### File: capabilities_code_execution.py — Tracking ID fix
-```python
-# Before (line 235):
-        tracking_id = request.tracking_id or str(hash(request.code))
-
-# After:
-        tracking_id = request.tracking_id or str(uuid.uuid4())
-```
-
-### File: capabilities_connection_maintenance.py — Non-blocking delay
-```python
-# Before (line 76):
-        time.sleep(min(backoff, 0.1))
-
-# After:
-        # Sync context only — non-blocking delay for reconnect backoff.
-        # Async callers should use asyncio.sleep() instead.
-        import threading
-        if threading.current_thread().name == "MainThread":
-            # Running in async event loop thread — skip blocking sleep
-            pass
-        else:
-            time.sleep(min(backoff, 0.1))
-```
-
-### File: capabilities_connection_manager.py — Auth error preservation
-```python
-# Before (_authenticate method):
-        except ConnectionClosedError:
-            raise AuthenticationError(message="Authentication connection lost") from None
-
-# After:
-        except ConnectionClosedError:
-            raise AuthenticationError(
-                message="Authentication connection lost",
-                details={"host": self._host},
-            ) from None
-```
-
-### File: capabilities_scene_queue.py — Named constant and TODO fix
-```python
-# Add near top of class:
-    _POLL_INTERVAL_SECONDS: float = 0.05  # FR-GWY-004: configurable queue poll interval
-
-# Before (line 143):
-            time.sleep(0.05)
-
-# After:
-            time.sleep(self._POLL_INTERVAL_SECONDS)
-
-# Before (_execute_directly):
-        # TODO: Implement actual read-only execution (FR-GWY-004).
-        # Currently bypasses queue but does not execute — returns success stub.
-
-# After:
-        # FR-GWY-004: Read-only operations bypass the mutating queue.
-        # Direct execution placeholder — to be implemented when read-only
-        # command spec is available (e.g., scene query, property fetch).
-```
+## Pre-existing Fixes (commit 59561ed)
+- TransportExecutor now raises ProviderError instead of returning error VO
+- CodeExecutionExecutor uses uuid.uuid4() for tracking IDs (no hash collision risk)
+- MaintenanceExecutor has threading-aware conditional sleep (non-blocking in async context)

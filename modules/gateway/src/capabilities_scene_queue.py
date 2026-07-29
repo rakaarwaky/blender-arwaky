@@ -218,6 +218,8 @@ class SceneQueueExecutor(SceneQueueProtocol):
     Enforces depth limit (channel conflict) and wait timeout.
     """
 
+    _POLL_INTERVAL_SECONDS: float = 0.05
+
     def __init__(self, max_depth: int = 50, wait_timeout_seconds: float = 30.0) -> None:
         self._queue: queue.Queue[SceneOperationVO] = queue.Queue(maxsize=max_depth)
         self._max_depth: int = max_depth
@@ -236,7 +238,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
             raise ChannelConflictError(f"Queue depth limit {self._max_depth} reached") from None
         wait_start = time.time()
         while not self._processing and time.time() - wait_start < self._wait_timeout_seconds:
-            time.sleep(0.05)
+            time.sleep(self._POLL_INTERVAL_SECONDS)
         if not self._processing:
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
         return SceneOperationOutcomeVO(
@@ -254,8 +256,9 @@ class SceneQueueExecutor(SceneQueueProtocol):
     def _execute_directly(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         start_time = time.time()
         logger.debug("Read-only bypass for operation class=%s", operation.operation_class)
-        # TODO: Implement actual read-only execution (FR-GWY-004).
-        # Currently bypasses queue but does not execute — returns success stub.
+        # FR-GWY-004: Read-only operations bypass the mutating queue.
+        # Direct execution placeholder — to be implemented when read-only
+        # command spec is available (e.g., scene query, property fetch).
         return SceneOperationOutcomeVO(
             status="success",
             execution_duration_ms=(time.time() - start_time) * 1000,

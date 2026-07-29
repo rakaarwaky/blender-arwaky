@@ -2,7 +2,7 @@
 MCP Tool 2: list_commands — Returns the command catalog (discovery).
 
 FR-MCP-001: Expose MCP Tools — register_list_commands registers tool with MCP
-FR-MCP-002: Route Tool Calls — get_container().core_agent_orchestrator.discover_actions routes to dispatcher
+FR-MCP-002: Route Tool Calls — create_dispatcher_feature().discover_actions routes to dispatcher
 FR-MCP-003: Format MCP Responses — discovery outcome from the orchestrator
 
 Lists all available actions, their parameters, descriptions, and domains.
@@ -15,7 +15,7 @@ Surface delegates to Agent container via its aggregate contract (AES compliant).
 
 from typing import Any
 
-from modules.mcp.src.agent_mcp_orchestrator import get_container
+from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
 from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef
 
 
@@ -41,7 +41,7 @@ class CommandsListHandler:
             Returns:
                 Discovery outcome with the command catalog
             """
-            orchestrator = get_container().core_agent_orchestrator
+            orchestrator = create_dispatcher_feature()
 
             # Map the tool's format onto discover_actions' detail_level vocabulary
             # ('standard' = summary, 'full' = detailed). discover_actions raises on
