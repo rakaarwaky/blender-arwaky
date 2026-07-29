@@ -279,8 +279,6 @@ from .launcher.taxonomy_launcher_vo import (
     StatusCheckOutcomeVO,
     VersionCompatibility,
 )
-from .mcp.contract_discovery_protocol import ServerDiscoveryProtocol
-from .mcp.contract_health_protocol import ServerHealthProtocol
 from .object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from .object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from .object.contract_delete_object_protocol import DeleteObjectProtocol
@@ -561,8 +559,6 @@ __all__ = [
     "TelemetryEnrichmentPort",
     "TelemetryRecordingPort",
     "TelemetrySessionManagementPort",
-    "ServerDiscoveryProtocol",
-    "ServerHealthProtocol",
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
