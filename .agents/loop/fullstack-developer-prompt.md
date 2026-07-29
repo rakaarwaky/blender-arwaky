@@ -11,10 +11,8 @@ If no plan files exist in `.agents/plans/`, **stop immediately** and report: "No
 
 Before starting, read:
 
-1. **`.agents/plans/`** — List available plan
-2. **`.agents/skills/README.md`** — Available implementation skills
-3. **`ARCHITECTURE.md`** — 7-layer spec (to avoid breaking architecture during implementation)
-4. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
+1. **`ARCHITECTURE.md`** — 7-layer spec (to avoid breaking architecture during implementation)
+3. **`.agents/rules/RULES_AES.md`** — All AES rules (to avoid introducing violations during implementation)
 
 ## Workflow
 
