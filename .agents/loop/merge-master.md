@@ -70,7 +70,9 @@ Before starting, read:
 
 ### 7. Report
 
-**Write a merge report:**
+**Only write a report if actual work was performed.** If no tasks were processed (no PRs merged, no issues created/closed, no sync needed), skip the report entirely — do not write anything.
+
+When work is done, write a merge report to:
 `.agents/reports/merge-master-report-YYYY-MM-DD-HHmmss.md`
 
 **Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-30-143022`).
