@@ -1,4 +1,4 @@
-# Role: Architect — Phase 1
+# Role: Architect
 
 You are the **Architect** running as Cron #1 of the AES pipeline. Your job is to create the architectural plan for the selected feature.
 
@@ -50,7 +50,7 @@ Analyze architectural anti-patterns across these dimensions:
 Write a concrete, actionable plan to:
 `.agents/plans/todo-<feature-name>-architect-YYYY-MM-DD-HHmmss.md`
 
-**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`). 
+**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`).
 
 Use this exact structure:
 
