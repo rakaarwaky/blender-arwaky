@@ -34,9 +34,6 @@ logger = logging.getLogger("BlenderMCPServer")
 class JobCancellationEvaluator(IJobCancellation):
     """Evaluates cancellation eligibility per FR-JOB-003."""
 
-    def __init__(self) -> None:
-        pass
-
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def evaluate(

@@ -63,7 +63,11 @@ from modules.shared.src.job.utility_job_sanitizer import (
     sanitize_operation_type,
     sanitize_progress_message,
 )
-from modules.job.src.capabilities_job_transitor import JobStateTransitor
+from modules.shared.src.job.utility_job_transition import (
+    count_active,
+    create_record,
+    transition_record,
+)
 from modules.job.src.utility_job_event_emitter import JobEventEmitter
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -84,7 +88,6 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     ) -> None:
         self._policy = policy
         self._clock = clock
-        self._transitor = JobStateTransitor(policy, clock, id_generator)
         self._lock = threading.RLock()
         self._records: dict[str, JobRecord] = {}
         self._active_count: int = 0
@@ -101,8 +104,12 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         metadata = redact_metadata(command.metadata)
 
         with self._lock:
-            job_id, snapshot = self._transitor.create_record(
-                self._records, operation, command.correlation_id, metadata
+            job_id, snapshot = create_record(
+                self._records,
+                str(command.operation_type),
+                str(command.correlation_id) if command.correlation_id else None,
+                metadata if metadata else {},
+                self._clock,
             )
             # Track capacity for newly created pending task
             if self._counts_toward_capacity(snapshot.state):
@@ -230,7 +237,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
     def active_count(self) -> ActiveCount:
         with self._lock:
-            return ActiveCount(self._active_count)
+            return ActiveCount(count_active(self._records, self._policy))
 
     # ─── Block 3: Dunder Methods, Factories, and Private Helpers ─────────────
 
@@ -271,10 +278,12 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
             record = self._get_or_raise(job_id)
             was_active = self._counts_toward_capacity(record.state)
 
-            snapshot = self._transitor.transition(
+            snapshot = transition_record(
                 self._records,
                 job_id,
                 target,
+                self._policy,
+                self._clock,
                 result_url=result_url,
                 error=error,
                 error_category=error_category,
