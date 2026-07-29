@@ -34,9 +34,9 @@ class AssetSearchHandler(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[str] | None = None,
-        _asset_type_filter: Any = None,
-        _limit: Any = None,
-        _page_token: Any = None,
+        asset_type_filter: Any = None,
+        limit: Any = None,
+        page_token: Any = None,
     ) -> dict[str, Any]:
         """Search across all enabled providers with unified response.
 
@@ -55,6 +55,8 @@ class AssetSearchHandler(AssetSearchProtocol):
             Dict with normalized assets list, provider status summary, warnings, and timestamp.
         """
         target = providers if providers is not None else self._providers
+
+        logger.debug("Search query=%s providers=%s filter=%s limit=%d page_token=%s", query, target, asset_type_filter, limit or 0, page_token)
 
         async def search_one(name: str) -> tuple[str, list[Any], str | None]:
             try:

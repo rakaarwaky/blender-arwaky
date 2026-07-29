@@ -94,6 +94,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self._max_size = max_size
         self._overwrite_policy = overwrite_policy
 
+        logger.debug("Downloading %s (%s) from %s", asset_id, asset_type, provider)
+
         # Validate cache directory through security policy
         if self.security_validator:
             try:
