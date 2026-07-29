@@ -15,10 +15,10 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.diagnostics.src.contract_logging_policy_protocol import (
+from modules.shared.src.diagnostics.contract_logging_policy_protocol import (
     LoggingPolicyProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import LogResultVO
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import LogResultVO
 from modules.shared.src.security.taxonomy_security_constant import (
     REDACTION_SENSITIVE_PATTERNS,
 )

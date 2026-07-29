@@ -13,10 +13,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.diagnostics.src.contract_health_composition_protocol import (
+from modules.shared.src.diagnostics.contract_health_composition_protocol import (
     HealthCompositionProtocol,
 )
-from modules.diagnostics.src.taxonomy_diagnostics_vo import (
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     HealthDetailsVO,
     SubsystemHealthVO,
 )
