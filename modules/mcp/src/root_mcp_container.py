@@ -8,6 +8,14 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.mcp.contract_mcp_protocol import (
+    McpResponseProtocol,
+    McpRoutingProtocol,
+    McpSchemaProtocol,
+)
+from modules.shared.src.mcp.mcp_response_formatter import McpResponseImpl
+from modules.shared.src.mcp.mcp_routing_proxy import McpRoutingImpl
+
 logger = logging.getLogger("BlenderMCPServer")
 
 
@@ -31,14 +39,8 @@ class McpContainer:
         logger.info("Wiring MCP surface module")
 
         # Create protocol implementations (delegating to owning features)
-        from modules.shared.src.mcp.contract_mcp_response_formatter import (
-            McpResponseImpl,
-            McpSchemaImpl,
-        )
-        from modules.shared.src.mcp.contract_mcp_routing_proxy import McpRoutingImpl
-
         self._routing = McpRoutingImpl()
-        self._schema = McpSchemaImpl()
+        self._schema = McpResponseImpl()  # schema and response share same implementation for now
         self._response = McpResponseImpl()
 
         self._wired = True
@@ -61,37 +63,9 @@ class McpContainer:
         if not self._wired or self._response is None:
             raise RuntimeError("McpContainer not wired — call wire() first")
         return self._response
-         @staticmethod
-    def resolve_log_file() -> str:
-        """Resolve log file path from config or default to user home."""
-        log_dir = os.path.join(
-            os.path.expanduser("~"),
-            ".local",
-            "share",
-            "blender-arwaky",
-            "logs",
-        )
-        os.makedirs(log_dir, exist_ok=True)
-        return os.path.join(log_dir, "mcp_server.log")
-
-    @staticmethod
-    def resolve_transport_config() -> tuple[str, str, str]:
-        """Resolve transport configuration (transport, host, port)."""
-        transport = os.environ.get("ARWAKY_MCP_TRANSPORT", "stdio")
-        host = os.environ.get("ARWAKY_MCP_HOST", "127.0.0.1")
-        port = os.environ.get("ARWAKY_MCP_PORT", "8080")
-        return (transport, host, port)
 
 
-    def record_startup() -> None:
-    """Record MCP server startup telemetry (best effort)."""
-    try:
-        logger.info("MCP server startup recorded")
-    except Exception as e:
-        logger.debug("Telemetry recording failed (non-blocking): %s", e)
-
-
-    def create_mcp_feature() -> McpContainer:
+def create_mcp_feature() -> McpContainer:
     """Factory function to create and wire the MCP surface module."""
     container = McpContainer()
     container.wire()

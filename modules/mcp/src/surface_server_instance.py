@@ -139,10 +139,10 @@ class ServerInstanceSurface:
             mcp_container = create_mcp_feature()
 
             # Register tools and prompts (Handler layer delegation)
-            from .surface_prompt_register import register_prompts
+            from .surface_prompt_register import PromptRegistrationModule
             from .surface_tool_registry import ToolRegistryHandler
 
             ToolRegistryHandler.register_tools(_mcp_instance, mcp_container)
-            register_prompts(_mcp_instance)
+            PromptRegistrationModule.register_prompts(_mcp_instance)
 
             return _mcp_instance
