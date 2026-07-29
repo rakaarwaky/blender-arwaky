@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from typing import NewType
+
 from ..common.taxonomy_core_vo import Prompt
+
+# Branded tuple type for error detail chains
+SceneErrorDetails = NewType("SceneErrorDetails", tuple[Prompt, ...])
 
 
 class SceneErrorCategory(str, Enum):
@@ -27,7 +32,7 @@ class SceneError:
     category: SceneErrorCategory
     message: Prompt
     retryable: bool = False
-    details: tuple[Prompt, ...] = ()
+    details: SceneErrorDetails = ()
 
     def to_prompt(self) -> Prompt:
         """Render error as prompt/message."""

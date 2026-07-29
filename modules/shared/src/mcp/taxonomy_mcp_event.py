@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
-from typing import Any
+
 
 from . import taxonomy_mcp_constant as _taxonomy_mcp_constant  # AES202: mandatory taxonomy(constant) import
 
@@ -22,4 +22,4 @@ class McpEvent:
     kind: McpEventKind
     tool: str | None = None
     detail: str | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, str] = field(default_factory=dict)

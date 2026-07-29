@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
 from . import taxonomy_cli_vo as _taxonomy_cli_vo  # AES202: mandatory taxonomy(vo) import
-from typing import Any
 
 
 class CliEventKind(StrEnum):
@@ -22,4 +21,4 @@ class CliEvent:
     kind: CliEventKind
     command: str | None = None
     detail: str | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, str] = field(default_factory=dict)

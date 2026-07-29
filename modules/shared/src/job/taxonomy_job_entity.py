@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..common.taxonomy_core_vo import (
+    Details,
     ErrorString,
     JobId,
     JobState,
@@ -37,7 +38,7 @@ class JobRecord:
     created_at: Timestamp
     updated_at: Timestamp
     correlation_id: CorrelationId | None = None
-    metadata: dict[str, str] = field(default_factory=dict)
+    metadata: Details = field(default_factory=dict)
     state: JobState = JOB_STATE_PENDING
     progress: Progress = Progress(0.0)
     progress_message: ProgressMessage | None = None

@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
+from typing import Iterable
+
 from ..common.taxonomy_core_vo import ObjectId, ObjectIdList, ObjectName, ObjectType, ScaleFactor
 from ..common.taxonomy_vector3d_vo import Vector3D
 from .taxonomy_object_constant import ALLOWED_OBJECT_TYPES
@@ -41,7 +43,7 @@ class BlenderObject:
             raise TypeError("scale must be Vector3D")
         self.validate_type(ALLOWED_OBJECT_TYPES)
 
-    def validate_type(self, allowed: Any) -> None:
+    def validate_type(self, allowed: Iterable[str]) -> None:
         """Enforce that object type is in allowed set."""
         if self.type not in allowed:
             raise ValueError(f"Invalid object type '{self.type}'. Allowed: {allowed}")
