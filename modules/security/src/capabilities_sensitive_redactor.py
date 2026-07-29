@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
+
+# ─── Taxonomy imports ─────────────────────
 from modules.shared.src.security.taxonomy_security_constant import KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
 

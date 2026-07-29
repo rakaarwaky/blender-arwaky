@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-import time
 from pathlib import Path
 from typing import Any
 
@@ -203,7 +202,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
 
     def _get_unique_cache_path(self, cache_key: str) -> str:
         """Get unique cache path with timestamp suffix."""
-        hash_value = hashlib.sha256(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
+        import time as _time
+        hash_value = hashlib.sha256(f"{cache_key}:{_time.time()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
     def _verify_integrity(self, file_path: str) -> bool:
