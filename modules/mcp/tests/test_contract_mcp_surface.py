@@ -58,6 +58,7 @@ class TestToolRegistryContract:
         assert set(mcp.tools.keys()) == REQUIRED_TOOLS
 
     def test_register_tools_registers_exactly_five_tools(self):
+        """Scene tools require code_executor so they're not auto-registered."""
         mcp = FakeMCP()
         ToolRegistryHandler.register_tools(mcp)
         assert len(mcp.tools) == 5
@@ -102,3 +103,29 @@ class TestIndividualToolRegistration:
         mcp = FakeMCP()
         GetConfigHandler.register_get_config(mcp)
         assert list(mcp.tools.keys()) == ["get_config"]
+
+    def test_inspect_scene_registers_once(self):
+        from modules.mcp.src.surface_scene_tools import SceneToolsHandler
+
+        class FakeAggregate:
+            async def get_scene_info(self, request):
+                return request
+            async def cleanup_scene(self, request):
+                return request
+
+        mcp = FakeMCP()
+        SceneToolsHandler.register_scene_tools(mcp, aggregate_factory=lambda: FakeAggregate())
+        assert "inspect_scene" in mcp.tools
+
+    def test_cleanup_scene_registers_once(self):
+        from modules.mcp.src.surface_scene_tools import SceneToolsHandler
+
+        class FakeAggregate:
+            async def get_scene_info(self, request):
+                return request
+            async def cleanup_scene(self, request):
+                return request
+
+        mcp = FakeMCP()
+        SceneToolsHandler.register_scene_tools(mcp, aggregate_factory=lambda: FakeAggregate())
+        assert "cleanup_scene" in mcp.tools
