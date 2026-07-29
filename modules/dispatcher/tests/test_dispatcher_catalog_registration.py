@@ -20,6 +20,7 @@ from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMeta
 def _make_metadata(
     action_name: str = "test_action",
     parameter_schema: dict | None = None,
+    usage_examples: list[str] | None = None,
     **kwargs: object,
 ) -> ActionMetadataVO:
     """Create a minimal valid ActionMetadataVO for testing."""
@@ -27,7 +28,7 @@ def _make_metadata(
         "owning_feature_ref": "test_feature",
         "description": "Test action",
         "parameter_schema": parameter_schema or {"type": "object", "properties": {}, "required": []},
-        "usage_examples": [],
+        "usage_examples": usage_examples or ["example usage"],
     }
     defaults.update(kwargs)
     return ActionMetadataVO(action_name=action_name, **defaults)  # type: ignore[arg-type]
