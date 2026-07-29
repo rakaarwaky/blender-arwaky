@@ -13,9 +13,6 @@ wheels/
 # macOS
 .DS_Store
 
-# Local config secrets
-blender_mcp_addon/config.py
-
 # Environment files (API keys, secrets)
 .env
 .env.*
