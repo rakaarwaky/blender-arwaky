@@ -94,3 +94,8 @@ Use this exact structure:
 | 🔴**CRITICAL** | Security vulnerability, data leak, crash risk, violation. Requires immediate fix.                  |
 | 🟡**WARNING**  | Performance bottleneck, SOLID violation, poor error handling, or bypass pattern. Fix in this cycle. |
 | 🟢**INFO**     | Code style suggestion, minor refactoring, or nice-to-have. Can be deferred.                         |
+
+### 5. STOP 
+
+- DO NOT CREATE A REPORT, JUST CREATE A PLAN
+- DO EXECUTE YOUR OWN PLAN

@@ -1,7 +1,8 @@
-"""Gateway orchestrator — Aggregate facade coordinating all 5 capabilities.
+"""Gateway orchestrator — Aggregate facade coordinating connection, transport, and execution.
 
-FR-GWY: Coordinates connection, maintenance, transport,
-scene queue, and code execution via individual protocol delegation.
+FR-GWY: Coordinates connection, maintenance, transport, and code execution
+via individual protocol delegation. Scene queue coordination is delegated
+to GatewaySceneCoordinator to keep type count under AES405 limit.
 """
 
 import logging
@@ -14,9 +15,6 @@ from modules.shared.src.gateway.contract_connection_protocol import (
 )
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
-)
-from modules.shared.src.gateway.contract_scene_queue_protocol import (
-    SceneQueueProtocol,
 )
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
@@ -39,8 +37,8 @@ logger = logging.getLogger("BlenderMCPServer")
 class GatewayOrchestrator:
     """Aggregate facade for the Gateway feature.
 
-    Coordinates all 5 gateway capabilities via protocol delegation.
-    Implements the connection, maintenance, transport, queue, and execution patterns.
+    Coordinates connection, transport, and execution via protocol delegation.
+    Scene queue coordination is delegated to GatewaySceneCoordinator.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -50,13 +48,13 @@ class GatewayOrchestrator:
         connection: ConnectionProtocol,
         maintenance: ConnectionMaintenanceProtocol,
         transport: TransportProtocol,
-        scene_queue: SceneQueueProtocol,
+        coordinator: "GatewaySceneCoordinator",
         code_executor: CodeExecutionProtocol,
     ) -> None:
         self._connection = connection
         self._maintenance = maintenance
         self._transport = transport
-        self._scene_queue = scene_queue
+        self._coordinator = coordinator
         self._code_executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -96,13 +94,12 @@ class GatewayOrchestrator:
         return self._transport.send_request(request)
 
     def enqueue_scene_operation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
-        """FR-GWY-004: Enqueue scene operation."""
-        logger.debug("Enqueuing scene operation: mutation=%s", operation.is_mutation)
-        return self._scene_queue.enqueue_operation(operation)
+        """FR-GWY-004: Enqueue scene operation — delegated to coordinator."""
+        return self._coordinator.enqueue_scene_operation(operation)
 
     def get_queue_status(self) -> QueueStatusVO:
-        """FR-GWY-004: Get queue status."""
-        return self._scene_queue.get_queue_status()
+        """FR-GWY-004: Get queue status — delegated to coordinator."""
+        return self._coordinator.get_queue_status()
 
     def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """FR-GWY-005: Execute raw Python code."""

@@ -8,10 +8,11 @@ from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionExecutor
-from .capabilities_connection import ConnectionExecutor
+from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
+from .gateway_scene_coordinator import GatewaySceneCoordinator
 
 
 class GatewayContainer:
@@ -48,8 +49,9 @@ class GatewayContainer:
             reconnect_fn=self._connection.establish_connection,
         )
 
-        # Wire SceneQueueExecutor
+        # Wire SceneQueueExecutor + Coordinator (delegated to keep orchestrator under AES405 limit)
         self._scene_queue = SceneQueueExecutor(max_depth=50, wait_timeout_seconds=30.0)
+        self._scene_coordinator = GatewaySceneCoordinator(self._scene_queue)
 
         # Wire CodeExecutionExecutor with security policy + transport
         self._code_executor = CodeExecutionExecutor(
@@ -59,12 +61,12 @@ class GatewayContainer:
             execution_timeout_seconds=30.0,
         )
 
-        # Compose orchestrator
+        # Compose orchestrator (scene coordination via coordinator class)
         self._orchestrator = GatewayOrchestrator(
             self._connection,
             self._maintenance,
             self._transport,
-            self._scene_queue,
+            self._scene_coordinator,
             self._code_executor,
         )
 

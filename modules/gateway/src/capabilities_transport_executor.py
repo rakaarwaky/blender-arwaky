@@ -19,7 +19,7 @@ import socket
 import time
 import uuid
 
-from modules.diagnostics.src.contract_audit_emission_protocol import (
+from modules.shared.src.gateway.contract_event_protocol import (
     IEventPublisher,
 )
 from modules.shared.src.gateway.contract_connection_protocol import (
@@ -215,14 +215,16 @@ class TransportExecutor(TransportProtocol):
             message = json.loads(data.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise TransportParseError(f"Failed to parse response: {exc}") from None
-        if message.get("tracking_id") != expected_tracking_id:
+        actual_tracking_id = message.get("tracking_id", "")
+        if actual_tracking_id != expected_tracking_id:
+            self._pending_tracking_ids.pop(expected_tracking_id, None)
             logger.warning(
                 "Orphan response discarded: expected=%s, got=%s",
                 expected_tracking_id,
-                message.get("tracking_id"),
+                actual_tracking_id,
             )
         return TransportOutcomeVO(
-            tracking_id=message.get("tracking_id", ""),
+            tracking_id=actual_tracking_id,
             status=message.get("status", "error"),
             payload=(message.get("payload") or "").encode("hex") if message.get("payload") else None,
         )

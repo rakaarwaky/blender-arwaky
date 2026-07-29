@@ -98,3 +98,8 @@ Use this exact structure:
 | 🔴**CRITICAL** | Missing core requirement, wrong business logic, or data integrity risk. Requires immediate fix. |
 | 🟡**WARNING**  | Ambiguous requirement, missing edge case, or incomplete acceptance criteria. Fix in this cycle. |
 | 🟢**INFO**     | Suggestion, nice-to-have feature, or optimization. Can be deferred.                             |
+
+### 5. STOP 
+
+- DO NOT CREATE A REPORT, JUST CREATE A PLAN
+- DO EXECUTE YOUR OWN PLAN

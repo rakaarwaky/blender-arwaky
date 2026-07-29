@@ -19,15 +19,15 @@ import logging
 import time
 from dataclasses import dataclass, field
 
-from modules.diagnostics.src.contract_audit_emission_protocol import (
-    IEventPublisher,
-)
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     CodeExecutionProtocol,
     ICodeExecutionProtocol,
 )
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
+)
+from modules.shared.src.gateway.contract_event_protocol import (
+    IEventPublisher,
 )
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
@@ -37,7 +37,10 @@ from modules.shared.src.gateway.taxonomy_gateway_constant import (
     MAX_EXECUTION_OUTPUT_BYTES,
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
+    BlenderConnectionFailure,
+    ConnectionClosedError,
     ExecutionTimeoutError,
+    ProviderError,
     SecurityViolationError,
     TaskNotFoundError,
     TimeoutError,
@@ -63,13 +66,13 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
+from modules.shared.src.gateway.contract_code_validation_protocol import (
+    CodeValidationProtocol,
+)
 from modules.shared.src.gateway.utility.utility_validator_checker import (
     check_payload_size,
     code_fingerprint,
     validate_code_ast,
-)
-from modules.shared.src.security.contract_validate_code_protocol import (
-    ValidateCodeProtocol,
 )
 from modules.shared.src.security.taxonomy_security_error import (
     CodeValidationError,
@@ -170,18 +173,17 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             raise
         except ValidationError:
             raise
+        except ConnectionClosedError:
+            raise
+        except ProviderError:
+            raise
         except Exception as e:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.error("Code execution failed: fingerprint=%s, error=%s", fingerprint, e)
-            return ExecutionResult(
-                status=ExecutionStatus("error"),
-                error=ExecutionErrorDetail(
-                    error_type=type(e).__name__,
-                    message=str(e),
-                ),
-                execution_time_ms=elapsed_ms,
-                request_id=request_id,
-            )
+            raise BlenderConnectionFailure(
+                message=f"Code execution failed: {e}",
+                details={"fingerprint": fingerprint, "request_id": request_id},
+            ) from e
 
     async def execute_task(self, task_id: str, code: str, request_id: str | None = None) -> ExecutionResult:
         async with self._lock:
@@ -345,18 +347,18 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
 
     FR-GWY-005: Validates via security policy before transport. Enforces timeout.
     Truncates oversized output. Does not manage background task lifecycle.
-    Delegates security validation to ValidateCodeProtocol.
+    Delegates security validation to CodeValidationProtocol (gateway-local).
     Delegates code transport to TransportProtocol.
     """
 
     def __init__(
         self,
-        security_policy: ValidateCodeProtocol | None = None,
+        security_policy: CodeValidationProtocol | None = None,
         transport: TransportProtocol | None = None,
         max_output_bytes: int = 1_048_576,
         execution_timeout_seconds: float = 30.0,
     ) -> None:
-        self._security_policy: ValidateCodeProtocol | None = security_policy
+        self._security_policy: CodeValidationProtocol | None = security_policy
         self._transport: TransportProtocol | None = transport
         self._max_output_bytes: int = max_output_bytes
         self._execution_timeout_seconds: float = execution_timeout_seconds

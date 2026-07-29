@@ -100,3 +100,10 @@ Use this exact structure:
 | 🔴**CRITICAL** | Breach of AES layering, security risk, or data leak. Requires immediate fix.                 |
 | 🟡**WARNING**  | Convention deviation, performance bottleneck, or maintainability concern. Fix in this cycle. |
 | 🟢**INFO**     | Suggestion, refactoring idea, or nice-to-have. Can be deferred.                              |
+
+
+
+### 5. STOP 
+
+- DO NOT CREATE A REPORT, JUST CREATE A PLAN
+- DO EXECUTE YOUR OWN PLAN

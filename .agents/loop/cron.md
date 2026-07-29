@@ -61,13 +61,3 @@ prompt: "Read .agents/loop/fullstack-developer-prompt.md and execute it as the F
 recurring: true
 durable: true
 ```
-
-## Stopping the Pipeline
-
-Create a STOP file:
-
-```bash
-touch .agents/loop/STOP
-```
-
-Each cron checks for this file and exits cleanly if found.

@@ -20,9 +20,10 @@ import logging
 import socket
 import struct
 import time
+import uuid
 from contextlib import suppress
 
-from modules.diagnostics.src.contract_audit_emission_protocol import (
+from modules.shared.src.gateway.contract_event_protocol import (
     IEventPublisher,
 )
 from modules.shared.src.gateway.contract_connection_protocol import (
@@ -439,9 +440,15 @@ class ConnectionExecutor(ConnectionProtocol):
         transport: TransportProtocol,
         config: ConnectionConfigVO | None = None,
     ) -> None:
+        validated_config = config or ConnectionConfigVO()
+        if not validated_config.host or not validated_config.port:
+            raise ConnectionConfigError(
+                message="ConnectionConfigVO requires host and port",
+                details={"host": validated_config.host, "port": validated_config.port},
+            )
         self._socket: socket.SocketType | None = None
         self._transport: TransportProtocol = transport
-        self._config: ConnectionConfigVO = config or ConnectionConfigVO()
+        self._config: ConnectionConfigVO = validated_config
         self._state: ConnectionState = ConnectionState.DISCONNECTED
         self._protocol_version: str = ""
         self._endpoint_summary: str = ""
@@ -498,10 +505,10 @@ class ConnectionExecutor(ConnectionProtocol):
             self._safe_close_socket(socket)
             self._state = ConnectionState.FAILED
             logger.error("Connection failed: %s", e)
-            return ConnectionOutcomeVO(
-                state=ConnectionState.FAILED,
-                error=str(e),
-            )
+            raise BlenderConnectionFailure(
+                message=f"Connection to {self._config.host}:{self._config.port} failed: {e}",
+                details={"host": self._config.host, "port": self._config.port},
+            ) from e
 
     def disconnect(self) -> None:
         if self._state == ConnectionState.CLOSED or self._state == ConnectionState.DISCONNECTED:
@@ -526,10 +533,8 @@ class ConnectionExecutor(ConnectionProtocol):
                 pass
 
     def _perform_handshake(self) -> dict:
-        import uuid as _uuid
-
         handshake_request = TransportMessageVO(
-            tracking_id=str(_uuid.uuid4()),
+            tracking_id=str(uuid.uuid4()),
             operation_class="handshake",
             payload=json.dumps(
                 {
@@ -561,10 +566,8 @@ class ConnectionExecutor(ConnectionProtocol):
     def _authenticate_if_needed(self) -> None:
         if not self._config.auth_enabled or not self._config.auth_material:
             return
-        import uuid as _uuid
-
         auth_request = TransportMessageVO(
-            tracking_id=str(_uuid.uuid4()),
+            tracking_id=str(uuid.uuid4()),
             operation_class="authentication",
             payload=json.dumps(
                 {

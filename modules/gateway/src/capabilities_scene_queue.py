@@ -18,7 +18,7 @@ import queue
 import time
 from dataclasses import dataclass
 
-from modules.diagnostics.src.contract_audit_emission_protocol import (
+from modules.shared.src.gateway.contract_event_protocol import (
     IEventPublisher,
 )
 from modules.shared.src.gateway.contract_scene_queue_protocol import (
@@ -251,9 +251,11 @@ class SceneQueueExecutor(SceneQueueProtocol):
             max_depth=self._max_depth,
         )
 
-    def _execute_directly(self, _operation: SceneOperationVO) -> SceneOperationOutcomeVO:
+    def _execute_directly(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         start_time = time.time()
-        logger.debug("Executing read-only operation directly")
+        logger.debug("Read-only bypass for operation class=%s", operation.operation_class)
+        # TODO: Implement actual read-only execution (FR-GWY-004).
+        # Currently bypasses queue but does not execute — returns success stub.
         return SceneOperationOutcomeVO(
             status="success",
             execution_duration_ms=(time.time() - start_time) * 1000,
