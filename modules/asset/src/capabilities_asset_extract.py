@@ -171,10 +171,13 @@ class AssetExtractCapability(AssetExtractProtocol):
         os.makedirs(dest, exist_ok=True)
         rejected_names = {r.entry_path for r in result.rejected_entries}
 
+        extracted_files: list[str] = []
         try:
             extracted_files = self._extract_allowed(str(artifact_path), dest, rejected_names)
         except (zipfile.BadZipFile, tarfile.TarError) as e:
+            # FR-AST-003: partial extraction cleanup on failure
             logger.error("Extraction failed for %s: %s", artifact_path, e)
+            self._cleanup_extracted_files(extracted_files, dest)
             return {
                 "success": False,
                 "extracted_files": [],
@@ -267,3 +270,20 @@ class AssetExtractCapability(AssetExtractProtocol):
                     extracted.append(str(Path(dest) / member.name))
 
         return extracted
+
+    def _cleanup_extracted_files(self, extracted_files: list[str], dest: str) -> None:
+        """Clean up partially extracted files on failure.
+
+        FR-AST-003: Partial extraction is cleaned up on failure to avoid
+        leaving orphaned files on disk.
+        """
+        for file_path in extracted_files:
+            try:
+                p = Path(file_path)
+                if p.is_file():
+                    p.unlink()
+                elif p.is_dir():
+                    import shutil
+                    shutil.rmtree(p, ignore_errors=True)
+            except OSError as e:
+                logger.warning("Failed to clean up extracted file %s: %s", file_path, e)

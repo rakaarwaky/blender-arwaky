@@ -65,14 +65,19 @@ class AssetSearchHandler(AssetSearchProtocol):
         """
         target = providers if providers is not None else self._providers
 
-        logger.debug("Search query=%s providers=%s filter=%s limit=%d page_token=%s", query, target, asset_type_filter, limit or 0, page_token)
+        logger.debug(
+            "Search query=%s providers=%s filter=%s limit=%d page_token=%s",
+            query, target, asset_type_filter, limit or 0, page_token,
+        )
 
         async def search_one(name: str) -> tuple[str, list[Any], str | None]:
             try:
+                # FR-AST-001: empty query returns curated/default results
+                effective_query = query if str(query).strip() else SearchQuery("curated")
                 if name == "Polyhaven":
-                    vo = await polyhaven_search(self._connection, query)
+                    vo = await polyhaven_search(self._connection, effective_query)
                 elif name == "Sketchfab":
-                    vo = await sketchfab_search(self._connection, query)
+                    vo = await sketchfab_search(self._connection, effective_query)
                 else:
                     return name, [], "unknown provider"
                 normalized = [
@@ -107,6 +112,16 @@ class AssetSearchHandler(AssetSearchProtocol):
                 assets.extend(items)
             else:
                 provider_status[name] = "empty"
+
+        # FR-AST-001: deduplicate assets when equivalence is safely determinable
+        seen: dict[str, Any] = {}
+        deduped: list[Any] = []
+        for a in assets:
+            key = f"{a.get('provider', '')}:{a.get('id', '')}"
+            if key not in seen:
+                seen[key] = a
+                deduped.append(a)
+        assets = deduped
 
         return {
             "assets": assets,

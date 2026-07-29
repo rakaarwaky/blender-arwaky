@@ -13,6 +13,8 @@ from typing import Any
 
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
+    AssetCollectionName,
+    AssetFormatHint,
     AssetType,
     FilePath,
 )
@@ -47,10 +49,10 @@ class AssetImportCapability(AssetImportProtocol):
         self,
         file_path: FilePath,
         asset_type: AssetType,
-        target_collection: str | None = None,
+        target_collection: AssetCollectionName | None = None,
         scale_normalization: bool = False,
         duplicate_policy: str = "rename",
-        format_hint: str | None = None,
+        format_hint: AssetFormatHint | None = None,
     ) -> dict[str, Any]:
         """Import a locally available asset file into Blender.
 
@@ -131,7 +133,7 @@ class AssetImportCapability(AssetImportProtocol):
                 "error": str(e),
             }
 
-    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: str | None) -> bool:
+    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None) -> bool:
         """Check if file format is supported for import."""
         supported_formats = {
             "model": [".glb", ".gltf", ".fbx", ".obj", ".mtl", ".dae"],
@@ -147,10 +149,10 @@ class AssetImportCapability(AssetImportProtocol):
         self,
         file_path: str,
         asset_type: AssetType,
-        target_collection: str | None,
+        target_collection: AssetCollectionName | None,
         scale_normalization: bool,
         duplicate_policy: str,
-        format_hint: str | None,
+        format_hint: AssetFormatHint | None,
     ) -> dict[str, Any]:
         """Build import command for gateway transport."""
         command = {

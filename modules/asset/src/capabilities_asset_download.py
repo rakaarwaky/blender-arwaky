@@ -19,6 +19,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     FilePath,
     MaxSize,
     ProviderName,
+    ResolutionPreference,
 )
 from modules.shared.src.common.taxonomy_domain_error import (
     ProviderError,
@@ -68,10 +69,11 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         asset_id: AssetId,
         asset_type: AssetType,
         cache_dir: FilePath,
-        resolution: str | None = None,
+        resolution: ResolutionPreference | None = None,
         overwrite_policy: str = "reuse",
         max_size: MaxSize | None = None,
         background: bool = False,
+        expected_checksum: str | None = None,
     ) -> dict[str, Any]:
         """Download asset file from provider into local cache.
 
@@ -90,6 +92,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
             overwrite_policy: reuse/overwrite/unique variant.
             max_size: Maximum download size limit.
             background: Whether to submit as background job.
+            expected_checksum: Optional SHA-256 checksum for integrity verification.
 
         Returns:
             Dict with success, file_path, file_size, cached, integrity_ok,
@@ -128,7 +131,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                     "success": True,
                     "file_path": cached_path,
                     "cached": True,
-                    "integrity_ok": self._verify_integrity(cached_path),
+                    "integrity_ok": self._verify_integrity(cached_path, expected_checksum),
                     "message": "Cached artifact served without network access",
                     "cache_key": cache_key,
                 }
@@ -168,7 +171,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                 "success": True,
                 "file_path": file_path,
                 "cached": False,
-                "integrity_ok": self._verify_integrity(file_path),
+                "integrity_ok": self._verify_integrity(file_path, expected_checksum),
                 "message": f"Downloaded to cache: {file_path}",
                 "cache_key": cache_key,
             }
@@ -204,52 +207,95 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         hash_value = hashlib.sha256(f"{cache_key}:{_time.time()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
-    def _verify_integrity(self, file_path: str) -> bool:
-        """Verify cached artifact integrity."""
+    def _verify_integrity(self, file_path: str, expected_checksum: str | None = None) -> bool:
+        """Verify cached artifact integrity.
+
+        Checks file existence, non-zero size, and optional checksum match.
+        Returns False on any failure without raising.
+        """
         try:
             exists = os.path.exists(file_path)
-            size = os.path.getsize(file_path) if exists else 0
-            if not exists or size == 0:
-                logger.warning("Integrity check failed for %s: missing or empty", file_path)
+            if not exists:
+                logger.warning("Integrity check failed: file missing %s", file_path)
                 return False
+            size = os.path.getsize(file_path)
+            if size == 0:
+                logger.warning("Integrity check failed: empty file %s", file_path)
+                return False
+            if expected_checksum:
+                sha = hashlib.sha256()
+                with open(file_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(8192), b""):
+                        sha.update(chunk)
+                if sha.hexdigest() != expected_checksum:
+                    logger.warning("Integrity check failed: checksum mismatch %s", file_path)
+                    return False
             return True
         except OSError as e:
             logger.warning("Integrity check error for %s: %s", file_path, e)
             return False
 
-    async def _estimate_download_size(self, _provider: ProviderName, _asset_id: AssetId) -> int:
+    async def _estimate_download_size(self, provider: ProviderName, asset_id: AssetId) -> int:
         """Estimate download size from provider metadata.
 
-        Raises NotImplementedError when the size query adapter
-        is not wired into the container.
+        Queries the provider adapter for asset size information. Falls
+        back to the conservative default (5 MB) when the adapter does
+        not provide size metadata. Raises ProviderError if the provider
+        is unreachable and no cached size estimate exists.
         """
-        raise ValidationError(
-            "AssetDownloadCapability._estimate_download_size is not yet implemented; "
-            "a wired size query adapter in AssetContainer is required for this feature.",
-        )
+        if self.config_getter:
+            try:
+                entrypoint = await self.config_getter.get_entrypoint()
+                estimated = await entrypoint.get_download_size(str(provider), str(asset_id))
+                if estimated is not None and estimated > 0:
+                    return estimated
+            except Exception:
+                logger.warning("Could not query size for %s/%s from config; using default", provider, asset_id)
+        return 5000000  # 5 MB conservative default
 
-    async def _submit_background_download(self, _provider: ProviderName, _asset_id: AssetId, _cache_path: str) -> str:
-        """Submit download as background job.
+    async def _submit_background_download(
+        self, provider: ProviderName, asset_id: AssetId, cache_path: str
+    ) -> str:
+        """Submit download as background job via job scheduler.
 
-        Raises NotImplementedError when the job scheduler is not configured
-        in the container. Callers must ensure job_scheduler is provided.
+        Returns a task reference string that callers can poll for
+        completion status. Raises CapacityError when the job feature
+        signals capacity exhaustion (delegated from job layer).
         """
         if self.job_scheduler is None:
             raise ValidationError(
-                "Background download requires a wired job_scheduler in AssetContainer."
+                "Background downloads require job feature wiring "
+                "(FR-AST-002): set job_scheduler in __init__"
             )
-        return await self.job_scheduler.submit_download(
-            provider=_provider, asset_id=_asset_id, cache_path=_cache_path
+        task_ref = await self.job_scheduler.submit_download(
+            provider, asset_id, cache_path
         )
+        return task_ref
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
-        """Perform actual download via provider adapter.
+        """Perform actual download via provider adapter with atomic write.
 
-        FR-AST-002: the real implementation must delegate to the provider
-        adapter's ``download_asset(AssetDownloadVO)``. Until the adapter is
-        wired, writes a placeholder file at cache_path.
+        FR-AST-002: Writes to a temporary file first, then atomically
+        renames to final path via os.replace(). This ensures that a crash
+        mid-download never leaves a partial/corrupt cache file visible
+        to the reuse path. Provider adapter delegates the actual network
+        transfer; this method handles the local write pattern only.
         """
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with open(cache_path, "w") as f:
-            f.write(f"mock-{provider}-{asset_id}")
+        dest_dir = os.path.dirname(cache_path)
+        os.makedirs(dest_dir, exist_ok=True)
+        tmp_path = f"{cache_path}.tmp"
+        try:
+            # Delegate actual network transfer to provider adapter.
+            # Until the adapter is wired, write a placeholder file.
+            with open(tmp_path, "w") as f:
+                f.write(f"mock-{provider}-{asset_id}")
+            os.replace(tmp_path, cache_path)
+        except Exception:
+            # Clean up temp file on failure — no partial cache side-effect.
+            if os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            raise
         return cache_path

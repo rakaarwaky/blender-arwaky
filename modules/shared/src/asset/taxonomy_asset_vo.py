@@ -27,7 +27,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ThumbnailUrl,
 )
 
-# Re-export types for consumers (e.g., contract_asset_import_protocol.py)
 __all__ = [
     "AssetCollectionName",
     "AssetFormatHint",
