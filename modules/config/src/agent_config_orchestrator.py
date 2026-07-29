@@ -85,6 +85,10 @@ class ConfigOrchestrator(IConfigAggregate):
         """Return cached snapshot, lazy-loading if needed (now safe — loader locked)."""
         if self._snapshot is None:
             self._snapshot = self._loader.load_settings()
+            self._record_event(self._loader.emit_loaded_event())
+            validation_ev = self._loader.emit_validation_warning_event()
+            if validation_ev is not None:
+                self._record_event(validation_ev)
         return self._snapshot
 
     def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
@@ -123,6 +127,8 @@ class ConfigOrchestrator(IConfigAggregate):
 
     def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return the most recent config domain events, oldest → newest."""
+        if limit <= 0:
+            return ()
         items = list(self._event_buffer)
         return tuple(items[-limit:])
 

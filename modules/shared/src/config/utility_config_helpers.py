@@ -50,8 +50,13 @@ def search_project_root(markers: tuple[str, ...]) -> Path | None:
     """Search upward from cwd for recognized project markers.
 
     Returns first parent containing any marker, or None.
+    Returns None if cwd cannot be resolved.
     """
-    current = Path.cwd().resolve()
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        return None
+
     for parent in [current, *current.parents]:
         for marker in markers:
             candidate = parent / marker
@@ -188,12 +193,20 @@ def validate_settings_schema(
                 errors.append(f"{path}: expected dict, got {type(node).__name__}")
                 return
             children = node_schema.get("children", {})
+
+            # Detect missing required children.
+            for child_key, child_schema in children.items():
+                if child_key not in node and child_schema.get("required", False):
+                    errors.append(f"{path}.{child_key}: missing required value")
+
+            # Validate present children and warn unknown children.
             for child_key, child_node in node.items():
                 child_schema = children.get(child_key)
                 if child_schema is None:
                     warnings.append(f"{path}.{child_key}: unknown key")
                     continue
                 walk(child_node, child_schema, f"{path}.{child_key}")
+
             return
 
         if node_type == "int":
@@ -224,12 +237,19 @@ def validate_settings_schema(
         # "any" or unknown: no type check
         return
 
-    for key, value in data.items():
-        key_schema = schema.get(key)
-        if key_schema is None:
-            warnings.append(f"{key}: unknown key")
+    # Detect missing required top-level keys and validate present keys.
+    for key, key_schema in schema.items():
+        if key not in data:
+            if key_schema.get("required", False):
+                errors.append(f"{key}: missing required value")
             continue
-        walk(value, key_schema, key)
+
+        walk(data[key], key_schema, key)
+
+    # Warn unknown top-level keys.
+    for key in data.keys():
+        if key not in schema:
+            warnings.append(f"{key}: unknown key")
 
     return tuple(errors), tuple(warnings)
 

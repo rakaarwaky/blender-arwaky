@@ -50,8 +50,9 @@ class ConfigContainer:
     ) -> None:
         # Flag read once at construction (None → resolve via env truthiness).
         if strict_mode_enabled is None:
-            v2 = parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, ""))
-            strict_mode_enabled = v2 is True
+            strict_mode_enabled = bool(
+                parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, ""))
+            )
         else:
             strict_mode_enabled = bool(strict_mode_enabled)
 

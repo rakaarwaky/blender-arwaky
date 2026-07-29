@@ -7,9 +7,10 @@ about how settings were loaded, merged, and validated.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Protocol
+from typing import Protocol
 
 from ..common.taxonomy_core_vo import ConfigMetadata
+from .taxonomy_config_vo import SettingsData
 
 
 class _IMetadataSource(Protocol):
@@ -31,6 +32,6 @@ class ISettingsMetadataProtocol(ABC):
         ...
 
     @abstractmethod
-    def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
+    def to_safe_dict(self, metadata: ConfigMetadata) -> SettingsData:
         """Serialize metadata for diagnostics. Secrets excluded, safe for MCP/CLI output."""
         ...
