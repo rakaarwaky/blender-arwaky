@@ -28,7 +28,7 @@ __all__ = [
 def __getattr__(name: str):
     """Lazy-load root module to break circular surface↔root import chain."""
     if name in ("SceneContainer", "create_scene_container"):
-        from .root_scene_container import SceneContainer as _SceneContainer, create_scene_container as _create_scene_container  # noqa: N813
+        from .root_scene_container import SceneContainer as _SceneContainer, create_scene_container as _create_scene_container
         if name == "SceneContainer":
             return _SceneContainer
         return _create_scene_container
