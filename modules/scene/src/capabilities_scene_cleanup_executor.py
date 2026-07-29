@@ -13,7 +13,6 @@ Capabilities layer:
 from __future__ import annotations
 
 import logging
-from typing import Protocol, runtime_checkable
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
 from modules.shared.src.gateway.contract_code_execution_protocol import (
@@ -47,15 +46,6 @@ from modules.shared.src.scene.utility_scene_result_parser import parse_cleanup_m
 logger = logging.getLogger(__name__)
 
 
-@runtime_checkable
-class IEventEmitterProtocol(Protocol):
-    """Minimal event emitter interface for capability events."""
-
-    async def emit(self, event: object) -> None:
-        """Emit a domain event."""
-        ...  # pragma: no cover
-
-
 class SceneCleanupExecutor(ISceneCleanupProtocol):
     """Capability for FR-SCN-002: scene cleanup execution and parsing."""
 
@@ -63,7 +53,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
     def __init__(
         self,
         code_executor: ICodeExecutionProtocol,
-        event_emitter: IEventEmitterProtocol | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         if code_executor is None:
             raise ValueError("code_executor must be provided")
