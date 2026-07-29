@@ -327,7 +327,7 @@ class TestSubscriberIsolation:
         bus = _make_event_bus()
 
         class FailingSubscriber:
-            async def handle(self, event: Any) -> None:
+            async def handle(self, _event: Any) -> None:
                 raise RuntimeError("subscriber error")
 
         class HealthySubscriber:
@@ -344,7 +344,7 @@ class TestSubscriberIsolation:
         bus = _make_event_bus()
 
         class FailingSubscriber:
-            async def handle(self, event: Any) -> None:
+            async def handle(self, _event: Any) -> None:
                 raise ValueError("test error")
 
         bus.subscribe(FailingSubscriber())

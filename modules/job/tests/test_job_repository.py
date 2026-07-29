@@ -515,7 +515,7 @@ def test_fr_job_004_active_tasks_never_purged_by_normal_retention(repo: InMemory
 # ─── FR-JOB-005: Enforce Background Capacity ────────────────────────────────
 
 
-def test_fr_job_005_capacity_accepts_under_limit(repo: InMemoryJobLifecycleRepository) -> None:
+def test_fr_job_005_capacity_accepts_under_limit(_repo: InMemoryJobLifecycleRepository) -> None:
     """Test that new task submission is accepted when under capacity limit."""
     checker = JobCapacityChecker()
     policy = _make_policy(max_active=5)
@@ -527,7 +527,7 @@ def test_fr_job_005_capacity_accepts_under_limit(repo: InMemoryJobLifecycleRepos
     assert decision.limit == 5
 
 
-def test_fr_job_005_capacity_rejects_at_limit(repo: InMemoryJobLifecycleRepository) -> None:
+def test_fr_job_005_capacity_rejects_at_limit(_repo: InMemoryJobLifecycleRepository) -> None:
     """Test that new task submission is rejected with capacity error when limit reached."""
     checker = JobCapacityChecker()
     policy = _make_policy(max_active=5)
@@ -539,7 +539,7 @@ def test_fr_job_005_capacity_rejects_at_limit(repo: InMemoryJobLifecycleReposito
     assert "Background capacity exceeded" in decision.reason
 
 
-def test_fr_job_005_capacity_rejects_over_limit(repo: InMemoryJobLifecycleRepository) -> None:
+def test_fr_job_005_capacity_rejects_over_limit(_repo: InMemoryJobLifecycleRepository) -> None:
     """Test that submission over limit is rejected."""
     checker = JobCapacityChecker()
     policy = _make_policy(max_active=5)
@@ -549,7 +549,7 @@ def test_fr_job_005_capacity_rejects_over_limit(repo: InMemoryJobLifecycleReposi
     assert decision.available == 0
 
 
-def test_fr_job_005_capacity_includes_active_count_context(repo: InMemoryJobLifecycleRepository) -> None:
+def test_fr_job_005_capacity_includes_active_count_context(_repo: InMemoryJobLifecycleRepository) -> None:
     """Test that capacity error includes current active count to support caller retry decisions."""
     checker = JobCapacityChecker()
     policy = _make_policy(max_active=3)
@@ -558,7 +558,7 @@ def test_fr_job_005_capacity_includes_active_count_context(repo: InMemoryJobLife
     assert decision.reason == "Background capacity exceeded: 3/3 active tasks"
 
 
-def test_fr_job_005_terminal_tasks_release_capacity(repo: InMemoryJobLifecycleRepository) -> None:
+def test_fr_job_005_terminal_tasks_release_capacity(_repo: InMemoryJobLifecycleRepository) -> None:
     """Test that terminal task records do not count against capacity."""
     cmd = CreateTaskCommand(operation_type=OperationType("render"))
     created = repo.create_task(cmd)
