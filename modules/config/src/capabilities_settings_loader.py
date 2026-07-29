@@ -136,12 +136,15 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._last_metadata = metadata
 
             # Runtime overrides are caller-scoped — never cached (A5).
+            # FR-CFG-001 precedence: runtime overrides > environment > file > built-in defaults
+            # Therefore overrides must be applied to the fully merged snapshot, not raw file data.
             if overrides is not None and self._strict_mode_enabled:
+                base = self._cached.to_dict() if self._cached is not None else {}
                 structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
-                final = deep_merge_dicts(self._cached_data, structured)
+                final = deep_merge_dicts(base, structured)
                 return SettingsSnapshot(_data=final)
 
             if overrides is not None and not self._strict_mode_enabled:
