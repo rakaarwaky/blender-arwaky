@@ -94,14 +94,131 @@ Serialize aggregate outcomes into MCP-compliant structured responses.
 
 ## Tool Mapping
 
+### execute_command
 
-| MCP Tool           | Target Feature               | Notes                                           |
-| -------------------- | ------------------------------ | ------------------------------------------------- |
-| execute_command    | dispatcher feature           | Universal entry point  action name as argument |
-| list_commands      | dispatcher feature           | Command catalog discovery                       |
-| health_check       | diagnostics feature          | System health snapshot                          |
-| get_config         | config feature               | Settings retrieval                              |
-| read_skill_context | static documentation surface | Versioned SKILL.md reader                       |
+Universal action executor — dispatches any action from catalog. Action name = shared identifier dengan CLI `--action`.
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `action` | string | yes | Action name from catalog |
+| `args` | dict | no | Action-specific parameters (lihat tabel per domain di bawah) |
+
+Target feature: dispatcher feature. Routes to `IDispatcherAggregate.execute_action(action, args)`.
+
+#### Scene
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `get_scene_info` | (none) | Full scene metadata |
+| `cleanup_scene` | `mode`: "all" \| "objects" \| "meshes" | Remove objects |
+| `setup_environment` | `hdri_id` (req), `strength` (opt) | Setup HDRI lighting |
+
+#### Object
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `get_object_info` | `object_name` (req) | Object details |
+| `create_primitive` | `primitive_type` (req), `location` (opt), `scale` (opt), `name` (opt) | Create primitive |
+| `set_object_transform` | `object_name` (req), `location` (opt), `rotation` (opt), `scale` (opt) | Update transform |
+| `delete_object` | `object_name` (req) | Remove object |
+| `set_material` | `object_name` (req), `material_name` (req) | Assign material |
+| `apply_modifier` | `object_name` (req), `modifier_name` (req) | Apply modifier |
+
+#### Viewport & Render
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `get_viewport_screenshot` | `filepath` (opt), `max_size` (opt), `view_angle` (opt), `shading_mode` (opt), `show_overlays` (opt), `focus_object` (opt) | AI-optimized screenshot |
+| `render` | `output_path` (req), `resolution_x` (opt), `resolution_y` (opt) | Full frame render |
+
+#### Import / Export / Asset
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `import_glb` | `file_path` (req), `object_name` (opt) | Import GLB/GLTF |
+| `export_model` | `object_name` (req), `file_path` (req), `export_format` (opt) | Export model |
+| `place_asset` | `asset_id` (req), `location` (opt), `rotation` (opt), `scale` (opt) | Position asset |
+
+#### Launcher
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `launch_blender` | `mode` (opt): "interface" \| "headless" | Start Blender with integration active |
+| `shutdown_blender` | `force` (opt, bool) | Graceful shutdown with force fallback |
+| `get_runtime_status` | (none) | Verify true process liveness and readiness |
+| `register_executable` | `path` (opt) | Locate and register Blender executable |
+
+#### Job
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `get_task_status` | `task_id` (req) | Query render/compute task progress |
+| `cancel_task` | `task_id` (req) | Cancel running task |
+
+#### Config
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `get_config` | `key` (opt) | Get config value or all settings |
+| `set_config` | `key` (req), `value` (req) | Update config setting |
+
+#### Code Execution
+
+| Action | `args` Parameters | Description |
+|--------|-------------------|-------------|
+| `execute_blender_code` | `code` (req) | Run Python in Blender |
+
+### list_commands
+
+Discover available actions, parameters, and descriptions.
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `domain` | string | no | Filter by domain: `scene`, `object`, `viewport`, `render`, `io`, `infrastructure`, `asset`, `generation`. Omit for all. |
+| `format` | string | no | Output format: `detailed` (full spec per action) or `summary` (names + descriptions). Default: `detailed`. |
+
+Target feature: dispatcher feature. Routes to `IDispatcherAggregate.discover_actions()`.
+
+### health_check
+
+Verify Blender connectivity and system health.
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| (none) | — | — | Returns system health snapshot |
+
+Target feature: diagnostics feature. Routes to `IDiagnosticsAggregate.get_snapshot()`.
+
+### get_config
+
+Retrieve BlenderArwaky configuration settings.
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `key` | string | no | Specific config key to retrieve. Omit for all settings. |
+
+Target feature: config feature.
+
+### read_skill_context
+
+Read SKILL.md documentation for any skill.
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `skill_name` | string | yes | Skill name (e.g., `blender-mcp`, `auto-linter`). Directory name under `.agents/skills/`. |
+| `section` | string | no | Section to extract: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`. Omit for full content. |
+
+Target feature: static documentation surface. Reads versioned SKILL.md files directly.
+
+### Summary
+
+| MCP Tool | Arguments | Target Feature |
+|----------|-----------|----------------|
+| `execute_command` | `action` (req), `args` (opt) | dispatcher feature |
+| `list_commands` | `domain` (opt), `format` (opt) | dispatcher feature |
+| `health_check` | (none) | diagnostics feature |
+| `get_config` | `key` (opt) | config feature |
+| `read_skill_context` | `skill_name` (req), `section` (opt) | static documentation surface |
 
 ## Error Categories
 

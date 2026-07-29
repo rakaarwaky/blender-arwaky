@@ -28,9 +28,8 @@ tests/
 |-------|--------|-------|
 | `taxonomy/` | 100% | Pure data — must be fully covered |
 | `contract/` | 90% | Interface definitions |
-| `infrastructure/` | 80% | Adapters |
 | `capabilities/` | 90% | Business logic |
-| `agent/` | 80% | Orchestration |
+| `agent/` | 80% | Orchestration (where applicable) |
 | `surfaces/` | 85% | Handlers |
 | **Overall** | **85%** | minimum |
 
@@ -114,7 +113,7 @@ uv run pytest -m "not slow" # skip slow tests
 **Step 1: Health Check**
 ```python
 health_check()
-# Expect: blender_connected=true, tool_count=4
+# Expect: blender_connected=true, tool_count=5
 ```
 
 **Step 2: Scene Discovery**

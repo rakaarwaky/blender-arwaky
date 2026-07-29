@@ -46,3 +46,12 @@ All CLI imports resolve correctly. No regressions from file renames.
 - The plan's P0 security fixes (error masking, exit codes, `_mask_error`) were already applied in a prior commit before this execution.
 - Plan's P1 items (Command protocol, class wrappers for AES303) deferred to next review cycle — not critical for compliance.
 - Plan's P2 items (singleton removal, path sanitization) are nice-to-haves for single-use CLI pattern.
+
+## Git History
+
+| Commit | Message |
+|---|---|
+| `b95c46f` | refactor: restructure CLI modules by renaming surface-specific components to generic utility and command modules |
+| `d04f22e` | chore(cli): remove obsolete surface_cli_* files from tracking |
+
+Both commits pushed to `origin/develop`. PR #15 (develop → main) is open.

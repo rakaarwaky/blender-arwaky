@@ -88,17 +88,78 @@ Present failures as categorized, actionable guidance. Never display secrets.
 
 ## Command Mapping
 
-| CLI Command | Target Feature |
-|---|---|
-| init, launch | launcher feature |
-| shutdown, close | launcher feature |
-| status, health | diagnostics feature |
-| run, execute | dispatcher feature |
-| list, catalog | dispatcher feature |
-| config, settings | config feature |
-| task status, task cancel | job feature |
+Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run --action` sebagai fallback untuk aksi yang belum punya sub-command.
 
-Mapping rules: 1 command = 1 aggregate call. Semantics live in target feature, not CLI. Adding a capability never requires CLI changes beyond mapping a new command.
+### Launcher
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `init` | `--filepath` (required), `--mode` (gui\|headless), `--port` | `launch_blender` |
+| `close` | `--filepath` (required) | `shutdown_blender` |
+| `status` | (none) | `get_runtime_status` |
+| `register` | `--path` (optional) | `register_executable` |
+
+### Scene
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `scene-info` | (none) | `get_scene_info` |
+| `scene-cleanup` | `--mode` (all\|objects\|meshes) | `cleanup_scene` |
+| `set-env` | `--hdri-id` (required), `--strength` | `setup_environment` |
+
+### Object
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `object-info` | `--name` (required) | `get_object_info` |
+| `create` | `--type` (required), `--location`, `--scale`, `--name` | `create_primitive` |
+| `set-transform` | `--name` (required), `--location`, `--rotation`, `--scale` | `set_object_transform` |
+| `delete` | `--name` (required) | `delete_object` |
+| `set-material` | `--name` (required), `--material` (required) | `set_material` |
+| `apply-modifier` | `--name` (required), `--modifier` (required) | `apply_modifier` |
+
+### Viewport & Render
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `screenshot` | `--filepath`, `--output`, `--max-size`, `--view-angle`, `--shading`, `--no-overlays`, `--focus-object` | `get_viewport_screenshot` |
+| `render` | `--filepath`, `--output`, `--resolution-x`, `--resolution-y` | `render` |
+
+### Import / Export / Asset
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `import` | `--file` (required), `--name` | `import_glb` |
+| `export` | `--name` (required), `--output` (required), `--format` | `export_model` |
+| `place-asset` | `--asset-id` (required), `--location`, `--rotation`, `--scale` | `place_asset` |
+
+### Job
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `task-status` | `--task-id` (required) | `get_task_status` |
+| `cancel-task` | `--task-id` (required) | `cancel_task` |
+
+### Config
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `config` | `--key` (optional) | `get_config` |
+| `set-config` | `--key` (required), `--value` (required) | `set_config` |
+
+### Code Execution
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `run-code` | `--code` (required) | `execute_blender_code` |
+
+### Universal Fallback
+
+| CLI | Arguments | Action Name |
+|-----|-----------|-------------|
+| `run` | `--filepath` (required), `--action` (required), `--params` (JSON) | `run.action` |
+
+Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in target feature, not CLI.
 
 ## Error Categories
 
@@ -111,30 +172,31 @@ None. CLI does not emit domain events.
 
 ## Configuration Keys
 
-| Key | Description | Default |
-|---|---|---|
-| default_output_format | text or json | text |
-| secret_masking | always enabled | enabled |
-| color_policy | auto/always/never | auto |
-| list_page_size | row limit before truncation | conservative |
-| progress_hints | show for long operations | enabled for interactive |
+
+| Key                   | Description                 | Default                 |
+| ----------------------- | ----------------------------- | ------------------------- |
+| default_output_format | text or json                | text                    |
+| secret_masking        | always enabled              | enabled                 |
+| color_policy          | auto/always/never           | auto                    |
+| list_page_size        | row limit before truncation | conservative            |
+| progress_hints        | show for long operations    | enabled for interactive |
 
 ## QA Checklist
 
-- [ ] Commands parse + route to correct aggregate
-- [ ] Unknown command → validation error with suggestions
-- [ ] Every command supports --help
-- [ ] Surface validation before routing
-- [ ] Semantic validation by owning feature only
-- [ ] Results rendered in clear text format
-- [ ] JSON output: machine-stable, no decoration
-- [ ] JSON errors: structured objects
-- [ ] Large payloads truncated in text, complete in JSON
-- [ ] Color suppressed for non-TTY
-- [ ] Errors: category + actionable message + remediation hint
-- [ ] Stack traces hidden by default
-- [ ] Secrets masked in all output paths
-- [ ] Exit codes deterministic per outcome class
-- [ ] Progress hints clear on completion/failure
-- [ ] No business logic in CLI layer
-- [ ] New capability reachable via mapping only, no CLI logic changes
+- [ ]  Commands parse + route to correct aggregate
+- [ ]  Unknown command → validation error with suggestions
+- [ ]  Every command supports --help
+- [ ]  Surface validation before routing
+- [ ]  Semantic validation by owning feature only
+- [ ]  Results rendered in clear text format
+- [ ]  JSON output: machine-stable, no decoration
+- [ ]  JSON errors: structured objects
+- [ ]  Large payloads truncated in text, complete in JSON
+- [ ]  Color suppressed for non-TTY
+- [ ]  Errors: category + actionable message + remediation hint
+- [ ]  Stack traces hidden by default
+- [ ]  Secrets masked in all output paths
+- [ ]  Exit codes deterministic per outcome class
+- [ ]  Progress hints clear on completion/failure
+- [ ]  No business logic in CLI layer
+- [ ]  New capability reachable via mapping only, no CLI logic changes
