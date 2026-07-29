@@ -28,8 +28,8 @@ __all__ = [
 def __getattr__(name: str):
     """Lazy-load root module to break circular surface↔root import chain."""
     if name in ("SceneContainer", "create_scene_container"):
-        from .root_scene_container import SceneContainer as _sc, create_scene_container as _csc
+        from .root_scene_container import SceneContainer as _SceneContainer, create_scene_container as _create_scene_container  # noqa: N813
         if name == "SceneContainer":
-            return _sc
-        return _csc
+            return _SceneContainer
+        return _create_scene_container
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

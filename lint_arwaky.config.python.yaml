@@ -46,6 +46,7 @@ ignored_paths:
   - "/.mypy_cache"
   - "/.ruff_cache"
   - ".pytest_cache"
+  - "blender_mcp_addon"
 
 architecture:
   enabled: true

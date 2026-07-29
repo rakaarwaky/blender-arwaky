@@ -36,7 +36,7 @@ from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
 logger = logging.getLogger(__name__)
 
 
-class DiagnosticsOrchestrator(IDiagnosticsAggregate)(IDiagnosticsAggregate):
+class DiagnosticsOrchestrator(IDiagnosticsAggregate):
     """Orchestrates diagnostics operations across all subsystems.
 
     Provides a unified facade for health composition, metrics collection,
