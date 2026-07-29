@@ -9,25 +9,11 @@ from __future__ import annotations
 import re
 
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
+from modules.shared.src.security.taxonomy_security_constant import _KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
 
-# Quoted-key aware: matches shell (`password=secret`), YAML (`password: secret`)
-# and JSON/`"password": "secret"` forms. The optional leading/trailing quotes are
-# captured so the closing quote is required when the opening quote is present
-# (FR-SEC-004: "secret inside text blob" / "nested structure" — JSON bodies in
-# logs, diagnostics, CLI and MCP output must be redacted, not just key=value text).
-# The value half matches EITHER a fully-quoted string (internal spaces allowed,
-# closing quote honored via backreference \2) OR an unquoted token — so a spaced
-# quoted secret like `"password": "my secret"` is consumed whole, not leaked.
-_KV_VALUE = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
-
-_DEFAULT_PATTERNS: tuple[str, ...] = (
-    r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + _KV_VALUE,
-    r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*",
-    r"(?i)sk-[A-Za-z0-9]{20,}",
-    r"(?i)ghp_[A-Za-z0-9]{36}",
-    r"(?i)AKIA[0-9A-Z]{16}",
-)
+# Re-export shared patterns as module-level constant for backward compat.
+_DEFAULT_PATTERNS: tuple[str, ...] = REDACTION_SENSITIVE_PATTERNS
 
 
 class SensitiveRedactor(RedactSensitiveProtocol):
@@ -38,11 +24,9 @@ class SensitiveRedactor(RedactSensitiveProtocol):
         self,
         extra_patterns: tuple[str, ...] = (),
         extra_key_names: tuple[str, ...] = (),
-        debug_mode: bool = False,
     ) -> None:
         self._patterns = _DEFAULT_PATTERNS + extra_patterns
         self._key_names = extra_key_names
-        self._debug_mode = debug_mode
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def redact(self, request: RedactionVO) -> RedactionVO:

@@ -245,6 +245,7 @@ class SecurityPolicyVO:
     blocked_code_constructs: tuple[str, ...] = dc_field(default_factory=tuple)
     max_code_size: int = 1_048_576
     redaction_patterns: tuple[str, ...] = dc_field(default_factory=tuple)
+    redaction_key_names: tuple[str, ...] = dc_field(default_factory=tuple)
     redaction_debug_mode: bool = False
     security_policy_mode: str = "strict"
 

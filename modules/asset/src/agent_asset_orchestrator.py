@@ -28,6 +28,7 @@ from modules.shared.src.asset.taxonomy_asset_vo import (
     AssetImportBlenderVO,
 )
 from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName, SearchQuery, StringList
+from modules.shared.src.common.taxonomy_domain_error import ValidationError
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -62,7 +63,7 @@ class AssetOrchestrator(IAssetAggregate):
 
     async def download_to_cache(self, request: AssetDownloadCacheVO) -> AssetDownloadCacheVO:
         if self._download is None:
-            raise NotImplementedError("Download capability not configured")
+            raise ValidationError("Download capability not configured in container")
         raw = await self._download.download_to_cache(
             provider=request.provider,
             asset_id=request.asset_id,
@@ -91,7 +92,7 @@ class AssetOrchestrator(IAssetAggregate):
 
     async def extract_archive(self, request: AssetExtractArchiveVO) -> AssetExtractArchiveVO:
         if self._extract is None:
-            raise NotImplementedError("Extract capability not configured")
+            raise ValidationError("Extract capability not configured in container")
         raw = await self._extract.extract_archive(
             artifact_path=request.artifact_path,
             destination=request.destination,
@@ -113,7 +114,7 @@ class AssetOrchestrator(IAssetAggregate):
 
     async def import_asset(self, request: AssetImportBlenderVO) -> AssetImportBlenderVO:
         if self._import is None:
-            raise NotImplementedError("Import capability not configured")
+            raise ValidationError("Import capability not configured in container")
         raw = await self._import.import_asset(
             file_path=request.file_path,
             asset_type=request.asset_type,
@@ -138,5 +139,5 @@ class AssetOrchestrator(IAssetAggregate):
 
     async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, Any]:
         if self._metadata is None:
-            raise NotImplementedError("Provider metadata capability not configured")
+            raise ValidationError("Provider metadata capability not configured in container")
         return await self._metadata.normalize_metadata({}, provider_name, asset_id)

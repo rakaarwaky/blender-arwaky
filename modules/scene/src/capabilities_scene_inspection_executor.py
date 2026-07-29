@@ -74,8 +74,8 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 message=event.message,
             )
 
-        except Exception as e:
-            logger.error("Scene inspection failed: %s", e)
+        except TimeoutError:
+            logger.exception("Scene inspection timed out")
             return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
@@ -83,7 +83,29 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 correlation_id=request.correlation_id,
                 success=SuccessFlag(False),
                 scene_state_summary=None,
-                message=Prompt(f"Inspection failed: {e}"),
+                message=Prompt(f"[{SceneErrorCategory.TIMEOUT.value}] Inspection timed out"),
+            )
+        except ConnectionError:
+            logger.exception("Scene inspection connection failed")
+            return SceneInspectionVO(
+                detail_level=request.detail_level,
+                include_hidden_objects=request.include_hidden_objects,
+                object_type_filter=request.object_type_filter,
+                correlation_id=request.correlation_id,
+                success=SuccessFlag(False),
+                scene_state_summary=None,
+                message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Inspection connection failed"),
+            )
+        except Exception as e:
+            logger.exception("Scene inspection failed")
+            return SceneInspectionVO(
+                detail_level=request.detail_level,
+                include_hidden_objects=request.include_hidden_objects,
+                object_type_filter=request.object_type_filter,
+                correlation_id=request.correlation_id,
+                success=SuccessFlag(False),
+                scene_state_summary=None,
+                message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Inspection failed: {e}"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────

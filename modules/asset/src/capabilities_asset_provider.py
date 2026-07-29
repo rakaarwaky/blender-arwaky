@@ -157,8 +157,16 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
         for key in ("thumbnail_url", "preview_url", "image_url", "poster_url"):
             if key in data and data[key]:
                 url = str(data[key])
+                # Reject unsafe protocols
+                url_lower = url.lower()
+                if any(proto in url_lower for proto in ("file://", "javascript:", "data:")):
+                    return None
                 # Never embed credentials or signed URLs
                 if "token=" in url or "signature=" in url or "X-Amz-" in url:
+                    return None
+                # Only allow HTTPS
+                if not url.startswith("https://"):
+                    logger.warning("Non-HTTPS thumbnail URL rejected: %s", url)
                     return None
                 return url
         return None

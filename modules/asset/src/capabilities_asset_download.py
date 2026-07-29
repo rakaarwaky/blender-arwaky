@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +61,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self,
         provider: ProviderName,
         asset_id: AssetId,
-        asset_type: AssetType,  # noqa: ARG002 (intentional interface param, not used in impl)
+        _asset_type: AssetType,  # intentional interface param, not used in impl
         cache_dir: FilePath,
         resolution: str | None = None,
         overwrite_policy: str = "reuse",
@@ -189,42 +190,56 @@ class AssetDownloadCapability(AssetDownloadProtocol):
 
     def _get_cache_path(self, cache_key: str) -> str:
         """Get deterministic cache path for a cache key."""
-        hash_value = hashlib.md5(cache_key.encode()).hexdigest()[:16]
+        hash_value = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
     def _get_unique_cache_path(self, cache_key: str) -> str:
         """Get unique cache path with timestamp suffix."""
-        import time
-
-        hash_value = hashlib.md5(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
+        hash_value = hashlib.sha256(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
     def _verify_integrity(self, file_path: str) -> bool:
         """Verify cached artifact integrity."""
         try:
-            return os.path.exists(file_path) and os.path.getsize(file_path) > 0
-        except OSError:
+            exists = os.path.exists(file_path)
+            size = os.path.getsize(file_path) if exists else 0
+            if not exists or size == 0:
+                logger.warning("Integrity check failed for %s: missing or empty", file_path)
+                return False
+            return True
+        except OSError as e:
+            logger.warning("Integrity check error for %s: %s", file_path, e)
             return False
 
-    async def _estimate_download_size(self, _provider: ProviderName, _asset_id: AssetId) -> int:
-        """Estimate download size from provider metadata."""
-        # Placeholder - would call provider API for size info
-        return 1048576  # 1MB default estimate
+    async def _estimate_download_size(self, provider: ProviderName, asset_id: AssetId) -> int:
+        """Estimate download size from provider metadata.
 
-    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, _cache_path: str) -> str:
-        """Submit download as background job."""
-        # Placeholder - would integrate with job feature
-        return f"task-{provider}:{asset_id}"
+        TODO: Wire provider adapter and replace with real size query.
+        Currently raises to prevent bypassing max_size enforcement.
+        """
+        raise NotImplementedError(
+            f"Provider adapter for {provider} not wired — "
+            f"call AssetDownloadCapability.set_provider_adapter() first"
+        )
+
+    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
+        """Submit download as background job.
+
+        TODO: Wire job feature and replace with real task submission.
+        Currently raises to prevent fake task refs.
+        """
+        raise NotImplementedError(
+            f"Job feature not wired — cannot submit background download for {provider}:{asset_id}"
+        )
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
-        """Perform actual download (placeholder for provider-specific logic).
+        """Perform actual download via provider adapter.
 
         FR-AST-002: the real implementation must delegate to the provider
         adapter's ``download_asset(AssetDownloadVO)``. Until the adapter is
-        wired, simulate a successful, non-empty downloaded artifact so that
-        integrity verification has a real file to check.
+        wired, raise to prevent false-positive integrity checks.
         """
-        logger.info("Downloading %s from %s to %s", asset_id, provider, cache_path)
-        Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
-        Path(cache_path).write_text(f"asset:{provider}:{asset_id}")
-        return cache_path
+        raise NotImplementedError(
+            f"Provider adapter for {provider} not wired — "
+            f"call AssetDownloadCapability.set_provider_adapter() first"
+        )

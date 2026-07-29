@@ -6,14 +6,11 @@ Wires capabilities to the agent orchestrator.
 from __future__ import annotations
 
 import threading
-from typing import TYPE_CHECKING
 
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
-
-if TYPE_CHECKING:
-    from .agent_scene_orchestrator import SceneOrchestrator
+from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 
 
 class SceneContainer:
@@ -22,16 +19,16 @@ class SceneContainer:
     def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
         self._code_executor = code_executor
         self._lock = threading.Lock()
-        self._orchestrator: SceneOrchestrator | None = None
+        self._aggregate: ISceneAggregate | None = None
 
-    def get_orchestrator(self) -> SceneOrchestrator:
-        """Return fully wired SceneOrchestrator singleton."""
-        if self._orchestrator is not None:
-            return self._orchestrator
+    def get_aggregate(self) -> ISceneAggregate:
+        """Return fully wired ISceneAggregate singleton."""
+        if self._aggregate is not None:
+            return self._aggregate
 
         with self._lock:
-            if self._orchestrator is not None:
-                return self._orchestrator
+            if self._aggregate is not None:
+                return self._aggregate
 
             from .agent_scene_orchestrator import SceneOrchestrator
             from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
@@ -40,17 +37,17 @@ class SceneContainer:
             inspection = SceneInspectionExecutor(self._code_executor)
             cleanup = SceneCleanupExecutor(self._code_executor)
 
-            self._orchestrator = SceneOrchestrator(
+            self._aggregate = SceneOrchestrator(
                 inspection=inspection,
                 cleanup=cleanup,
             )
 
-        return self._orchestrator
+        return self._aggregate
 
     def shutdown(self) -> None:
         """Reset container state."""
         with self._lock:
-            self._orchestrator = None
+            self._aggregate = None
 
     def __repr__(self) -> str:
         return "SceneContainer()"

@@ -1,7 +1,7 @@
 """Scene feature module — AES implementation.
 
 Layers:
-  - Surface (modules/scene/src/surface_scene_router.py)
+  - Surface (modules/scene/src/surface_scene_command.py)
   - Taxonomy (shared/src/scene/)
   - Contract (shared/src/scene/)
   - Capabilities:

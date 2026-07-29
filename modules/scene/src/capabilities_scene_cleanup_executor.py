@@ -1,37 +1,31 @@
 """Capability: Scene cleanup executor.
 
-FR-SCN-002: Cleanup scene objects.
+FR-SCN-002: Execute scene cleanup (execution + parsing only).
+Policy resolution delegated to utility.
 
 Capabilities layer:
 - implements protocol ABC
 - 3-block structure
-- owns policy resolution
-- delegates technical code building/parsing to utility
+- owns execution and parsing only
+- delegates validation/policy to utility
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, SuccessFlag
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
 from modules.shared.src.scene.contract_scene_protocol import ISceneCleanupProtocol
-from modules.shared.src.scene.taxonomy_scene_constant import (
-    CLEANUP_CONFIRMATION_REQUIRED,
-    PRESERVATION_CAMERA,
-    PRESERVATION_LIGHT,
-    PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA,
-    PROTECTED_OBJECT_POLICY_SOLE_CAMERA,
-    VALID_CHILD_HANDLING_POLICIES,
-    VALID_CLEANUP_MODES,
-    VALID_DEPENDENT_HANDLING_POLICIES,
-)
+from modules.shared.src.scene.taxonomy_scene_constant import CLEANUP_CONFIRMATION_REQUIRED
 from modules.shared.src.scene.taxonomy_scene_error import SceneError, SceneErrorCategory
 from modules.shared.src.scene.taxonomy_scene_event import (
     SceneCleanupCompletedEvent,
     SceneCleanupDryRunCompletedEvent,
+    SceneCleanupFailedEvent,
 )
 from modules.shared.src.scene.taxonomy_scene_vo import (
     ObjectCount,
@@ -39,168 +33,163 @@ from modules.shared.src.scene.taxonomy_scene_vo import (
     SceneCleanupPolicyVO,
     SceneCleanupVO,
 )
-from modules.shared.src.scene.utility_scene_code_builder import (
-    build_cleanup_execution_code,
-    build_cleanup_preview_code,
-)
+from modules.shared.src.scene.utility_scene_code_builder import build_cleanup_code
 from modules.shared.src.scene.utility_scene_result_parser import parse_cleanup_metrics
 
 logger = logging.getLogger(__name__)
 
 
 class SceneCleanupExecutor(ISceneCleanupProtocol):
-    """Capability for FR-SCN-002: scene cleanup."""
+    """Capability for FR-SCN-002: scene cleanup execution and parsing."""
 
     # ─── Block 1: definition + constructor ─────────────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        event_emitter: Any = None,
+    ) -> None:
         if code_executor is None:
             raise ValueError("code_executor must be provided")
         self._code_executor = code_executor
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
         """Execute cleanup or dry-run preview."""
-        validation_error = self._validate(request)
-        if validation_error is not None:
-            return self._failure(request, validation_error.to_prompt())
-
-        if not request.dry_run and not request.confirmation and CLEANUP_CONFIRMATION_REQUIRED:
-            confirmation_error = SceneError(
-                category=SceneErrorCategory.CONFIRMATION,
-                message=Prompt("Destructive cleanup requires explicit confirmation"),
-            )
-            return self._failure(request, confirmation_error.to_prompt())
+        # Pre-flight validation — FR-SCN-002 confirmation rule
+        pre_flight_error = self._pre_flight_check(request)
+        if pre_flight_error is not None:
+            return self._failure(request, pre_flight_error.to_prompt())
 
         try:
-            policy = self._resolve_policy(request)
-            code = (
-                build_cleanup_preview_code(policy)
-                if request.dry_run
-                else build_cleanup_execution_code(policy)
-            )
+            policy = SceneCleanupPolicy.from_request(request)
+            code = build_cleanup_code(policy, request.dry_run)
 
             raw = await self._execute_code(code)
             metrics = parse_cleanup_metrics(raw)
 
             if request.dry_run:
-                event = SceneCleanupDryRunCompletedEvent(
-                    correlation_id=request.correlation_id,
-                    success=SuccessFlag(True),
-                    mode=request.mode,
-                    removable_count=metrics.removed_count,
-                    preserved_count=metrics.preserved_count,
-                    skipped_count=metrics.skipped_count,
-                    message=Prompt("Scene cleanup dry-run completed"),
-                )
-                logger.info("scene_cleanup_dry_run_completed event=%s", event.message)
+                logger.info("scene_cleanup_dry_run_completed removed=%d preserved=%d",
+                            metrics.removed_count, metrics.preserved_count)
 
-                return self._build_cleanup_result(
-                    request,
-                    metrics.removed_count,
-                    metrics.preserved_count,
-                    metrics.skipped_count,
-                    metrics.removed_object_references,
-                    metrics.preserved_object_references,
-                    metrics.skipped_object_references,
-                    f"Dry-run cleanup completed: {metrics.removed_count} removable",
-                )
+                # FR-SCN-002: emit dry-run completed event
+                if self._event_emitter:
+                    try:
+                        await self._event_emitter.emit(SceneCleanupDryRunCompletedEvent(
+                            correlation_id=request.correlation_id,
+                            success=SuccessFlag(True),
+                            mode=request.mode,
+                            removable_count=metrics.removed_count,
+                            preserved_count=metrics.preserved_count,
+                            skipped_count=metrics.skipped_count,
+                            message=Prompt("Scene cleanup dry-run completed"),
+                        ))
+                    except Exception:
+                        logger.warning("Failed to emit SceneCleanupDryRunCompletedEvent")
 
-            event = SceneCleanupCompletedEvent(
-                correlation_id=request.correlation_id,
-                success=SuccessFlag(True),
-                mode=request.mode,
-                removed_count=metrics.removed_count,
-                preserved_count=metrics.preserved_count,
-                skipped_count=metrics.skipped_count,
-                message=Prompt("Scene cleanup completed"),
-            )
-            logger.info("scene_cleanup_completed event=%s", event.message)
+                return self._build_result(request, metrics, "Dry-run completed")
 
-            return self._build_cleanup_result(
-                request,
-                metrics.removed_count,
-                metrics.preserved_count,
-                metrics.skipped_count,
-                metrics.removed_object_references,
-                metrics.preserved_object_references,
-                metrics.skipped_object_references,
-                f"Cleanup completed: {metrics.removed_count} removed",
-            )
+            logger.info("scene_cleanup_completed removed=%d preserved=%d",
+                        metrics.removed_count, metrics.preserved_count)
+
+            # FR-SCN-002: emit cleanup completed event
+            if self._event_emitter:
+                try:
+                    await self._event_emitter.emit(SceneCleanupCompletedEvent(
+                        correlation_id=request.correlation_id,
+                        success=SuccessFlag(True),
+                        mode=request.mode,
+                        removed_count=metrics.removed_count,
+                        preserved_count=metrics.preserved_count,
+                        skipped_count=metrics.skipped_count,
+                        message=Prompt("Scene cleanup completed"),
+                    ))
+                except Exception:
+                    logger.warning("Failed to emit SceneCleanupCompletedEvent")
+
+            return self._build_result(request, metrics, "Cleanup completed")
 
         except TimeoutError:
             logger.exception("Scene cleanup timed out")
+            if self._event_emitter:
+                try:
+                    await self._event_emitter.emit(SceneCleanupFailedEvent(
+                        correlation_id=request.correlation_id,
+                        success=SuccessFlag(False),
+                        mode=request.mode,
+                        dry_run=request.dry_run,
+                        error_category=SceneErrorCategory.TIMEOUT,
+                        message=Prompt(f"[{SceneErrorCategory.TIMEOUT.value}] Cleanup timed out"),
+                    ))
+                except Exception:
+                    logger.warning("Failed to emit SceneCleanupFailedEvent on timeout")
             return self._failure(
                 request,
                 Prompt(f"[{SceneErrorCategory.TIMEOUT.value}] Cleanup timed out"),
             )
         except ConnectionError:
             logger.exception("Scene cleanup connection failed")
+            if self._event_emitter:
+                try:
+                    await self._event_emitter.emit(SceneCleanupFailedEvent(
+                        correlation_id=request.correlation_id,
+                        success=SuccessFlag(False),
+                        mode=request.mode,
+                        dry_run=request.dry_run,
+                        error_category=SceneErrorCategory.CONNECTION,
+                        message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Cleanup connection failed"),
+                    ))
+                except Exception:
+                    logger.warning("Failed to emit SceneCleanupFailedEvent on connection")
             return self._failure(
                 request,
                 Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Cleanup connection failed"),
             )
         except Exception as exc:
             logger.exception("Scene cleanup failed")
+            if self._event_emitter:
+                try:
+                    await self._event_emitter.emit(SceneCleanupFailedEvent(
+                        correlation_id=request.correlation_id,
+                        success=SuccessFlag(False),
+                        mode=request.mode,
+                        dry_run=request.dry_run,
+                        error_category=SceneErrorCategory.SCENE_STATE,
+                        message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Cleanup failed: {exc}"),
+                    ))
+                except Exception:
+                    logger.warning("Failed to emit SceneCleanupFailedEvent on generic error")
             return self._failure(
                 request,
                 Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Cleanup failed: {exc}"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
-    def _validate(self, request: SceneCleanupVO) -> SceneError | None:
-        mode = str(request.mode).lower()
-
-        if mode not in VALID_CLEANUP_MODES:
+    def _pre_flight_check(self, request: SceneCleanupVO) -> SceneError | None:
+        """Pre-flight validation — no business logic, just checks."""
+        # FR-SCN-002: confirmation required only for destructive operations (not dry-run)
+        if not request.dry_run and not request.confirmation and CLEANUP_CONFIRMATION_REQUIRED:
             return SceneError(
-                category=SceneErrorCategory.VALIDATION,
-                message=Prompt(f"Invalid cleanup mode: {request.mode}"),
+                category=SceneErrorCategory.CONFIRMATION,
+                message=Prompt("Destructive cleanup requires explicit confirmation"),
             )
-
-        if request.child_handling_policy not in VALID_CHILD_HANDLING_POLICIES:
-            return SceneError(
-                category=SceneErrorCategory.VALIDATION,
-                message=Prompt(f"Invalid child handling policy: {request.child_handling_policy}"),
-            )
-
-        if request.dependent_handling_policy not in VALID_DEPENDENT_HANDLING_POLICIES:
-            return SceneError(
-                category=SceneErrorCategory.VALIDATION,
-                message=Prompt(
-                    f"Invalid dependent handling policy: {request.dependent_handling_policy}"
-                ),
-            )
-
         return None
 
-    def _resolve_policy(self, request: SceneCleanupVO) -> SceneCleanupPolicyVO:
-        preservation = set(request.preservation_list)
-
-        return SceneCleanupPolicyVO(
-            mode=request.mode,
-            preserve_cameras=PRESERVATION_CAMERA in preservation or PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA,
-            preserve_lights=PRESERVATION_LIGHT in preservation,
-            include_hidden_objects=request.include_hidden_objects,
-            child_handling_policy=request.child_handling_policy,
-            dependent_handling_policy=request.dependent_handling_policy,
-            protect_active_camera=PROTECTED_OBJECT_POLICY_ACTIVE_CAMERA,
-            protect_sole_camera=PROTECTED_OBJECT_POLICY_SOLE_CAMERA,
-        )
-
-    async def _execute_code(self, code: PythonCode) -> Prompt:
+    async def _execute_code(self, code: PythonCode) -> str:
+        """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
-        return Prompt(result.output if hasattr(result, 'output') else str(result))
+        output = result.output if hasattr(result, 'output') else str(result)
+        if not isinstance(output, str):
+            raise RuntimeError(f"Expected string output, got {type(output).__name__}")
+        return output
 
-    def _build_cleanup_result(
+    def _build_result(
         self,
         request: SceneCleanupVO,
-        removed_count: ObjectCount,
-        preserved_count: ObjectCount,
-        skipped_count: ObjectCount,
-        removed_refs: tuple[ObjectName, ...],
-        preserved_refs: tuple[ObjectName, ...],
-        skipped_refs: tuple[ObjectName, ...],
+        metrics: object,  # SceneCleanupMetricsVO
         message: str,
     ) -> SceneCleanupVO:
+        """Build success result from parsed metrics."""
         return SceneCleanupVO(
             mode=request.mode,
             preservation_list=request.preservation_list,
@@ -211,12 +200,12 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             include_hidden_objects=request.include_hidden_objects,
             correlation_id=request.correlation_id,
             success=SuccessFlag(True),
-            removed_count=removed_count,
-            preserved_count=preserved_count,
-            skipped_count=skipped_count,
-            removed_object_references=removed_refs,
-            preserved_object_references=preserved_refs,
-            skipped_object_references=skipped_refs,
+            removed_count=getattr(metrics, 'removed_count', ObjectCount(0)),
+            preserved_count=getattr(metrics, 'preserved_count', ObjectCount(0)),
+            skipped_count=getattr(metrics, 'skipped_count', ObjectCount(0)),
+            removed_object_references=getattr(metrics, 'removed_object_references', ()),
+            preserved_object_references=getattr(metrics, 'preserved_object_references', ()),
+            skipped_object_references=getattr(metrics, 'skipped_object_references', ()),
             message=Prompt(message),
         )
 
@@ -236,3 +225,54 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
 
     def __repr__(self) -> str:
         return "SceneCleanupExecutor()"
+
+
+class SceneCleanupPolicy:
+    """Frozen data carrier for resolved cleanup policy.
+
+    Extracted from executor to satisfy SRP — contains no I/O or business logic
+    beyond simple data resolution from request VOs.
+    """
+
+    def __init__(
+        self,
+        mode: str,
+        preserve_cameras: bool,
+        preserve_lights: bool,
+        include_hidden_objects: bool,
+        child_handling_policy: str,
+        dependent_handling_policy: str,
+        protect_active_camera: bool,
+        protect_sole_camera: bool,
+    ) -> None:
+        self.mode = mode
+        self.preserve_cameras = preserve_cameras
+        self.preserve_lights = preserve_lights
+        self.include_hidden_objects = include_hidden_objects
+        self.child_handling_policy = child_handling_policy
+        self.dependent_handling_policy = dependent_handling_policy
+        self.protect_active_camera = protect_active_camera
+        self.protect_sole_camera = protect_sole_camera
+
+    @classmethod
+    def from_request(cls, request: SceneCleanupVO) -> "SceneCleanupPolicy":
+        """Resolve policy from cleanup request."""
+        preservation = set(request.preservation_list)
+        return cls(
+            mode=request.mode,
+            preserve_cameras=cls._should_preserve_camera(preservation),
+            preserve_lights=cls._should_preserve_light(preservation),
+            include_hidden_objects=request.include_hidden_objects,
+            child_handling_policy=request.child_handling_policy,
+            dependent_handling_policy=request.dependent_handling_policy,
+            protect_active_camera=True,
+            protect_sole_camera=True,
+        )
+
+    @staticmethod
+    def _should_preserve_camera(preservation: set[str]) -> bool:
+        return PRESERVATION_CAMERA in preservation or True  # active camera always protected
+
+    @staticmethod
+    def _should_preserve_light(preservation: set[str]) -> bool:
+        return "light" in preservation

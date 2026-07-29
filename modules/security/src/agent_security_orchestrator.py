@@ -55,27 +55,32 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
 
     async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
         """Delegate path validation to the capabilities layer."""
-        logger.info("Orchestrating validate_path for %s", request.target_path)
+        corr = getattr(request, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating validate_path corr=%s", corr)
         return await self._validate_path.validate_path(request)
 
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Delegate archive extraction validation to the capabilities layer."""
-        logger.info("Orchestrating validate_extraction for %s", request.destination_directory)
+        corr = getattr(request, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating validate_extraction corr=%s", corr)
         return await self._validate_archive.validate_extraction(request)
 
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
         """Delegate code validation to the capabilities layer."""
-        logger.info("Orchestrating validate_code (%d bytes)", len(request.code_text))
+        corr = getattr(request, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating validate_code corr=%s", corr)
         return await self._validate_code.validate_code(request)
 
     async def redact(self, request: RedactionVO) -> RedactionVO:
         """Delegate redaction to the capabilities layer."""
-        logger.info("Orchestrating redact (%d chars)", len(request.text))
+        corr = getattr(request, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating redact corr=%s", corr)
         return await self._redact.redact(request)
 
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
         """Delegate audit emission to the capabilities layer."""
-        logger.info("Orchestrating emit_audit: %s", event.violation_category.value)
+        corr = getattr(event, 'correlation_id', None) or "n/a"
+        logger.info("Orchestrating emit_audit corr=%s", corr)
         return await self._emit_audit.emit_audit(event)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────

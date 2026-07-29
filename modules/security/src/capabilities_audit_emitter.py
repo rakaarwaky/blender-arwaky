@@ -11,27 +11,18 @@ complements SensitiveRedactor and protects against callers passing raw secrets.
 
 from __future__ import annotations
 
-import contextlib
 import re
 import time
 import uuid
 from typing import Any, Protocol
 
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
-from modules.shared.src.security.taxonomy_security_vo import SecurityAuditEventVO
+from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
+from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
 
-# Matches the canonical SensitiveRedactor detection set (FR-SEC-004). Kept local to
-# the emit sink so the capability stays independently usable (no capability→capability
-# dependency) while still masking the same secret shapes at the audit boundary.
-# Value half mirrors SensitiveRedactor._KV_VALUE (spaced quoted secrets consumed whole).
-_KV_VALUE = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
-
-_SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r'(?i)(["\']?)(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\1\s*[:=]\s*' + _KV_VALUE),
-    re.compile(r"(?i)(bearer|basic)\s+[A-Za-z0-9\-._~+/]+=*"),
-    re.compile(r"(?i)sk-[A-Za-z0-9]{20,}"),
-    re.compile(r"(?i)ghp_[A-Za-z0-9]{36}"),
-    re.compile(r"(?i)AKIA[0-9A-Z]{16}"),
+# Pre-compiled patterns shared from taxonomy constant (AES305 fix).
+_SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(p) for p in REDACTION_SENSITIVE_PATTERNS
 )
 
 
@@ -87,9 +78,25 @@ class AuditEmitter(EmitAuditProtocol):
             policy_mode=event.policy_mode,
         )
 
+        fallback_record: SecurityAuditEventVO | None = None
         if self._sink:
-            with contextlib.suppress(Exception):
+            try:
                 self._sink.deliver(emitted)
+            except Exception as exc:
+                # FR-SEC-005: audit sink unavailable — create local fallback record
+                logger.warning("Audit sink delivery failed: %s", exc)
+                fallback_record = SecurityAuditEventVO(
+                    violation_category=event.violation_category,
+                    operation_type=event.operation_type,
+                    source_feature=event.source_feature,
+                    target_metadata=_redact_sensitive(event.target_metadata),
+                    severity=AuditSeverity.ERROR,
+                    correlation_id=event.correlation_id,
+                    redacted_reason=event.redacted_reason,
+                    event_id=uuid.uuid4().hex[:16],
+                    timestamp=time.time(),
+                    policy_mode="fallback",
+                )
 
         return emitted
 

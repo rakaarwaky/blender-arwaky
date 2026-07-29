@@ -64,7 +64,9 @@ rm .agents/plans/todo-<feature-name>-tech-lead-<timestamp>.md
 ```
 
 **Write a  report:**
-`.agents/reports/done-<feature-name>-fullstack-developer-<timestamp>.md`
+`.agents/reports/done-<feature-name>-fullstack-developer-YYYY-MM-DD-HHmmss.md`
+
+**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`).
 
 if you wroking on mutitlpe feature write multiple file report
 

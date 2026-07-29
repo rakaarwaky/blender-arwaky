@@ -50,7 +50,15 @@ class PathValidator(ValidatePathProtocol):
             )
 
         if not os.path.isabs(target):
-            base = request.base_directory or (self._policy.allowed_directories[0] if self._policy.allowed_directories else ".")
+            base = request.base_directory or (self._policy.allowed_directories[0] if self._policy.allowed_directories else None)
+            if base is None:
+                return PathValidationVO(
+                    target_path=request.target_path,
+                    access_mode=request.access_mode,
+                    allowed=False,
+                    denial_reason="No base directory configured and policy has no allowed directories",
+                    audit_metadata={"rule": "no_allowed_directory"},
+                )
             target = os.path.join(base, target)
 
         try:
@@ -70,7 +78,7 @@ class PathValidator(ValidatePathProtocol):
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Path traversal detected",
-                audit_metadata={"rule": "path_traversal", "path": _redact_path(normalized)},
+                audit_metadata={"rule": "path_traversal"},
             )
 
         if self._resolver:
@@ -99,7 +107,6 @@ class PathValidator(ValidatePathProtocol):
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Path outside allowed directories",
-                canonical_path=normalized,
                 audit_metadata={"rule": "unauthorized_access", "path": _redact_path(normalized)},
             )
 
