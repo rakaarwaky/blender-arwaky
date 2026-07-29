@@ -1,0 +1,16 @@
+[2026-07-29 20:59:33] INFO: Sedang di branch 'main', checkout ke develop...
+[2026-07-29 20:59:33] ERROR: Gagal checkout develop
+[2026-07-29 20:59:48] INFO: Sedang di branch 'main', checkout ke develop...
+[2026-07-29 20:59:48] ERROR: Gagal checkout develop
+[2026-07-29 21:00:01] WARNING: Ada uncommitted changes. Script di-skip.
+[2026-07-29 21:00:33] Trigger aktif! Local ahead: 1 | behind: 0
+[2026-07-29 21:00:33] Local lebih maju. Pushing...
+[2026-07-29 21:00:36] ✅ Push berhasil. Remote up-to-date.
+[2026-07-29 21:17:54] Trigger aktif! Local ahead: 0 | behind: 2
+[2026-07-29 21:17:54] Remote lebih maju. Pulling dengan 'theirs'...
+[2026-07-29 21:17:55] ✅ Pull berhasil. Local up-to-date.
+[2026-07-29 22:32:02] Trigger aktif! Local ahead: 1 | behind: 3
+[2026-07-29 22:32:02] WARNING: Local & remote diverge!
+[2026-07-29 22:32:02] Merge dengan strategi 'theirs' (remote menang saat conflict)...
+[2026-07-29 22:32:03] ERROR: ❌ Merge gagal meski pakai theirs. Perlu bantuan manual.
+[2026-07-29 22:33:27] WARNING: Ada uncommitted changes. Script di-skip.

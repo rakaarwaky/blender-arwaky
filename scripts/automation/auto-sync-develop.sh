@@ -93,12 +93,12 @@ elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -eq 0 ]; then
         exit 1
     fi
 
-# CASE C: DIVERGE → PULL (remote menang) lalu PUSH
+# CASE C: DIVERGE → MERGE (remote menang) lalu PUSH
 elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -gt 0 ]; then
     warn "Local & remote diverge!"
     log "Merge dengan strategi 'theirs' (remote menang saat conflict)..."
 
-    git pull -X theirs origin develop 2>&1
+    git merge --strategy-option=theirs origin/develop 2>&1
     if [ $? -eq 0 ]; then
         log "✅ Merge berhasil. Pushing hasil merge..."
         git push origin develop 2>&1
