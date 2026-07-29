@@ -22,8 +22,6 @@ from modules.shared.src.security.taxonomy_security_constant import REDACTION_SEN
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
 
 logger = logging.getLogger(__name__)
-from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
-from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
 
 # Pre-compiled patterns shared from taxonomy constant (AES305 fix).
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(

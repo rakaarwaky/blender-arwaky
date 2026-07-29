@@ -64,7 +64,7 @@ class MockCodeExecutor:
 
     async def execute_blender_code(self, _code: str, _request_id: str | None = None) -> str:
         """Return mock result based on whether code contains 'print(result)'."""
-        if "removed_count" in code or "preserved_count" in code:
+        if "removed_count" in _code or "preserved_count" in _code:
             # Cleanup code
             return json.dumps(self._cleanup_result)
         else:

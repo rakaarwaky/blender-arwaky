@@ -7,8 +7,6 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from modules.shared.src.common.taxonomy_core_vo import ErrorMessage, ErrorString
 
 
