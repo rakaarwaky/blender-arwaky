@@ -1,4 +1,4 @@
-"""MCP scene action schemas — parameter definitions and validation for scene domain actions."""
+"""Shared action schemas — Scene domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

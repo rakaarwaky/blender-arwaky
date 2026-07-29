@@ -12,7 +12,7 @@ from typing import Any
 from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
 from modules.shared.src.common.taxonomy_core_vo import ActionName, Details, Prompt
 
-from .surface_action_registry import validate_action_args
+from modules.dispatcher.src.surface_action_registry import validate_action_args
 
 logger = logging.getLogger("BlenderMCPServer")
 

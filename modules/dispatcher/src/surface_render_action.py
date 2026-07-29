@@ -1,4 +1,4 @@
-"""MCP render action schemas — parameter definitions and validation for viewport & render domain."""
+"""Shared action schemas — Render domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

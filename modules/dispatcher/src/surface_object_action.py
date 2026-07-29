@@ -1,4 +1,4 @@
-"""MCP object action schemas — parameter definitions and validation for object domain actions."""
+"""Shared action schemas — Object domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

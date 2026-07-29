@@ -1,4 +1,4 @@
-"""MCP config action schemas — parameter definitions for configuration operations."""
+"""Shared action schemas — Config domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

@@ -103,61 +103,43 @@ def main() -> int:
         parser.print_help()
         return EXIT_VALIDATION
 
-    # Import commands lazily
-    from . import capabilities_cli_command as commands
+    # Import command handlers
+    from . import surface_init_command
+    from . import surface_close_command
+    from . import surface_status_command
+    from . import surface_run_command
+    from . import surface_screenshot_command
+    from . import surface_render_command
 
     result: dict[str, Any] = {}
 
     try:
         if args.command == "init":
-            result = commands.init(args.filepath, mode=args.mode, port=args.port)
+            result = surface_init_command.handle(args)
 
         elif args.command == "run":
             try:
-                params = json.loads(args.params)
+                args.params = json.loads(args.params)
             except json.JSONDecodeError as e:
                 logger.debug("Invalid JSON params: %s", e)
-                result = {
-                    "success": False,
-                    "error": "Invalid JSON parameters",
-                    "category": "validation_error",
-                    "ref": "cli-400",
-                }
+                result = {"success": False, "error": "Invalid JSON parameters", "category": "validation_error", "ref": "cli-400"}
             else:
-                result = commands.run(args.filepath, args.action, params)
+                result = surface_run_command.handle(args)
 
         elif args.command == "screenshot":
-            result = commands.screenshot(
-                filepath=args.filepath,
-                output=args.output,
-                max_size=args.max_size,
-                view_angle=args.view_angle,
-                shading=args.shading,
-                show_overlays=not args.no_overlays,
-                focus_object=args.focus_object,
-            )
+            result = surface_screenshot_command.handle(args)
 
         elif args.command == "render":
-            result = commands.render(
-                filepath=args.filepath,
-                output=args.output,
-                resolution_x=args.resolution_x,
-                resolution_y=args.resolution_y,
-            )
+            result = surface_render_command.handle(args)
 
         elif args.command == "close":
-            result = commands.close(args.filepath)
+            result = surface_close_command.handle(args)
 
         elif args.command == "status":
-            result = commands.status()
+            result = surface_status_command.handle(args)
 
         else:
-            result = {
-                "success": False,
-                "error": f"Unknown command: {args.command}",
-                "category": "validation_error",
-                "ref": "cli-400",
-            }
+            result = {"success": False, "error": f"Unknown command: {args.command}", "category": "validation_error", "ref": "cli-400"}
 
     except Exception:
         logger.exception("Unexpected CLI error")

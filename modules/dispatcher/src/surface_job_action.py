@@ -1,4 +1,4 @@
-"""MCP job action schemas — parameter definitions for background task lifecycle."""
+"""Shared action schemas — Job domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

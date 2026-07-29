@@ -1,4 +1,4 @@
-"""MCP action registry — aggregates all domain action schemas for validation and catalog generation."""
+"""Shared action registry — aggregates all domain action schemas for CLI and MCP surfaces."""
 
 from typing import Any
 

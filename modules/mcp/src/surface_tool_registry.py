@@ -25,17 +25,8 @@ class ToolRegistryHandler:
         from .surface_list_commands import ListCommandsHandler
         from .surface_read_skill import SkillReadHandler
 
-        # Tool 1: Universal executor
         ExecuteCommandHandler.register_execute_command(mcp)
-
-        # Tool 2: Command discovery
         ListCommandsHandler.register_list_commands(mcp)
-
-        # Tool 3: Health check
         HealthCheckHandler.register_health_check(mcp)
-
-        # Tool 4: Config retrieval
         GetConfigHandler.register_get_config(mcp)
-
-        # Tool 5: Documentation reader
         SkillReadHandler.register_read_skill_context(mcp)

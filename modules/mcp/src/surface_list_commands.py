@@ -10,7 +10,7 @@ from typing import Any
 from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
 from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef
 
-from .surface_action_registry import ALL_ACTIONS
+from modules.dispatcher.src.surface_action_registry import ALL_ACTIONS
 
 
 class ListCommandsHandler:

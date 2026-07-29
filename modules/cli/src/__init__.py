@@ -1,14 +1,12 @@
-"""CLI entry — Blender process management, commands, registry, and socket client."""
+"""CLI entry — Blender process management, surface commands, and utilities."""
 
-from .capabilities_cli_command import (
-    close,
-    init,
-    render,
-    run,
-    screenshot,
-    status,
-)
 from .root_cli_main_entry import main
+from .surface_close_command import handle as close_handle
+from .surface_init_command import handle as init_handle
+from .surface_render_command import handle as render_handle
+from .surface_run_command import handle as run_handle
+from .surface_screenshot_command import handle as screenshot_handle
+from .surface_status_command import handle as status_handle
 from .utility_cli_blender_process import (
     find_blender,
     is_running,
@@ -22,15 +20,15 @@ __all__ = [
     "BlenderSocketClient",
     "Registry",
     "RegistryState",
-    "close",
+    "close_handle",
     "find_blender",
-    "init",
+    "init_handle",
     "is_running",
     "kill_blender",
     "launch_blender",
     "main",
-    "render",
-    "run",
-    "screenshot",
-    "status",
+    "render_handle",
+    "run_handle",
+    "screenshot_handle",
+    "status_handle",
 ]

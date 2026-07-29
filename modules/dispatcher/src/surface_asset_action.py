@@ -1,4 +1,4 @@
-"""MCP asset action schemas — parameter definitions for import, export, and asset placement."""
+"""Shared action schemas — Asset domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 

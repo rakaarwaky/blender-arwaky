@@ -1,4 +1,4 @@
-"""MCP launcher action schemas — parameter definitions for Blender process lifecycle."""
+"""Shared action schemas — Launcher domain (used by CLI + MCP surfaces via dispatcher)."""
 
 from typing import Any
 
