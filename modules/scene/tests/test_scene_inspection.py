@@ -494,7 +494,7 @@ async def test_scene_orchestrator_get_scene_info():
     """Test orchestrator delegates to inspection capability for scene info."""
 
     class InspectionCap:
-        async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
+        async def get_scene_info(self, _request: SceneInspectionVO) -> SceneInspectionVO:
             return SceneInspectionVO(
                 detail_level=request.detail_level,
                 include_hidden_objects=request.include_hidden_objects,
@@ -530,7 +530,7 @@ async def test_scene_orchestrator_cleanup_scene():
     """Test orchestrator delegates to cleanup capability."""
 
     class InspectionCap:
-        async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
+        async def get_scene_info(self, _request: SceneInspectionVO) -> SceneInspectionVO:
             return SceneInspectionVO(success=SuccessFlag(True))
 
     class CleanupCap:
