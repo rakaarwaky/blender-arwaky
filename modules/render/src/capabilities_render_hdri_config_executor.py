@@ -17,7 +17,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     PythonCode,
     SuccessFlag,
 )
-from modules.shared.src.render.contract_render_protocol import (
+from modules.shared.src.render.contract_render_hdri_config_protocol import (
     IRenderHdriConfigProtocol,
 )
 from modules.shared.src.render.taxonomy_render_constant import (

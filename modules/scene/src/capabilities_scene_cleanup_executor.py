@@ -19,7 +19,7 @@ from modules.shared.src.common.taxonomy_core_vo import Prompt, PythonCode, Succe
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
-from modules.shared.src.scene.contract_scene_protocol import ISceneCleanupProtocol
+from modules.shared.src.scene.contract_scene_cleanup_protocol import ISceneCleanupProtocol
 from modules.shared.src.scene.taxonomy_scene_constant import CLEANUP_CONFIRMATION_REQUIRED
 from modules.shared.src.scene.taxonomy_scene_error import SceneError, SceneErrorCategory
 from modules.shared.src.scene.taxonomy_scene_event import (

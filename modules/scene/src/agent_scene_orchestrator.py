@@ -13,10 +13,8 @@ Agent layer:
 from __future__ import annotations
 
 from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
-from modules.shared.src.scene.contract_scene_protocol import (
-    ISceneCleanupProtocol,
-    ISceneInspectionProtocol,
-)
+from modules.shared.src.scene.contract_scene_cleanup_protocol import ISceneCleanupProtocol
+from modules.shared.src.scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
 from modules.shared.src.scene.taxonomy_scene_vo import SceneCleanupVO, SceneInspectionVO
 
 

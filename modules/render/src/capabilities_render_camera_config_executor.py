@@ -16,7 +16,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     PythonCode,
     SuccessFlag,
 )
-from modules.shared.src.render.contract_render_protocol import (
+from modules.shared.src.render.contract_render_camera_config_protocol import (
     IRenderCameraConfigProtocol,
 )
 from modules.shared.src.render.taxonomy_render_constant import (

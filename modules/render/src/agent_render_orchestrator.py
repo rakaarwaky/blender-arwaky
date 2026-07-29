@@ -13,12 +13,10 @@ Agent layer:
 from __future__ import annotations
 
 from modules.shared.src.render.contract_render_aggregate import IRenderAggregate
-from modules.shared.src.render.contract_render_protocol import (
-    IRenderCameraConfigProtocol,
-    IRenderHdriConfigProtocol,
-    IRenderSceneImageProtocol,
-    IRenderViewportCaptureProtocol,
-)
+from modules.shared.src.render.contract_render_camera_config_protocol import IRenderCameraConfigProtocol
+from modules.shared.src.render.contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
+from modules.shared.src.render.contract_render_scene_image_protocol import IRenderSceneImageProtocol
+from modules.shared.src.render.contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
 from modules.shared.src.render.taxonomy_render_vo import (
     CameraConfigVO,
     HdriConfigVO,

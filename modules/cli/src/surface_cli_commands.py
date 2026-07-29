@@ -82,6 +82,7 @@ def run(filepath: str, action: str, params: dict[str, Any] | None = None) -> dic
     error, port = _resolve_active(registry, filepath)
     if error:
         return _mask_error("state", "cli-409", error)
+    assert port is not None
 
     try:
         with BlenderSocketClient(port=port) as client:
@@ -121,6 +122,7 @@ def screenshot(
     error, port = _resolve_active(registry, filepath)
     if error:
         return _mask_error("state", "cli-409", error)
+    assert port is not None
 
     params = {
         "filepath": output,
@@ -172,6 +174,7 @@ def render(
     error, port = _resolve_active(registry, filepath)
     if error:
         return _mask_error("state", "cli-409", error)
+    assert port is not None
 
     params = {
         "output_path": output,

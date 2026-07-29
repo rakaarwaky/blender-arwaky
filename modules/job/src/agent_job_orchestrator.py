@@ -10,13 +10,11 @@ import time
 
 from modules.shared.src.common.taxonomy_core_vo import JobId, Timestamp
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
-from modules.shared.src.job.contract_job_protocol import (
-    IJobCancellation,
-    IJobCapacity,
-    IJobCleanup,
-    IJobLifecycle,
-    IJobMonitor,
-)
+from modules.shared.src.job.contract_job_cancellation_protocol import IJobCancellation
+from modules.shared.src.job.contract_job_capacity_protocol import IJobCapacity
+from modules.shared.src.job.contract_job_cleanup_protocol import IJobCleanup
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
+from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
 from modules.shared.src.job.taxonomy_job_constant import (
     CANCELLATION_ALREADY_TERMINAL,
     CANCELLATION_NOT_FOUND,

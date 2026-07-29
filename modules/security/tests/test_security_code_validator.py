@@ -208,7 +208,7 @@ class TestDisabledValidation:
         cap = _make_validator(SecurityPolicyVO(code_validation_enabled=False))
         res = _validate(cap, "import os")
         assert isinstance(res.audit_metadata, dict)
-        assert res.audit_metadata.get("rule") == "validation_disabled"
+        assert res.audit_metadata.get("rule") == "validation_disabled_override"
 
     def test_disabled_validation_has_warning(self) -> None:
         """FR-SEC-003: disabled validation includes redacted metadata warning."""

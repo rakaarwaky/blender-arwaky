@@ -6,7 +6,7 @@ Applies redaction, visibility rules, and applicability flags.
 """
 from __future__ import annotations
 
-from modules.shared.src.job.contract_job_protocol import IJobMonitor
+from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
 from modules.shared.src.job.taxonomy_job_constant import (
     ACTIVE_JOB_STATES,
     JOB_STATE_COMPLETED,

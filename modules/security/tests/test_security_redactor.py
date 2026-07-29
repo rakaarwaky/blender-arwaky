@@ -22,13 +22,11 @@ from modules.shared.src.security.taxonomy_security_vo import (
 def _make_redactor(
     extra_patterns: tuple[str, ...] = (),
     extra_key_names: tuple[str, ...] = (),
-    debug_mode: bool = False,
 ) -> SensitiveRedactor:
     """Create a SensitiveRedactor with optional configuration."""
     return SensitiveRedactor(
         extra_patterns=extra_patterns,
         extra_key_names=extra_key_names,
-        debug_mode=debug_mode,
     )
 
 

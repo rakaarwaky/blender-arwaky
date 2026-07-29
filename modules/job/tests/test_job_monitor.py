@@ -23,7 +23,7 @@ from modules.shared.src.job.taxonomy_job_vo import (
     ErrorCategory,
     ProgressMessage,
 )
-from modules.shared.src.job.contract_job_protocol import IJobMonitor
+from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor
 from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,

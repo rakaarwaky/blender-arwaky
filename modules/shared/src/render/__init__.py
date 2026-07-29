@@ -11,12 +11,10 @@ from . import (
 )
 
 from .contract_render_aggregate import IRenderAggregate
-from .contract_render_protocol import (
-    IRenderCameraConfigProtocol,
-    IRenderHdriConfigProtocol,
-    IRenderSceneImageProtocol,
-    IRenderViewportCaptureProtocol,
-)
+from .contract_render_camera_config_protocol import IRenderCameraConfigProtocol
+from .contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
+from .contract_render_scene_image_protocol import IRenderSceneImageProtocol
+from .contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
 
 from .taxonomy_render_constant import (
     CAMERA_SENSOR_FIT_AUTO,

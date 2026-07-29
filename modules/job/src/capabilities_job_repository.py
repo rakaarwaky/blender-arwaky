@@ -18,7 +18,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Progress,
     Timestamp,
 )
-from modules.shared.src.job.contract_job_protocol import IJobLifecycle
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 from modules.shared.src.job.taxonomy_job_constant import (
     EVENT_TASK_CANCELLED,
     EVENT_TASK_COMPLETED,

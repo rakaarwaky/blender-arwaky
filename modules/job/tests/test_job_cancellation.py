@@ -13,7 +13,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     JobId,
     JobState,
 )
-from modules.shared.src.job.contract_job_protocol import IJobCancellation
+from modules.shared.src.job.contract_job_cancellation_protocol import IJobCancellation
 from modules.shared.src.job.taxonomy_job_constant import (
     CANCELLATION_ACCEPTED,
     CANCELLATION_ALREADY_TERMINAL,

@@ -6,7 +6,8 @@ Surface layers depend on this facade.
 
 from __future__ import annotations
 
-from .contract_scene_protocol import ISceneCleanupProtocol, ISceneInspectionProtocol
+from .contract_scene_cleanup_protocol import ISceneCleanupProtocol
+from .contract_scene_inspection_protocol import ISceneInspectionProtocol
 
 
 class ISceneAggregate(ISceneInspectionProtocol, ISceneCleanupProtocol):

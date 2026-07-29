@@ -7,7 +7,7 @@ records to time out. Stateless — receives data, returns decision.
 from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import JobId, Timestamp
-from modules.shared.src.job.contract_job_protocol import IJobCleanup
+from modules.shared.src.job.contract_job_cleanup_protocol import IJobCleanup
 from modules.shared.src.job.taxonomy_job_vo import (
     CleanupDecision,
     JobPolicy,

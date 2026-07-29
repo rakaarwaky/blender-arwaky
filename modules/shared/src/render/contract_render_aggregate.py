@@ -11,12 +11,10 @@ Surface layers depend on this facade.
 
 from __future__ import annotations
 
-from .contract_render_protocol import (
-    IRenderCameraConfigProtocol,
-    IRenderHdriConfigProtocol,
-    IRenderSceneImageProtocol,
-    IRenderViewportCaptureProtocol,
-)
+from .contract_render_camera_config_protocol import IRenderCameraConfigProtocol
+from .contract_render_hdri_config_protocol import IRenderHdriConfigProtocol
+from .contract_render_scene_image_protocol import IRenderSceneImageProtocol
+from .contract_render_viewport_capture_protocol import IRenderViewportCaptureProtocol
 
 
 class IRenderAggregate(

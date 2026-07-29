@@ -1,7 +1,8 @@
 """Scene domain shared contracts, taxonomy, and utilities."""
 
 from .contract_scene_aggregate import ISceneAggregate
-from .contract_scene_protocol import ISceneCleanupProtocol, ISceneInspectionProtocol
+from .contract_scene_cleanup_protocol import ISceneCleanupProtocol
+from .contract_scene_inspection_protocol import ISceneInspectionProtocol
 
 from .taxonomy_scene_constant import (
     CHILD_POLICY_DELETE,

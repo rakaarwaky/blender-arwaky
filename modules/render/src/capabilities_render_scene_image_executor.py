@@ -17,7 +17,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     RenderEngine,
     SuccessFlag,
 )
-from modules.shared.src.render.contract_render_protocol import (
+from modules.shared.src.render.contract_render_scene_image_protocol import (
     IRenderSceneImageProtocol,
 )
 from modules.shared.src.render.taxonomy_render_constant import (
