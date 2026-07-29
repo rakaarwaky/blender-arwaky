@@ -1,32 +1,58 @@
-```
-# Agent-related files
-.agents/
-
-# Logs and temporary files
-*.log
-*.tmp
-
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Editors/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Dependencies (if any exist)
-.venv/
-venv/
-node_modules/
+# Python-generated files
 __pycache__/
+*.py[oc]
+build/
+!/scripts/build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv
+
+# macOS
+.DS_Store
+
+# Local config secrets
+blender_mcp_addon/config.py
+
+# Environment files (API keys, secrets)
+.env
+.env.*
+!.env.example
+!.env.blendermcp.example
+
+# Coverage & lint artifacts
+.coverage*
+coverage.xml
+*.coverage
+htmlcov/
+lint_results.txt
+
+# IDE / editor
+.vscode/
+.graph-it/
+
+# Scratch / temp scripts
+scratch/
+
+# Runtime log files
+log/
+*.log
+addon
+
+# Cache directories
 .mypy_cache/
 .pytest_cache/
+.ruff_cache/
 
-# Build artifacts (if any exist)
-dist/
-build/
-target/
-```
+# Test artifacts
+MagicMock/
+
+# VCS artifacts
+.jj/
+
+# Screenshot artifacts
+screenshot*/
+
+.mimocode/
