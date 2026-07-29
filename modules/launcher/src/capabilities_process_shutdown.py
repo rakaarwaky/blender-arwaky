@@ -18,14 +18,13 @@ from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProto
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STOPPED,
     LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
-    LAUNCHER_TERMINATION_FORCE,
-    LAUNCHER_TERMINATION_GRACEFUL,
-    LAUNCHER_TERMINATION_NONE,
 )
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    ProbeDepth,
     RuntimeState,
     ShutdownOutcomeVO,
+    TerminationMethod,
 )
 
 
@@ -64,24 +63,24 @@ class ProcessShutdown(ShutdownProtocol):
     # ─── Block 2: Public Contract ────────────────────────────
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force when allowed."""
-        current = self._status.check_status(depth="lightweight")
+        current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
             self._emit(
                 LAUNCHER_EVENT_APPLICATION_STOPPED,
                 current.state,
                 RuntimeState.NOT_RUNNING,
-                method=LAUNCHER_TERMINATION_NONE,
+                method=TerminationMethod.NONE.value,
             )
             return ShutdownOutcomeVO(
-                success=True, termination_method=LAUNCHER_TERMINATION_NONE, final_state=RuntimeState.NOT_RUNNING
+                success=True, termination_method=TerminationMethod.NONE, final_state=RuntimeState.NOT_RUNNING
             )
 
         if current.process_id is None:
             return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
 
         start = time.monotonic()
-        method = LAUNCHER_TERMINATION_GRACEFUL
+        method = TerminationMethod.GRACEFUL
         escalated = False
 
         if self._signal is not None and not force:
@@ -91,7 +90,7 @@ class ProcessShutdown(ShutdownProtocol):
             if (force or allow_escalation) and self._force_enabled and self._kill is not None:
                 self._kill(current.process_id)
                 escalated = True
-                method = LAUNCHER_TERMINATION_FORCE
+                method = TerminationMethod.FORCE
                 self._emit(
                     LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
                     RuntimeState.STOPPING,
@@ -102,7 +101,7 @@ class ProcessShutdown(ShutdownProtocol):
                 duration_ms = (time.monotonic() - start) * 1000.0
                 return ShutdownOutcomeVO(
                     success=False,
-                    termination_method=LAUNCHER_TERMINATION_GRACEFUL,
+                    termination_method=TerminationMethod.GRACEFUL,
                     duration_ms=duration_ms,
                     error="Graceful shutdown exceeded timeout; escalation disallowed",
                 )
@@ -113,7 +112,7 @@ class ProcessShutdown(ShutdownProtocol):
             RuntimeState.STOPPING,
             RuntimeState.NOT_RUNNING,
             process_reference=str(current.process_id),
-            method=method,
+            method=method.value,
         )
         return ShutdownOutcomeVO(
             success=True,

@@ -75,28 +75,39 @@ class LauncherContainer:
 
     @staticmethod
     def _real_alive(process_id: int) -> bool:
-        if process_id is None:
+        if process_id is None or process_id <= 0:
             return False
         try:
             os.kill(process_id, 0)
             return True
-        except OSError:
+        except OSError as e:
+            if e.errno == os.errno.ESRCH:
+                return False
+            logger.warning("os.kill(pid=%d) returned EPERM: %s", process_id, e)
             return False
 
     @staticmethod
     def _real_signal(process_id: int) -> bool:
+        if process_id is None or process_id <= 0:
+            return False
         try:
+            logger.debug("Sending SIGTERM to pid=%d", process_id)
             os.kill(process_id, signal.SIGTERM)
             return True
-        except OSError:
+        except OSError as e:
+            logger.warning("SIGTERM failed for pid=%d: %s", process_id, e)
             return False
 
     @staticmethod
     def _real_kill(process_id: int) -> bool:
+        if process_id is None or process_id <= 0:
+            return False
         try:
+            logger.warning("Sending SIGKILL to pid=%d (escalated)", process_id)
             os.kill(process_id, signal.SIGKILL)
             return True
-        except OSError:
+        except OSError as e:
+            logger.error("SIGKILL failed for pid=%d: %s", process_id, e)
             return False
 
     def wire(self) -> None:

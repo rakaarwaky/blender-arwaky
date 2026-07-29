@@ -12,6 +12,40 @@ from dataclasses import field as dc_field
 from enum import Enum
 
 # ============================================================
+# Shared Taxonomy Enums (replaces primitive str types)
+# ============================================================
+
+
+class LaunchMode(str, Enum):
+    """Launch mode preference."""
+
+    INTERFACE = "interface"
+    HEADLESS = "headless"
+
+
+class ProbeDepth(str, Enum):
+    """Probe depth preference for status checks."""
+
+    LIGHTWEIGHT = "lightweight"
+    FULL = "full"
+
+
+class TerminationMethod(str, Enum):
+    """Termination method used during shutdown."""
+
+    GRACEFUL = "graceful"
+    FORCE = "force"
+    NONE = "none"
+
+
+class LaunchMethod(str, Enum):
+    """How the launch was performed."""
+
+    SPAWN = "spawn"
+    IDEMPOTENT = "idempotent"
+
+
+# ============================================================
 # Registration Source / Discovery
 # ============================================================
 
@@ -86,7 +120,7 @@ class LaunchOutcomeVO:
     ready: bool = False
     bridge_endpoint: str | None = None
     duration_ms: float = 0.0
-    launch_method: str = "spawn"
+    launch_method: LaunchMethod = LaunchMethod.SPAWN
     error: str | None = None
 
 
@@ -99,7 +133,7 @@ class ShutdownOutcomeVO:
     """Unified shutdown result — input and output in one VO."""
 
     success: bool = False
-    termination_method: str = "none"  # graceful | force | none
+    termination_method: TerminationMethod = TerminationMethod.NONE
     duration_ms: float = 0.0
     final_state: RuntimeState = RuntimeState.NOT_RUNNING
     escalated: bool = False
@@ -119,7 +153,7 @@ class RuntimeStatusVO:
     ready: bool = False
     stale: bool = False
     uptime_seconds: float | None = None
-    depth: str = "lightweight"  # lightweight | full
+    depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT
 
 
 @dataclass(frozen=True)
@@ -182,5 +216,5 @@ class LauncherConfigVO:
     force_termination_enabled: bool = True
     readiness_probe_interval_seconds: float = 0.5
     state_persistence_location: str | None = None
-    default_launch_mode: str = "interface"  # interface | headless
+    default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True

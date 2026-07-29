@@ -26,8 +26,10 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
+    LaunchMode,
     LaunchOutcomeVO,
     PersistenceOutcomeVO,
+    ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
@@ -61,9 +63,9 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: str = "interface", readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
-        logger.info("Orchestrating launch (mode=%s)", mode)
+        logger.info("Orchestrating launch (mode=%s)", mode.value)
         return self._launch.launch(mode, readiness_timeout_seconds)
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
@@ -71,7 +73,7 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating shutdown (force=%s)", force)
         return self._shutdown.shutdown(force, allow_escalation)
 
-    def check_status(self, depth: str = "lightweight") -> RuntimeStatusVO:
+    def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Delegate status check to the capabilities layer."""
         return self._status.check_status(depth)
 

@@ -18,11 +18,13 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STARTED,
     LAUNCHER_EVENT_LAUNCH_FAILED,
-    LAUNCHER_MODE_INTERFACE,
 )
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    LaunchMethod,
+    LaunchMode,
     LaunchOutcomeVO,
+    ProbeDepth,
     RuntimeState,
 )
 
@@ -60,17 +62,17 @@ class ProcessLauncher(LaunchProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(self, mode: str = LAUNCHER_MODE_INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
         """Start Blender and confirm readiness within the configured timeout."""
         timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
 
-        current = self._status.check_status(depth="lightweight")
+        current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
         if current.state in (RuntimeState.RUNNING_READY, RuntimeState.RUNNING_UNRESPONSIVE, RuntimeState.STARTING):
             return LaunchOutcomeVO(
                 success=True,
                 process_id=current.process_id,
                 ready=(current.state == RuntimeState.RUNNING_READY),
-                launch_method="idempotent",
+                launch_method=LaunchMethod.IDEMPOTENT,
             )
 
         executable = self._resolve_executable()
@@ -82,7 +84,7 @@ class ProcessLauncher(LaunchProtocol):
 
         start = time.monotonic()
         try:
-            pid = self._spawner(executable, mode, timeout)
+            pid = self._spawner(executable, mode.value, timeout)
         except Exception as exc:
             self._emit(LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc))
             return LaunchOutcomeVO(success=False, error=f"Spawn failed: {exc}")
@@ -100,7 +102,7 @@ class ProcessLauncher(LaunchProtocol):
             )
 
         self._emit(LAUNCHER_EVENT_APPLICATION_STARTED, RuntimeState.STARTING, RuntimeState.RUNNING_READY, process_reference=str(pid))
-        return LaunchOutcomeVO(success=True, process_id=pid, ready=True, launch_method="spawn", duration_ms=duration_ms)
+        return LaunchOutcomeVO(success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _emit(self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = "") -> None:

@@ -15,14 +15,17 @@ from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
 )
+from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
     RegistrationOutcomeVO,
     RegistrationSource,
+    RuntimeState,
     VersionCompatibility,
 )
 
@@ -41,9 +44,11 @@ class ExecutableLocator(LocateRegisterProtocol):
         self,
         config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
+        event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
+        self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
@@ -60,6 +65,7 @@ class ExecutableLocator(LocateRegisterProtocol):
             except ExecutableValidationError:
                 continue
             self._register(config, path)
+            self._emit_registered(source, path)
             return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
         return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
@@ -116,3 +122,14 @@ class ExecutableLocator(LocateRegisterProtocol):
         setter = getattr(provider, "set_executable_path", None)
         if callable(setter):
             setter(path)
+
+    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
+        events = getattr(self, "_events", None)
+        if events is not None:
+            events(LauncherLifecycleEvent(
+                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                state_before=RuntimeState.NOT_RUNNING,
+                state_after=RuntimeState.RUNNING_READY,
+                process_reference=path,
+                reason_summary=f"registered_from_{source.value}",
+            ))
