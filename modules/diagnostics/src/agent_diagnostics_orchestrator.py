@@ -64,8 +64,6 @@ class DiagnosticsOrchestrator(IDiagnosticsAggregate):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-        probe_timeout_seconds: float = 5.0,
-        freshness_tolerance_seconds: float = 10.0,
     ) -> HealthDetailsVO:
         """Compose system health from all subsystems.
 
@@ -78,8 +76,6 @@ class DiagnosticsOrchestrator(IDiagnosticsAggregate):
             gateway_status=gateway_status,
             config_valid=config_valid,
             job_capacity_available=job_capacity_available,
-            probe_timeout_seconds=probe_timeout_seconds,
-            freshness_tolerance_seconds=freshness_tolerance_seconds,
         )
 
     async def collect_metrics_snapshot(

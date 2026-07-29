@@ -119,8 +119,15 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         """Count currently active (non-terminal) jobs.
 
         Delegates to the wired job tracker when it exposes an active-count method;
-        returns 0 only when no tracker is present. Best-effort: a tracker without a
-        recognized method cannot be queried, in which case capacity cannot be enforced.
+        returns 0 only when no tracker is present. When a tracker is present but
+        has no recognized method, logs a warning at higher level and cannot enforce
+        capacity.
+
+        Args:
+            None (uses self._job_tracker instance attribute).
+
+        Returns:
+            Active job count, or 0 when no tracker is configured.
         """
         tracker = self._job_tracker
         if tracker is None:
@@ -131,9 +138,11 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
                 try:
                     return int(fn())
                 except Exception:  # pragma: no cover - defensive against tracker faults
-                    logger.debug("Job tracker method %s failed", method)
+                    logger.warning("Job tracker method %s failed", method)
         logger.warning(
-            "Job tracker present but no active-count method; capacity cannot be enforced"
+            "Job tracker present but no active-count method; "
+            "capacity enforcement disabled — ensure job_tracker implements "
+            "active_job_count(), get_active_count(), count_active_jobs(), or active_count()"
         )
         return 0
 

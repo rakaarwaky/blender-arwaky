@@ -2,7 +2,8 @@
 
 FR-DIA-001: Compose System Health
 Aggregates subsystem states into one composed health view with bounded
-probes and explicit staleness.
+probes and explicit staleness. Probe timeout and freshness tolerance are
+configured at construction via the container (FRD config keys).
 Implements HealthCompositionProtocol.
 """
 
@@ -31,7 +32,13 @@ class HealthComposer(HealthCompositionProtocol):
     health view with bounded probes and explicit staleness.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        probe_timeout_seconds: float = 5.0,
+        freshness_tolerance_seconds: float = 10.0,
+    ) -> None:
+        self._probe_timeout_seconds = probe_timeout_seconds
+        self._freshness_tolerance_seconds = freshness_tolerance_seconds
         self._composition_cache: HealthDetailsVO | None = None
         self._cache_time: float = 0.0
         self._cache_key: tuple[Any, ...] | None = None
@@ -42,10 +49,24 @@ class HealthComposer(HealthCompositionProtocol):
         gateway_status: str = "unknown",
         config_valid: bool = False,
         job_capacity_available: bool = True,
-        probe_timeout_seconds: float = 5.0,
-        freshness_tolerance_seconds: float = 10.0,
     ) -> HealthDetailsVO:
-        """Aggregate subsystem states into one composed health view."""
+        """Aggregate subsystem states into one composed health view.
+
+        FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
+        Overall status: healthy when all required report healthy;
+        degraded when any reports degraded/stale; unhealthy when any fails.
+
+        Probe timeout and freshness tolerance are configured at construction.
+
+        Args:
+            launcher_status: Process liveness classification.
+            gateway_status: Connection state classification.
+            config_valid: Whether configuration snapshot is valid.
+            job_capacity_available: Whether job capacity has available slots.
+
+        Returns:
+            HealthDetailsVO with overall_status, subsystems, staleness indicators, timestamp.
+        """
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
 
@@ -57,7 +78,7 @@ class HealthComposer(HealthCompositionProtocol):
             self._composition_cache is not None
             and self._cache_time > 0
             and self._cache_key == current_key
-            and (now_ts - self._cache_time) < freshness_tolerance_seconds
+            and (now_ts - self._cache_time) < self._freshness_tolerance_seconds
         ):
             # Return cached result with staleness indicators updated
             cache = self._composition_cache
@@ -79,12 +100,12 @@ class HealthComposer(HealthCompositionProtocol):
         try:
             status = await asyncio.wait_for(
                 asyncio.to_thread(self._probe_launcher, launcher_status),
-                timeout=probe_timeout_seconds,
+                timeout=self._probe_timeout_seconds,
             )
             probe_duration = 0.0
         except asyncio.TimeoutError:
             status = "timeout"
-            probe_duration = probe_timeout_seconds
+            probe_duration = self._probe_timeout_seconds
 
         subsystems.append(SubsystemHealthVO(
             name="launcher",
@@ -96,7 +117,7 @@ class HealthComposer(HealthCompositionProtocol):
         try:
             gw_status = await asyncio.wait_for(
                 asyncio.to_thread(self._probe_gateway, gateway_status),
-                timeout=probe_timeout_seconds,
+                timeout=self._probe_timeout_seconds,
             )
         except asyncio.TimeoutError:
             gw_status = "timeout"
@@ -104,7 +125,7 @@ class HealthComposer(HealthCompositionProtocol):
         subsystems.append(SubsystemHealthVO(
             name="gateway",
             status=gw_status,
-            probe_duration_ms=probe_timeout_seconds * 1000,
+            probe_duration_ms=self._probe_timeout_seconds * 1000,
         ))
 
         # Config is synchronous — no timeout needed

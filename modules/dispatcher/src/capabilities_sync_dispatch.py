@@ -27,6 +27,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     FR-DSP-004: Routes to owning feature, enforces timeout, maps errors.
     Returns standardized envelope; does not retry non-idempotent actions.
+    Implements context manager protocol for proper ThreadPoolExecutor cleanup.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -34,6 +35,14 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
     def __init__(self, execute_action: Any = None) -> None:
         self._execute = execute_action
         self._pool = ThreadPoolExecutor(max_workers=1)
+
+    def __enter__(self) -> "SyncDispatchExecutor":
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit context manager — shut down the thread pool."""
+        self._pool.shutdown(wait=True)
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 

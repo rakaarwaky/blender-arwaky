@@ -149,4 +149,4 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
         return self._catalog.get(action_name)
 
     def __repr__(self) -> str:
-        return f"CatalRegistrationExecutor(actions={len(self._catalog)}, version={self._catalog_version})"
+        return f"CatalogRegistrationExecutor(actions={len(self._catalog)}, version={self._catalog_version})"
