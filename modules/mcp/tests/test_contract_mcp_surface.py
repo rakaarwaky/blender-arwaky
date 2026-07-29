@@ -15,10 +15,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from modules.mcp.src.surface_command_execute import CommandExecuteHandler
-from modules.mcp.src.surface_commands_list import CommandsListHandler
-from modules.mcp.src.surface_health_check import HealthCheckHandler
-from modules.mcp.src.surface_skill_read import SkillReadHandler
+from modules.mcp.src.surface_execute_command import ExecuteCommandHandler
+from modules.mcp.src.surface_list_commands import ListCommandsHandler
+from modules.mcp.src.surface_read_skill import SkillReadHandler
 from modules.mcp.src.surface_tool_registry import ToolRegistryHandler
 
 REQUIRED_TOOLS = {
@@ -62,8 +61,8 @@ class TestToolRegistryContract:
 
     def test_each_handler_has_a_register_method(self):
         for handler in (
-            CommandExecuteHandler,
-            CommandsListHandler,
+            ExecuteCommandHandler,
+            ListCommandsHandler,
             SkillReadHandler,
             HealthCheckHandler,
         ):
@@ -80,12 +79,12 @@ class TestIndividualToolRegistration:
 
     def test_execute_command_registers_once(self):
         mcp = FakeMCP()
-        CommandExecuteHandler.register_execute_command(mcp)
+        ExecuteCommandHandler.register_execute_command(mcp)
         assert list(mcp.tools.keys()) == ["execute_command"]
 
     def test_list_commands_registers_once(self):
         mcp = FakeMCP()
-        CommandsListHandler.register_list_commands(mcp)
+        ListCommandsHandler.register_list_commands(mcp)
         assert list(mcp.tools.keys()) == ["list_commands"]
 
     def test_read_skill_context_registers_once(self):

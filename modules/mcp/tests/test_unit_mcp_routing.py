@@ -14,10 +14,10 @@ from typing import Any
 
 from unittest.mock import patch
 
-from modules.mcp.src.surface_command_execute import CommandExecuteHandler
-from modules.mcp.src.surface_commands_list import CommandsListHandler
+from modules.mcp.src.surface_execute_command import ExecuteCommandHandler
+from modules.mcp.src.surface_list_commands import ListCommandsHandler
 from modules.mcp.src.surface_health_check import HealthCheckHandler
-from modules.mcp.src.surface_skill_read import SkillDocumentationReader, SkillReadHandler
+from modules.mcp.src.surface_read_skill import SkillDocumentationReader, SkillReadHandler
 from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
@@ -66,10 +66,10 @@ class TestExecuteCommandRouting:
         orch = FakeOrchestrator()
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_command_execute.create_dispatcher_feature",
+            "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
             return_value=orch,
         ):
-            CommandExecuteHandler.register_execute_command(mcp)
+            ExecuteCommandHandler.register_execute_command(mcp)
             fn = mcp.tools["execute_command"]
             result = await fn("action_x", {"a": 1})
 
@@ -80,10 +80,10 @@ class TestExecuteCommandRouting:
         orch = FakeOrchestrator()
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_command_execute.create_dispatcher_feature",
+            "modules.mcp.src.surface_execute_command.create_dispatcher_feature",
             return_value=orch,
         ):
-            CommandExecuteHandler.register_execute_command(mcp)
+            ExecuteCommandHandler.register_execute_command(mcp)
             await mcp.tools["execute_command"]("action_y", None)
 
         assert orch.calls[0][1] == ("action_y", {})
@@ -96,10 +96,10 @@ class TestListCommandsRouting:
         orch = FakeOrchestrator()
         mcp = FakeMCP()
         with patch(
-            "modules.mcp.src.surface_commands_list.create_dispatcher_feature",
+            "modules.mcp.src.surface_list_commands.create_dispatcher_feature",
             return_value=orch,
         ):
-            CommandsListHandler.register_list_commands(mcp)
+            ListCommandsHandler.register_list_commands(mcp)
             result = mcp.tools["list_commands"](None, None)
 
         assert orch.calls[0][0] == "discover_actions"

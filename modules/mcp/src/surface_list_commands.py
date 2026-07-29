@@ -1,16 +1,8 @@
-"""
-MCP Tool 2: list_commands — Returns the command catalog (discovery).
+"""MCP Tool 2: list_commands — Returns command catalog from dispatcher catalog + action schemas.
 
 FR-MCP-001: Expose MCP Tools — register_list_commands registers tool with MCP
-FR-MCP-002: Route Tool Calls — create_dispatcher_feature().discover_actions routes to dispatcher
-FR-MCP-003: Format MCP Responses — discovery outcome from the orchestrator
-
-Lists all available actions, their parameters, descriptions, and domains.
-FR-MCP-002 tool mapping: "List available actions" -> dispatcher feature, which
-exposes catalog discovery via discover_actions (FR-DSP-002). The surface maps the
-tool's ``domain`` filter onto the discovery capability_filter and the ``format``
-onto discover_actions' detail_level.
-Surface delegates to Agent container via its aggregate contract (AES compliant).
+FR-MCP-002: Route Tool Calls — dispatcher aggregate discover_actions provides catalog
+FR-MCP-003: Format MCP Responses — discovery outcome from orchestrator
 """
 
 from typing import Any
@@ -18,9 +10,11 @@ from typing import Any
 from modules.dispatcher.src.root_dispatcher_container import create_dispatcher_feature
 from modules.shared.src.common.taxonomy_core_vo import DomainRef, FormatRef
 
+from .surface_action_registry import ALL_ACTIONS
 
-class CommandsListHandler:
-    """Handler for listing available MCP commands via agent container."""
+
+class ListCommandsHandler:
+    """Handler for the list_commands MCP tool."""
 
     @staticmethod
     def register_list_commands(mcp):
@@ -42,10 +36,6 @@ class CommandsListHandler:
                 Discovery outcome with the command catalog
             """
             orchestrator = create_dispatcher_feature()
-
-            # Map the tool's format onto discover_actions' detail_level vocabulary
-            # ('standard' = summary, 'full' = detailed). discover_actions raises on
-            # any other value, so coerce explicitly.
             resolved_format = format or FormatRef("detailed")
             detail_level = "full" if str(resolved_format) == "detailed" else "standard"
 

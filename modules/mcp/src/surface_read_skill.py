@@ -1,11 +1,8 @@
-"""MCP Tool 3: read_skill_context — Read SKILL.md documentation for any skill.
+"""MCP Tool 5: read_skill_context — Read SKILL.md documentation for any skill.
 
-FR-MCP-001: Expose MCP Tools — register_skill_read registers tool with MCP
+FR-MCP-001: Expose MCP Tools — register_read_skill registers tool with MCP
 FR-MCP-002: Route Tool Calls — SkillDocumentationReader reads SKILL.md from static files
 FR-MCP-003: Format MCP Responses — Prompt type wraps skill context result
-
-This provides in-context documentation without leaving the chat.
-Surface delegates to the static documentation reader via the DI container.
 """
 
 from pathlib import Path
@@ -14,25 +11,12 @@ from modules.shared.src.common.taxonomy_core_vo import Prompt, SectionRef, Skill
 
 
 class SkillDocumentationReader:
-    """Static SKILL.md reader for the read_skill_context MCP tool.
-
-    Reads versioned SKILL.md files from the project's skills directory
-    without requiring a live aggregate or runtime dependency.
-    """
+    """Static SKILL.md reader for the read_skill_context MCP tool."""
 
     SKILLS_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / ".agents" / "skills"
 
     def read_skill(self, skill_name: str, section: str | None = None) -> str:
-        """Read the SKILL.md for a given skill, optionally extracting a section.
-
-        Args:
-            skill_name: Name of the skill (directory name under .agents/skills/)
-            section: Optional section header to extract (e.g. "Workflows")
-
-        Returns:
-            Markdown content of the SKILL.md (or the requested section),
-            or an empty string if the skill or section is not found.
-        """
+        """Read the SKILL.md for a given skill, optionally extracting a section."""
         skill_dir = self.SKILLS_DIR / skill_name
         skill_file = skill_dir / "SKILL.md"
 
@@ -48,7 +32,7 @@ class SkillDocumentationReader:
 
     @staticmethod
     def _extract_section(content: str, section: str) -> str:
-        """Extract a ### section from markdown content, or return full content."""
+        """Extract a ### section from markdown content."""
         lines = content.splitlines(keepends=True)
         in_section = False
         result_lines: list[str] = []
@@ -67,19 +51,19 @@ class SkillDocumentationReader:
 
 
 class SkillReadHandler:
-    """Handler for reading skill documentation."""
+    """Handler for the read_skill_context MCP tool."""
 
     @staticmethod
     def register_read_skill_context(mcp):
-        """Register the read_skill_context tool (MCP Tool #3)."""
+        """Register the read_skill_context tool (MCP Tool #5)."""
 
         @mcp.tool()
         def read_skill_context(skill_name: SkillName, section: SectionRef | None = None) -> Prompt:
             """Read the SKILL.md documentation for a given skill.
 
             Args:
-                skill_name: Name of the skill (e.g., 'auto-linter', 'blender-mcp')
-                section: Optional section to extract (directives, mcp-tools, cli_entry_point-commands, workflows, architecture)
+                skill_name: Skill name (e.g., 'blender-mcp', 'auto-linter')
+                section: Optional section to extract (tools, commands, workflows, addon, troubleshooting)
 
             Returns:
                 Markdown content of the SKILL.md (or empty string if not found)
