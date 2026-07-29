@@ -61,7 +61,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self,
         provider: ProviderName,
         asset_id: AssetId,
-        asset_type: AssetType,  # noqa: ARG002
+        asset_type: AssetType,
         cache_dir: FilePath,
         resolution: str | None = None,
         overwrite_policy: str = "reuse",
@@ -211,7 +211,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
             logger.warning("Integrity check error for %s: %s", file_path, e)
             return False
 
-    async def _estimate_download_size(self, provider: ProviderName, asset_id: AssetId) -> int:  # noqa: ARG002
+    async def _estimate_download_size(self, _provider: ProviderName, _asset_id: AssetId) -> int:
         """Estimate download size from provider metadata.
 
         TODO: Wire provider adapter and replace with real size query.
@@ -219,13 +219,13 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """
         return 5000000  # 5 MB default estimate
 
-    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:  # noqa: ARG002
+    async def _submit_background_download(self, _provider: ProviderName, _asset_id: AssetId, _cache_path: str) -> str:
         """Submit download as background job.
 
         TODO: Wire job feature and replace with real task submission.
         Returns a synthetic task ref when job feature is not available.
         """
-        return f"task-{provider}-{asset_id}"
+        return f"task-{_provider}-{_asset_id}"
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
         """Perform actual download via provider adapter.

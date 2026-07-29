@@ -34,9 +34,9 @@ class AssetSearchHandler(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[str] | None = None,
-        asset_type_filter: Any = None,  # noqa: ARG002
-        limit: Any = None,  # noqa: ARG002
-        page_token: Any = None,  # noqa: ARG002
+        _asset_type_filter: Any = None,
+        _limit: Any = None,
+        _page_token: Any = None,
     ) -> dict[str, Any]:
         """Search across all enabled providers with unified response.
 
