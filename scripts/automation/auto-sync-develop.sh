@@ -7,8 +7,8 @@
 # Conflict: Remote wins (theirs)
 # ============================================
 
-REPO_PATH="/home/raka/mcp-arwaky/blender-arwaky"  # ⬅️ GANTI INI
-LOG_FILE="$REPO_PATH/.git/auto-sync.log"
+REPO_PATH="$(cd "$(dirname "$0")/../.." && pwd)"
+LOG_FILE="$(cd "$(dirname "$0")" && pwd)/auto-sync.log"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -43,7 +43,7 @@ cd "$REPO_PATH" || { error "Gagal masuk ke $REPO_PATH"; exit 1; }
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT" != "develop" ]; then
     info "Sedang di branch '$CURRENT', checkout ke develop..."
-    git checkout develop >/dev/null 2>&1 || { error "Gagal checkout develop"; exit 1; }
+    git checkout develop 2>&1 || { error "Gagal checkout develop"; exit 1; }
 fi
 
 # ─── 3. BLOCKER: Cek uncommitted changes ───
@@ -53,7 +53,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 # ─── 4. Fetch remote develop ───
-git fetch origin develop >/dev/null 2>&1 || { error "Gagal fetch origin/develop"; exit 1; }
+git fetch origin develop 2>&1 || { error "Gagal fetch origin/develop"; exit 1; }
 
 LOCAL=$(git rev-parse develop)
 REMOTE=$(git rev-parse origin/develop)
@@ -74,7 +74,7 @@ log "Trigger aktif! Local ahead: $AHEAD | behind: $BEHIND"
 # CASE A: Remote lebih maju → PULL
 if [ "$BEHIND" -gt 0 ] && [ "$AHEAD" -eq 0 ]; then
     log "Remote lebih maju. Pulling dengan 'theirs'..."
-    git pull -X theirs origin develop >/dev/null 2>&1
+    git pull -X theirs origin develop 2>&1
     if [ $? -eq 0 ]; then
         log "✅ Pull berhasil. Local up-to-date."
     else
@@ -85,7 +85,7 @@ if [ "$BEHIND" -gt 0 ] && [ "$AHEAD" -eq 0 ]; then
 # CASE B: Local lebih maju → PUSH
 elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -eq 0 ]; then
     log "Local lebih maju. Pushing..."
-    git push origin develop >/dev/null 2>&1
+    git push origin develop 2>&1
     if [ $? -eq 0 ]; then
         log "✅ Push berhasil. Remote up-to-date."
     else
@@ -97,11 +97,11 @@ elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -eq 0 ]; then
 elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -gt 0 ]; then
     warn "Local & remote diverge!"
     log "Merge dengan strategi 'theirs' (remote menang saat conflict)..."
-    
-    git pull -X theirs origin develop >/dev/null 2>&1
+
+    git pull -X theirs origin develop 2>&1
     if [ $? -eq 0 ]; then
         log "✅ Merge berhasil. Pushing hasil merge..."
-        git push origin develop >/dev/null 2>&1
+        git push origin develop 2>&1
         if [ $? -eq 0 ]; then
             log "✅ Sinkronisasi selesai. Kedua branch sama sekarang."
         else
