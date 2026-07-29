@@ -16,6 +16,9 @@ from modules.shared.src.gateway.contract_connection_protocol import (
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
+from modules.shared.src.gateway.contract_scene_queue_protocol import (
+    SceneQueueProtocol,
+)
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
 )
@@ -30,6 +33,8 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
+
+from .gateway_scene_coordinator import GatewaySceneCoordinator
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -48,13 +53,13 @@ class GatewayOrchestrator:
         connection: ConnectionProtocol,
         maintenance: ConnectionMaintenanceProtocol,
         transport: TransportProtocol,
-        coordinator: "GatewaySceneCoordinator",
+        scene_queue: SceneQueueProtocol,
         code_executor: CodeExecutionProtocol,
     ) -> None:
         self._connection = connection
         self._maintenance = maintenance
         self._transport = transport
-        self._coordinator = coordinator
+        self._coordinator = GatewaySceneCoordinator(scene_queue)
         self._code_executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
