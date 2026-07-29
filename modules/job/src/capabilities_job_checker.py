@@ -7,7 +7,7 @@ Stateless — receives count and policy, returns decision.
 from __future__ import annotations
 
 from modules.shared.src.job.contract_job_capacity_protocol import IJobCapacity
-from modules.shared.src.job.taxonomy_job_vo import CapacityDecision, JobPolicy
+from modules.shared.src.job.taxonomy_job_vo import ActiveCount, CapacityDecision, JobPolicy
 
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
@@ -20,27 +20,27 @@ class JobCapacityChecker(IJobCapacity):
 
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
-    def evaluate(self, active_count: int, policy: JobPolicy) -> CapacityDecision:
+    def evaluate(self, active_count: ActiveCount, policy: JobPolicy) -> CapacityDecision:
         """Evaluate whether capacity allows a new task submission.
 
         - active >= limit → rejected with context
         - active < limit → accepted with available slots
         """
         limit = policy.max_active
-        available = max(0, limit - active_count)
+        available = max(0, limit - int(active_count))
 
-        if active_count >= limit:
+        if int(active_count) >= limit:
             return CapacityDecision(
                 accepted=False,
-                active=active_count,
+                active=int(active_count),
                 limit=limit,
                 available=0,
-                reason=f"Background capacity exceeded: {active_count}/{limit} active tasks",
+                reason=f"Background capacity exceeded: {int(active_count)}/{limit} active tasks",
             )
 
         return CapacityDecision(
             accepted=True,
-            active=active_count,
+            active=int(active_count),
             limit=limit,
             available=available,
         )

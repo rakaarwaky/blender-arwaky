@@ -23,9 +23,6 @@ from modules.shared.src.job.utility_job_sanitizer import redact_metadata
 class JobStatusMonitor(IJobMonitor):
     """Projects raw snapshots into safe, consumer-ready read models."""
 
-    def __init__(self) -> None:
-        pass
-
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def project(self, snapshot: JobStatusSnapshot) -> JobStatusSnapshot:

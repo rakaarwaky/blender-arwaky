@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import JobId
 from .taxonomy_job_vo import (
+    ActiveCount,
     CancellationReason,
+    DeletedCount,
     CompleteTaskCommand,
     CreateTaskCommand,
     FailTaskCommand,
@@ -36,6 +38,6 @@ class IJobLifecycle(ABC):
     @abstractmethod
     def list_running(self) -> tuple[JobStatusSnapshot, ...]: ...
     @abstractmethod
-    def delete_records(self, job_ids: tuple[JobId, ...]) -> int: ...
+    def delete_records(self, job_ids: tuple[JobId, ...]) -> DeletedCount: ...
     @abstractmethod
-    def active_count(self) -> int: ...
+    def active_count(self) -> ActiveCount: ...

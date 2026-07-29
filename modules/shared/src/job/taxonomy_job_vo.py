@@ -23,6 +23,11 @@ CancellationReason = NewType("CancellationReason", str)
 ErrorCategory = NewType("ErrorCategory", str)
 TaskMetadata = NewType("TaskMetadata", Mapping[str, str])
 
+# ─── Count Types ──────────────────────────────────────────────────────────────
+ActiveCount = NewType("ActiveCount", int)
+DeletedCount = NewType("DeletedCount", int)
+RecordCount = NewType("RecordCount", int)
+
 # ─── Policy ──────────────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)

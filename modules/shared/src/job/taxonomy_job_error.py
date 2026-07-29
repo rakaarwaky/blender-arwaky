@@ -2,7 +2,8 @@
 """Job domain errors."""
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString
+from ..common.taxonomy_core_vo import ErrorString, JobId, JobState
+from .taxonomy_job_vo import ActiveCount, DeletedCount
 
 
 class JobError(Exception):
@@ -16,8 +17,7 @@ class JobError(Exception):
 class CapacityError(JobError):
     """Raised when background capacity is exceeded."""
 
-    def __init__(self, max_active: int = 100, current_active: int = 100) -> None:
-        _ = max_active, current_active  # AES401: int params baked into message
+    def __init__(self, max_active: ActiveCount, current_active: ActiveCount) -> None:
         message = ErrorString(
             f"Background capacity exceeded: {current_active}/{max_active} active tasks"
         )
@@ -29,8 +29,7 @@ class CapacityError(JobError):
 class TaskNotFoundError(JobError):
     """Raised when a requested task ID is not found."""
 
-    def __init__(self, task_id: str) -> None:
-        _ = task_id  # AES401: str param baked into message
+    def __init__(self, task_id: JobId) -> None:
         message = ErrorString(f"Task {task_id} not found")
         super().__init__(message)
         self.task_id = task_id
@@ -39,8 +38,7 @@ class TaskNotFoundError(JobError):
 class InvalidStateTransitionError(JobError):
     """Raised when a state transition is not allowed."""
 
-    def __init__(self, from_state: str, to_state: str) -> None:
-        _ = from_state, to_state  # AES401: str params baked into message
+    def __init__(self, from_state: JobState, to_state: JobState) -> None:
         message = ErrorString(f"Invalid state transition: {from_state} -> {to_state}")
         super().__init__(message)
         self.from_state = from_state
@@ -52,3 +50,24 @@ class ValidationError(JobError):
 
     def __init__(self, message: ErrorString) -> None:
         super().__init__(message)
+
+
+class RecordNotFoundError(JobError):
+    """Raised when a requested record ID is not found."""
+
+    def __init__(self, record_id: str) -> None:
+        message = ErrorString(f"Record {record_id} not found")
+        super().__init__(message)
+        self.record_id = record_id
+
+
+class RecordCountError(JobError):
+    """Raised when record count exceeds limits."""
+
+    def __init__(self, max_records: int, current_records: int) -> None:
+        message = ErrorString(
+            f"Record count exceeded: {current_records}/{max_records} records"
+        )
+        super().__init__(message)
+        self.max_records = max_records
+        self.current_records = current_records

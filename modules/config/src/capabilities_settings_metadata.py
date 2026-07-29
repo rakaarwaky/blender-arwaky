@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
 from modules.shared.src.config.contract_settings_metadata_protocol import (
-    _IMetadataSource,
     ISettingsMetadataProtocol,
+    _IMetadataSource,
 )
 from modules.shared.src.config.taxonomy_config_vo import EventPayload
 

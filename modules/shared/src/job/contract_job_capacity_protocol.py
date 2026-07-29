@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_job_vo import CapacityDecision, JobPolicy
+from .taxonomy_job_vo import ActiveCount, CapacityDecision, JobPolicy
 
 
 class IJobCapacity(ABC):
     @abstractmethod
-    def evaluate(self, active_count: int, policy: JobPolicy) -> CapacityDecision: ...
+    def evaluate(self, active_count: ActiveCount, policy: JobPolicy) -> CapacityDecision: ...

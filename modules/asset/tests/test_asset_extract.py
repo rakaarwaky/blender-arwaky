@@ -18,12 +18,15 @@ import zipfile
 import pytest
 
 from modules.asset.src.capabilities_asset_extract import AssetExtractCapability
+from modules.shared.src.asset.taxonomy_asset_vo import ArchiveExtractionVO
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.security.contract_extract_archive_protocol import (
     ExtractArchiveProtocol,
 )
 from modules.shared.src.security.taxonomy_security_vo import (
-    ArchiveExtractionVO,
+    ArchiveExtractionVO as SecurityArchiveExtractionVO,
+)
+from modules.shared.src.security.taxonomy_security_vo import (
     RejectedEntryVO,
 )
 
@@ -40,9 +43,9 @@ class MockSecuritySupervisor(ExtractArchiveProtocol):
 
     def __init__(self, reject: bool = False) -> None:
         self.reject = reject
-        self._calls: list[ArchiveExtractionVO] = []
+        self._calls: list[SecurityArchiveExtractionVO] = []
 
-    async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
+    async def validate_extraction(self, request: SecurityArchiveExtractionVO) -> SecurityArchiveExtractionVO:
         self._calls.append(request)
         if self.reject:
             raise Exception("security denied extraction")
@@ -78,7 +81,7 @@ class MockSecuritySupervisor(ExtractArchiveProtocol):
 
         total_size = sum(e.uncompressed_size for e in request.entries if e.entry_path in allowed_set)
         if total_size > request.options.max_total_size:
-            return ArchiveExtractionVO(
+            return SecurityArchiveExtractionVO(
                 destination_directory=request.destination_directory,
                 entries=request.entries,
                 options=request.options,
@@ -88,7 +91,7 @@ class MockSecuritySupervisor(ExtractArchiveProtocol):
                 warnings=(f"Total size {total_size} exceeds {request.options.max_total_size}",),
             )
 
-        return ArchiveExtractionVO(
+        return SecurityArchiveExtractionVO(
             destination_directory=request.destination_directory,
             entries=request.entries,
             options=request.options,

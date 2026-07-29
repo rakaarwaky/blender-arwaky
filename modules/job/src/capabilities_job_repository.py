@@ -43,14 +43,18 @@ from modules.shared.src.job.taxonomy_job_error import (
     ValidationError,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
+    ActiveCount,
     CancellationReason,
     CompleteTaskCommand,
     CreateTaskCommand,
+    DeletedCount,
     ErrorCategory,
     FailTaskCommand,
     JobPolicy,
     JobStatusSnapshot,
+    ProgressMessage,
     ProgressUpdateCommand,
+    ResultUrl,
 )
 from modules.shared.src.job.utility_job_sanitizer import (
     redact_metadata,
@@ -218,18 +222,18 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
                 if r.state == JOB_STATE_RUNNING
             )
 
-    def delete_records(self, job_ids: tuple[JobId, ...]) -> int:
+    def delete_records(self, job_ids: tuple[JobId, ...]) -> DeletedCount:
         with self._lock:
             deleted = 0
             for jid in job_ids:
                 if str(jid) in self._records:
                     del self._records[str(jid)]
                     deleted += 1
-            return deleted
+            return DeletedCount(deleted)
 
-    def active_count(self) -> int:
+    def active_count(self) -> ActiveCount:
         with self._lock:
-            return self._active_count
+            return ActiveCount(self._active_count)
 
     # ─── Block 3: Dunder Methods, Factories, and Private Helpers ─────────────
 
@@ -265,11 +269,11 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         job_id: JobId,
         target: JobState,
         *,
-        result_url: object | None = None,
+        result_url: ResultUrl | None = None,
         error: ErrorString | None = None,
         error_category: ErrorCategory | None = None,
         cancellation_reason: CancellationReason | None = None,
-        progress_message: object | None = None,
+        progress_message: ProgressMessage | None = None,
     ) -> JobStatusSnapshot:
         now = self._now()
         with self._lock:

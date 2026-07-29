@@ -25,12 +25,14 @@ from modules.shared.src.job.taxonomy_job_error import (
     TaskNotFoundError,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
+    ActiveCount,
     CancellationResult,
     CancelTaskCommand,
     CapacityStatus,
     CleanupSummary,
     CompleteTaskCommand,
     CreateTaskCommand,
+    DeletedCount,
     FailTaskCommand,
     JobPolicy,
     JobStatusSnapshot,
@@ -58,10 +60,10 @@ class JobOrchestrator(IJobAggregate):
         self._policy = policy
 
     def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
-        active = self._lifecycle.active_count()
+        active = ActiveCount(self._lifecycle.active_count())
         decision = self._capacity.evaluate(active, self._policy)
         if not decision.accepted:
-            raise CapacityError(max_active=decision.limit, current_active=decision.active)
+            raise CapacityError(max_active=ActiveCount(decision.limit), current_active=ActiveCount(decision.active))
         return self._lifecycle.create_task(command)
 
     def start_task(self, job_id: JobId) -> JobStatusSnapshot:
@@ -132,14 +134,14 @@ class JobOrchestrator(IJobAggregate):
         purged = self._lifecycle.delete_records(decision.purge_ids)
 
         return CleanupSummary(
-            purged=purged,
-            retained=len(terminal) - purged + self._lifecycle.active_count(),
+            purged=int(purged),
+            retained=len(terminal) - int(purged) + int(self._lifecycle.active_count()),
             reclaimed_capacity=reclaimed,
             warnings=decision.warnings,
         )
 
     def get_capacity_status(self) -> CapacityStatus:
-        active = self._lifecycle.active_count()
+        active = ActiveCount(self._lifecycle.active_count())
         decision = self._capacity.evaluate(active, self._policy)
         return CapacityStatus(
             active=decision.active,
