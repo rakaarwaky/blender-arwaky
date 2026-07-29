@@ -10,6 +10,9 @@ import logging
 import threading
 from typing import TYPE_CHECKING, Any
 
+from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
+
 if TYPE_CHECKING:
     from .agent_asset_orchestrator import AssetOrchestrator
 
@@ -26,7 +29,7 @@ class AssetContainer:
 
     def __init__(
         self,
-        connection: object,
+        connection: IAssetProviderConnection,
         security_validator: object | None = None,
         security_supervisor: object | None = None,
         job_scheduler: object | None = None,
@@ -91,6 +94,7 @@ class AssetContainer:
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,
                 config_getter=self._config_getter,
+                overwrite_policy=overwrite_policy_vo,
             )
             extract = AssetExtractCapability(
                 security_supervisor=self._security_supervisor,
@@ -108,7 +112,6 @@ class AssetContainer:
                 import_capability=import_,
                 metadata_capability=metadata,
             )
-            self._orchestrator._download._overwrite_policy = overwrite_policy_vo  # type: ignore[attr-defined]
 
         logger.info("Asset container fully wired")
         return self._orchestrator
@@ -121,5 +124,5 @@ class AssetContainer:
         return "AssetContainer()"
 
 
-def create_asset_container(connection: object) -> AssetContainer:
+def create_asset_container(connection: IAssetProviderConnection) -> AssetContainer:
     return AssetContainer(connection=connection)

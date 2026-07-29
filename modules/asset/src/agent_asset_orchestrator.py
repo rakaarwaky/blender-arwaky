@@ -57,8 +57,6 @@ class AssetOrchestrator(IAssetAggregate):
     - import requires the asset to have been downloaded and extracted first
     """
 
-    _workflow_states: dict[str, dict[str, bool]] = {}
-
     def __init__(
         self,
         search_capability: AssetSearchProtocol,
@@ -72,6 +70,8 @@ class AssetOrchestrator(IAssetAggregate):
         self._extract = extract_capability
         self._import = import_capability
         self._metadata = metadata_capability
+        # BF01: Workflow state tracking — instance-level for thread safety
+        self._workflow_states: dict[str, dict[str, bool]] = {}
 
     def _asset_key(self, provider: str, asset_id: str) -> str:
         return f"{provider}:{asset_id}"

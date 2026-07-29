@@ -209,14 +209,34 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                 "message": f"Provider download failed: {e}",
                 "error": str(e),
             }
-        except Exception as e:
-            logger.error("Download error for %s: %s", asset_id, e)
+        except (OSError, IOError) as e:
+            logger.error("File I/O error for %s: %s", asset_id, e)
             return {
                 "success": False,
                 "file_path": None,
                 "cached": False,
                 "integrity_ok": False,
-                "message": f"Download error: {e}",
+                "message": f"File I/O error: {e}",
+                "error": str(e),
+            }
+        except asyncio.TimeoutError as e:
+            logger.error("Download timeout for %s: %s", asset_id, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Download timeout: {e}",
+                "error": "timeout",
+            }
+        except Exception as e:
+            logger.error("Unexpected download error for %s: %s", asset_id, e)
+            return {
+                "success": False,
+                "file_path": None,
+                "cached": False,
+                "integrity_ok": False,
+                "message": f"Unexpected error: {e}",
                 "error": str(e),
             }
 
