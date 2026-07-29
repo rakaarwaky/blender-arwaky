@@ -130,9 +130,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
             elif overwrite_policy == "unique":
                 cached_path = self._get_unique_cache_path(cache_key)
 
-        # Create unique variant if needed
-        if not cached_path or (cached_path != self._get_cache_path(cache_key) and overwrite_policy == "unique"):
-            cached_path = self._get_unique_cache_path(cache_key)
+        # All overwrite policies are handled above; no further branching needed.
 
         # Check max size before download
         if max_size:
