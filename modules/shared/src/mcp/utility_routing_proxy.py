@@ -26,3 +26,53 @@ def validate_execute_command_input(payload: dict[str, Any]) -> list[str]:
     if not action or not str(action).strip():
         return ["action is required"]
     return []
+
+
+def route_tool_call(
+    tool_name: str,
+    payload: dict[str, Any],
+    dispatcher: Any | None = None,
+    diagnostics: Any | None = None,
+) -> dict[str, Any]:
+    """Route a tool call to the correct handler dispatcher.
+
+    Utility function for stateless routing. Used by McpRoutingImpl
+    and standalone routing scenarios.
+
+    Args:
+        tool_name: Name of the MCP tool to route.
+        payload: Tool call arguments.
+        dispatcher: Optional dispatcher with execute_action/discover_actions.
+        diagnostics: Optional diagnostics with get_snapshot.
+
+    Returns:
+        Routing result dict.
+
+    Raises:
+        ValueError: Unknown tool_name.
+        RuntimeError: Required service not configured.
+    """
+    if tool_name == "execute_command":
+        action = payload.get("action", "")
+        args = payload.get("args", {})
+        if dispatcher:
+            return dispatcher.execute_action(action, args)
+        raise RuntimeError("Dispatcher aggregate not configured")
+
+    if tool_name == "list_commands":
+        if dispatcher:
+            return dispatcher.discover_actions()
+        return {}
+
+    if tool_name == "health_check":
+        if diagnostics:
+            return diagnostics.get_snapshot()
+        return {"health": "ok"}
+
+    if tool_name == "get_config":
+        return {}
+
+    if tool_name == "read_skill_context":
+        return {}
+
+    raise ValueError(f"Unknown tool: {tool_name}")
