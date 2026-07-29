@@ -36,9 +36,26 @@ class SetMaterialExecutor(SetMaterialProtocol):
         """Assign or create a material on an object.
 
         FR-OBJ-004: Creates material if it doesn't exist; assigns to first slot
-        or specified slot index. Validates object is a mesh type and properties.
+        or specified slot index. Validates object is a mesh type and PBR properties.
         """
         logger.info("Setting material %s on object %s", request.material_name, request.object_name)
+
+        # Validate PBR properties if provided (FR-OBJ-004)
+        base_color = getattr(request, "base_color", None)
+        metallic = getattr(request, "metallic", None)
+        roughness = getattr(request, "roughness", None)
+        alpha = getattr(request, "alpha", None)
+
+        if base_color is not None:
+            for i, val in enumerate(base_color):
+                if not isinstance(val, (int, float)) or val < 0 or val > 1:
+                    raise ValueError(f"Base color component {i} must be in range [0, 1], got {val}")
+        if metallic is not None and (not isinstance(metallic, (int, float)) or metallic < 0 or metallic > 1):
+            raise ValueError(f"Metallic must be in range [0, 1], got {metallic}")
+        if roughness is not None and (not isinstance(roughness, (int, float)) or roughness < 0 or roughness > 1):
+            raise ValueError(f"Roughness must be in range [0, 1], got {roughness}")
+        if alpha is not None and (not isinstance(alpha, (int, float)) or alpha < 0 or alpha > 1):
+            raise ValueError(f"Alpha must be in range [0, 1], got {alpha}")
 
         # Generate and execute material assignment code
         code = self._generate_material_code(request)
@@ -60,7 +77,8 @@ class SetMaterialExecutor(SetMaterialProtocol):
     def _generate_material_code(self, request: SetMaterialVO) -> str:
         """Generate Blender Python code for material assignment.
 
-        Creates material if needed, validates object type, handles slot creation.
+        Creates material if needed, validates object type, handles slot creation
+        with optional index selection (FR-OBJ-004).
         """
         lines = [
             "import bpy",
@@ -72,13 +90,22 @@ class SetMaterialExecutor(SetMaterialProtocol):
             f'    mat = bpy.data.materials.new(name={SetMaterialExecutor._safe_str(str(request.material_name))})',
         ]
 
-        # Handle slot creation/assignment
-        lines.append(
-            "if len(obj.data.materials) == 0:\n"
-            "    obj.data.materials.append(mat)\n"
-            "else:\n"
-            "    obj.data.materials[0] = mat\n"
-        )
+        # Handle slot creation/assignment with optional index (FR-OBJ-004)
+        slot_index = getattr(request, "slot_index", None)
+        if slot_index is not None:
+            lines.append(
+                f"# Assign material to specific slot index\n"
+                f"while len(obj.data.materials) <= {slot_index}:\n"
+                f'    obj.data.materials.append(bpy.data.materials.new(name="temp"))\n'
+                f"obj.data.materials[{slot_index}] = mat\n"
+            )
+        else:
+            lines.append(
+                "if len(obj.data.materials) == 0:\n"
+                "    obj.data.materials.append(mat)\n"
+                "else:\n"
+                "    obj.data.materials[0] = mat\n"
+            )
 
         return "\n".join(lines)
 

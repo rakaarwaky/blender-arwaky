@@ -31,6 +31,7 @@ def _make_mock_execute():
 
 def _make_metadata(
     action_name: str = "test_action",
+    usage_examples: list[str] | None = None,
     **kwargs: object,
 ) -> ActionMetadataVO:
     """Create a minimal valid ActionMetadataVO."""
@@ -38,7 +39,7 @@ def _make_metadata(
         "owning_feature_ref": "test_feature",
         "description": "Test action",
         "parameter_schema": {"type": "object", "properties": {}, "required": []},
-        "usage_examples": [],
+        "usage_examples": usage_examples or ["example usage"],
     }
     defaults.update(kwargs)
     return ActionMetadataVO(action_name=action_name, **defaults)  # type: ignore[arg-type]

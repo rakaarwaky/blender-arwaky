@@ -12,7 +12,6 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
 )
-from modules.mcp.src.root_mcp_container import McpContainer
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,7 +30,7 @@ class HealthCheckSurface:
         self._response = response
 
     @staticmethod
-    def register(mcp, container: McpContainer) -> None:
+    def register(mcp, container) -> None:
         """Register the health_check tool (MCP Tool #3)."""
 
         async def health_check() -> dict[str, Any]:

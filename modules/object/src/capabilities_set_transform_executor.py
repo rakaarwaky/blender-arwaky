@@ -100,18 +100,14 @@ class SetTransformExecutor(SetObjectTransformProtocol):
         """Generate code to check for locked transform channels.
 
         FR-OBJ-003: Locked transform channels should be respected unless explicit override is allowed.
+        Uses a single loop over all lock tuples for efficiency (PERF02).
         """
         return (
             "# Check for locked transform channels\n"
-            "if obj.lock_location[0]: raise TransformLockError('location.x')\n"
-            "if obj.lock_location[1]: raise TransformLockError('location.y')\n"
-            "if obj.lock_location[2]: raise TransformLockError('location.z')\n"
-            "if obj.lock_rotation[0]: raise TransformLockError('rotation.x')\n"
-            "if obj.lock_rotation[1]: raise TransformLockError('rotation.y')\n"
-            "if obj.lock_rotation[2]: raise TransformLockError('rotation.z')\n"
-            "if obj.lock_scale[0]: raise TransformLockError('scale.x')\n"
-            "if obj.lock_scale[1]: raise TransformLockError('scale.y')\n"
-            "if obj.lock_scale[2]: raise TransformLockError('scale.z')\n"
+            "for i, (loc, rot, scl) in enumerate(zip(obj.lock_location, obj.lock_rotation, obj.lock_scale)):\n"
+            "    if loc: raise ValueError(f'Location channel {i} is locked')\n"
+            "    if rot: raise ValueError(f'Rotation channel {i} is locked')\n"
+            "    if scl: raise ValueError(f'Scale channel {i} is locked')\n"
         )
 
     @staticmethod

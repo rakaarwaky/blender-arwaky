@@ -84,10 +84,17 @@ class RequestValidationExecutor(RequestValidationProtocol):
         self._validate_parameters(request, metadata, warnings)
 
         # Execution-mode compatibility (FR-DSP-003)
-        if request.execution_mode == "background" and not metadata.background_eligibility_flag:
+        exec_mode = request.execution_mode
+        if exec_mode == "background" and not metadata.background_eligibility_flag:
             raise DispatchRequestError(
                 f"Action '{request.action_name}' does not support background execution mode",
                 "unsupported_error",
+            )
+
+        # FR-DSP-003: Sync mode requires non-background-only action (warn if background-only)
+        if exec_mode == "sync" and metadata.background_eligibility_flag and not metadata.read_only_flag:
+            warnings.append(
+                f"Action '{request.action_name}' is background-only; consider using background mode"
             )
 
         # Destructive confirmation enforcement (FR-DSP-003)

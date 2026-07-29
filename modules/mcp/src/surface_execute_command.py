@@ -12,7 +12,6 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
 )
-from modules.mcp.src.root_mcp_container import McpContainer
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -35,7 +34,7 @@ class ExecuteCommandSurface:
         self._response = response
 
     @staticmethod
-    def register(mcp, container: McpContainer) -> None:
+    def register(mcp, container) -> None:
         """Register execute_command tool with MCP server."""
 
         async def execute_command(

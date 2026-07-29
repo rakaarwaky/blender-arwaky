@@ -1,4 +1,12 @@
-"""Shared action registry — aggregates all domain action schemas for CLI and MCP surfaces."""
+"""Shared action registry — aggregates all domain action schemas for CLI and MCP surfaces.
+
+NOTE (TR02): Surface schemas live in a parallel schema system separate from the dispatcher's
+CatalogRegistrationExecutor. This is intentional: surface schemas define parameter structures
+for CLI/MCP consumers, while the catalog registration uses ActionMetadataVO with richer metadata
+(flags, timeouts, usage examples). The two systems are intentionally decoupled — surface schemas
+are validated by validate_action_args() here, while catalog actions go through
+CatalogRegistrationExecutor._validate_schema(). No cross-reference exists between them.
+"""
 
 from typing import Any
 

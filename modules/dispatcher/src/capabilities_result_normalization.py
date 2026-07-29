@@ -111,53 +111,69 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         """Sanitize data payload — redact secrets, paths, raw code.
 
         FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
+        Handles all types: dicts, lists, strings, and nested structures.
         Non-serializable values converted to safe textual representation.
 
         Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
         """
         redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
+        secret_patterns = ["password", "secret", "token", "api_key", "credential", "private_key"]
         max_depth = 50
 
-        # Iterative sanitization using a queue of (result_dict_ref, key_or_None, value_to_process)
-        result: dict[str, Any] | None = None
-        queue: list[tuple[dict[str, Any] | None, str | None, Any]] = [(None, None, data)]
-        depth = 0
+        # Handle dict — recursive key-based redaction
+        if isinstance(data, dict):
+            return self._sanitize_dict(data, redacted_keys, max_depth)
 
-        while queue and depth < max_depth:
-            depth += 1
-            parent_ref, key, value = queue.pop(0)
+        # Handle list — sanitize each item recursively
+        if isinstance(data, list):
+            return [self._sanitize_data(item) for item in data]
 
-            if isinstance(value, dict):
-                new_dict: dict[str, Any] = {}
-                # Attach new_dict to its parent
-                if key is not None and parent_ref is not None:
-                    parent_ref[key] = new_dict
-                elif result is None:
-                    # Root dict — this IS the result
-                    result = new_dict
-                for k, v in value.items():
-                    k_lower = k.lower()
-                    if any(pattern in k_lower for pattern in redacted_keys):
-                        new_dict[k] = "***REDACTED***"
-                    elif isinstance(v, dict):
-                        queue.append((new_dict, k, v))
-                    elif isinstance(v, str) and len(v) > 1000:
-                        new_dict[k] = f"{v[:500]}...[truncated]"
-                    else:
-                        new_dict[k] = v
+        # Handle string — check for embedded secrets (API keys in URLs, tokens in strings)
+        if isinstance(data, str):
+            lower = data.lower()
+            for pattern in secret_patterns:
+                if pattern in lower and len(data) > 10:
+                    return "***REDACTED***"
+            # Truncate very long strings to prevent envelope bloat
+            if len(data) > 1000:
+                data = f"{data[:500]}...[truncated]"
+            return data
 
-        if result is None:
-            # Not a dict — fall through to non-dict handling below
-            pass
-        else:
-            return result
+        # Primitives (int, float, bool, None) are safe — return as-is
+        if isinstance(data, (int, float, bool)) or data is None:
+            return data
 
-        # Non-dict data — convert to string safely
+        # Non-serializable objects — convert to string safely
         try:
             json.dumps(data)
             return data
         except (TypeError, ValueError):
             return str(data)
+
+    def _sanitize_dict(
+        self, d: dict[str, Any], redacted_keys: set[str], max_depth: int, _depth: int = 0
+    ) -> dict[str, Any]:
+        """Recursively sanitize a dict for secret keys and nested structures.
+
+        Uses recursion with depth limit to avoid stack overflow on deeply nested data.
+        """
+        if _depth >= max_depth:
+            return {"_truncated": True, "_size_exceeded": max_depth}
+
+        result: dict[str, Any] = {}
+        for k, v in d.items():
+            k_lower = k.lower()
+            if any(pattern in k_lower for pattern in redacted_keys):
+                result[k] = "***REDACTED***"
+            elif isinstance(v, dict):
+                result[k] = self._sanitize_dict(v, redacted_keys, max_depth, _depth + 1)
+            elif isinstance(v, list):
+                result[k] = [self._sanitize_data(item) for item in v]
+            elif isinstance(v, str) and len(v) > 1000:
+                result[k] = f"{v[:500]}...[truncated]"
+            else:
+                result[k] = v
+        return result
 
     def __repr__(self) -> str:
         return f"ResultNormalizationExecutor(max_size={self._max_size})"

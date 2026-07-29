@@ -100,7 +100,8 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
         """Validate parameter schema integrity before acceptance.
 
         FR-DSP-001: Schema must declare a structure; required fields must be declared in
-        properties; each property must declare a type. Malformed schemas are rejected.
+        properties; each property must declare a type; at least one usage example required.
+        Malformed schemas are rejected.
         """
         schema = metadata.parameter_schema
         if not isinstance(schema, dict):
@@ -139,6 +140,12 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
                         f"Action '{metadata.action_name}': required field '{field_name}' "
                         f"is not declared in 'properties'"
                     )
+
+        # FR-DSP-001: At least one usage example is required
+        if not metadata.usage_examples or len(metadata.usage_examples) == 0:
+            raise ValueError(
+                f"Action '{metadata.action_name}': at least one usage_example is required"
+            )
 
     def get_catalog(self) -> dict[str, ActionMetadataVO]:
         """Return a sorted snapshot of the catalog (sorted by action name)."""

@@ -7,7 +7,7 @@ FR-MCP-003: Format MCP Responses — returns structured result from aggregate
 
 import json
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
 
 from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 from modules.shared.src.scene.taxonomy_scene_vo import SceneCleanupVO, SceneInspectionVO
@@ -25,22 +25,10 @@ class SceneToolsSurface:
         Args:
             mcp: MCP server instance
             aggregate_factory: Optional factory that returns ISceneAggregate.
-                When None, attempts lazy import from scene container.
         """
         aggregate: ISceneAggregate | None = None
         if aggregate_factory is not None:
             aggregate = aggregate_factory()
-
-        # Lazy load — only works when config and code executor are available
-        if aggregate is None:
-            try:
-                from modules.scene.src.root_scene_container import create_scene_container
-
-                # This requires a code_executor to be passed, which we can't do here
-                # without importing the actual implementation
-                raise ImportError("Scene container requires code_executor")
-            except ImportError:
-                pass
 
         if aggregate is None:
             return

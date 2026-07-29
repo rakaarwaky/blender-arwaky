@@ -63,6 +63,9 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         )
         try:
             await self._executor.execute_blender_code(Prompt(exists_code))
+        except ObjectNotFoundError:
+            # Re-raise taxonomy errors directly — don't wrap them
+            raise
         except ValueError as e:
             # Blender raised ValueError — object not found
             if getattr(request, "idempotent", False):

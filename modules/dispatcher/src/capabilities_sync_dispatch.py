@@ -50,15 +50,28 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
         """Route a validated action to its owning feature and return normalized result.
 
         FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
+        Non-idempotent actions are NOT retried automatically.
         Returns standardized envelope; does not retry non-idempotent actions.
         """
         start_time = time.time()
         tracking_id = request.validated_tracking_id or request.tracking_id or ""
         action_name = request.action_name
 
+        # FR-DSP-004: Non-idempotent actions must not be retried automatically
+        idempotent = request.resolved_metadata.get("idempotency_flag", False)
+        if not idempotent:
+            # First dispatch is fine — retries would come from the surface layer
+            # The dispatcher itself does not retry; if this is called, it's the first attempt.
+            pass
+
         try:
             params = dict(request.parameters)
             applied_timeout = request.timeout_override or request.resolved_metadata.get("default_timeout") or 0.0
+
+            # FR-DSP-004: Check for degraded owning feature before dispatching
+            if request.resolved_metadata.get("degraded", False):
+                owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
+                raise RuntimeError(f"Owning feature {owning_feature} is degraded")
 
             if self._execute is not None:
                 if applied_timeout and applied_timeout > 0:

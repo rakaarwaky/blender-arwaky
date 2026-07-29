@@ -12,7 +12,6 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
 )
-from modules.mcp.src.root_mcp_container import McpContainer
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,7 +30,7 @@ class GetConfigSurface:
         self._response = response
 
     @staticmethod
-    def register(mcp, container: McpContainer) -> None:
+    def register(mcp, container) -> None:
         """Register the get_config tool (MCP Tool #4)."""
 
         async def get_config(key: str | None = None) -> dict[str, Any]:
