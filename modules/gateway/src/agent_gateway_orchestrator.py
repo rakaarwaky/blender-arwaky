@@ -74,7 +74,7 @@ class GatewayOrchestrator:
         """FR-GWY-002: Graceful disconnect."""
         logger.info("Disconnecting gateway")
         self._connection.disconnect()
-        self._maintenance.set_state(None)  # type: ignore[arg-type]
+        self._maintenance.set_state(None)
 
     def get_connection_status(self) -> ConnectionStatusVO:
         """FR-GWY-002: Query connection state."""

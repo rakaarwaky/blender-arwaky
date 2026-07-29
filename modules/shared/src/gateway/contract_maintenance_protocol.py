@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_gateway_vo import ConnectionStatusVO
+from .taxonomy_gateway_vo import ConnectionStatusVO, ConnectionState
 
 
 class ConnectionMaintenanceProtocol(ABC):
@@ -38,5 +38,15 @@ class ConnectionMaintenanceProtocol(ABC):
 
         FR-GWY-002: Increasing backoff with jitter. Transitions to failed state
         when retry exhaustion occurs. Emits observability events.
+        """
+        ...
+
+    @abstractmethod
+    def set_state(self, state: ConnectionState | None) -> None:
+        """Set the current connection state.
+
+        FR-GWY-002: Allows the orchestrator to update state through the
+        protocol interface rather than reaching into concrete implementations.
+        Pass None to transition to closed/disconnected state.
         """
         ...

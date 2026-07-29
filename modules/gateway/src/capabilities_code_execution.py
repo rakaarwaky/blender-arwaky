@@ -5,7 +5,7 @@ FR-GWY-005: Execute Raw Python Code
 - Enforces execution timeout
 - Truncates oversized output with truncation indicator
 - Does not manage background task lifecycle
-- Delegates security validation to security policy feature (ValidateCodeProtocol)
+- Delegates security validation to gateway-local CodeValidationProtocol (wired to security validator)
 - Delegates code transport to gateway transport feature (TransportProtocol)
 
 Contains CodeExecutionAdapter (asyncio-based, ICodeExecutionProtocol)
