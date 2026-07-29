@@ -104,12 +104,14 @@ def main() -> int:
         return EXIT_VALIDATION
 
     # Import command handlers
-    from . import surface_init_command
-    from . import surface_close_command
-    from . import surface_status_command
-    from . import surface_run_command
-    from . import surface_screenshot_command
-    from . import surface_render_command
+    from . import (
+        surface_close_command,
+        surface_init_command,
+        surface_render_command,
+        surface_run_command,
+        surface_screenshot_command,
+        surface_status_command,
+    )
 
     result: dict[str, Any] = {}
 

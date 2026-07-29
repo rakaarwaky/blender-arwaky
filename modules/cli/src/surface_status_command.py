@@ -6,7 +6,7 @@ from modules.shared.src.launcher.utility_blender_process import is_running
 from modules.shared.src.launcher.utility_runtime_registry import Registry
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(_args: Any) -> dict[str, Any]:
     """Handle status command: show active Blender instance status."""
     registry = Registry()
 
