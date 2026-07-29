@@ -7712,6 +7712,10 @@ class ConfigOrchestrator(IConfigAggregate):
         """Return cached snapshot, lazy-loading if needed (now safe — loader locked)."""
         if self._snapshot is None:
             self._snapshot = self._loader.load_settings()
+            self._record_event(self._loader.emit_loaded_event())
+            validation_ev = self._loader.emit_validation_warning_event()
+            if validation_ev is not None:
+                self._record_event(validation_ev)
         return self._snapshot
 
     def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
@@ -7750,6 +7754,8 @@ class ConfigOrchestrator(IConfigAggregate):
 
     def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return the most recent config domain events, oldest → newest."""
+        if limit <= 0:
+            return ()
         items = list(self._event_buffer)
         return tuple(items[-limit:])
 
@@ -8001,12 +8007,15 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._last_metadata = metadata
 
             # Runtime overrides are caller-scoped — never cached (A5).
+            # FR-CFG-001 precedence: runtime overrides > environment > file > built-in defaults
+            # Therefore overrides must be applied to the fully merged snapshot, not raw file data.
             if overrides is not None and self._strict_mode_enabled:
+                base = self._cached.to_dict() if self._cached is not None else {}
                 structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
-                final = deep_merge_dicts(self._cached_data, structured)
+                final = deep_merge_dicts(base, structured)
                 return SettingsSnapshot(_data=final)
 
             if overrides is not None and not self._strict_mode_enabled:
@@ -8341,6 +8350,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
@@ -8393,6 +8403,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
+            timestamp=time.time(),
         )
 
 # ─── Block 3: Resolution Strategy ─────────────────────────
@@ -8510,8 +8521,9 @@ class ConfigContainer:
     ) -> None:
         # Flag read once at construction (None → resolve via env truthiness).
         if strict_mode_enabled is None:
-            v2 = parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, ""))
-            strict_mode_enabled = v2 is True
+            strict_mode_enabled = bool(
+                parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, ""))
+            )
         else:
             strict_mode_enabled = bool(strict_mode_enabled)
 
@@ -9023,11 +9035,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
-from .taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
+from .taxonomy_config_vo import (
+    EventPayload,
+    RedactionRule,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSnapshot,
+    SettingsValue,
+    WorkspacePath,
+)
 
 
 class IConfigAggregate(ABC):
@@ -9042,7 +9061,7 @@ class IConfigAggregate(ABC):
     def load(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings and return immutable snapshot."""
         ...
@@ -9060,7 +9079,7 @@ class IConfigAggregate(ABC):
     # ─── Retrieval (FR-CFG-002) ────────────────────────────────
 
     @abstractmethod
-    def get(self, path: ConfigPath = "", default: Any = None) -> Any:
+    def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path from current snapshot."""
         ...
 
@@ -9106,7 +9125,7 @@ class IConfigAggregate(ABC):
     # ─── Events (T-09) ─────────────────────────────────────────
 
     @abstractmethod
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return recent config domain events, oldest → newest."""
         ...
 
@@ -9118,7 +9137,7 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact sensitive values in a dictionary."""
         ...
 ```
@@ -9137,9 +9156,8 @@ patterns and redaction rules used by consuming features for masking.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from .taxonomy_config_vo import RedactionRule
+from .taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
 class IRedactionRulesProtocol(ABC):
@@ -9151,12 +9169,12 @@ class IRedactionRulesProtocol(ABC):
         ...
 
     @abstractmethod
-    def redact_value(self, key: str, value: Any) -> Any:
+    def redact_value(self, key: str, value: SettingsValue) -> SettingsValue:
         """Redact a value if its key matches a sensitive pattern."""
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact all sensitive values in a dictionary."""
         ...
 ```
@@ -9176,7 +9194,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_event import (
@@ -9184,7 +9201,7 @@ from .taxonomy_config_event import (
     SettingsReloadEvent,
     SettingsValidationWarningEvent,
 )
-from .taxonomy_config_vo import SettingsSnapshot
+from .taxonomy_config_vo import SettingsOverrides, SettingsSnapshot
 
 
 class ISettingsLoaderProtocol(ABC):
@@ -9239,9 +9256,10 @@ about how settings were loaded, merged, and validated.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Protocol
+from typing import Protocol
 
 from ..common.taxonomy_core_vo import ConfigMetadata
+from .taxonomy_config_vo import SettingsData
 
 
 class _IMetadataSource(Protocol):
@@ -9263,7 +9281,7 @@ class ISettingsMetadataProtocol(ABC):
         ...
 
     @abstractmethod
-    def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
+    def to_safe_dict(self, metadata: ConfigMetadata) -> SettingsData:
         """Serialize metadata for diagnostics. Secrets excluded, safe for MCP/CLI output."""
         ...
 ```
@@ -9282,10 +9300,9 @@ settings value retrieval with safe copy semantics.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigPath
-from .taxonomy_config_vo import SettingsSnapshot
+from .taxonomy_config_vo import SettingsSnapshot, SettingsValue
 
 
 class ISettingsRetrieverProtocol(ABC):
@@ -9296,8 +9313,8 @@ class ISettingsRetrieverProtocol(ABC):
         self,
         snapshot: SettingsSnapshot,
         path: ConfigPath,
-        default: Any = None,
-    ) -> Any:
+        default: SettingsValue = None,
+    ) -> SettingsValue:
         """Retrieve a value by dot-separated path. Returns deep copy to prevent mutation."""
         ...
 
@@ -9840,8 +9857,13 @@ def search_project_root(markers: tuple[str, ...]) -> Path | None:
     """Search upward from cwd for recognized project markers.
 
     Returns first parent containing any marker, or None.
+    Returns None if cwd cannot be resolved.
     """
-    current = Path.cwd().resolve()
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        return None
+
     for parent in [current, *current.parents]:
         for marker in markers:
             candidate = parent / marker
@@ -9978,12 +10000,20 @@ def validate_settings_schema(
                 errors.append(f"{path}: expected dict, got {type(node).__name__}")
                 return
             children = node_schema.get("children", {})
+
+            # Detect missing required children.
+            for child_key, child_schema in children.items():
+                if child_key not in node and child_schema.get("required", False):
+                    errors.append(f"{path}.{child_key}: missing required value")
+
+            # Validate present children and warn unknown children.
             for child_key, child_node in node.items():
                 child_schema = children.get(child_key)
                 if child_schema is None:
                     warnings.append(f"{path}.{child_key}: unknown key")
                     continue
                 walk(child_node, child_schema, f"{path}.{child_key}")
+
             return
 
         if node_type == "int":
@@ -10014,12 +10044,19 @@ def validate_settings_schema(
         # "any" or unknown: no type check
         return
 
-    for key, value in data.items():
-        key_schema = schema.get(key)
-        if key_schema is None:
-            warnings.append(f"{key}: unknown key")
+    # Detect missing required top-level keys and validate present keys.
+    for key, key_schema in schema.items():
+        if key not in data:
+            if key_schema.get("required", False):
+                errors.append(f"{key}: missing required value")
             continue
-        walk(value, key_schema, key)
+
+        walk(data[key], key_schema, key)
+
+    # Warn unknown top-level keys.
+    for key in data.keys():
+        if key not in schema:
+            warnings.append(f"{key}: unknown key")
 
     return tuple(errors), tuple(warnings)
 

@@ -35,6 +35,7 @@ IMPORTANT_FILES = {
     "pyproject.toml",
     "setup.cfg",
     "README.md",
+    "PRD.md",
     "FRD.md",
     "ARCHITECTURE.md",
     "RULES_AES.md",
