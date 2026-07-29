@@ -230,10 +230,17 @@ class AssetDownloadCapability(AssetDownloadProtocol):
     async def _submit_background_download(self, _provider: ProviderName, _asset_id: AssetId, _cache_path: str) -> str:
         """Submit download as background job.
 
-        TODO: Wire job feature and replace with real task submission.
-        Returns a synthetic task ref when job feature is not available.
+        Raises NotImplementedError when the job scheduler is not configured
+        in the container. Callers must ensure job_scheduler is provided.
         """
-        return f"task-{_provider}-{_asset_id}"
+        if self.job_scheduler is None:
+            raise NotImplementedError(
+                "Background download requires a wired job_scheduler; "
+                "configure via AssetContainer constructor."
+            )
+        return await self.job_scheduler.submit_download(
+            provider=_provider, asset_id=_asset_id, cache_path=_cache_path
+        )
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
         """Perform actual download via provider adapter.
