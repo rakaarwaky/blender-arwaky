@@ -148,7 +148,7 @@ class ProcessShutdown(ShutdownProtocol):
     ) -> None:
         if self._events is not None:
             # FR-SEC-004: redact sensitive data in events
-            from modules.security.src.capabilities_path_validator import _redact_path
+            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
 
             self._events(
                 LauncherLifecycleEvent(
@@ -163,7 +163,7 @@ class ProcessShutdown(ShutdownProtocol):
     def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
         """FR-SEC-005: emit security audit event for shutdown operations."""
         if self._audit_events is not None:
-            from modules.security.src.capabilities_path_validator import _redact_path
+            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
 
             self._audit_events.emit_audit(
                 SecurityAuditEventVO(

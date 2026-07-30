@@ -18,6 +18,9 @@ from modules.shared.src.security.utility_security_path import (
     is_within_allowed_dirs,
     normalize_path,
     resolve_path,
+)  # fmt: skip
+from modules.shared.src.security.utility_security_path import (
+    redact_path as _redact_path,
 )
 
 
@@ -32,13 +35,6 @@ class _OsPathResolver:
 
     def resolve(self, path: str) -> str:
         return resolve_path(path)
-
-
-def _redact_path(path: str) -> str:
-    parts = path.replace("\\", "/").split("/")
-    if len(parts) <= 2:
-        return "***"
-    return "/" + "/".join(["***"] + list(parts[-2:]))
 
 
 class PathValidator(ValidatePathProtocol):
