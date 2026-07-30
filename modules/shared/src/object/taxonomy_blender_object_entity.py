@@ -6,11 +6,10 @@ parent-child relationships. Validates on construction.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
-
-from typing import Iterable
 
 from ..common.taxonomy_core_vo import ObjectId, ObjectIdList, ObjectName, ObjectType, ScaleFactor
 from ..common.taxonomy_vector3d_vo import Vector3D

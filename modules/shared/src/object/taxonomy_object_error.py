@@ -1,8 +1,10 @@
-"""Object domain errors — typed exceptions for object operation failures."""
+"""Object domain errors — typed exceptions for object operation failures.
+
+AES102: Uses _error suffix (not _vo) since this file contains domain error classes.
+AES401: Error fields use taxonomy-typed values instead of primitives.
+"""
 
 from __future__ import annotations
-
-from typing import Annotated
 
 from ..common.taxonomy_core_vo import ErrorString
 from ..common.taxonomy_domain_error import DomainError
@@ -74,7 +76,3 @@ class InvalidModifierTypeError(DomainError):
     def __init__(self, modifier_type: str) -> None:
         super().__init__(ErrorString(f"Invalid modifier type: '{modifier_type}'"))
         self.modifier_type = modifier_type
-
-
-# Type alias for Annotated usage in capability layers
-ObjectError = Annotated[DomainError, "Object domain error base"]

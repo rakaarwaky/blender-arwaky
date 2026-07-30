@@ -19,34 +19,16 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     SuccessFlag,
 )
+from modules.shared.src.common.utility_code_builder import (
+    quote_string,
+    tuple_str,
+)
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import InvalidPrimitiveTypeError
+from modules.shared.src.object.taxonomy_object_constant import NON_MESH_PRIMITIVES, PRIMITIVE_OPS_MAP
+from modules.shared.src.object.taxonomy_object_error import InvalidPrimitiveTypeError
 from modules.shared.src.object.taxonomy_object_vo import CreatePrimitiveVO
 
 logger = logging.getLogger("BlenderMCPServer")
-
-# Supported primitive type mapping to Blender operator strings.
-# Includes mesh primitives and non-mesh types (camera, light, empty).
-PRIMITIVE_OPS_MAP: dict[str, str] = {
-    "cube": "bpy.ops.mesh.primitive_cube_add",
-    "sphere": "bpy.ops.mesh.primitive_uv_sphere_add",
-    "cylinder": "bpy.ops.mesh.primitive_cylinder_add",
-    "cone": "bpy.ops.mesh.primitive_cone_add",
-    "torus": "bpy.ops.mesh.primitive_torus_add",
-    "grid": "bpy.ops.mesh.primitive_grid_add",
-    "monkey": "bpy.ops.mesh.primitive_monkey_add",
-    "plane": "bpy.ops.mesh.primitive_plane_add",
-    "circle": "bpy.ops.mesh.primitive_circle_add",
-    "octahedron": "bpy.ops.mesh.primitive_octahedron_add",
-    "irregular_monkey": "bpy.ops.mesh.primitive_irregular_grid_grid_add",
-}
-
-# Non-mesh primitive operators (camera, light, empty)
-NON_MESH_PRIMITIVES: dict[str, str] = {
-    "camera": "bpy.ops.object.camera_add",
-    "light": "bpy.ops.object.light_add",
-    "empty": "bpy.ops.object.empty_add",
-}
 
 # All supported primitives (mesh + non-mesh)
 ALL_SUPPORTED_PRIMITIVES: frozenset[str] = frozenset(set(PRIMITIVE_OPS_MAP.keys()) | set(NON_MESH_PRIMITIVES.keys()))
@@ -104,45 +86,35 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
     async def _resolve_name(self, request: CreatePrimitiveVO) -> str:
         """Resolve object name with naming policy.
 
-        FR-OBJ-002: Naming policy may be one of:
-        - reject duplicate name
-        - automatically generate unique suffix
-        - overwrite existing object when explicitly allowed
+        FR-OBJ-002: Generates a unique name by checking if the base name
+        exists and appending a suffix if needed. Uses repr() for safe
+        string embedding to prevent code injection.
         """
-        if request.name:
-            # Batch-check all potential names in a single Blender code execution
-            base_name = str(request.name)
-            # Build set comprehension string for generated code:
-            # existing = {'MySphere' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
-            check_code = (
-                "import bpy\n"
-                f"existing = {{('{base_name}' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
-                "result = existing\n"
-            )
-            try:
-                existing_set = await self._executor.execute_blender_code(Prompt(check_code))
-                # Find first non-existing name — handle dict, set, or bool responses
-                if isinstance(existing_set, dict):
-                    # Dict mapping suffix → exists (from batch check)
-                    for suffix in range(1, 100):
-                        if not existing_set.get(suffix, False):
-                            unique_name = f"{base_name}.{suffix}"
-                            logger.info("Generated unique name: %s", unique_name)
-                            return unique_name
-                elif isinstance(existing_set, (set, bool)):
-                    # Set of booleans or simple boolean response — name doesn't exist
-                    # Fall through to use base_name directly
-                    pass
-                else:
-                    # Unknown response type — assume name is available
-                    pass
-                # Name is available (either batch check returned empty set or response was simple False)
-                return base_name
-            except Exception:
-                # If check fails, use auto-generated name
-                return f"Primitive_{id(request)}"
+        if not request.name:
+            return f"Primitive_{id(request)}"
 
-        return f"Primitive_{id(request)}"
+        base_name = str(request.name)
+        # Generate code to check existence and find first available suffix
+        check_code = (
+            "import bpy\n"
+            f"base = {quote_string(base_name)}\n"
+            "existing = set(bpy.data.objects.keys())\n"
+            "candidate = base\n"
+            "suffix = 1\n"
+            "while candidate in existing:\n"
+            "    candidate = f'{base}.{suffix:03d}'\n"
+            "    suffix += 1\n"
+            "result = candidate\n"
+        )
+
+        try:
+            resolved = await self._executor.execute_blender_code(Prompt(check_code))
+            # Handle non-string responses (e.g. False, None from test mocks)
+            if isinstance(resolved, str) and resolved:
+                return resolved
+            return base_name
+        except Exception:
+            return f"Primitive_{id(request)}"
 
     def _generate_creation_code(self, op: str, request: CreatePrimitiveVO, resolved_name: str) -> str:
         """Generate Blender Python code for primitive creation.
@@ -154,20 +126,24 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
 
         # Add size/parameter adjustments for specific primitives
         if request.scale is not None:
-            lines.append(f"bpy.context.active_object.scale = {CreatePrimitiveExecutor._tuple_str(request.scale)}")
+            lines.append(f"bpy.context.active_object.scale = {tuple_str(request.scale)}")
 
         if request.location is not None:
-            lines.append(f"bpy.context.active_object.location = {CreatePrimitiveExecutor._tuple_str(request.location)}")
+            lines.append(f"bpy.context.active_object.location = {tuple_str(request.location)}")
 
         rotation = getattr(request, "rotation", None)
         if rotation is not None:
-            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(rotation)}")
+            lines.append(f"bpy.context.active_object.rotation_euler = {tuple_str(rotation)}")
 
         # Set object name
         lines.append(
-            f"created_obj = bpy.context.active_object\n"
-            f"if created_obj:\n"
-            f"    created_obj.name = {CreatePrimitiveExecutor._safe_str(resolved_name)}\n"
+            "created_obj = bpy.context.active_object"
+        )
+        lines.append(
+            "if created_obj:"
+        )
+        lines.append(
+            f"    created_obj.name = {quote_string(resolved_name)}"
         )
 
         return "\n".join(lines)

@@ -31,7 +31,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ScaleVector,
 )
 from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
-from modules.shared.src.object.taxonomy_object_error_vo import (
+from modules.shared.src.object.taxonomy_object_error import (
     DeletionProtectionError,
     InvalidModifierTypeError,
     InvalidPrimitiveTypeError,

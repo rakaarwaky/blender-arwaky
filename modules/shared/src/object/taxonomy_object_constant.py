@@ -39,3 +39,30 @@ ALLOWED_OBJECT_TYPES: Final[list[ObjectType]] = [
     OBJECT_TYPE_VOLUME,
     OBJECT_TYPE_POINTCLOUD,
 ]
+
+# ============================================================
+# PRIMITIVE / MODIFIER CATALOG CONSTANTS
+# ============================================================
+
+# Supported primitive type mapping to Blender operator strings.
+# Includes mesh primitives and non-mesh types (camera, light, empty).
+PRIMITIVE_OPS_MAP: Final[dict[str, str]] = {
+    "cube": "bpy.ops.mesh.primitive_cube_add",
+    "sphere": "bpy.ops.mesh.primitive_uv_sphere_add",
+    "cylinder": "bpy.ops.mesh.primitive_cylinder_add",
+    "cone": "bpy.ops.mesh.primitive_cone_add",
+    "torus": "bpy.ops.mesh.primitive_torus_add",
+    "grid": "bpy.ops.mesh.primitive_grid_add",
+    "monkey": "bpy.ops.mesh.primitive_monkey_add",
+    "plane": "bpy.ops.mesh.primitive_plane_add",
+    "circle": "bpy.ops.mesh.primitive_circle_add",
+    "octahedron": "bpy.ops.mesh.primitive_octahedron_add",
+    "irregular_monkey": "bpy.ops.mesh.primitive_irregular_grid_grid_add",
+}
+
+# Non-mesh primitive operators (camera, light, empty)
+NON_MESH_PRIMITIVES: Final[dict[str, str]] = {
+    "camera": "bpy.ops.object.camera_add",
+    "light": "bpy.ops.object.light_add",
+    "empty": "bpy.ops.object.empty_add",
+}
