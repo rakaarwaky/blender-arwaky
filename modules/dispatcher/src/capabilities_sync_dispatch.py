@@ -19,6 +19,13 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
+    DISPATCH_ERROR_CATEGORY_CONNECTION,
+    DISPATCH_ERROR_CATEGORY_EXECUTION,
+    DISPATCH_ERROR_CATEGORY_NOT_FOUND,
+    DISPATCH_ERROR_CATEGORY_TIMEOUT,
+    DISPATCH_ERROR_CATEGORY_VALIDATION,
+)
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -129,19 +136,20 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
     def _map_error_category(self, error: Exception) -> str:
         """Map domain error to unified error category (FR-DSP-004)."""
         error_type = type(error).__name__
+        error_msg = str(error).lower()
 
-        if error_type == "TimeoutError" or "Timeout" in error_type:
-            return "timeout_error"
-        if "Timeout" in str(error).lower():
-            return "timeout_error"
-        if "Connection" in error_type or "connection" in str(error).lower():
-            return "connection_error"
-        if "NotFound" in error_type or "not found" in str(error).lower():
-            return "not_found_error"
-        if "ValidationError" in error_type or "validation" in str(error).lower():
-            return "validation_error"
+        if error_type == "TimeoutError" or "timeout" in error_type.lower():
+            return DISPATCH_ERROR_CATEGORY_TIMEOUT
+        if "timeout" in error_msg:
+            return DISPATCH_ERROR_CATEGORY_TIMEOUT
+        if "connection" in error_type.lower() or "connection" in error_msg:
+            return DISPATCH_ERROR_CATEGORY_CONNECTION
+        if "notfound" in error_type.lower() or "not found" in error_msg:
+            return DISPATCH_ERROR_CATEGORY_NOT_FOUND
+        if "validation" in error_type.lower() or "validation" in error_msg:
+            return DISPATCH_ERROR_CATEGORY_VALIDATION
 
-        return "execution_error"
+        return DISPATCH_ERROR_CATEGORY_EXECUTION
 
     def __repr__(self) -> str:
         return f"SyncDispatchExecutor(execute={self._execute is not None})"

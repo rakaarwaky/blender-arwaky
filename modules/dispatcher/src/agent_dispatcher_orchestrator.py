@@ -171,8 +171,9 @@ class DispatcherOrchestrator(IDispatcherAggregate):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     @staticmethod
-    def _safe_message(_error: Exception) -> str:
-        return "Action request could not be processed"
+    def _safe_message(error: Exception) -> str:
+        message = str(error)
+        return message if message else "Action request could not be processed"
 
     def __repr__(self) -> str:
         return (

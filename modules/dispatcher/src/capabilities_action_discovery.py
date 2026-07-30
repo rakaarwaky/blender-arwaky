@@ -7,6 +7,7 @@ FR-DSP-002: Discover Actions
 """
 
 import logging
+from typing import Any
 
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
     ActionDiscoveryProtocol,
