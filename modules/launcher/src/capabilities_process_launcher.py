@@ -39,7 +39,7 @@ class _ProcessSpawner(Protocol):
 class _ReadinessProbe(Protocol):
     """Probes bridge readiness; returns True when ready. DI boundary."""
 
-    def __call__(self, process_id: int, timeout_seconds: float) -> bool: ...
+    def __call__(self, process_id: int, timeout_seconds: float, interval_seconds: float = 0.5) -> bool: ...
 
 
 class ProcessLauncher(LaunchProtocol):
@@ -52,12 +52,14 @@ class ProcessLauncher(LaunchProtocol):
         status_protocol: RuntimeStatusProtocol,
         spawner: _ProcessSpawner | None = None,
         readiness_probe: _ReadinessProbe | None = None,
+        probe_interval_seconds: float = 0.5,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._resolve_executable = executable_resolver
         self._status = status_protocol
         self._spawner = spawner
         self._probe = readiness_probe
+        self._probe_interval = probe_interval_seconds
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -93,7 +95,7 @@ class ProcessLauncher(LaunchProtocol):
 
         ready = False
         if self._probe is not None:
-            ready = self._probe(pid, timeout)
+            ready = self._probe(pid, timeout, self._probe_interval)
 
         duration_ms = (time.monotonic() - start) * 1000.0
         if not ready:
