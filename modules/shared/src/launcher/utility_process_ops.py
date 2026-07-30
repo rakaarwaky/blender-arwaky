@@ -72,13 +72,15 @@ def process_spawn(
     mode: str,
     bridge_endpoint: str | None = None,
     addon_path: str | None = None,
-) -> int:
+) -> tuple[int, int | None]:
     """Spawn a Blender process with the given mode and optional integration args.
 
     FR-INT-002: Passes bridge endpoint and addon path as CLI arguments so the
     Gateway can connect to the running Blender instance.
 
-    Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
+    Returns (process_pid, exit_code) where exit_code is None if process is running,
+    or an int if the process exited immediately before probe (FR-LAU-002/Finding #15).
+    Mode 'headless' adds --background --python-exit-code 1.
     Uses a new process session (start_new_session=True) for orphan child cleanup support.
     """
     args = [executable]
@@ -93,7 +95,13 @@ def process_spawn(
         args += ["--background", "--python-exit-code", "1"]
 
     proc = subprocess.Popen(args, start_new_session=True)
-    return proc.pid
+    # FR-LAU-002 (Finding #15): Check for immediate exit and capture exit code
+    returncode = proc.poll()
+    if returncode is not None:
+        # Process exited immediately — capture the exit code for diagnostics
+        proc.wait()
+        return proc.pid, returncode
+    return proc.pid, None
 
 
 def process_version_check(args: list[str], timeout: float = 5.0) -> tuple[int, str]:

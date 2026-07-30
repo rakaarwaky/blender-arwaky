@@ -35,7 +35,7 @@ from modules.shared.src.security.utility_security_redactor import redact_sensiti
 
 
 class _ProcessSpawner(Protocol):
-    """Spawns Blender; returns a process id. DI boundary."""
+    """Spawns Blender; returns (process_id, exit_code) where exit_code is None if running. DI boundary."""
 
     def __call__(
         self,
@@ -44,7 +44,7 @@ class _ProcessSpawner(Protocol):
         readiness_timeout_seconds: float,
         bridge_endpoint: str | None = None,
         addon_path: str | None = None,
-    ) -> int: ...
+    ) -> tuple[int, int | None]: ...
 
 
 class _ReadinessProbe(Protocol):
@@ -106,37 +106,60 @@ class ProcessLauncher(LaunchProtocol):
 
             start = time.monotonic()
             try:
-                pid = self._spawner(
+                result = self._spawner(
                     executable,
                     mode.value,
                     timeout,
                     bridge_endpoint=self._bridge_endpoint,
                     addon_path=self._addon_path,
                 )
+                # FR-LAU-002 (Finding #15): Capture process exit code on early launch failure
+                pid: int | None = None
+                exit_code: int | None = None
+                if isinstance(result, tuple):
+                    pid, exit_code = result
+                else:
+                    pid = result
             except Exception as exc:
                 self._emit(
                     LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc)
                 )
                 return LaunchOutcomeVO(success=False, error=f"Spawn failed: {exc}")
 
-            ready = False
-            if self._probe is not None:
-                ready = self._probe(pid, timeout)
+            # FR-LAU-002 (Finding #15): If process exited immediately before probe, capture exit code
+            if pid is not None and exit_code is not None:
+                ready = False
+            else:
+                ready = False
+                if self._probe is not None:
+                    ready = self._probe(pid, timeout)
 
             duration_ms = (time.monotonic() - start) * 1000.0
             if not ready:
-                self._emit(
-                    LAUNCHER_EVENT_LAUNCH_FAILED,
-                    RuntimeState.STARTING,
-                    RuntimeState.STARTING,
-                    process_reference=str(pid),
-                )
+                error_msg = "Readiness not confirmed within timeout"
+                if exit_code is not None:
+                    # FR-LAU-002 (Finding #15): Include captured exit code in error message
+                    error_msg = f"Process exited immediately with code {exit_code}"
+                    self._emit(
+                        LAUNCHER_EVENT_LAUNCH_FAILED,
+                        RuntimeState.STARTING,
+                        RuntimeState.NOT_RUNNING,
+                        process_reference=str(pid),
+                        reason=f"exit_code={exit_code}",
+                    )
+                else:
+                    self._emit(
+                        LAUNCHER_EVENT_LAUNCH_FAILED,
+                        RuntimeState.STARTING,
+                        RuntimeState.STARTING,
+                        process_reference=str(pid),
+                    )
                 return LaunchOutcomeVO(
                     success=False,
                     process_id=pid,
                     ready=False,
                     duration_ms=duration_ms,
-                    error="Readiness not confirmed within timeout",
+                    error=error_msg,
                 )
 
             self._emit(

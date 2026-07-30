@@ -220,6 +220,19 @@ class PersistenceOutcomeVO:
 
 
 @dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 (Finding #14): Load result with corruption differentiation.
+
+    Differentiates between corrupt/unreadable content and missing/empty state file.
+    Returns the loaded state when available, plus warnings for corruption events.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
+
+
+@dataclass(frozen=True)
 class StatePersistenceOutcomeVO:
     """Unified state persistence result — input and output in one VO."""
 

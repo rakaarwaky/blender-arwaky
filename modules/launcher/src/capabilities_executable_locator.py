@@ -109,6 +109,11 @@ class ExecutableLocator(LocateRegisterProtocol):
         return ExecutableReferenceVO(path=canonical, version_summary=version, compatibility=compat)
 
     def _detect_version(self, path: str) -> str:
+        """Detect version string from Blender executable.
+
+        FR-LAU-001 (Finding #11): Validates that the executable is genuinely Blender
+        by checking --version output contains 'Blender' keyword.
+        """
         if self._runner is None:
             return ""
         try:
@@ -117,6 +122,9 @@ class ExecutableLocator(LocateRegisterProtocol):
             return ""
         if rc != 0:
             return ""
+        # FR-LAU-001 (Finding #11): validate genuine Blender — must contain 'Blender' keyword
+        if "blender" not in out.lower():
+            raise ExecutableValidationError(f"Not a genuine Blender executable: {path}")
         for token in out.split():
             if token[0].isdigit():
                 return token

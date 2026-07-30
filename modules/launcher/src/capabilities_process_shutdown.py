@@ -74,7 +74,11 @@ class ProcessShutdown(ShutdownProtocol):
 
     # ─── Block 2: Public Contract ────────────────────────────
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Stop Blender gracefully, escalating to force when allowed."""
+        """Stop Blender gracefully, escalating to force when allowed.
+
+        FR-LAU-003 (Finding #9): Guard against shutdown during launch — if the
+        current state is STARTING, wait for launch to complete or return error.
+        """
         with self._lock:
             current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
@@ -87,6 +91,14 @@ class ProcessShutdown(ShutdownProtocol):
                 )
                 return ShutdownOutcomeVO(
                     success=True, termination_method=TerminationMethod.NONE, final_state=RuntimeState.NOT_RUNNING
+                )
+
+            # FR-LAU-003 (Finding #9): Guard against shutdown during launch
+            if current.state == RuntimeState.STARTING:
+                return ShutdownOutcomeVO(
+                    success=False,
+                    error="Shutdown requested while launch is in progress — wait for launch to complete",
+                    final_state=RuntimeState.STARTING,
                 )
 
             if current.process_id is None:

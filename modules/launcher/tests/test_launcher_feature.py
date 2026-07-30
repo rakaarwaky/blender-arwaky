@@ -28,9 +28,25 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 
 
 def test_fr_lau_001_registers_override_executable():
+    """FR-LAU-001: Override executable should register with OVERRIDE source.
+
+    FR-LAU-001 (Finding #11): Uses a mock command runner that returns Blender-like
+    version output so the override executable passes genuine Blender validation.
+    """
+    import unittest.mock as mock
+
     feat = create_launcher_feature()
     python_exe = os.path.realpath(os.sys.executable)
-    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+
+    # Mock process_version_check to return Blender-like version output for the override
+    with mock.patch(
+        "modules.launcher.src.root_launcher_container.process_version_check",
+        side_effect=lambda args, timeout=5.0: (
+            (0, "Blender 4.1.0\nPython 3.12.0") if "blender" in args[0].lower() else (0, "Blender 4.1.0")
+        ),
+    ):
+        res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+
     assert res.source == RegistrationSource.OVERRIDE
 
 
