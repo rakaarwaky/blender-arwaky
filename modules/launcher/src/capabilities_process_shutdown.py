@@ -24,8 +24,10 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ProbeDepth,
     RuntimeState,
     ShutdownOutcomeVO,
+    ShutdownRequestVO,
     TerminationMethod,
 )
+from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
 
 class _SignalSender(Protocol):
@@ -61,8 +63,10 @@ class ProcessShutdown(ShutdownProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
+    def shutdown(self, request: ShutdownRequestVO | None = None) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force when allowed."""
+        req = request or ShutdownRequestVO()
+
         current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
@@ -77,17 +81,21 @@ class ProcessShutdown(ShutdownProtocol):
             )
 
         if current.process_id is None:
-            return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
+            return ShutdownOutcomeVO(
+                success=False, error_code=None, error_message="Process id unknown for running instance"
+            )
 
         start = time.monotonic()
         method = TerminationMethod.GRACEFUL
         escalated = False
 
-        if self._signal is not None and not force:
+        force_requested = req.force_requested or not req.escalation_confirmed
+
+        if self._signal is not None and not force_requested:
             self._signal(current.process_id)
 
         if not self._wait_exit(current.process_id):
-            if (force or allow_escalation) and self._force_enabled and self._kill is not None:
+            if (force_requested or req.escalation_confirmed) and self._force_enabled and self._kill is not None:
                 self._kill(current.process_id)
                 escalated = True
                 method = TerminationMethod.FORCE
@@ -103,7 +111,8 @@ class ProcessShutdown(ShutdownProtocol):
                     success=False,
                     termination_method=TerminationMethod.GRACEFUL,
                     duration_ms=duration_ms,
-                    error="Graceful shutdown exceeded timeout; escalation disallowed",
+                    error_code=None,
+                    error_message="Graceful shutdown exceeded timeout; escalation disallowed",
                 )
 
         duration_ms = (time.monotonic() - start) * 1000.0
@@ -136,12 +145,18 @@ class ProcessShutdown(ShutdownProtocol):
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", method: str = ""
     ) -> None:
         if self._events is not None:
-            self._events(
-                LauncherLifecycleEvent(
-                    event_category=category,
-                    state_before=before,
-                    state_after=after,
-                    process_reference=process_reference,
-                    method=method,
+            try:
+                redacted_process = (
+                    redact_sensitive(process_reference) if isinstance(process_reference, str) else process_reference
                 )
-            )
+                self._events(
+                    LauncherLifecycleEvent(
+                        event_category=category,
+                        state_before=before,
+                        state_after=after,
+                        process_reference=redacted_process,
+                        method=method,
+                    )
+                )
+            except Exception:
+                pass  # Event emission is fire-and-forget

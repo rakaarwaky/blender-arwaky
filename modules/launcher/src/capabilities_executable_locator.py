@@ -17,13 +17,12 @@ from typing import Protocol
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
-from modules.shared.src.launcher.taxonomy_launcher_error import (
-    ExecutableValidationError,
-)
+from modules.shared.src.launcher.taxonomy_launcher_error import ExecutableValidationError
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
+    LauncherErrorCode,
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
@@ -52,11 +51,16 @@ class ExecutableLocator(LocateRegisterProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable."""
+        config = self._config_provider()
         candidates = self._build_candidate_order(config, override)
         if not candidates:
-            return RegistrationOutcomeVO(registered=False, error="No candidate locations available")
+            return RegistrationOutcomeVO(
+                registered=False,
+                error_code=LauncherErrorCode.CONFIGURATION_ERROR,
+                error_message="No candidate locations available",
+            )
 
         for source, path in candidates:
             if not path or not os.path.exists(path):
@@ -69,7 +73,11 @@ class ExecutableLocator(LocateRegisterProtocol):
             self._emit_registered(source, path)
             return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
-        return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
+        return RegistrationOutcomeVO(
+            registered=False,
+            error_code=LauncherErrorCode.VALIDATION_ERROR,
+            error_message="No valid Blender executable found",
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _build_candidate_order(
@@ -127,10 +135,12 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)
         if events is not None:
-            events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                state_before=RuntimeState.NOT_RUNNING,
-                state_after=RuntimeState.RUNNING_READY,
-                process_reference=path,
-                reason_summary=f"registered_from_{source.value}",
-            ))
+            events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=path,
+                    reason_summary=f"registered_from_{source.value}",
+                )
+            )

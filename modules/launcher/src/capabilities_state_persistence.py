@@ -9,6 +9,7 @@ The store path and I/O are injected DI boundaries; no secrets are persisted.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 import threading
@@ -16,10 +17,13 @@ from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    LoadOutcomeVO,
     PersistenceOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
 )
+
+logger = logging.getLogger(__name__)
 
 _SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
 
@@ -42,6 +46,11 @@ class StatePersistence(PersistStateProtocol):
         """Load persisted state; return None on missing/corrupt content."""
         with self._lock:
             return self._load_impl()
+
+    def load_with_warnings(self) -> LoadOutcomeVO:
+        """Load persisted state with corruption/parse warnings (FR-LAU-005)."""
+        with self._lock:
+            return self._load_with_warnings_impl()
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _persist_impl(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
@@ -68,22 +77,63 @@ class StatePersistence(PersistStateProtocol):
         if not path or not os.path.exists(path):
             return None
         try:
-            with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
-            if not isinstance(data, dict):
-                return None
-            return self._from_dict(data)
+            return self._from_dict_impl(path)
         except (OSError, json.JSONDecodeError, ValueError):
             return None
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def _load_with_warnings_impl(self) -> LoadOutcomeVO:
+        """Load persisted state with corruption/parse warnings."""
+        path = self._resolve_path()
+        if not path or not os.path.exists(path):
+            return LoadOutcomeVO(state=None, warnings=(), corrupted=False)
+
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+            return self._from_dict_with_warnings(data)
+        except (OSError, json.JSONDecodeError, ValueError):
+            return LoadOutcomeVO(state=None, warnings=("corrupted or malformed state file",), corrupted=True)
+
+    def _from_dict_impl(self, path: str) -> RuntimeStateVO | None:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, json.JSONDecodeError, ValueError):
+            return None
+
+        if not isinstance(data, dict):
+            return None
+
+        try:
+            state = self._from_dict(data)
+        except Exception:
+            return None
+
+        return state
+
+    def _from_dict_with_warnings(self, data: dict) -> LoadOutcomeVO:
+        warnings: list[str] = []
+
+        if not isinstance(data, dict):
+            return LoadOutcomeVO(state=None, warnings=("state is not a JSON object",), corrupted=True)
+
+        # Validate expected fields
+        for key in ("executable_path", "process_id", "launch_timestamp", "bridge_endpoint", "last_status"):
+            if key not in data:
+                warnings.append(f"missing field: {key}")
+
+        try:
+            state = self._from_dict(data)
+        except ValueError as exc:
+            warnings.append(f"parse error: {exc}")
+            return LoadOutcomeVO(state=None, warnings=tuple(warnings), corrupted=True)
+
+        return LoadOutcomeVO(state=state, warnings=tuple(warnings), corrupted=len(warnings) > 0)
+
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
         data = self._to_dict(state)
-        for key in _SECRET_KEYS:
-            if key in data:
-                return True
-        return False
+        return any(key in data for key in _SECRET_KEYS)
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {
@@ -99,6 +149,7 @@ class StatePersistence(PersistStateProtocol):
         try:
             last_state = RuntimeState(last)
         except ValueError:
+            logger.warning("Invalid last_status value '%s', falling back to NOT_RUNNING", last)
             last_state = RuntimeState.NOT_RUNNING
         return RuntimeStateVO(
             executable_path=data.get("executable_path", ""),

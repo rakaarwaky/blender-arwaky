@@ -29,15 +29,15 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 def test_fr_lau_001_registers_override_executable():
     feat = create_launcher_feature(LauncherConfigVO())
     python_exe = os.path.realpath(os.sys.executable)
-    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+    res = feat.locate_and_register(override=python_exe)
     assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
     feat = create_launcher_feature(LauncherConfigVO())
-    res = feat.locate_and_register(LauncherConfigVO())
+    res = feat.locate_and_register()
     assert res.registered is False
-    assert res.error
+    assert res.error_message
 
 
 # ─── FR-LAU-002 / 003 / 004: launch / shutdown / status (injected seams) ──
@@ -126,8 +126,26 @@ def test_fr_lau_003_shutdown_graceful_then_force():
 def test_fr_lau_004_status_classifies_stale():
     backend = _FakeStatus()
     backend.alive = False
-    feat = _build_feature(backend)
-    feat.status._resolve_persisted = lambda: RuntimeStateVO(process_id=1000)
+    status_cap = RuntimeStatusChecker(
+        liveness_checker=backend.liveness,
+        pid_resolver=lambda: backend.pid,
+        bridge_probe=lambda _to: backend.ready,
+        persisted_state_resolver=lambda: RuntimeStateVO(process_id=1000),
+    )
+    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
+    launch = ProcessLauncher(
+        executable_resolver=lambda: "/usr/bin/blender",
+        status_protocol=status_cap,
+        spawner=lambda _exe, _mode, _to: 1000,
+        readiness_probe=lambda _pid, _to: backend.ready,
+    )
+    shutdown = ProcessShutdown(
+        status_protocol=status_cap,
+        signal_sender=lambda _pid: True,
+        killer=lambda _pid: True,
+    )
+    persist = StatePersistence(path_resolver=lambda: None)
+    feat = LauncherOrchestrator(locate, launch, shutdown, status_cap, persist)
     st = feat.check_status()
     assert st.stale is True
     assert st.state == RuntimeState.STALE

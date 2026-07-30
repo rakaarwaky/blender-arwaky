@@ -12,7 +12,25 @@ from dataclasses import field as dc_field
 from enum import Enum
 from typing import NewType
 
+DurationMs = NewType("DurationMs", float)
 TimeoutSeconds = NewType("TimeoutSeconds", float)
+
+# ============================================================
+# FRD Error Categories (machine-readable)
+# ============================================================
+
+
+class LauncherErrorCode(str, Enum):
+    """FRD error categories mapped to machine-readable codes."""
+
+    BLENDER_NOT_RUNNING = "blender_not_running"
+    STATE_ERROR = "state_error"
+    CONFIGURATION_ERROR = "configuration_error"
+    TIMEOUT_ERROR = "timeout_error"
+    LAUNCH_ERROR = "launch_error"
+    VALIDATION_ERROR = "validation_error"
+    TERMINATION_ERROR = "termination_error"
+
 
 # ============================================================
 # Shared Taxonomy Enums (replaces primitive str types)
@@ -52,6 +70,7 @@ class LaunchMethod(str, Enum):
 # Registration Source / Discovery
 # ============================================================
 
+
 class RegistrationSource(str, Enum):
     """How the Blender executable path was discovered."""
 
@@ -75,6 +94,7 @@ class VersionCompatibility(str, Enum):
 # Runtime State Classification (FR-LAU-004)
 # ============================================================
 
+
 class RuntimeState(str, Enum):
     """Classified runtime state."""
 
@@ -90,6 +110,7 @@ class RuntimeState(str, Enum):
 # FR-LAU-001: Locate and Register
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ExecutableReferenceVO:
     """Validated Blender executable reference."""
@@ -104,15 +125,53 @@ class RegistrationOutcomeVO:
     """Unified registration result — input and output in one VO."""
 
     executable: ExecutableReferenceVO | None = None
-    source: RegistrationSource = RegistrationSource.SYSTEM_PATH
+    source: RegistrationSource | None = None
     registered: bool = False
     warning: str | None = None
-    error: str | None = None
+    error_code: LauncherErrorCode | None = None
+    error_message: str | None = None
 
 
 # ============================================================
-# FR-LAU-002: Launch
+# FR-LAU-002: Launch Request / Bridge Endpoint Settings
 # ============================================================
+
+
+@dataclass(frozen=True)
+class BridgeEndpointSettingsVO:
+    """Bridge endpoint settings for launcher integration."""
+
+    host: str
+    port: int
+    protocol_version: str | None = None
+
+
+@dataclass(frozen=True)
+class LaunchRequestVO:
+    """FR-LAU-002 launch input with bridge endpoint settings."""
+
+    mode: LaunchMode = LaunchMode.INTERFACE
+    readiness_timeout: TimeoutSeconds | None = None
+    bridge_endpoint: BridgeEndpointSettingsVO | None = None
+
+
+# ============================================================
+# FR-LAU-003: Shutdown Request
+# ============================================================
+
+
+@dataclass(frozen=True)
+class ShutdownRequestVO:
+    """FR-LAU-003 shutdown input with explicit force/escalation semantics."""
+
+    force_requested: bool = False
+    escalation_confirmed: bool = True
+
+
+# ============================================================
+# FR-LAU-002: Launch Outcome
+# ============================================================
+
 
 @dataclass(frozen=True)
 class LaunchOutcomeVO:
@@ -124,12 +183,14 @@ class LaunchOutcomeVO:
     bridge_endpoint: str | None = None
     duration_ms: float = 0.0
     launch_method: LaunchMethod = LaunchMethod.SPAWN
-    error: str | None = None
+    error_code: LauncherErrorCode | None = None
+    error_message: str | None = None
 
 
 # ============================================================
-# FR-LAU-003: Shut Down
+# FR-LAU-003: Shut Down Outcome
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ShutdownOutcomeVO:
@@ -140,22 +201,32 @@ class ShutdownOutcomeVO:
     duration_ms: float = 0.0
     final_state: RuntimeState = RuntimeState.NOT_RUNNING
     escalated: bool = False
-    error: str | None = None
+    error_code: LauncherErrorCode | None = None
+    error_message: str | None = None
 
 
 # ============================================================
 # FR-LAU-004: Runtime Status
 # ============================================================
 
+
 @dataclass(frozen=True)
 class RuntimeStatusVO:
-    """Unified runtime status — input and output in one VO."""
+    """Unified runtime status — input and output in one VO.
+
+    Includes diagnostics-friendly metadata (process reference,
+    bridge endpoint summary, probe duration, classification reason).
+    Secrets are redacted.
+    """
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
     process_id: int | None = None
+    process_reference: str = ""
+    bridge_endpoint_summary: str | None = None
     ready: bool = False
     stale: bool = False
     uptime_seconds: float | None = None
+    probe_duration_ms: float = 0.0
     depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT
 
 
@@ -167,12 +238,14 @@ class StatusCheckOutcomeVO:
     process_id: int | None = None
     bridge_endpoint: str | None = None
     duration_ms: float = 0.0
-    error: str | None = None
+    error_code: LauncherErrorCode | None = None
+    error_message: str | None = None
 
 
 # ============================================================
 # FR-LAU-005: Persist Runtime State
 # ============================================================
+
 
 @dataclass(frozen=True)
 class RuntimeStateVO:
@@ -200,12 +273,28 @@ class StatePersistenceOutcomeVO:
 
     success: bool = False
     duration_ms: float = 0.0
-    error: str | None = None
+    error_code: LauncherErrorCode | None = None
+    error_message: str | None = None
+
+
+# ============================================================
+# FR-LAU-005: Load Outcome (with warnings)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 load result with corruption/parse warnings."""
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 # ============================================================
 # Launcher Configuration
 # ============================================================
+
 
 @dataclass(frozen=True)
 class LauncherConfigVO:

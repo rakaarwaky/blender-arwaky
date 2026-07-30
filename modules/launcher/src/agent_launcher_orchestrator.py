@@ -26,16 +26,16 @@ from modules.shared.src.launcher.contract_persist_state_protocol import PersistS
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
+    LoadOutcomeVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
+    ShutdownRequestVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -60,20 +60,20 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         self._persist = persist_cap
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Delegate executable location/registration to the capabilities layer."""
         logger.info("Orchestrating locate_and_register")
-        return self._locate.locate_and_register(config, override)
+        return self._locate.locate_and_register(override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
-        logger.info("Orchestrating launch (mode=%s)", mode.value)
-        return self._launch.launch(mode, readiness_timeout_seconds)
+        logger.info("Orchestrating launch (request=%s)", request)
+        return self._launch.launch(request)
 
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
+    def shutdown(self, request: ShutdownRequestVO | None = None) -> ShutdownOutcomeVO:
         """Delegate shutdown to the capabilities layer."""
-        logger.info("Orchestrating shutdown (force=%s)", force)
-        return self._shutdown.shutdown(force, allow_escalation)
+        logger.info("Orchestrating shutdown (request=%s)", request)
+        return self._shutdown.shutdown(request)
 
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Delegate status check to the capabilities layer."""
@@ -83,8 +83,8 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         """Delegate state persistence to the capabilities layer."""
         return self._persist.persist(state)
 
+    def load(self) -> LoadOutcomeVO:
+        """Delegate state loading with warnings to the capabilities layer."""
+        return self._persist.load_with_warnings()
+
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    @property
-    def status(self) -> RuntimeStatusProtocol:
-        """Expose the status capability for health composition consumers."""
-        return self._status

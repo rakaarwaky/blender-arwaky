@@ -8,6 +8,7 @@ Liveness and process-info lookup are injected DI boundaries.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -25,19 +26,19 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStatusVO,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class _LivenessChecker(Protocol):
     """Returns True if the pid is actually alive. DI boundary."""
 
-    def __call__(self, process_id: int) -> bool:
-        ...
+    def __call__(self, process_id: int) -> bool: ...
 
 
 class _BridgeProbe(Protocol):
     """Returns True if the bridge endpoint is responsive. DI boundary."""
 
-    def __call__(self, timeout_seconds: float) -> bool:
-        ...
+    def __call__(self, timeout_seconds: float) -> bool: ...
 
 
 class RuntimeStatusChecker(RuntimeStatusProtocol):
@@ -64,6 +65,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
     # ─── Block 2: Public Contract ────────────────────────────
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Verify actual process liveness and classify runtime state."""
+        start = time.monotonic()
         pid = self._resolve_pid()
         if pid is None:
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, depth=depth)
@@ -73,7 +75,10 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
             persisted = self._resolve_persisted()
             if persisted is not None and persisted.process_id == pid:
                 if self._stale_reconcile:
-                    self._emit_stale(pid)
+                    try:
+                        self._emit_stale(pid)
+                    except Exception:
+                        logger.warning("Failed to emit stale event for pid %d", pid, exc_info=True)
                 return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, stale=True, depth=depth)
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=pid, depth=depth)
 
@@ -83,17 +88,29 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
 
         state = RuntimeState.RUNNING_READY if ready else RuntimeState.RUNNING_UNRESPONSIVE
         uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
+        probe_duration_ms = (time.monotonic() - start) * 1000.0
 
-        if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_STATUS_CHECKED,
-                state_before=state,
-                state_after=state,
-                process_reference=str(pid),
-                reason_summary=f"status_check_depth={depth.value}",
-            ))
+        try:
+            self._emit(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                    state_before=state,
+                    state_after=state,
+                    process_reference=str(pid),
+                    reason_summary=f"status_check_depth={depth.value}",
+                )
+            )
+        except Exception:
+            logger.warning("Failed to emit status check event", exc_info=True)
 
-        return RuntimeStatusVO(state=state, process_id=pid, ready=ready, uptime_seconds=uptime, depth=depth)
+        return RuntimeStatusVO(
+            state=state,
+            process_id=pid,
+            ready=ready,
+            uptime_seconds=uptime,
+            depth=depth,
+            probe_duration_ms=probe_duration_ms,
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def mark_launched(self, launch_time: float) -> None:
@@ -101,9 +118,16 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         self._launch_time = launch_time
 
     def _emit_stale(self, pid: int) -> None:
-        if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_STALE_STATE_DETECTED,
-                state_before=RuntimeState.RUNNING_READY, state_after=RuntimeState.STALE,
-                process_reference=str(pid), reason_summary="stale_state_detected",
-            ))
+        try:
+            if self._events is not None:
+                self._events(
+                    LauncherLifecycleEvent(
+                        event_category=LAUNCHER_EVENT_STALE_STATE_DETECTED,
+                        state_before=RuntimeState.RUNNING_READY,
+                        state_after=RuntimeState.STALE,
+                        process_reference=str(pid),
+                        reason_summary="stale_state_detected",
+                    )
+                )
+        except Exception:
+            logger.warning("Failed to emit stale state event for pid %d", pid, exc_info=True)
