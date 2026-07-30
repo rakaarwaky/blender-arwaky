@@ -23,7 +23,6 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import (
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
 )
-from modules.shared.src.gateway.taxonomy_gateway_error import ProviderError
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionOutcomeVO,
     CodeExecutionVO,
@@ -74,7 +73,6 @@ class GatewayOrchestrator(IGatewayAggregate):
     def disconnect(self) -> None:
         """FR-GWY-002: Graceful disconnect."""
         logger.info("Disconnecting gateway")
-        self._scene_queue.fail_pending(ProviderError("Connection lost — failing pending operations"))
         self._connection.disconnect()
         self._maintenance.set_state(ConnectionState.CLOSED)
 
@@ -93,11 +91,7 @@ class GatewayOrchestrator(IGatewayAggregate):
     def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
         """FR-GWY-003: Send transport request and receive response."""
         logger.debug("Sending transport request: %s", request.tracking_id)
-        self._maintenance.set_active_operation(True)
-        try:
-            return self._transport.send_request(request)
-        finally:
-            self._maintenance.set_active_operation(False)
+        return self._transport.send_request(request)
 
     def enqueue_scene_operation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
         """FR-GWY-004: Enqueue scene operation."""
@@ -110,11 +104,7 @@ class GatewayOrchestrator(IGatewayAggregate):
     def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
-        self._maintenance.set_active_operation(True)
-        try:
-            return self._code_executor.execute_code(request)
-        finally:
-            self._maintenance.set_active_operation(False)
+        return self._code_executor.execute_code(request)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 

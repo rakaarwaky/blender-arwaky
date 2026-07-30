@@ -5,6 +5,7 @@ Supports optional Launcher dependency for process-liveness integration.
 """
 
 from modules.security.src.capabilities_code_validator import CodeValidator
+from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
@@ -43,7 +44,7 @@ class GatewayContainer:
         self._launcher = launcher
         self._connection_config = connection_config or ConnectionConfigVO(
             host="localhost",
-            port=9876,
+            port=50051,
             protocol_version="2.0.0",
         )
 
@@ -79,17 +80,11 @@ class GatewayContainer:
         )
 
     def _reconnect_with_runtime(self) -> None:
-        """FR-GWY-002 / P1: Reconnect consults Launcher runtime status.
-
-        If Launcher is available, checks Blender process state before
-        attempting socket reconnection. If state is not_running or stale,
-        attempts to relaunch via Launcher. Raises on failure.
-        """
+        """FR-GWY-002 / P1: Reconnect consults Launcher runtime status."""
         if self._launcher is not None:
             try:
                 status = self._launcher.check_status(depth=ProbeDepth.FULL)
                 if status.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
-                    # Attempt to relaunch Blender
                     launch = self._launcher.launch()
                     if not launch.success or not launch.ready:
                         raise RuntimeError(
@@ -99,25 +94,20 @@ class GatewayContainer:
             except Exception as exc:
                 raise RuntimeError(f"Blender runtime check failed during reconnect: {exc}") from exc
 
-        # Reconnect to socket
         self._connection.establish_connection()
 
-    def get_orchestrator(self) -> GatewayOrchestrator:
+    @property
+    def agent(self) -> IGatewayAggregate:
+        return self._orchestrator
+
+    def get_orchestrator(self) -> IGatewayAggregate:
         return self._orchestrator
 
 
 def create_gateway_feature(
     launcher: ILauncherOperateAggregate | None = None,
     connection_config: ConnectionConfigVO | None = None,
-) -> GatewayOrchestrator:
-    """Factory function to create the gateway orchestrator.
-
-    Args:
-        launcher: Optional Launcher aggregate for process-liveness integration.
-        connection_config: Optional connection configuration override.
-
-    Returns:
-        GatewayOrchestrator: Wired orchestrator ready for use.
-    """
+) -> IGatewayAggregate:
+    """Factory function to create the gateway orchestrator."""
     container = GatewayContainer(launcher=launcher, connection_config=connection_config)
     return container.get_orchestrator()

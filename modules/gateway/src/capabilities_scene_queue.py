@@ -1,8 +1,8 @@
 """Capability: FIFO operation queue and scene operation serialization.
 
 FR-GWY-004: Serialize Scene-Mutating Operations
-- Mutating operations pass through queue
-- Read-only operations bypass queue
+- Mutating operations route through queue
+- Read-only operations skip queue
 - Enforces depth limit and wait timeout
 - Processes one operation at a time in FIFO order
 
@@ -215,7 +215,7 @@ class OperationState:
 class SceneQueueExecutor(SceneQueueProtocol):
     """Concrete implementation for serialized scene operation queue.
 
-    FR-GWY-004: FIFO queue for mutating operations. Read-only bypasses queue.
+    FR-GWY-004: FIFO queue for mutating operations. Read-only skips queue.
     Enforces depth limit (channel conflict) and wait timeout.
     """
 
@@ -261,7 +261,6 @@ class SceneQueueExecutor(SceneQueueProtocol):
                 break
         logger.info("Failed %d pending operations in scene queue", cancelled)
         return cancelled
-
     def get_queue_status(self) -> QueueStatusVO:
         return QueueStatusVO(
             current_depth=self._queue.qsize(),

@@ -8,6 +8,8 @@ Liveness and process-info lookup are injected DI boundaries.
 
 from __future__ import annotations
 
+import contextlib
+import os
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -69,6 +71,11 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, depth=depth)
 
         alive = self._is_alive(pid)
+        if alive and self._is_pid_reused(pid):
+            if self._stale_reconcile:
+                self._emit_stale(pid)
+            return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, stale=True, depth=depth)
+
         if not alive:
             persisted = self._resolve_persisted()
             if persisted is not None and persisted.process_id == pid:
@@ -99,6 +106,27 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
     def mark_launched(self, launch_time: float) -> None:
         """Record launch time so uptime can be derived (called by launcher)."""
         self._launch_time = launch_time
+
+    def _is_pid_reused(self, pid: int) -> bool:
+        stat_path = f"/proc/{pid}/stat"
+        if not os.path.exists(stat_path):
+            return False
+        with contextlib.suppress(OSError, ValueError):
+            with open(stat_path, encoding="utf-8") as fh:
+                content = fh.read().strip()
+            rparen = content.rfind(")")
+            if rparen == -1:
+                return False
+            fields = content[rparen + 1 :].split()
+            if len(fields) > 19:
+                start_ticks = float(fields[19])
+                stored_ticks = getattr(self, "_stored_proc_start_ticks", None)
+                if stored_ticks is not None:
+                    return abs(start_ticks - stored_ticks) > 0.01
+                if self._launch_time is not None:
+                    return True
+                self._stored_proc_start_ticks = start_ticks
+        return False
 
     def _emit_stale(self, pid: int) -> None:
         if self._events is not None:
