@@ -21,7 +21,6 @@ from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_FAILED,
     JOB_STATE_PENDING,
     JOB_STATE_RUNNING,
-    JOB_STATE_TIMED_OUT,
     TERMINAL_JOB_STATES,
     VALID_JOB_TRANSITIONS,
 )

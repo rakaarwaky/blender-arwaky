@@ -12,6 +12,7 @@ from collections.abc import Callable
 import pytest
 
 from modules.job.src.capabilities_job_checker import JobCapacityChecker
+from modules.job.src.capabilities_job_event_publisher import JobLoggingEventPublisher
 from modules.job.src.capabilities_job_repository import InMemoryJobLifecycleRepository
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
@@ -85,7 +86,7 @@ def repo() -> InMemoryJobLifecycleRepository:
         id_counter[0] += 1
         return JobId(f"test-{id_counter[0]}")
 
-    return InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, id_generator=gen_id)
+    return InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher(), id_generator=gen_id)
 
 
 # ─── FR-JOB-001: Track and Update Task Lifecycle ─────────────────────────────
@@ -590,7 +591,7 @@ def test_fr_job_005_capacity_check_atomic_with_creation(repo: InMemoryJobLifecyc
         id_counter[0] += 1
         return JobId(f"test-cap-{id_counter[0]}")
 
-    cap_repo = InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, id_generator=gen_id)
+    cap_repo = InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher(), id_generator=gen_id)
 
     # Create 2 tasks (fills capacity)
     cmd1 = CreateTaskCommand(operation_type=OperationType("render"))

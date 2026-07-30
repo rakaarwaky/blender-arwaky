@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..common.taxonomy_core_vo import ErrorString, JobId, JobState
-from .taxonomy_job_vo import ActiveCount, DeletedCount
+from .taxonomy_job_vo import ActiveCount
 
 
 class JobError(Exception):
