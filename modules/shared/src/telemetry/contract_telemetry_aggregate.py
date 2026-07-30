@@ -7,14 +7,16 @@ Facade for telemetry operations: record, classify, enrich, session.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     DurationMs,
-    ErrorString,
     SessionId,
     SuccessFlag,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    EnvironmentMetadata,
+    TelemetryErrorCategory,
 )
 
 
@@ -33,7 +35,10 @@ class ITelemetryAggregate(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def record_system_error(self, error_category: ErrorString) -> None: ...
+    def record_system_error(
+        self,
+        error_category: TelemetryErrorCategory,
+    ) -> None: ...
 
     @abstractmethod
     def get_session_id(self) -> SessionId | None: ...
@@ -42,4 +47,4 @@ class ITelemetryAggregate(ABC):
     def initialize_session(self) -> None: ...
 
     @abstractmethod
-    def get_environment_metadata(self) -> dict[str, Any]: ...
+    def get_environment_metadata(self) -> EnvironmentMetadata: ...

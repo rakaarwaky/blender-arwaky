@@ -340,12 +340,11 @@ from .scene.taxonomy_scene_vo import (
 
 # Telemetry domain — Protocols (recording, classification, session, enrichment)
 from .telemetry.contract_telemetry_classification_protocol import (
-    TelemetryClassificationPort,
     TelemetryClassificationProtocol,
 )
-from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentPort, TelemetryEnrichmentProtocol
-from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingPort, TelemetryRecordingProtocol
-from .telemetry.contract_telemetry_session_protocol import TelemetrySessionManagementPort, TelemetrySessionProtocol
+from .telemetry.contract_telemetry_enrichment_protocol import TelemetryEnrichmentProtocol
+from .telemetry.contract_telemetry_recording_protocol import TelemetryRecordingProtocol
+from .telemetry.contract_telemetry_session_protocol import TelemetrySessionProtocol
 
 # === Telemetry domain exports ===
 from .telemetry.taxonomy_event_constant import (
@@ -563,10 +562,7 @@ __all__ = [
     "ExecuteActionProtocol",
     "CommandCatalogProtocol",
     "SceneInspectionPort",
-    "TelemetryClassificationPort",
-    "TelemetryEnrichmentPort",
-    "TelemetryRecordingPort",
-    "TelemetrySessionManagementPort",
+
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",

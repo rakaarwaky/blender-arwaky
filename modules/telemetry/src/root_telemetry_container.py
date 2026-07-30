@@ -4,50 +4,42 @@ Wires concrete capabilities to the agent orchestrator and bootstraps the
 telemetry module: Capabilities → Agent Orchestrator → (exposed as TelemetryOrchestrator).
 
 This file is the composition root for the telemetry feature.
-
-Wiring order matters: the recorder depends on the session and classification
-protocols, so those two capabilities are built first and injected into the
-recorder before all four are handed to the orchestrator.
 """
 
 from __future__ import annotations
 
 import logging
 
-from .agent_telemetry_orchestrator import TelemetryOrchestrator
-from .capabilities_telemetry_classification import TelemetryEventClassifier
-from .capabilities_telemetry_enrichment import TelemetryEventEnricher
-from .capabilities_telemetry_recorder import TelemetryRecordingCapability
-from .capabilities_telemetry_session_management import TelemetrySessionManager
+from modules.shared.src.common.taxonomy_core_vo import FilePath, VersionString
 
-logger = logging.getLogger("BlenderMCPServer")
+from .agent_telemetry_orchestrator import TelemetryOrchestrator
+from .capabilities_telemetry_classifier import TelemetryEventClassifier
+from .capabilities_telemetry_enricher import TelemetryEventEnricher
+from .capabilities_telemetry_recorder import TelemetryRecordingCapability
+from .capabilities_telemetry_session_manager import TelemetrySessionManager
+
+logger = logging.getLogger("blender-arwaky.telemetry")
 
 
 class TelemetryContainer:
-    """Dependency injection container for the telemetry feature module.
-
-    Wires the four telemetry capabilities to the orchestrator.
-    """
-
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        session_path: FilePath,
+        app_version: VersionString | None = None,
+    ) -> None:
+        self._session_path = session_path
+        self._app_version = app_version
         self._orchestrator: TelemetryOrchestrator | None = None
-        self._wired: bool = False
+        self._wired = False
 
     def wire(self) -> None:
-        """Wire telemetry capabilities to the orchestrator."""
         if self._wired:
             return
 
-        logger.info("Wiring telemetry feature module")
-
         classifier = TelemetryEventClassifier()
-        session_manager = TelemetrySessionManager()
-        enricher = TelemetryEventEnricher()
-        # Recorder depends on session + classification protocols.
-        recorder = TelemetryRecordingCapability(
-            session_protocol=session_manager,
-            classification_protocol=classifier,
-        )
+        session_manager = TelemetrySessionManager(self._session_path)
+        enricher = TelemetryEventEnricher(self._app_version)
+        recorder = TelemetryRecordingCapability()
 
         self._orchestrator = TelemetryOrchestrator(
             recorder=recorder,
@@ -57,21 +49,18 @@ class TelemetryContainer:
         )
 
         self._wired = True
-        logger.info("Telemetry feature module wired successfully")
 
     @property
     def agent(self) -> TelemetryOrchestrator:
-        """Return the assembled telemetry orchestrator facade.
-
-        Must call wire() first, or this property will raise RuntimeError.
-        """
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("TelemetryContainer not wired — call wire() first")
         return self._orchestrator
 
 
-def create_telemetry_feature() -> TelemetryOrchestrator:
-    """Factory function to create and wire the telemetry feature module."""
-    container = TelemetryContainer()
+def create_telemetry_feature(
+    session_path: FilePath,
+    app_version: VersionString | None = None,
+) -> TelemetryOrchestrator:
+    container = TelemetryContainer(session_path, app_version)
     container.wire()
     return container.agent

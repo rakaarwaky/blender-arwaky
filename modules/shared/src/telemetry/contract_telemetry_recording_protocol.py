@@ -8,54 +8,38 @@ PII scrubbing at ingestion before buffering.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import SuccessFlag
+from modules.shared.src.common.taxonomy_core_vo import EnabledFlag, SuccessFlag
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    RecordingResult,
+    TelemetryDraft,
+)
 
 
 class TelemetryRecordingProtocol(ABC):
-    """Async protocol for recording anonymous usage events without PII."""
+    """Sync protocol for recording anonymous usage events without PII."""
 
     @abstractmethod
-    async def record_event(
+    def record_event(
         self,
-        action_type: str,
-        feature_area: str | None = None,
-        outcome_category: str = "success",
-        consent_active: bool = True,
-        duration_bucket: float | None = None,
-    ) -> dict[str, Any]:
+        draft: TelemetryDraft,
+        consent_active: EnabledFlag,
+    ) -> RecordingResult:
         """Capture a single anonymous usage record.
 
         FR-TLM-001: Nothing recorded unless consent is active.
         PII scrubbing applies at ingestion before buffering.
 
         Args:
-            action_type: The type of user action.
-            feature_area: Product surface area.
-            outcome_category: success, failure, or rejected.
+            draft: Fully composed telemetry draft from orchestrator.
             consent_active: Whether telemetry consent is enabled.
-            duration_bucket: Optional coarse duration bucket.
 
         Returns:
-            Dict with recording acknowledgment and buffered record summary.
+            RecordingResult with acknowledgment or rejection reason.
         """
         ...
 
-
-class TelemetryRecordingPort(ABC):
-    """Sync facade for orchestrator consumption."""
-
     @abstractmethod
-    async def record_event(
-        self,
-        event_type: str,
-        consent_active: bool = True,
-    ) -> dict[str, Any]:
-        """Record event via port (delegates to protocol impl)."""
-        ...
-
-    @abstractmethod
-    async def is_enabled(self) -> SuccessFlag:
+    def is_enabled(self) -> SuccessFlag:
         """Check if telemetry consent is active."""
         ...
