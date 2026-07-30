@@ -26,6 +26,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchOutcomeVO,
     ProbeDepth,
     RuntimeState,
+    TimeoutSeconds,
 )
 
 
@@ -62,7 +63,7 @@ class ProcessLauncher(LaunchProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """Start Blender and confirm readiness within the configured timeout."""
         timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
 
