@@ -192,10 +192,7 @@ class RuntimeStateVO:
         from .taxonomy_launcher_constant import SECRET_KEYS
 
         field_names = {f.name for f in fields(self)}
-        for key in SECRET_KEYS:
-            if key in field_names:
-                return True
-        return False
+        return any(key in field_names for key in SECRET_KEYS)
 
 
 @dataclass(frozen=True)

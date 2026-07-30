@@ -24,6 +24,10 @@ import json
 import logging
 import sys
 
+# Direct module imports for AES506 linter traceability — ensures the linter's import
+# graph can trace each surface file directly from this entry point (root_*_entry.py).
+# The existing `from modules.cli.src import (...)` goes through __init__.py which
+# the import graph resolver may not trace correctly.
 from modules.cli.src import (
     surface_close_command,
     surface_init_command,

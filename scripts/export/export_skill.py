@@ -169,10 +169,7 @@ def main() -> None:
         skill_path = skills_dir / selected_skill
         files_to_export = collect_skill_files(skill_path)
 
-        if args.output:
-            output_path = Path(args.output)
-        else:
-            output_path = skills_dir / "exports" / f"{selected_skill}.md"
+        output_path = Path(args.output) if args.output else skills_dir / "exports" / f"{selected_skill}.md"
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"Collecting {len(files_to_export)} file(s)...")
@@ -196,10 +193,7 @@ def main() -> None:
         all_files.update(collect_skill_files(skill_path))
 
     pack_name = f"{args.lang}_skills_pack"
-    if args.output:
-        output_path = Path(args.output)
-    else:
-        output_path = skills_dir / "exports" / f"{pack_name}.md"
+    output_path = Path(args.output) if args.output else skills_dir / "exports" / f"{pack_name}.md"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sorted_files = sorted(all_files)

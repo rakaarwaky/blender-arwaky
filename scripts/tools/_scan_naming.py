@@ -1,4 +1,4 @@
-import os, re
+import os
 
 LAYERS_STRICT = {
     'root': ['entry', 'container'],
@@ -20,7 +20,7 @@ v101 = []
 v102 = []
 
 modules_dir = '/home/raka/mcp-arwaky/blender-arwaky/modules'
-for root, dirs, files in os.walk(modules_dir):
+for root, _dirs, files in os.walk(modules_dir):
     parts_root = root.split(os.sep)
     if 'tests' in parts_root or '__pycache__' in parts_root or '.venv' in parts_root:
         continue
@@ -64,7 +64,7 @@ for r, f, msg in sorted(v101):
     rel = os.path.relpath(os.path.join(r, f), modules_dir)
     print(f'  {rel}: {msg}')
 
-print(f'\n=== AES102 (suffix violation) ===')
+print('\n=== AES102 (suffix violation) ===')
 for r, f, msg in sorted(v102):
     rel = os.path.relpath(os.path.join(r, f), modules_dir)
     print(f'  {rel}: {msg}')
