@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Convert downloaded Blender HTML documentation files into clean modular Markdown files by extracting main article content."""
 
-import os
 import re
 from pathlib import Path
+
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 

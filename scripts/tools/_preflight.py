@@ -64,11 +64,11 @@ for old_rel, new_rel in RENAME_MAP.items():
         conflicts.append(new_rel)
 
 if conflicts:
-    print(f"CONFLICTS (target already exists):")
+    print("CONFLICTS (target already exists):")
     for c in conflicts:
         print(f"  {c}")
 if missing:
-    print(f"MISSING source files:")
+    print("MISSING source files:")
     for m in missing:
         print(f"  {m}")
 if not conflicts and not missing:

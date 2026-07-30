@@ -68,7 +68,7 @@ class FakeRoutingProtocol:
         self._dispatcher = dispatcher
         self._diagnostics = diagnostics
 
-    async def route_tool_call(self, tool_name, payload, tracking_id=None):
+    async def route_tool_call(self, tool_name, payload, _tracking_id=None):
         if tool_name == "execute_command":
             action = payload.get("action", "")
             args = payload.get("args", {})
@@ -85,7 +85,7 @@ class FakeRoutingProtocol:
             return {"health": "ok"}
         raise ValueError(f"Unknown tool: {tool_name}")
 
-    async def validate_tool_input(self, tool_name, payload, strict_mode=True):
+    async def validate_tool_input(self, tool_name, payload, _strict_mode=True):
         errors = []
         if tool_name == "execute_command":
             action = payload.get("action")
@@ -97,7 +97,7 @@ class FakeRoutingProtocol:
 class FakeResponseProtocol:
     """Fake McpResponseProtocol implementation for testing."""
 
-    async def format_response(self, result, tool_name, tracking_id="", error_category=None):
+    async def format_response(self, result, tool_name, _tracking_id="", _error_category=None):
         return {"result": result, "tool": tool_name}
 
     async def mask_secrets(self, response):

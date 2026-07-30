@@ -12,9 +12,9 @@ from abc import ABC, abstractmethod
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 
 from .taxonomy_launcher_vo import (
-    LaunchRequestVO,
-    LaunchOutcomeVO,
     LauncherConfigVO,
+    LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,

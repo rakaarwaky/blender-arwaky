@@ -291,10 +291,10 @@ async def test_fr_ast_005_metadata_staleness_check_when_config_getter_available(
     """Test FR-AST-005: metadata staleness check runs before download when config getter is wired."""
 
     class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+        async def get_download_size(self, *_: Any) -> int | None:
             return 1000000  # Under max size limit
 
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        async def is_metadata_fresh(self, _provider: str, _asset_id: str) -> bool | None:
             return True  # Fresh metadata
 
     class MockConfigGetter:
@@ -321,10 +321,10 @@ async def test_fr_ast_005_metadata_staleness_defaults_to_stale_when_check_fails(
     """Test FR-AST-005: stale check defaults to True when freshness cannot be determined."""
 
     class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+        async def get_download_size(self, *_: Any) -> int | None:
             return 1000000
 
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        async def is_metadata_fresh(self, _provider: str, _asset_id: str) -> bool | None:
             raise Exception("adapter unreachable")
 
     class MockConfigGetter:
@@ -363,14 +363,14 @@ async def test_fr_ast_005_staleness_check_skipped_without_config_getter(
     assert result["success"] is True
 
 
-def test_fr_ast_005_check_metadata_staleness_fresh(cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_fresh(_cache_dir: str):
     """Test _check_metadata_staleness returns False when metadata is fresh."""
     import asyncio as _asyncio
 
     class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+        async def get_download_size(self, *_: Any) -> int | None:
             return 0
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        async def is_metadata_fresh(self, _provider: str, _asset_id: str) -> bool | None:
             return True
 
     class MockConfigGetter:
@@ -382,14 +382,14 @@ def test_fr_ast_005_check_metadata_staleness_fresh(cache_dir: str):
     assert result is False
 
 
-def test_fr_ast_005_check_metadata_staleness_stale(cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_stale(_cache_dir: str):
     """Test _check_metadata_staleness returns True when metadata is stale."""
     import asyncio as _asyncio
 
     class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+        async def get_download_size(self, *_: Any) -> int | None:
             return 0
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        async def is_metadata_fresh(self, _provider: str, _asset_id: str) -> bool | None:
             return False
 
     class MockConfigGetter:
@@ -415,9 +415,9 @@ def test_fr_ast_005_check_metadata_staleness_exception_defaults_to_stale():
     import asyncio as _asyncio
 
     class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+        async def get_download_size(self, *_: Any) -> int | None:
             raise Exception("broken")
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        async def is_metadata_fresh(self, _provider: str, _asset_id: str) -> bool | None:
             raise Exception("adapter down")
 
     class MockConfigGetter:

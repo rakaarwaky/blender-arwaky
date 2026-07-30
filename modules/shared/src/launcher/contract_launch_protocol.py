@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import LaunchRequestVO, LaunchOutcomeVO
+from .taxonomy_launcher_vo import LaunchOutcomeVO, LaunchRequestVO
 
 
 class LaunchProtocol(ABC):

@@ -80,7 +80,7 @@ def transition_record(
     record = _get_or_raise(records, job_id)
     validate_transition(record.state, target)
 
-    was_active = _counts_toward_capacity(record.state, policy)
+    _counts_toward_capacity(record.state, policy)
     record.state = target
     record.updated_at = now
 
