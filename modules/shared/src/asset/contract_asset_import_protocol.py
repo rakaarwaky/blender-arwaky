@@ -13,12 +13,12 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetType,
-    FilePath,
     AssetCollectionName,
     AssetFormatHint,
-    ScaleNormalization,
+    AssetType,
     DuplicatePolicy,
+    FilePath,
+    ScaleNormalization,
 )
 
 

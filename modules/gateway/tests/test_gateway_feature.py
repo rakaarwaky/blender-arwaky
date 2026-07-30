@@ -326,10 +326,10 @@ def test_gateway_disconnect_updates_state():
     feat.establish_connection()
     assert feat.get_connection_status().state == ConnectionState.CONNECTED
 
-    # Disconnect - orchestrator passes None to set_state which sets state to None
+    # Disconnect - orchestrator passes CLOSED to set_state
     feat.disconnect()
     status = feat.get_connection_status()
-    assert status.state is None  # MockMaintenance sets state to None when passed None
+    assert status.state == ConnectionState.CLOSED
 
 
 def test_gateway_reconnect_increments_attempts():

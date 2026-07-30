@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -27,7 +26,7 @@ class ActionCommandVO:
     # ─── Input ──────────────────────────────────────────────────
 
     action_name: str
-    parameters: dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, object] = field(default_factory=dict)
     execution_mode: str | None = None
     timeout_override: float | None = None
     confirmation_flag: bool = False
@@ -35,7 +34,7 @@ class ActionCommandVO:
 
     # ─── Output ─────────────────────────────────────────────────
 
-    resolved_metadata: dict[str, Any] = field(default_factory=dict)
+    resolved_metadata: dict[str, object] = field(default_factory=dict)
     validated_tracking_id: str = ""
     validation_warnings: list[str] = field(default_factory=list)
 

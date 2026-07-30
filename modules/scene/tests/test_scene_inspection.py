@@ -544,7 +544,7 @@ async def test_fr_scn_002_dry_run_failure_message():
 async def test_scene_inspection_executor_no_code_executor_raises():
     """Test that inspection executor raises when code_executor is None."""
     with pytest.raises(ValueError, match="code_executor must be provided"):
-        SceneInspectionExecutor(code_executor=None)  # type: ignore[arg-type]
+        SceneInspectionExecutor(code_executor=None, event_emitter=None)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio

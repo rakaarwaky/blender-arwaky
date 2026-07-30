@@ -1,8 +1,12 @@
-"""Object domain errors — typed exceptions for object operation failures."""
+"""Object domain errors — typed exceptions for object operation failures.
+
+AES102: Uses _error suffix (not _vo) since this file contains domain error classes.
+AES401: Error fields use taxonomy-typed values instead of primitives.
+"""
 
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString, ObjectName
+from ..common.taxonomy_core_vo import ErrorString
 from ..common.taxonomy_domain_error import DomainError
 
 

@@ -12,6 +12,11 @@ DEFAULT_INCLUDE_HIDDEN_OBJECTS: Final[bool] = False
 DEFAULT_CHILD_HANDLING_POLICY: Final[str] = "detach"
 DEFAULT_DEPENDENT_HANDLING_POLICY: Final[str] = "reject"
 
+# ─── Frame range defaults ────────────────────────────────────
+DEFAULT_FRAME_START: Final[int] = 1
+DEFAULT_FRAME_END: Final[int] = 250
+DEFAULT_FRAME_STEP: Final[int] = 1
+
 # ─── Policy / limits ─────────────────────────────────────────
 CLEANUP_CONFIRMATION_REQUIRED: Final[bool] = True
 CLEANUP_TIMEOUT_SECONDS: Final[float] = 30.0

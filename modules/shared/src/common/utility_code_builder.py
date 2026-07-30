@@ -2,7 +2,8 @@
 
 Extracted from duplicated _safe_str(), _tuple_str(), and _validate_scale()
 across all object capability executors (AES305 duplication fix).
-Utility must remain stateless and depend only on taxonomy/stdlib.
+
+Utility layer: stateless standalone functions, depends only on taxonomy/stdlib.
 """
 
 from __future__ import annotations

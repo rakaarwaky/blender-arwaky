@@ -35,10 +35,15 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
     """Capability for FR-SCN-001: scene inspection."""
 
     # ─── Block 1: definition + constructor ─────────────────────
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        event_emitter: object | None = None,
+    ) -> None:
         if code_executor is None:
             raise ValueError("code_executor must be provided")
         self._code_executor = code_executor
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
@@ -67,6 +72,13 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 total_object_count=summary.total_object_count,
                 message=Prompt("Scene inspection completed"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit SceneInspectionCompletedEvent")
+
             logger.info(event.message)
 
             return SceneInspectionVO(
@@ -101,7 +113,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 scene_state_summary=None,
                 message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Inspection connection failed"),
             )
-        except Exception as e:
+        except Exception:
             logger.exception("Scene inspection failed")
             return SceneInspectionVO(
                 detail_level=request.detail_level,
@@ -110,7 +122,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 correlation_id=request.correlation_id,
                 success=SuccessFlag(False),
                 scene_state_summary=None,
-                message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Inspection failed: {e}"),
+                message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene inspection failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────

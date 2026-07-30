@@ -42,7 +42,7 @@ class ConnectionMaintenanceProtocol(ABC):
         ...
 
     @abstractmethod
-    def set_state(self, state: ConnectionState | None) -> None:
+    def set_state(self, state: ConnectionState) -> None:
         """Set the current connection state.
 
         FR-GWY-002: Allows the orchestrator to update state through the

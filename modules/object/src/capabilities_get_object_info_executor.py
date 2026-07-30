@@ -82,50 +82,59 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     def _generate_info_code(self, request: GetObjectInfoVO) -> str:
         """Generate Blender Python code for object information retrieval.
 
-        Collects comprehensive data based on detail level. Avoids cyclic references.
-        Includes mesh statistics for mesh objects when detail level is 'full'.
-        Closes the dict literal BEFORE the conditional mesh-statistics enrichment
-        to avoid invalid generated Python (P0 fix).
+        Collects comprehensive data. Avoids cyclic references.
+        Includes mesh statistics for mesh objects.
         """
         object_ref = quote_string(str(request.object_name))
         lines = [
             "import bpy",
+        object_ref = quote_string(str(request.object_name))
+        lines = [
+            "import bpy",
             f"obj = bpy.data.objects.get({object_ref})",
-            'if obj is None:\n    raise ValueError("Object not found in scene.")',
-        ]
-
-        # Build the info dict — closed before mesh-statistics conditional
-        info_lines = [
-            "info = {",
+            'if obj is None:',
+            '    raise ValueError("Object not found in scene.")',
+            'info = {',
             "    'name': obj.name,",
             "    'type': obj.type,",
-            "    'location': [obj.location.x, obj.location.y, obj.location.z],",
-            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],",
-            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],",
-            "    'parent_name': obj.parent.name if obj.parent else None,",
-            "    'collection_names': [col.name for col in obj.users_collection],",
-            "    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],",
-            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],",
-            "    'visibility': obj.visible_get(),",
+        ]
+
+        lines.append(
+            "    'location': [obj.location.x, obj.location.y, obj.location.z],"
+        )
+        lines.append(
+            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],"
+        )
+        lines.append(
+            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],"
+        )
+        lines.append(
+            "    'parent_name': obj.parent.name if obj.parent else None,"
+        )
+        lines.append(
+            "    'collection_names': [col.name for col in obj.users_collection],"
+        )
+        lines.append(
+            "    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],"
+        )
+        lines.append(
+            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],"
+        )
+        lines.append(
+            "    'visibility': obj.visible_get(),"
+        )
+        lines.extend([
             "    'mesh_statistics': None,",
             "}",
-        ]
-        lines.extend(info_lines)
-
-        # Add mesh statistics outside the dict (conditional enrichment)
-        lines.append(
             "if obj.type == 'MESH' and obj.data:",
-        )
-        lines.append(
-            "    mesh = obj.data\n"
-            "    info['mesh_statistics'] = {\n"
-            "        'vertex_count': len(mesh.vertices),\n"
-            "        'edge_count': len(mesh.edges),\n"
-            "        'face_count': len(mesh.polygons),\n"
-            "    }"
-        )
-
-        lines.append("result = info")
+            "    mesh = obj.data",
+            "    info['mesh_statistics'] = {",
+            "        'vertex_count': len(mesh.vertices),",
+            "        'edge_count': len(mesh.edges),",
+            "        'face_count': len(mesh.polygons),",
+            "    }",
+            "result = info",
+        ])
 
         return "\n".join(lines)
 

@@ -247,7 +247,7 @@ def validate_settings_schema(
         walk(data[key], key_schema, key)
 
     # Warn unknown top-level keys.
-    for key in data.keys():
+    for key in data:
         if key not in schema:
             warnings.append(f"{key}: unknown key")
 

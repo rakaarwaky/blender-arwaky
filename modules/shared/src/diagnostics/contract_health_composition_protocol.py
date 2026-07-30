@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_diagnostics_vo import HealthDetailsVO
+from .taxonomy_diagnostics_vo import HealthCompositionRequestVO, HealthDetailsVO
 
 
 class HealthCompositionProtocol(ABC):
@@ -19,10 +19,7 @@ class HealthCompositionProtocol(ABC):
     @abstractmethod
     async def compose_health(
         self,
-        launcher_status: str = "unknown",
-        gateway_status: str = "unknown",
-        config_valid: bool = False,
-        job_capacity_available: bool = True,
+        request: HealthCompositionRequestVO,
     ) -> HealthDetailsVO:
         """Aggregate subsystem states into one composed health view.
 
@@ -35,14 +32,5 @@ class HealthCompositionProtocol(ABC):
         composition. Stale data carries staleness_delta_seconds indicator when
         composition_timestamp exceeds freshness_tolerance_seconds configured
         at construction.
-
-        Args:
-            launcher_status: Process liveness classification.
-            gateway_status: Connection state classification.
-            config_valid: Whether configuration snapshot is valid.
-            job_capacity_available: Whether job capacity has available slots.
-
-        Returns:
-            HealthDetailsVO with overall_status, subsystems, staleness indicators, timestamp.
         """
         ...

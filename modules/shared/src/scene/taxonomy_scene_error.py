@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-
 from typing import NewType
 
 from ..common.taxonomy_core_vo import Prompt

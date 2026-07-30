@@ -1,5 +1,5 @@
 from .agent_gateway_orchestrator import GatewayOrchestrator
-from .capabilities_code_execution import CodeExecutionAdapter, CodeExecutionExecutor, TaskEntry
+from .capabilities_code_execution import CodeExecutionAdapter, CodeExecutionExecutor
 from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import BlenderConnection, ConnectionExecutor
 from .capabilities_scene_queue import OperationQueue, OperationState, SceneQueueExecutor
@@ -18,7 +18,6 @@ __all__ = [
     "OperationQueue",
     "OperationState",
     "SceneQueueExecutor",
-    "TaskEntry",
     "TransportExecutor",
     "create_gateway_feature",
 ]

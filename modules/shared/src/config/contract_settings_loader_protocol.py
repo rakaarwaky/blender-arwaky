@@ -15,7 +15,7 @@ from .taxonomy_config_event import (
     SettingsReloadEvent,
     SettingsValidationWarningEvent,
 )
-from .taxonomy_config_vo import SettingsOverrides, SettingsSnapshot
+from .taxonomy_config_vo import SettingsSnapshot
 
 
 class ISettingsLoaderProtocol(ABC):

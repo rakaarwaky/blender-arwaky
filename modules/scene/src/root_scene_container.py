@@ -16,26 +16,29 @@ from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 class SceneContainer:
     """Dependency injection container for scene feature."""
 
-    def __init__(self, code_executor: ICodeExecutionProtocol) -> None:
+    def __init__(
+        self,
+        code_executor: ICodeExecutionProtocol,
+        event_emitter: object | None = None,
+    ) -> None:
         self._code_executor = code_executor
+        self._event_emitter = event_emitter
         self._aggregate: ISceneAggregate | None = None
         self._lock = threading.Lock()
 
     def get_aggregate(self) -> ISceneAggregate:
         """Return fully wired ISceneAggregate singleton (thread-safe)."""
-        # Fast path — no lock needed when already initialized
         if self._aggregate is not None:
             return self._aggregate
 
-        # Double-checked locking for thread-safe lazy initialization
         with self._lock:
             if self._aggregate is None:
                 from .agent_scene_orchestrator import SceneOrchestrator
                 from .capabilities_scene_cleanup_executor import SceneCleanupExecutor
                 from .capabilities_scene_inspection_executor import SceneInspectionExecutor
 
-                inspection = SceneInspectionExecutor(self._code_executor)
-                cleanup = SceneCleanupExecutor(self._code_executor)
+                inspection = SceneInspectionExecutor(self._code_executor, self._event_emitter)
+                cleanup = SceneCleanupExecutor(self._code_executor, self._event_emitter)
 
                 self._aggregate = SceneOrchestrator(
                     inspection=inspection,
@@ -53,6 +56,9 @@ class SceneContainer:
         return "SceneContainer()"
 
 
-def create_scene_container(code_executor: ICodeExecutionProtocol) -> SceneContainer:
+def create_scene_container(
+    code_executor: ICodeExecutionProtocol,
+    event_emitter: object | None = None,
+) -> SceneContainer:
     """Factory for SceneContainer."""
-    return SceneContainer(code_executor=code_executor)
+    return SceneContainer(code_executor=code_executor, event_emitter=event_emitter)

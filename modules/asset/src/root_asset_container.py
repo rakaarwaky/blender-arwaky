@@ -11,7 +11,6 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
-from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
 
 if TYPE_CHECKING:
     from .agent_asset_orchestrator import AssetOrchestrator
@@ -35,6 +34,7 @@ class AssetContainer:
         job_scheduler: object | None = None,
         config_getter: object | None = None,
         gateway_client: object | None = None,
+        event_publisher: object | None = None,
     ) -> None:
         self._connection = connection
         self._security_validator = security_validator
@@ -42,6 +42,7 @@ class AssetContainer:
         self._job_scheduler = job_scheduler
         self._config_getter = config_getter
         self._gateway_client = gateway_client
+        self._event_publisher = event_publisher
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
@@ -102,6 +103,7 @@ class AssetContainer:
             import_ = AssetImportCapability(
                 gateway_client=self._gateway_client,
                 config_getter=self._config_getter,
+                event_publisher=self._event_publisher,
             )
             metadata = AssetProviderMetadataCapability()
 
@@ -124,5 +126,8 @@ class AssetContainer:
         return "AssetContainer()"
 
 
-def create_asset_container(connection: IAssetProviderConnection) -> AssetContainer:
-    return AssetContainer(connection=connection)
+def create_asset_container(
+    connection: IAssetProviderConnection,
+    event_publisher: object | None = None,
+) -> AssetContainer:
+    return AssetContainer(connection=connection, event_publisher=event_publisher)

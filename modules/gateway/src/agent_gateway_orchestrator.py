@@ -1,9 +1,9 @@
-"""Gateway orchestrator — Aggregate facade coordinating connection, transport, and execution.
+"""Gateway orchestrator — Aggregate facade coordinating gateway protocols.
 
-FR-GWY: Coordinates connection, maintenance, transport, and code execution
-via individual protocol delegation. Scene queue coordination is delegated
-to GatewaySceneCoordinator to keep type count under AES405 limit.
+FR-GWY: Coordinates connection, maintenance, transport, scene queue, and code execution.
 """
+
+from __future__ import annotations
 
 import logging
 
@@ -13,6 +13,7 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
+from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
@@ -26,6 +27,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionOutcomeVO,
     CodeExecutionVO,
     ConnectionOutcomeVO,
+    ConnectionState,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationOutcomeVO,
@@ -37,11 +39,8 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class GatewayOrchestrator:
-    """Aggregate facade for the Gateway feature.
-
-    Coordinates connection, transport, and execution via protocol delegation.
-    """
+class GatewayOrchestrator(IGatewayAggregate):
+    """Aggregate facade for the Gateway feature."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
@@ -66,8 +65,7 @@ class GatewayOrchestrator:
         logger.info("Establishing gateway connection")
         result = self._connection.establish_connection()
 
-        # Wire connection to transport and maintenance
-        if result.state.value == "connected":
+        if result.state == ConnectionState.CONNECTED:
             self._maintenance.set_state(result.state)
 
         return result
@@ -76,7 +74,7 @@ class GatewayOrchestrator:
         """FR-GWY-002: Graceful disconnect."""
         logger.info("Disconnecting gateway")
         self._connection.disconnect()
-        self._maintenance.set_state(None)
+        self._maintenance.set_state(ConnectionState.CLOSED)
 
     def get_connection_status(self) -> ConnectionStatusVO:
         """FR-GWY-002: Query connection state."""
@@ -107,3 +105,16 @@ class GatewayOrchestrator:
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
         return self._code_executor.execute_code(request)
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def __repr__(self) -> str:
+        return (
+            f"GatewayOrchestrator("
+            f"connection={self._connection is not None}, "
+            f"maintenance={self._maintenance is not None}, "
+            f"transport={self._transport is not None}, "
+            f"scene_queue={self._scene_queue is not None}, "
+            f"code_executor={self._code_executor is not None}"
+            f")"
+        )

@@ -145,8 +145,6 @@ def count_active(records: dict[str, JobRecord], policy: JobPolicy) -> int:
     """Count records that contribute toward capacity limits."""
     count = 0
     for record in records.values():
-        if record.state == JOB_STATE_RUNNING:
-            count += 1
-        elif record.state == JOB_STATE_PENDING and policy.count_pending_toward_capacity:
+        if record.state == JOB_STATE_RUNNING or record.state == JOB_STATE_PENDING and policy.count_pending_toward_capacity:
             count += 1
     return count

@@ -9,7 +9,6 @@ import logging
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    FilePath,
     LightStrength,
     Prompt,
     PythonCode,
@@ -57,9 +56,11 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         self,
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def configure_hdri(self, request: HdriConfigVO) -> HdriConfigVO:
@@ -101,6 +102,13 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
                 rotation=metrics.applied_rotation,
                 message=Prompt("HDRI lighting configured"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit HdriLightingConfiguredEvent")
+
             logger.info("hdri_lighting_configured event=%s", event)
 
             return replace(
@@ -112,11 +120,11 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
                 message=Prompt("HDRI lighting configured"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("HDRI configuration failed")
             return self._failure(
                 normalized,
-                Prompt(f"[{RenderErrorCategory.ENVIRONMENT_STATE.value}] HDRI configuration failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.ENVIRONMENT_STATE.value}] HDRI configuration failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -169,7 +177,12 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: HdriConfigVO, message: Prompt) -> HdriConfigVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderHdriConfigExecutor()"

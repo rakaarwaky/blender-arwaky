@@ -7,7 +7,6 @@ optional filtering, version, and metadata detail level.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -18,6 +17,6 @@ class DiscoveryOutcomeVO:
     """
 
     # Output fields set by dispatcher
-    actions: list[dict[str, Any]] = field(default_factory=list)
+    actions: list[dict[str, object]] = field(default_factory=list)
     catalog_version: int = 0
     result_count: int = 0

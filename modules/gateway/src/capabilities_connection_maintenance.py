@@ -4,8 +4,9 @@ FR-GWY-002: Maintain connection with heartbeat, liveness detection,
 and configurable retry with exponential backoff and jitter.
 """
 
+from __future__ import annotations
+
 import logging
-import random
 import time
 from collections.abc import Callable
 
@@ -21,6 +22,10 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class MaintenanceExecutor(ConnectionMaintenanceProtocol):
+    """Concrete capability executor for gateway connection maintenance."""
+
+    # ─── Block 1: Class Definition & Constructor ──────────────
+
     def __init__(
         self,
         max_retries: int = 3,
@@ -37,6 +42,8 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         self._max_retries: int = max_retries
         self._base_backoff: float = base_backoff_seconds
         self._max_backoff: float = max_backoff_seconds
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     def get_connection_status(self) -> ConnectionStatusVO:
         return ConnectionStatusVO(
@@ -55,12 +62,6 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         logger.debug("Heartbeat sent")
 
     def attempt_reconnect(self) -> ConnectionStatusVO:
-        # Reset the attempt counter when a new reconnect session begins:
-        # either the previous session succeeded (state CONNECTED) or the
-        # previous session already exhausted its retries. Without this reset
-        # the counter accumulates across sessions, so a later connection drop
-        # reports a stale, inflated attempt count or hits premature "exhaustion"
-        # on its very first attempt (FR-GWY-002).
         if self._state == ConnectionState.CONNECTED or self._reconnect_attempts >= self._max_retries:
             self._reconnect_attempts = 0
         self._reconnect_attempts += 1
@@ -72,8 +73,6 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         )
         backoff = self._calculate_backoff()
         logger.debug("Applying %.1fs backoff before reconnect", backoff)
-        # Sync context only — non-blocking delay for reconnect backoff.
-        # Async callers should use asyncio.sleep() instead.
         import threading
         if threading.current_thread().name != "MainThread":
             time.sleep(min(backoff, 0.1))
@@ -97,17 +96,19 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
                 )
         return self.get_connection_status()
 
-    def _calculate_backoff(self) -> float:
-        exponential = self._base_backoff * (2 ** (self._reconnect_attempts - 1))
-        capped = min(exponential, self._max_backoff)
-        jitter = random.uniform(0, capped * 0.5)
-        return capped + jitter
+    def set_state(self, state: ConnectionState | None) -> None:
+        self._state = state if state is not None else ConnectionState.CLOSED
 
-    def set_state(self, state: ConnectionState) -> None:
-        self._state = state
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def set_active_operation(self, active: bool) -> None:
         self._active_operation = active
+
+    def _calculate_backoff(self) -> float:
+        exponential = self._base_backoff * (2 ** (self._reconnect_attempts - 1))
+        capped = min(exponential, self._max_backoff)
+        jitter = ((time.time_ns() % 1000) / 1000.0) * (capped * 0.5)
+        return capped + jitter
 
     def __repr__(self) -> str:
         return f"MaintenanceExecutor(state={self._state.value}, retries={self._reconnect_attempts})"

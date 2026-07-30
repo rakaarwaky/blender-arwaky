@@ -3,7 +3,7 @@
 FR-DIA-002: Collect Operational Metrics
 Pulls operational counters, gauges, and latency summaries from features
 and exposes them as immutable snapshots.
-Implements MetricsCollectionProtocol.
+Implements MetricsCollectionProtocol and MetricsStateProviderProtocol.
 """
 
 from __future__ import annotations
@@ -14,15 +14,19 @@ from datetime import datetime, timezone
 from modules.shared.src.diagnostics.contract_metrics_collection_protocol import (
     MetricsCollectionProtocol,
 )
+from modules.shared.src.diagnostics.contract_metrics_state_provider_protocol import (
+    MetricsStateProviderProtocol,
+)
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     LatencySummaryVO,
+    MetricsSampleVO,
     MetricsSnapshotVO,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class MetricsCollector(MetricsCollectionProtocol):
+class MetricsCollector(MetricsCollectionProtocol, MetricsStateProviderProtocol):
     """Collect operational metrics from features.
 
     Pulls counters, gauges, and latency summaries from features at
@@ -34,58 +38,44 @@ class MetricsCollector(MetricsCollectionProtocol):
         self._latency_buffers: dict[str, list[float]] = {}
         self._collection_timestamp: str = ""
         self._counter_reset_indicator: bool = False
+        self._last_snapshot: MetricsSnapshotVO | None = None
 
     async def collect_metrics_snapshot(
         self,
-        pending_operations: int = 0,
-        reconnect_count: int = 0,
-        execution_latency_ms: float = 0.0,
-        command_latency_ms: float = 0.0,
-        failed_requests: int = 0,
-        security_violations: int = 0,
-        tasks_created: int = 0,
-        tasks_failed: int = 0,
-        tasks_completed: int = 0,
+        sample: MetricsSampleVO | None = None,
     ) -> MetricsSnapshotVO:
         """Pull operational metrics from features and return snapshot."""
         now = datetime.now(timezone.utc)
         self._collection_timestamp = now.isoformat()
+        sample = sample or MetricsSampleVO()
 
-        # Accumulate counters (monotonic per lifetime)
-        self._counters["pending_operations"] = pending_operations
-        self._counters["reconnect_count"] = reconnect_count
-        self._counters["failed_requests"] = failed_requests
-        self._counters["security_violations"] = security_violations
-        self._counters["tasks_created"] = tasks_created
-        self._counters["tasks_failed"] = tasks_failed
-        self._counters["tasks_completed"] = tasks_completed
+        self._counters["pending_operations"] = sample.pending_operations
+        self._counters["reconnect_count"] = sample.reconnect_count
+        self._counters["failed_requests"] = sample.failed_requests
+        self._counters["security_violations"] = sample.security_violations
+        self._counters["tasks_created"] = sample.tasks_created
+        self._counters["tasks_failed"] = sample.tasks_failed
+        self._counters["tasks_completed"] = sample.tasks_completed
 
-        # Accumulate latency buffers for proper summaries
-        if execution_latency_ms > 0:
+        if sample.execution_latency_ms > 0:
             buf = self._latency_buffers.setdefault("execution_latency_ms", [])
-            buf.append(execution_latency_ms)
-        if command_latency_ms > 0:
+            buf.append(sample.execution_latency_ms)
+        if sample.command_latency_ms > 0:
             buf = self._latency_buffers.setdefault("command_latency_ms", [])
-            buf.append(command_latency_ms)
+            buf.append(sample.command_latency_ms)
 
-        # Build latency summaries from accumulated data
         latency_summaries: dict[str, LatencySummaryVO] = {}
         for key, buf in self._latency_buffers.items():
             if len(buf) >= 2:
                 sorted_buf = sorted(buf)
                 count = len(sorted_buf)
-                min_ms = sorted_buf[0]
-                max_ms = sorted_buf[-1]
-                mean_ms = sum(sorted_buf) / count
-                p50_idx = int(0.5 * count)
-                p95_idx = int(0.95 * (count - 1))
                 latency_summaries[key] = LatencySummaryVO(
                     count=count,
-                    min_ms=min_ms,
-                    max_ms=max_ms,
-                    mean_ms=mean_ms,
-                    p50_ms=sorted_buf[p50_idx],
-                    p95_ms=sorted_buf[p95_idx],
+                    min_ms=sorted_buf[0],
+                    max_ms=sorted_buf[-1],
+                    mean_ms=sum(sorted_buf) / count,
+                    p50_ms=sorted_buf[int(0.5 * count)],
+                    p95_ms=sorted_buf[int(0.95 * (count - 1))],
                 )
             elif len(buf) == 1:
                 latency_summaries[key] = LatencySummaryVO(
@@ -97,19 +87,23 @@ class MetricsCollector(MetricsCollectionProtocol):
                     p95_ms=buf[0],
                 )
 
-        # Freshness indicators
         freshness: dict[str, str] = {
             "counters": "fresh",
             "latency_summaries": "fresh" if latency_summaries else "no_data",
         }
 
-        return MetricsSnapshotVO(
+        self._last_snapshot = MetricsSnapshotVO(
             counters=dict(self._counters),
             latency_summaries=latency_summaries,
             freshness_indicators=freshness,
             collection_timestamp=self._collection_timestamp,
             counter_reset_indicator=self._counter_reset_indicator,
         )
+        return self._last_snapshot
+
+    async def get_metrics(self) -> MetricsSnapshotVO | None:
+        """Return the latest metrics snapshot for snapshot provider contract."""
+        return self._last_snapshot
 
     def __repr__(self) -> str:
         return "MetricsCollector()"

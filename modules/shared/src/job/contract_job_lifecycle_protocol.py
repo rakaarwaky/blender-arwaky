@@ -7,9 +7,9 @@ from ..common.taxonomy_core_vo import JobId
 from .taxonomy_job_vo import (
     ActiveCount,
     CancellationReason,
-    DeletedCount,
     CompleteTaskCommand,
     CreateTaskCommand,
+    DeletedCount,
     FailTaskCommand,
     JobStatusSnapshot,
     ProgressUpdateCommand,
