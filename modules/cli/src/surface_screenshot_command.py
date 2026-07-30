@@ -1,25 +1,26 @@
-"""CLI screenshot command — Capture viewport screenshot.
+"""CLI screenshot command — Capture viewport screenshot."""
 
-FR-CLI-001: Routes to Dispatcher action get_viewport_screenshot.
-P0: Removes direct socket client and registry usage per issue #91.
-P1: Normalizes results into Dispatcher result envelope.
-"""
-
-from __future__ import annotations
-
+import os
 from typing import Any
 
-from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
+
+from .utility_cli_registry import Registry
 
 
-def handle(args: Any, dispatcher: IDispatcherAggregate) -> dict[str, Any]:
-    """Handle screenshot command: capture viewport via Dispatcher → Gateway.
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+    return {"success": False, "error": message, "category": category, "ref": ref}
 
-    P0: Replaces direct socket client usage with Dispatcher routing.
-    P1: Returns normalized result envelope instead of raw transport payload.
-    """
-    params: dict[str, Any] = {
+
+def handle(args: Any) -> dict[str, Any]:
+    """Handle screenshot command: capture viewport screenshot."""
+    registry = Registry()
+    error = registry.assert_active(args.filepath)
+    if error:
+        return _mask_error("state", "cli-409", error)
+
+    port = registry.get_port()
+    params = {
         "filepath": args.output,
         "max_size": args.max_size,
         "view_angle": args.view_angle,
@@ -28,13 +29,13 @@ def handle(args: Any, dispatcher: IDispatcherAggregate) -> dict[str, Any]:
         "focus_object": args.focus_object,
     }
 
-    request = ActionCommandVO(action_name="get_viewport_screenshot", parameters=params)
-    result = dispatcher.execute_action(request)
-    # Render from normalized envelope
-    return {
-        "success": result.success,
-        "message": result.message,
-        "data": result.data,
-        "warnings": result.warnings,
-        "error_category": result.error_category if not result.success else None,
-    }
+    try:
+        with BlenderSocketClient(port=port) as client:
+            result = client.send_command("get_viewport_screenshot", params)
+            if os.path.exists(args.output):
+                return {"success": True, "message": "Screenshot saved", "filepath": args.output, "result": result}
+            return _mask_error("unexpected", "cli-500", "Screenshot file was not created")
+    except ConnectionError:
+        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
+    except Exception:
+        return _mask_error("unexpected", "cli-500")

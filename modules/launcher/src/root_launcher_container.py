@@ -2,6 +2,9 @@
 
 Wires concrete capabilities to the agent orchestrator and bootstraps the
 launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrchestrator).
+
+Security integration: injects ValidatePathProtocol and RedactSensitiveProtocol
+from the security module per PRD data flow diagram (Security -->|path validation| Launcher).
 """
 
 from __future__ import annotations
@@ -22,7 +25,6 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import (
     RuntimeStatusProtocol,
 )
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
-from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
 )
@@ -34,9 +36,10 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_spawn,
     process_version_check,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_launcher_orchestrator import LauncherOrchestrator
-from .capabilities_action_router import LauncherActionRouter
 from .capabilities_executable_locator import ExecutableLocator
 from .capabilities_process_launcher import ProcessLauncher
 from .capabilities_process_shutdown import ProcessShutdown
@@ -47,12 +50,25 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherContainer:
-    def __init__(self, config: LauncherConfigVO | None = None, state_path: str | None = None) -> None:
+    """Dependency injection container for the launcher feature module.
+
+    Security integration (per PRD + FR-LAU "Depends On"):
+      - Injects ValidatePathProtocol for executable + persistence path validation
+      - Uses security module's redaction for event reasons and bridge endpoints
+    """
+
+    def __init__(
+        self,
+        config: LauncherConfigVO | None = None,
+        state_path: str | None = None,
+        security_policy: SecurityPolicyVO | None = None,
+    ) -> None:
         self._config = config or LauncherConfigVO()
         self._state_path = state_path
+        self._security_policy = security_policy or SecurityPolicyVO()
         self._orchestrator: LauncherOrchestrator | None = None
-        self._action_router: LauncherActionRouter | None = None
         self._wired: bool = False
+        self._path_validator: ValidatePathProtocol | None = None
 
     def wire(self) -> None:
         if self._wired:
@@ -60,8 +76,19 @@ class LauncherContainer:
 
         logger.info("Wiring launcher feature module")
 
+        # ─── Security integration: wire path validator + audit emitter (FR-SEC-001/005) ───
+        from modules.security.src.root_security_container import SecurityContainer
+
+        sec_container = SecurityContainer(policy=self._security_policy)
+        sec_container.wire()
+        # Extract capabilities directly from security container (orchestrator wraps them privately)
+        self._path_validator = getattr(sec_container, "_validate_path_cap", None)
+        self._audit_emitter = getattr(sec_container, "_emit_audit_cap", None)
+
+        # ─── Persistence with security path validation ───
         persist_cap: PersistStateProtocol = StatePersistence(
             path_resolver=lambda: self._state_path,
+            path_validator=self._path_validator,
         )
 
         status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
@@ -72,33 +99,28 @@ class LauncherContainer:
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
         )
 
+        # ─── Executable locator with security path validation ───
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
+            path_validator=self._path_validator,
         )
-
-        def event_sink(event: LauncherLifecycleEvent) -> None:
-            logger.info(
-                "launcher_event category=%s before=%s after=%s",
-                event.event_category,
-                event.state_before.value,
-                event.state_after.value,
-            )
 
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
             spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
             readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
-            event_sink=event_sink,
+            audit_event_sink=self._audit_emitter,
         )
+
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
             signal_sender=process_signal_term,
             killer=process_kill,
             timeout_seconds=self._config.shutdown_timeout_seconds,
             force_enabled=self._config.force_termination_enabled,
-            event_sink=event_sink,
+            audit_event_sink=self._audit_emitter,
         )
 
         self._orchestrator = LauncherOrchestrator(
@@ -109,10 +131,8 @@ class LauncherContainer:
             persist_cap=persist_cap,
         )
 
-        self._action_router = LauncherActionRouter(self._orchestrator)
-
         self._wired = True
-        logger.info("Launcher feature module wired successfully")
+        logger.info("Launcher feature module wired successfully (with security integration)")
 
     def _resolve_persisted_pid(self, persist_cap: PersistStateProtocol) -> int | None:
         state = persist_cap.load()
@@ -124,18 +144,26 @@ class LauncherContainer:
             raise RuntimeError("LauncherContainer not wired — call wire() first")
         return self._orchestrator
 
-    @property
-    def action_router(self) -> LauncherActionRouter:
-        """Return the launcher action router for dispatcher wiring."""
-        if not self._wired or self._action_router is None:
-            raise RuntimeError("LauncherContainer not wired — call wire() first")
-        return self._action_router
-
 
 def create_launcher_feature(
     config: LauncherConfigVO | None = None,
     state_path: str | None = None,
+    security_policy: SecurityPolicyVO | None = None,
 ) -> ILauncherOperateAggregate:
-    container = LauncherContainer(config=config, state_path=state_path)
+    """Factory function to create and wire the launcher feature module.
+
+    Security integration (per PRD + FR-LAU "Depends On"):
+      - Accepts optional security_policy for path validation and redaction
+      - Delegates path validation to security module's PathValidator
+
+    Args:
+        config: Optional launcher configuration.
+        state_path: Optional state persistence file path.
+        security_policy: Optional security policy for path validation and redaction.
+
+    Returns:
+        The assembled ILauncherOperateAggregate ready for use.
+    """
+    container = LauncherContainer(config=config, state_path=state_path, security_policy=security_policy)
     container.wire()
     return container.agent

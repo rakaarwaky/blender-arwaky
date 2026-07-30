@@ -60,6 +60,8 @@ def main(
     argv: list[str] | None = None,
     *,
     dispatcher: IDispatcherAggregate | None = None,
+    launcher: Any | None = None,
+    redactor: Any | None = None,
 ) -> int:
     """Main CLI entry point.
 
@@ -129,7 +131,7 @@ def main(
             launcher_container.wire()
 
             dispatcher_container = DispatcherContainer(
-                launcher_action_router=launcher_container.action_router,
+                launcher_action_router=launcher_container.agent,
             )
             dispatcher_container.wire()
 

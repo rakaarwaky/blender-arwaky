@@ -24,6 +24,14 @@ def resolve_path(path: str) -> str:
     return os.path.realpath(os.path.abspath(path))
 
 
+def redact_path(path: str) -> str:
+    """Return a redacted filesystem path, keeping only the last two components."""
+    parts = path.replace("\\", "/").split("/")
+    if len(parts) <= 2:
+        return "***"
+    return "/" + "/".join(["***"] + list(parts[-2:]))
+
+
 def is_within_allowed_dirs(
     target: str,
     allowed_dirs: list[str] | tuple[str, ...],

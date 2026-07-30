@@ -186,6 +186,17 @@ class RuntimeStateVO:
     bridge_endpoint: str | None = None
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
 
+    def contains_secret(self) -> bool:
+        from dataclasses import fields
+
+        from .taxonomy_launcher_constant import SECRET_KEYS
+
+        field_names = {f.name for f in fields(self)}
+        for key in SECRET_KEYS:
+            if key in field_names:
+                return True
+        return False
+
 
 @dataclass(frozen=True)
 class PersistenceOutcomeVO:
@@ -194,6 +205,19 @@ class PersistenceOutcomeVO:
     success: bool = False
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
     reconciled: bool = False
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 (Finding #14): Load result with corruption differentiation.
+
+    Differentiates between corrupt/unreadable content and missing/empty state file.
+    Returns the loaded state when available, plus warnings for corruption events.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 @dataclass(frozen=True)
