@@ -42,7 +42,11 @@ class CodeValidator(ValidateCodeProtocol):
                 strict_mode=request.strict_mode,
                 execution_context=request.execution_context,
                 allowed=False,
-                violations=(CodeViolationVO(category="size_limit", description=f"Code too large: {code_bytes} > {request.max_code_size}"),),
+                violations=(
+                    CodeViolationVO(
+                        category="size_limit", description=f"Code too large: {code_bytes} > {request.max_code_size}"
+                    ),
+                ),
                 audit_metadata={"rule": "code_oversized", "size": code_bytes},
             )
 
@@ -78,10 +82,20 @@ class CodeValidator(ValidateCodeProtocol):
                     max_code_size=request.max_code_size,
                     strict_mode=request.strict_mode,
                     allowed=False,
-                    violations=(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg} at line {exc.lineno}", location_hint=f"line {exc.lineno}"),),
+                    violations=(
+                        CodeViolationVO(
+                            category="syntax_error",
+                            description=f"Syntax error: {exc.msg} at line {exc.lineno}",
+                            location_hint=f"line {exc.lineno}",
+                        ),
+                    ),
                     audit_metadata={"rule": "syntax_error", "line": exc.lineno},
                 )
-            violations.append(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"))
+            violations.append(
+                CodeViolationVO(
+                    category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"
+                )
+            )
             # Non-strict mode records the syntax error as a violation and stops:
             # an unparseable tree cannot be walked, so do not fall through to ast.walk.
             return CodeValidationVO(
@@ -100,18 +114,46 @@ class CodeValidator(ValidateCodeProtocol):
                 for alias in node.names:
                     mod = alias.name.split(".")[0]
                     if mod in blocked_modules:
-                        violations.append(CodeViolationVO(category="blocked_module_import", description=f"Blocked import: {alias.name}"))
+                        violations.append(
+                            CodeViolationVO(
+                                category="blocked_module_import", description=f"Blocked import: {alias.name}"
+                            )
+                        )
             elif isinstance(node, ast.ImportFrom):
                 if node.module:
                     mod = node.module.split(".")[0]
                     if mod in blocked_modules:
-                        violations.append(CodeViolationVO(category="blocked_module_import", description=f"Blocked import from: {node.module}"))
+                        violations.append(
+                            CodeViolationVO(
+                                category="blocked_module_import", description=f"Blocked import from: {node.module}"
+                            )
+                        )
             elif isinstance(node, ast.Call):
                 func = node.func
                 if isinstance(func, ast.Name) and func.id in blocked_functions:
-                    violations.append(CodeViolationVO(category="blocked_function_call", description=f"Blocked function call: {func.id}()"))
+                    violations.append(
+                        CodeViolationVO(
+                            category="blocked_function_call", description=f"Blocked function call: {func.id}()"
+                        )
+                    )
                 elif isinstance(func, ast.Attribute) and func.attr in blocked_functions:
-                    violations.append(CodeViolationVO(category="blocked_function_call", description=f"Blocked method call: .{func.attr}()"))
+                    violations.append(
+                        CodeViolationVO(
+                            category="blocked_function_call", description=f"Blocked method call: .{func.attr}()"
+                        )
+                    )
+            elif isinstance(node, ast.Attribute):
+                # FR-SEC-003: block dunder attribute traversal (sandbox escape)
+                if node.attr.startswith("__") and node.attr.endswith("__"):
+                    allowed_dunders = {"__init__", "__name__", "__doc__", "__str__", "__repr__", "__len__"}
+                    if node.attr not in allowed_dunders:
+                        violations.append(
+                            CodeViolationVO(
+                                category="blocked_attribute_access",
+                                description=f"Blocked dunder attribute access: .{node.attr}",
+                                location_hint=f"line {node.lineno}",
+                            )
+                        )
 
         allowed = len(violations) == 0
         return CodeValidationVO(
@@ -132,9 +174,17 @@ class CodeValidator(ValidateCodeProtocol):
             functions = set()
             for construct in self._policy.blocked_code_constructs:
                 if construct in {
-                    "os", "subprocess", "shutil", "importlib", "sys",
-                    "socket", "ctypes", "multiprocessing", "threading",
-                    "signal", "pickle",
+                    "os",
+                    "subprocess",
+                    "shutil",
+                    "importlib",
+                    "sys",
+                    "socket",
+                    "ctypes",
+                    "multiprocessing",
+                    "threading",
+                    "signal",
+                    "pickle",
                 }:
                     modules.add(construct)
                 else:
@@ -143,11 +193,36 @@ class CodeValidator(ValidateCodeProtocol):
 
         # Defaults (preserved for backward compatibility)
         return (
-            frozenset({"os", "subprocess", "shutil", "importlib", "sys",
-                        "socket", "ctypes", "multiprocessing", "threading",
-                        "signal", "pickle"}),
-            frozenset({"eval", "exec", "compile", "__import__", "breakpoint",
-                       "globals", "locals", "getattr", "setattr", "delattr"}),
+            frozenset(
+                {
+                    "os",
+                    "subprocess",
+                    "shutil",
+                    "importlib",
+                    "sys",
+                    "socket",
+                    "ctypes",
+                    "multiprocessing",
+                    "threading",
+                    "signal",
+                    "pickle",
+                }
+            ),
+            frozenset(
+                {
+                    "eval",
+                    "exec",
+                    "compile",
+                    "__import__",
+                    "breakpoint",
+                    "globals",
+                    "locals",
+                    "getattr",
+                    "setattr",
+                    "delattr",
+                    "open",
+                }
+            ),
         )
 
     def __repr__(self) -> str:
