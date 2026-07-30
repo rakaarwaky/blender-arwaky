@@ -71,8 +71,9 @@ def _build_feature(status_backend):
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 1000,
-        readiness_probe=lambda _pid, _to: status_backend.ready,
+        config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"),
+        spawner=lambda _exe, _mode, _host, _port, _proto: 1000,
+        readiness_probe=lambda _pid, _host, _port, _to: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,

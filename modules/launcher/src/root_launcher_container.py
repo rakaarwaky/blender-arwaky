@@ -76,8 +76,13 @@ class LauncherContainer:
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
-            readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
+            config_provider=lambda: self._config,
+            spawner=lambda executable, mode, bridge_host, bridge_port, protocol_version: process_spawn(
+                executable, mode, bridge_host, bridge_port, protocol_version
+            ),
+            readiness_probe=lambda pid, bridge_host, bridge_port, timeout: process_probe_readiness(
+                pid, bridge_host, bridge_port, timeout
+            ),
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,

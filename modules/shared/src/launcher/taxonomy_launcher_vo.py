@@ -247,3 +247,4 @@ class LauncherConfigVO:
     state_persistence_location: str | None = None
     default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True
+    bridge: BridgeEndpointVO = dc_field(default_factory=BridgeEndpointVO)
