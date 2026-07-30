@@ -15,12 +15,12 @@ from typing import NewType
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
+    BlenderVersion,
     PlatformName,
     SessionId,
     SuccessFlag,
     Timestamp,
     VersionString,
-    BlenderVersion,
 )
 
 FeatureArea = NewType("FeatureArea", str)

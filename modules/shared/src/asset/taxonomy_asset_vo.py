@@ -95,6 +95,7 @@ class ImportGlbVO:
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,7 @@ class ExportModelVO:
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -138,6 +140,7 @@ class AssetDownloadCacheVO:
     integrity_ok: bool = True
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -161,6 +164,7 @@ class AssetExtractArchiveVO:
     rejected_entries: tuple[str, ...] = field(default_factory=tuple)
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -186,6 +190,8 @@ class AssetImportBlenderVO:
     license_summary: str | None = None
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
+
 
 
 @dataclass(frozen=True)

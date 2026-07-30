@@ -22,6 +22,7 @@ from .capabilities_asset_import import AssetImportCapability
 from .capabilities_asset_provider import AssetProviderMetadataCapability
 from .capabilities_asset_search_handler import AssetSearchHandler
 from .root_asset_container import AssetContainer, create_asset_container
+from .surface_asset_search_command import AssetSearchSurface
 
 __all__ = [
     "AssetOrchestrator",
@@ -32,4 +33,5 @@ __all__ = [
     "AssetSearchHandler",
     "AssetContainer",
     "create_asset_container",
+    "AssetSearchSurface",
 ]

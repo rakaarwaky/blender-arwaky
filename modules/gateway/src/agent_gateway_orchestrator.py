@@ -1,4 +1,4 @@
-"""Gateway orchestrator -- Aggregate facade coordinating gateway protocols.
+"""Gateway orchestrator — Aggregate facade coordinating gateway protocols.
 
 FR-GWY: Coordinates connection, maintenance, transport, scene queue, and code execution.
 """
@@ -42,7 +42,7 @@ logger = logging.getLogger("BlenderMCPServer")
 class GatewayOrchestrator(IGatewayAggregate):
     """Aggregate facade for the Gateway feature."""
 
-    # -- Block 1: Class Definition & Constructor --
+    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(
         self,
@@ -58,7 +58,7 @@ class GatewayOrchestrator(IGatewayAggregate):
         self._scene_queue = scene_queue
         self._code_executor = code_executor
 
-    # -- Block 2: Aggregate Method Implementation --
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     def establish_connection(self) -> ConnectionOutcomeVO:
         """FR-GWY-001: Establish connection and wire transport layer."""
@@ -105,3 +105,16 @@ class GatewayOrchestrator(IGatewayAggregate):
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
         return self._code_executor.execute_code(request)
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def __repr__(self) -> str:
+        return (
+            f"GatewayOrchestrator("
+            f"connection={self._connection is not None}, "
+            f"maintenance={self._maintenance is not None}, "
+            f"transport={self._transport is not None}, "
+            f"scene_queue={self._scene_queue is not None}, "
+            f"code_executor={self._code_executor is not None}"
+            f")"
+        )

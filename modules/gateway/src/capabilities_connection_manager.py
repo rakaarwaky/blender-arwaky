@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import socket
+import socket as _socket
 import struct
 import time
 import uuid
@@ -50,6 +50,7 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     ConnectionClosedError,
     ConnectionConfigError,
     ProtocolVersionMismatchError,
+    TransportParseError,
     VersionMismatchError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
@@ -70,14 +71,9 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class BlenderConnection(IBlenderConnectionProtocol):
-    """Asyncio-based persistent connection to Blender addon.
+    """Asyncio-based persistent connection to Blender addon."""
 
-    Implements FR-SRV-001 (v2.0.0): asyncio stream connection, handshake
-    with version/auth, heartbeat asyncio task, reconnect with exponential
-    backoff + jitter, and event emission through IEventPublisher.
-
-    No threading, no blocking I/O — pure asyncio throughout.
-    """
+    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(self, event_publisher: IEventPublisher) -> None:
         self._event_publisher = event_publisher
@@ -98,6 +94,8 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._consecutive_failures: int = 0
         self._lock: asyncio.Lock = asyncio.Lock()
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def connect(self, config: ConnectionConfig) -> ConnectionStatus:
         self._config = config
@@ -186,11 +184,6 @@ class BlenderConnection(IBlenderConnectionProtocol):
             logger.info("Disconnected from Blender (state=%s)", CONNECTION_STATE_CLOSED)
 
     async def is_connected(self) -> bool:
-        """Check connection status.
-
-        Returns False instead of raising when writer is unavailable,
-        allowing callers to handle gracefully without ConnectionClosedError.
-        """
         try:
             return not (self._writer is None or self._writer.closed)
         except Exception as e:
@@ -250,6 +243,8 @@ class BlenderConnection(IBlenderConnectionProtocol):
         msg_len = struct.unpack("!I", header)[0]
         payload = await self._reader.readexactly(msg_len)
         return payload
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def set_active_operation_in_progress(self, active: bool) -> None:
         self._active_operation = active
@@ -376,7 +371,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         while True:
             try:
                 await asyncio.sleep(interval)
-                try:
+                with suppress(ConnectionClosedError):
                     request_id = str(time.monotonic())
                     payload = {
                         "type": "ping",
@@ -386,7 +381,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     header = struct.pack("!I", len(json_bytes))
                     self._writer.write(header + json_bytes)
                     await self._writer.drain()
-                    try:
+                    with suppress(asyncio.TimeoutError, ConnectionClosedError):
                         response = await asyncio.wait_for(
                             self._receive_response(timeout_ms=5000),
                             timeout=5.0,
@@ -396,10 +391,6 @@ class BlenderConnection(IBlenderConnectionProtocol):
                             self._consecutive_failures = 0
                             self._last_heartbeat_at = time.monotonic()
                             continue
-                    except (asyncio.TimeoutError, ConnectionClosedError):
-                        pass
-                except ConnectionClosedError:
-                    pass
                 self._consecutive_failures += 1
                 logger.warning(
                     "Heartbeat failure %d/%d",
@@ -421,22 +412,17 @@ class BlenderConnection(IBlenderConnectionProtocol):
 
     async def _close_stream(self) -> None:
         if self._writer is not None and not self._writer.closed:
-            try:
+            with suppress(Exception):
                 self._writer.close()
                 await self._writer.wait_closed()
-            except Exception:
-                pass
         self._reader = None
         self._writer = None
 
 
 class ConnectionExecutor(ConnectionProtocol):
-    """Concrete implementation for transport connection establishment.
+    """Concrete implementation for transport connection establishment."""
 
-    FR-GWY-001: Opens socket/stdio, negotiates protocol version, authenticates.
-    Idempotent when already connected. Deterministic state transitions.
-    Delegates transport to TransportProtocol.
-    """
+    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(
         self,
@@ -449,13 +435,15 @@ class ConnectionExecutor(ConnectionProtocol):
                 message="ConnectionConfigVO requires host and port",
                 details={"host": validated_config.host, "port": validated_config.port},
             )
-        self._socket: socket.SocketType | None = None
+        self._socket: _socket.SocketType | None = None
         self._transport: TransportProtocol = transport
         self._config: ConnectionConfigVO = validated_config
         self._state: ConnectionState = ConnectionState.DISCONNECTED
         self._protocol_version: str = ""
         self._endpoint_summary: str = ""
         self._capabilities: tuple[str, ...] = ()
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     def establish_connection(self) -> ConnectionOutcomeVO:
         if self._state == ConnectionState.CONNECTED:
@@ -472,17 +460,18 @@ class ConnectionExecutor(ConnectionProtocol):
         self._state = ConnectionState.CONNECTING
         logger.info("Establishing connection to %s:%d", self._config.host, self._config.port)
 
-        socket: socket.SocketType | None = None
+        sock: _socket.SocketType | None = None
         try:
             timeout = self._config.timeout_seconds or 30.0
-            socket = socket.create_connection((self._config.host, self._config.port), timeout=timeout)
+            sock = _socket.create_connection((self._config.host, self._config.port), timeout=timeout)
             self._endpoint_summary = f"{self._config.host}:{self._config.port}"
+            self._transport.set_socket(sock)
             handshake_response = self._perform_handshake()
             self._protocol_version = handshake_response.get("protocol_version", self._config.protocol_version)
             if not self._is_protocol_compatible():
                 raise ProtocolVersionMismatchError(f"Protocol version {self._protocol_version} incompatible")
             self._authenticate_if_needed()
-            self._socket = socket
+            self._socket = sock
             self._state = ConnectionState.CONNECTED
             duration_ms = (time.time() - start_time) * 1000
             logger.info(
@@ -498,14 +487,13 @@ class ConnectionExecutor(ConnectionProtocol):
                 capabilities=self._capabilities,
             )
         except ProtocolVersionMismatchError:
-            self._safe_close_socket(socket)
+            self._safe_close_socket(sock)
             raise
         except AuthenticationError:
-            self._safe_close_socket(socket)
+            self._safe_close_socket(sock)
             raise
         except Exception as e:
-            # Close leaked socket on any failure path
-            self._safe_close_socket(socket)
+            self._safe_close_socket(sock)
             self._state = ConnectionState.FAILED
             logger.error("Connection failed: %s", e)
             raise BlenderConnectionFailure(
@@ -527,8 +515,9 @@ class ConnectionExecutor(ConnectionProtocol):
             self._socket = None
             logger.info("Connection closed")
 
-    def _safe_close_socket(self, sock: socket.SocketType | None) -> None:
-        """Close a socket without raising exceptions."""
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def _safe_close_socket(self, sock: _socket.SocketType | None) -> None:
         with suppress(Exception):
             if sock is not None:
                 sock.close()
@@ -544,22 +533,13 @@ class ConnectionExecutor(ConnectionProtocol):
                 }
             ).encode("utf-8"),
         )
-        try:
-            outcome = self._transport.send_request(handshake_request)
-            if outcome.payload:
-                response = json.loads(outcome.payload.decode("utf-8"))
-                self._protocol_version = response.get("protocol_version", self._config.protocol_version)
-                self._capabilities = tuple(response.get("capabilities", []))
-                return response
-            return {
-                "protocol_version": self._config.protocol_version,
-                "capabilities": ["commands", "code_execution"],
-            }
-        except Exception:
-            return {
-                "protocol_version": self._config.protocol_version,
-                "capabilities": ["commands", "code_execution"],
-            }
+        outcome = self._transport.send_request(handshake_request)
+        if not outcome.payload:
+            raise TransportParseError("Empty handshake response payload")
+        response = json.loads(outcome.payload.decode("utf-8"))
+        self._protocol_version = response.get("protocol_version", self._config.protocol_version)
+        self._capabilities = tuple(response.get("capabilities", []))
+        return response
 
     def _is_protocol_compatible(self) -> bool:
         return self._protocol_version.startswith("1.") or self._protocol_version.startswith("2.")

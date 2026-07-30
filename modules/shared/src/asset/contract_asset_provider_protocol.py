@@ -12,11 +12,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     ProviderName,
 )
-from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
 
 
 class AssetProviderProtocol(ABC):

@@ -28,6 +28,9 @@ from .taxonomy_scene_constant import (
     DEFAULT_CHILD_HANDLING_POLICY,
     DEFAULT_DEPENDENT_HANDLING_POLICY,
     DEFAULT_DRY_RUN_MODE,
+    DEFAULT_FRAME_END,
+    DEFAULT_FRAME_START,
+    DEFAULT_FRAME_STEP,
     DEFAULT_INCLUDE_HIDDEN_OBJECTS,
     DEFAULT_PRESERVATION_LIST,
     DETAIL_LEVEL_STANDARD,
@@ -106,9 +109,9 @@ class SceneStateSummaryVO:
     render_engine: RenderEngine = field(default_factory=lambda: RenderEngine("CYCLES"))
     resolution_x: ResolutionX = field(default_factory=lambda: ResolutionX(1920))
     resolution_y: ResolutionY = field(default_factory=lambda: ResolutionY(1080))
-    frame_start: int = 1
-    frame_end: int = 250
-    frame_step: int = 1
+    frame_start: int = field(default=DEFAULT_FRAME_START)
+    frame_end: int = field(default=DEFAULT_FRAME_END)
+    frame_step: int = field(default=DEFAULT_FRAME_STEP)
     unit_system: str = "METRIC"
 
     collection_count: ObjectCount = field(default_factory=lambda: ObjectCount(0))
@@ -166,7 +169,11 @@ class SceneCleanupMetricsVO:
 
 @dataclass(frozen=True)
 class SceneCleanupVO:
-    """Scene cleanup input/output VO."""
+    """Scene cleanup input/output VO.
+
+    Expresses both success and partial-failure outcomes.
+    error_summary is set when cleanup encounters errors (FRD observability gap fix).
+    """
 
     # Input
     mode: CleanupMode = field(default_factory=lambda: CleanupMode(CLEANUP_MODE_ALL))
@@ -186,4 +193,5 @@ class SceneCleanupVO:
     removed_object_references: tuple[ObjectName, ...] = ()
     preserved_object_references: tuple[ObjectName, ...] = ()
     skipped_object_references: tuple[ObjectName, ...] = ()
+    error_summary: str | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))

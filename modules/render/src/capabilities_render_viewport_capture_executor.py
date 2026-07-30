@@ -118,11 +118,11 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
                 message=Prompt("Viewport capture completed"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Viewport capture failed")
             return self._failure(
                 request,
-                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Viewport capture failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Viewport capture failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -183,7 +183,12 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: ViewportCaptureVO, message: Prompt) -> ViewportCaptureVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderViewportCaptureExecutor()"
