@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
+    DEFAULT_BACKGROUND_CAPACITY,
+)
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
@@ -31,8 +34,13 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(self, job_lifecycle: IJobLifecycle | None = None) -> None:
+    def __init__(
+        self,
+        job_lifecycle: IJobLifecycle | None = None,
+        action_executor: object | None = None,
+    ) -> None:
         self._job_lifecycle = job_lifecycle
+        self._action_executor = action_executor
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
         self._execute_action: object | None = None
@@ -56,14 +64,6 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        background_submit = (
-            BackgroundSubmitExecutor(
-                job_tracker=self._job_lifecycle,
-            )
-            if self._job_lifecycle
-            else None
-        )
-        result_normalization = ResultNormalizationExecutor()
 
         # FR-DSP-004: Wire SyncDispatchExecutor with provided action executor
         execute_action = execute_action or self._execute_action
@@ -71,12 +71,21 @@ class DispatcherContainer:
         if execute_action is not None:
             sync_dispatch = SyncDispatchExecutor(execute_action=execute_action)
 
+        background_submit: BackgroundSubmitExecutor | None = None
+        if self._job_lifecycle:
+            background_submit = BackgroundSubmitExecutor(
+                job_tracker=self._job_lifecycle,
+                background_capacity=DEFAULT_BACKGROUND_CAPACITY,
+            )
+
+        result_normalization = ResultNormalizationExecutor()
+
         self._orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog_registration,
             action_discovery=action_discovery,
             request_validation=request_validation,
-            background_submit=background_submit,
             sync_dispatch=sync_dispatch,
+            background_submit=background_submit,
             result_normalization=result_normalization,
         )
 

@@ -33,3 +33,9 @@ DISPATCH_ERROR_CATEGORY_TIMEOUT: Final[str] = "timeout_error"
 DISPATCH_ERROR_CATEGORY_CONNECTION: Final[str] = "connection_error"
 DISPATCH_ERROR_CATEGORY_CONFIRMATION: Final[str] = "confirmation_error"
 DISPATCH_ERROR_CATEGORY_REGISTRATION: Final[str] = "registration_error"
+
+# Configuration constants (FR-DSP-003 / FR-DSP-004)
+DEFAULT_TIMEOUT: Final[float] = 30.0
+MAX_TIMEOUT_OVERRIDE: Final[float] = 3600.0
+MAX_PAYLOAD_SIZE: Final[int] = 1_000_000
+DESTRUCTIVE_CONFIRMATION_ENFORCED: Final[bool] = True

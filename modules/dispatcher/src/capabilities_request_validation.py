@@ -8,6 +8,8 @@ FR-DSP-003: Validate Action Request
 - Does not mutate request or catalog state
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any
@@ -16,18 +18,17 @@ from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
+    DESTRUCTIVE_CONFIRMATION_ENFORCED,
+    MAX_PAYLOAD_SIZE,
+    MAX_TIMEOUT_OVERRIDE,
+)
 from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
     DispatchError,
     DispatchErrorCategory,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
-
-# FR-DSP-003 / Configuration Keys — conservative operational defaults.
-DEFAULT_TIMEOUT: float = 30.0
-MAX_TIMEOUT_OVERRIDE: float = 3600.0
-MAX_PAYLOAD_SIZE: int = 1_000_000
-DESTRUCTIVE_CONFIRMATION_ENFORCED: bool = True
 
 
 class RequestValidationExecutor(RequestValidationProtocol):
@@ -67,9 +68,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
         """
         metadata = self._catalog.get(request.action_name)
         if metadata is None:
-            raise DispatchError(
-                f"Unknown action: {request.action_name}", DispatchErrorCategory.NOT_FOUND
-            )
+            raise DispatchError(f"Unknown action: {request.action_name}", DispatchErrorCategory.NOT_FOUND)
 
         warnings: list[str] = []
         self._validate_parameters(request, metadata, warnings)
@@ -84,16 +83,10 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
         # FR-DSP-003: Sync mode requires non-background-only action (warn if background-only)
         if exec_mode == "sync" and metadata.background_eligibility_flag and not metadata.read_only_flag:
-            warnings.append(
-                f"Action '{request.action_name}' is background-only; consider using background mode"
-            )
+            warnings.append(f"Action '{request.action_name}' is background-only; consider using background mode")
 
         # Destructive confirmation enforcement (FR-DSP-003)
-        if (
-            metadata.destructive_flag
-            and self._destructive_confirmation_enforced
-            and not request.confirmation_flag
-        ):
+        if metadata.destructive_flag and self._destructive_confirmation_enforced and not request.confirmation_flag:
             raise DispatchError(
                 f"Destructive action '{request.action_name}' requires explicit confirmation",
                 DispatchErrorCategory.CONFIRMATION,
@@ -101,12 +94,10 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
         # Timeout-override bounds (FR-DSP-003)
         if request.timeout_override is not None and (
-            request.timeout_override < 0
-            or request.timeout_override > self._max_timeout_override
+            request.timeout_override < 0 or request.timeout_override > self._max_timeout_override
         ):
             raise DispatchError(
-                f"Timeout override {request.timeout_override} out of bounds "
-                f"[0, {self._max_timeout_override}]",
+                f"Timeout override {request.timeout_override} out of bounds [0, {self._max_timeout_override}]",
                 DispatchErrorCategory.TIMEOUT,
             )
 
@@ -142,9 +133,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _validate_parameters(
-        self, request: ActionCommandVO, metadata: Any, warnings: list[str]
-    ) -> None:
+    def _validate_parameters(self, request: ActionCommandVO, metadata: Any, warnings: list[str]) -> None:
         """Validate parameters against the registered schema (FR-DSP-003)."""
         schema = getattr(metadata, "parameter_schema", {}) or {}
         properties = schema.get("properties", {}) or {}
@@ -153,9 +142,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
         # Required fields present
         for field_name in required:
             if field_name not in request.parameters:
-                raise DispatchError(
-                    f"Missing required parameter: {field_name}", DispatchErrorCategory.VALIDATION
-                )
+                raise DispatchError(f"Missing required parameter: {field_name}", DispatchErrorCategory.VALIDATION)
 
         # Unknown extra parameters (strict vs tolerant)
         declared_params = set(properties.keys())
@@ -166,9 +153,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
                     f"Unknown extra parameters: {', '.join(sorted(extra))}",
                     DispatchErrorCategory.VALIDATION,
                 )
-            warnings.append(
-                f"Unknown extra parameters ignored: {', '.join(sorted(extra))}"
-            )
+            warnings.append(f"Unknown extra parameters ignored: {', '.join(sorted(extra))}")
 
         # Per-field type / range / length / enum validation
         for field_name, value in request.parameters.items():
@@ -211,22 +196,19 @@ class RequestValidationExecutor(RequestValidationProtocol):
         if isinstance(value, str):
             if "minLength" in field_def and len(value) < field_def["minLength"]:
                 raise DispatchError(
-                    f"Parameter '{field_name}' length {len(value)} below minLength "
-                    f"{field_def['minLength']}",
+                    f"Parameter '{field_name}' length {len(value)} below minLength {field_def['minLength']}",
                     DispatchErrorCategory.VALIDATION,
                 )
             if "maxLength" in field_def and len(value) > field_def["maxLength"]:
                 raise DispatchError(
-                    f"Parameter '{field_name}' length {len(value)} above maxLength "
-                    f"{field_def['maxLength']}",
+                    f"Parameter '{field_name}' length {len(value)} above maxLength {field_def['maxLength']}",
                     DispatchErrorCategory.VALIDATION,
                 )
 
         # Enumerated allowed values
         if "enum" in field_def and value not in field_def["enum"]:
             raise DispatchError(
-                f"Parameter '{field_name}' value {value!r} not in allowed set "
-                f"{field_def['enum']}",
+                f"Parameter '{field_name}' value {value!r} not in allowed set {field_def['enum']}",
                 DispatchErrorCategory.VALIDATION,
             )
 

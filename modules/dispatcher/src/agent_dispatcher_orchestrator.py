@@ -130,19 +130,26 @@ class DispatcherOrchestrator(IDispatcherAggregate):
     def execute_action(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Execute an action through the full dispatcher pipeline.
 
-        This is the main facade method — validates, dispatches, and normalizes
-        in a single call for consumers who don't need intermediate results.
-        Takes an ActionCommandVO instead of separate action_name/parameters.
+        Respects the caller's execution_mode. Falls back to metadata flags
+        only when execution_mode is not explicitly set.
         """
         try:
             validated = self.validate_request(request)
 
-            bg_eligible = validated.resolved_metadata.get("background_eligibility_flag", False)
-            long_running = validated.resolved_metadata.get("long_running_flag", False)
+            # Respect caller's explicit execution mode choice
+            mode = validated.execution_mode
+            if mode == "background":
+                return self.submit_background(validated)
+            if mode == "sync":
+                return self.dispatch_sync(validated)
 
+            # Fallback: infer from metadata when mode is unset
+            bg_eligible = validated.resolved_metadata.get(
+                "background_eligibility_flag", False
+            )
+            long_running = validated.resolved_metadata.get("long_running_flag", False)
             if bg_eligible or long_running:
                 return self.submit_background(validated)
-
             return self.dispatch_sync(validated)
 
         except DispatchError as e:
