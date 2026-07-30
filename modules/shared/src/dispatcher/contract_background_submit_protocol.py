@@ -23,4 +23,4 @@ class BackgroundSubmitProtocol(ABC):
         FR-DSP-005: Creates job, returns task reference. Enforces capacity limits.
         Returns envelope indicating polling is required for final outcome.
         """
-        pass
+        ...

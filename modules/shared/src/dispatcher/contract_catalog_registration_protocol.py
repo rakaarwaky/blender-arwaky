@@ -22,4 +22,4 @@ class CatalogRegistrationProtocol(ABC):
         FR-DSP-001: Duplicate names are rejected or replaced per policy.
         Catalog exposes deterministic ordering sorted by action name.
         """
-        pass
+        ...

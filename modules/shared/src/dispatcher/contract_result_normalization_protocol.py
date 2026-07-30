@@ -26,4 +26,4 @@ class ResultNormalizationProtocol(ABC):
         FR-DSP-006: Never leaks secrets; truncates oversized data; falls back to safe error.
         Returns identical shape for CLI and MCP consumers.
         """
-        pass
+        ...
