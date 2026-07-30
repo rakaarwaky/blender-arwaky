@@ -7648,6 +7648,7 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
@@ -7664,6 +7665,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
+    TimeoutSeconds,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -7688,12 +7690,12 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         self._persist = persist_cap
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Delegate executable location/registration to the capabilities layer."""
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
         logger.info("Orchestrating launch (mode=%s)", mode.value)
         return self._launch.launch(mode, readiness_timeout_seconds)
@@ -7739,6 +7741,7 @@ import shutil
 from collections.abc import Callable
 from typing import Protocol
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
@@ -7776,7 +7779,7 @@ class ExecutableLocator(LocateRegisterProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable."""
         candidates = self._build_candidate_order(config, override)
         if not candidates:
@@ -7797,7 +7800,7 @@ class ExecutableLocator(LocateRegisterProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _build_candidate_order(
-        self, config: LauncherConfigVO, override: str | None
+        self, config: LauncherConfigVO, override: FilePath | None
     ) -> list[tuple[RegistrationSource, str]]:
         order: list[tuple[RegistrationSource, str]] = []
         if override:
@@ -7893,6 +7896,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchOutcomeVO,
     ProbeDepth,
     RuntimeState,
+    TimeoutSeconds,
 )
 
 
@@ -7929,7 +7933,7 @@ class ProcessLauncher(LaunchProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """Start Blender and confirm readiness within the configured timeout."""
         timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
 
@@ -8113,7 +8117,7 @@ class ProcessShutdown(ShutdownProtocol):
     def _wait_exit(self, _process_id: int) -> bool:
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
-            st = self._status.check_status(depth="lightweight")
+            st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
                 return True
             time.sleep(0.05)
@@ -8162,6 +8166,7 @@ from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycl
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ProbeDepth,
     RuntimeState,
+    RuntimeStateVO,
     RuntimeStatusVO,
 )
 
@@ -8189,7 +8194,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         liveness_checker: _LivenessChecker,
         pid_resolver: Callable[[], int | None],
         bridge_probe: _BridgeProbe | None = None,
-        persisted_state_resolver: Callable[[], RuntimeStatusVO | None] = lambda: None,
+        persisted_state_resolver: Callable[[], RuntimeStateVO | None] = lambda: None,
         stale_reconciliation_enabled: bool = True,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
@@ -8336,7 +8341,10 @@ class StatePersistence(PersistStateProtocol):
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
         data = self._to_dict(state)
-        return any(key in data for key in _SECRET_KEYS)
+        for key in _SECRET_KEYS:
+            if key in data:
+                return True
+        return False
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {
@@ -8385,33 +8393,29 @@ class StatePersistence(PersistStateProtocol):
 
 Wires concrete capabilities to the agent orchestrator and bootstraps the
 launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrchestrator).
-
-This file is the composition root for the launcher feature. It instantiates
-the five launcher capabilities (with real OS seams by default, injectable for
-tests), connects them to the aggregate facade, and provides the assembled
-orchestrator for dependency injection by callers.
 """
 
 from __future__ import annotations
 
 import logging
-import time
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
-from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
-from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
-from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
+    ILauncherOperateAggregate,
+)
+from modules.shared.src.launcher.contract_locate_register_protocol import (
+    LocateRegisterProtocol,
+)
+from modules.shared.src.launcher.contract_persist_state_protocol import (
+    PersistStateProtocol,
+)
+from modules.shared.src.launcher.contract_runtime_status_protocol import (
+    RuntimeStatusProtocol,
+)
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
 )
-
-from .agent_launcher_orchestrator import LauncherOrchestrator
-from .capabilities_executable_locator import ExecutableLocator
-from .capabilities_process_launcher import ProcessLauncher
-from .capabilities_process_shutdown import ProcessShutdown
-from .capabilities_runtime_status import RuntimeStatusChecker
-from .capabilities_state_persistence import StatePersistence
 from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
@@ -8421,15 +8425,17 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_version_check,
 )
 
+from .agent_launcher_orchestrator import LauncherOrchestrator
+from .capabilities_executable_locator import ExecutableLocator
+from .capabilities_process_launcher import ProcessLauncher
+from .capabilities_process_shutdown import ProcessShutdown
+from .capabilities_runtime_status import RuntimeStatusChecker
+from .capabilities_state_persistence import StatePersistence
+
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherContainer:
-    """Dependency injection container for the launcher feature module.
-
-    Wires the five launcher capabilities to the aggregate orchestrator.
-    """
-
     def __init__(self, config: LauncherConfigVO | None = None, state_path: str | None = None) -> None:
         self._config = config or LauncherConfigVO()
         self._state_path = state_path
@@ -8437,21 +8443,22 @@ class LauncherContainer:
         self._wired: bool = False
 
     def wire(self) -> None:
-        """Wire the five launcher capabilities to the orchestrator."""
         if self._wired:
             return
 
         logger.info("Wiring launcher feature module")
 
-        status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
-            liveness_checker=process_alive,
-            pid_resolver=self._resolve_active_pid,
-            bridge_probe=None,
-            persisted_state_resolver=self._load_persisted_status,
+        persist_cap: PersistStateProtocol = StatePersistence(
+            path_resolver=lambda: self._state_path,
         )
 
-        # Track launch time for uptime calculation (FR-LAU-004)
-        status_cap.mark_launched(time.monotonic())
+        status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
+            liveness_checker=process_alive,
+            pid_resolver=lambda: self._resolve_persisted_pid(persist_cap),
+            bridge_probe=None,
+            persisted_state_resolver=persist_cap.load,
+            stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
+        )
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
@@ -8470,9 +8477,6 @@ class LauncherContainer:
             timeout_seconds=self._config.shutdown_timeout_seconds,
             force_enabled=self._config.force_termination_enabled,
         )
-        persist_cap: PersistStateProtocol = StatePersistence(
-            path_resolver=lambda: self._state_path,
-        )
 
         self._orchestrator = LauncherOrchestrator(
             locate_register_cap=locate_cap,
@@ -8485,39 +8489,12 @@ class LauncherContainer:
         self._wired = True
         logger.info("Launcher feature module wired successfully")
 
-    def _load_persisted_status(self) -> dict | None:
-        """Load persisted runtime state for status resolution.
-
-        Returns dict with process_id or None if no state/missing/corrupt.
-        """
-        if not self._state_path:
-            return None
-        try:
-            import json
-            import os as _os
-
-            with open(self._state_path, encoding="utf-8") as fh:
-                data = json.load(fh)
-            if not isinstance(data, dict):
-                return None
-            pid = data.get("process_id")
-            return {"process_id": pid} if pid else None
-        except (OSError, json.JSONDecodeError, ValueError):
-            return None
-
-    def _resolve_active_pid(self) -> int | None:
-        """Resolve active process PID from persisted state."""
-        status = self._load_persisted_status()
-        if status and isinstance(status.get("process_id"), int):
-            return status["process_id"]
-        return None
+    def _resolve_persisted_pid(self, persist_cap: PersistStateProtocol) -> int | None:
+        state = persist_cap.load()
+        return state.process_id if state is not None else None
 
     @property
-    def agent(self) -> LauncherOrchestrator:
-        """Return the assembled launcher orchestrator facade.
-
-        Must call wire() first, or this property will raise RuntimeError.
-        """
+    def agent(self) -> ILauncherOperateAggregate:
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("LauncherContainer not wired — call wire() first")
         return self._orchestrator
@@ -8526,8 +8503,7 @@ class LauncherContainer:
 def create_launcher_feature(
     config: LauncherConfigVO | None = None,
     state_path: str | None = None,
-) -> LauncherOrchestrator:
-    """Factory function to create and wire the launcher feature module."""
+) -> ILauncherOperateAggregate:
     container = LauncherContainer(config=config, state_path=state_path)
     container.wire()
     return container.agent
@@ -8826,14 +8802,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import LaunchMode, LaunchOutcomeVO
+from .taxonomy_launcher_vo import LaunchMode, LaunchOutcomeVO, TimeoutSeconds
 
 
 class LaunchProtocol(ABC):
     """Protocol interface for launching the Blender process with readiness wait."""
 
     @abstractmethod
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """Start Blender with the integration component active and confirm readiness."""
         ...
 ```
@@ -8854,6 +8830,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
+
 from .taxonomy_launcher_vo import (
     LauncherConfigVO,
     LaunchMode,
@@ -8864,6 +8842,7 @@ from .taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
+    TimeoutSeconds,
 )
 
 
@@ -8874,12 +8853,12 @@ class ILauncherOperateAggregate(ABC):
     """
 
     @abstractmethod
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """FR-LAU-001: Locate and register the Blender executable."""
         ...
 
     @abstractmethod
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """FR-LAU-002: Launch Blender and confirm readiness."""
         ...
 
@@ -8914,6 +8893,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
+
 from .taxonomy_launcher_vo import LauncherConfigVO, RegistrationOutcomeVO
 
 
@@ -8921,7 +8902,7 @@ class LocateRegisterProtocol(ABC):
     """Protocol interface for discovering and registering the Blender executable."""
 
     @abstractmethod
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable per discovery order."""
         ...
 ```
@@ -9182,6 +9163,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from modules.shared.src.common.taxonomy_core_vo import DurationMs
+
 from .taxonomy_launcher_vo import RuntimeState
 
 
@@ -9197,10 +9180,10 @@ class LauncherLifecycleEvent:
     event_category: str = ""
     state_before: RuntimeState = RuntimeState.NOT_RUNNING
     state_after: RuntimeState = RuntimeState.NOT_RUNNING
-    process_reference: str = ""  # redacted process summary, not full env
-    method: str = ""  # launch or termination method when applicable
-    duration_ms: float = 0.0
-    reason_summary: str = ""  # already redacted
+    process_reference: str = ""
+    method: str = ""
+    duration_ms: DurationMs = DurationMs(0.0)
+    reason_summary: str = ""
 ```
 
 ---
@@ -9220,6 +9203,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from enum import Enum
+from typing import NewType
+
+TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 # ============================================================
 # Shared Taxonomy Enums (replaces primitive str types)
@@ -9542,8 +9528,8 @@ def process_probe_readiness(process_id: int, timeout_seconds: float) -> bool:
 ````markdown
 # PRD — blender-arwaky
 
-**Version:** 1.0.0  
-**Date:** 2026-07-29  
+**Version:** 1.0.0
+**Date:** 2026-07-29
 
 ---
 
@@ -9555,13 +9541,14 @@ Blender artists and pipeline engineers lack a unified, programmable interface to
 
 ## Goals & Success Metrics
 
-| Goal | Success Metric |
-|---|---|
-| **Remote Blender control** | All core Blender operations (scene, object, render, asset, camera) executable via CLI and MCP without opening Blender GUI |
-| **Safety by default** | Path traversal, code injection, and secret leakage prevented at architecture level — zero CVEs from delegated security layer |
-| **Background job tracking** | Long-running renders and downloads report progress, support cancellation, and auto-cleanup without blocking the caller |
-| **Observability built-in** | Health, metrics, audit, and structured logging available out of the box — no separate monitoring stack required |
-| **AI-agent ready** | Every capability accessible through MCP with identical semantics as CLI; no business logic in surface layers |
+
+| Goal                            | Success Metric                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote Blender control**      | All core Blender operations (scene, object, render, asset, camera) executable via CLI and MCP without opening Blender GUI        |
+| **Safety by default**           | Path traversal, code injection, and secret leakage prevented at architecture level — zero CVEs from delegated security layer    |
+| **Background job tracking**     | Long-running renders and downloads report progress, support cancellation, and auto-cleanup without blocking the caller           |
+| **Observability built-in**      | Health, metrics, audit, and structured logging available out of the box — no separate monitoring stack required                 |
+| **AI-agent ready**              | Every capability accessible through MCP with identical semantics as CLI; no business logic in surface layers                     |
 | **Deterministic configuration** | Settings resolved from file → env → defaults with strict schema validation; all features derive workspace root from one source |
 
 ---
@@ -9570,22 +9557,23 @@ Blender artists and pipeline engineers lack a unified, programmable interface to
 
 **blender-arwaky** consists of 14 interconnected feature modules:
 
-| Module | Summary |
-|---|---|
-| **Launcher** | Finds, launches, and terminates the Blender process. Single authority for process lifecycle. |
-| **Gateway** | Transport layer to Blender (socket/pipe). Manages connection, heartbeat, reconnection, operation queue, and raw Python code execution. |
-| **Config** | Reads and validates settings from file, environment, and defaults. Provides immutable snapshot, workspace root, and redaction rules to all modules. |
-| **Dispatcher** | Action catalog + routing. CLI and MCP never call domain modules directly — they submit requests to dispatcher, which validates, routes, and returns results in a standardized envelope. |
-| **Asset** | Searches, downloads, extracts, and imports external assets (including HDRI) into Blender. Delegates path/archive security to Security module. |
-| **Object** | Technical operations on 3D objects: create primitives, transform, material, modifier, delete, and inspect. One object per request. |
-| **Scene** | Scene state inspection and bulk cleanup. Determines preservation policy (cameras, lights, protected) and delegates deletion execution to Object. |
-| **Render** | Viewport screenshot, scene render, camera configuration (lens, framing, depth of field), and HDRI lighting. Long renders → Background Job. |
-| **Job** | Tracks background task lifecycle: create, progress, cancel, cleanup, capacity. Single authority for task records. |
-| **Security** | Path validation, archive extraction safety, untrusted code validation, sensitive value redaction, and audit events. All other modules delegate security decisions here. |
-| **Diagnostics** | Observability: health composition, operational metrics, audit events, structured logging, and diagnostics snapshot. No other module computes its own health. |
-| **CLI** | Terminal interface. Parses input, routes to owning feature aggregate, renders results. Zero business logic. |
-| **MCP** | Model Context Protocol interface. Every capability available in CLI is also available through MCP with identical semantics. |
-| **Telemetry** | Anonymous usage analytics (opt-in). Separate stream from diagnostics — never shares data, storage, or purpose. |
+
+| Module          | Summary                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Config**      | Reads and validates settings from file, environment, and defaults. Provides immutable snapshot, workspace root, and redaction rules to all modules.                                      |
+| **Security**    | Path validation, archive extraction safety, untrusted code validation, sensitive value redaction, and audit events. All other modules delegate security decisions here.                  |
+| **Launcher**    | Finds, launches, and terminates the Blender process. Single authority for process lifecycle.                                                                                             |
+| **Gateway**     | Transport layer to Blender (socket/pipe). Manages connection, heartbeat, reconnection, operation queue, and raw Python code execution.                                                   |
+| **Dispatcher**  | Action catalog + routing. CLI and MCP never call domain modules directly — they submit requests to dispatcher, which validates, routes, and returns results in a standardized envelope. |
+| **Object**      | Technical operations on 3D objects: create primitives, transform, material, modifier, delete, and inspect. One object per request.                                                       |
+| **Scene**       | Scene state inspection and bulk cleanup. Determines preservation policy (cameras, lights, protected) and delegates deletion execution to Object.                                         |
+| **Render**      | Viewport screenshot, scene render, camera configuration (lens, framing, depth of field), and HDRI lighting. Long renders → Background Job.                                              |
+| **Asset**       | Searches, downloads, extracts, and imports external assets (including HDRI) into Blender. Delegates path/archive security to Security module.                                            |
+| **Job**         | Tracks background task lifecycle: create, progress, cancel, cleanup, capacity. Single authority for task records.                                                                        |
+| **Diagnostics** | Observability: health composition, operational metrics, audit events, structured logging, and diagnostics snapshot. No other module computes its own health.                             |
+| **CLI**         | Terminal interface. Parses input, routes to owning feature aggregate, renders results. Zero business logic.                                                                              |
+| **MCP**         | Model Context Protocol interface. Every capability available in CLI is also available through MCP with identical semantics.                                                              |
+| **Telemetry**   | Anonymous usage analytics (opt-in). Separate stream from diagnostics — never shares data, storage, or purpose.                                                                          |
 
 ---
 
@@ -9679,19 +9667,19 @@ flowchart TB
 - **Blender Artist / TD**: Needs to automate renders, import assets, and clean up scenes without leaving their editor or CI pipeline.
 - **AI Agent Orchestrator**: An LLM or agent framework that controls Blender through MCP — needs predictable, safe, and well-documented capabilities.
 - **Pipeline Engineer**: Integrates Blender into a larger studio pipeline — needs headless operation, job tracking, and structured output (JSON).
-- **Technical Product Manager**: Evaluates the system for adoption — needs clear boundaries, security guarantees, and observable behavior.
 
 ---
 
 ## Non-functional Requirements
 
-| Area | Requirement |
-|---|---|
-| **Security** | All path/code/archive validation delegated to central Security feature. Redaction at ingestion for all outputs. Opt-in telemetry only. |
-| **Performance** | Health probes bounded by timeout (one slow subsystem never stalls composition). Metrics pull-based at configured interval. |
-| **Reliability** | Gateway reconnects with backoff. Audit/log sink failure → fallback buffer, never blocks originating op. Background jobs survive disconnects. |
-| **Portability** | Cross-platform path handling. Blender version compatibility range configurable. |
-| **Observability** | Structured logging, metrics, audit, and health snapshot available by default. No feature maintains private log format. |
+
+| Area              | Requirement                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Security**      | All path/code/archive validation delegated to central Security feature. Redaction at ingestion for all outputs. Opt-in telemetry only.        |
+| **Performance**   | Health probes bounded by timeout (one slow subsystem never stalls composition). Metrics pull-based at configured interval.                    |
+| **Reliability**   | Gateway reconnects with backoff. Audit/log sink failure → fallback buffer, never blocks originating op. Background jobs survive disconnects. |
+| **Portability**   | Cross-platform path handling. Blender version compatibility range configurable.                                                               |
+| **Observability** | Structured logging, metrics, audit, and health snapshot available by default. No feature maintains private log format.                        |
 
 ---
 

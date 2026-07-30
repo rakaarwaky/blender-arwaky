@@ -2,7 +2,7 @@
 """Export a selected module into a single consolidated Markdown file.
 
 The output includes the module's own source files, pyproject.toml (or setup.cfg),
-associated SKILL.md files from .agents/skills/<module>/, and any shared module
+important feature documentation (PRD.md, FRD.md, ARCHITECTURE.md), and any shared module
 transitively reachable through ``from modules.shared`` or ``import modules.shared``
 import paths.
 
@@ -692,15 +692,6 @@ def collect_module_files(module_path: Path, workspace_root: Path) -> set[Path]:
     for f in base_dir.rglob("*.py"):
         if f.is_file() and not _is_excluded(f):
             files.add(f)
-
-    # Include all skill markdown files from .agents/skills/*/SKILL.md
-    skills_dir = workspace_root / ".agents" / "skills"
-    if skills_dir.exists():
-        for skill_entry in sorted(skills_dir.iterdir()):
-            if skill_entry.is_dir() and not _is_excluded(skill_entry):
-                skill_md = skill_entry / "SKILL.md"
-                if skill_md.is_file() and not _is_excluded(skill_md):
-                    files.add(skill_md)
 
     return files
 

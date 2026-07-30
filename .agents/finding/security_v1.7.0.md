@@ -1,3 +1,5 @@
+yyo3p
+
 # Module: security (v1.7.0)
 
 This document contains the source code for module `security` along with related and imported definitions from the `shared` module.
@@ -65,6 +67,7 @@ This document contains the source code for module `security` along with related 
 - [modules/shared/src/security/taxonomy_security_constant.py](<modules/shared/src/security/taxonomy_security_constant.py>)
 - [modules/shared/src/security/taxonomy_security_vo.py](<modules/shared/src/security/taxonomy_security_vo.py>)
 - [modules/shared/src/security/utility_security_path.py](<modules/shared/src/security/utility_security_path.py>)
+- [modules/shared/src/security/utility_security_redactor.py](<modules/shared/src/security/utility_security_redactor.py>)
 - [PRD.md](<PRD.md>)
 - [pyproject.toml](<pyproject.toml>)
 - [README.md](<README.md>)
@@ -7642,9 +7645,8 @@ Orchestration only — no business logic, depends on individual capability proto
 Structure:
   1. Constants & imports
   2. SecurityOrchestrator — implements aggregate, delegates to 5 individual protocols
+  3. Helpers moved to Block 3
 """
-
-import logging
 
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.contract_extract_archive_protocol import ExtractArchiveProtocol
@@ -7652,15 +7654,16 @@ from modules.shared.src.security.contract_redact_sensitive_protocol import Redac
 from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_constant import SECURITY_SOURCE_FEATURE
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
+    AuditSeverity,
     CodeValidationVO,
     PathValidationVO,
     RedactionVO,
     SecurityAuditEventVO,
+    ViolationCategory,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class SecurityOrchestrator(ISecurityOperateAggregate):
@@ -7683,31 +7686,81 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
 
     # ─── Block 2: Aggregate Implementation ───────────────────
 
-    async def _delegate(self, method, request):
-        """Delegate to a capability method with correlation_id logging."""
-        corr = getattr(request, 'correlation_id', None) or "n/a"
-        logger.info("Orchestrating %s corr=%s", method.__name__, corr)
-        return await method(request)
-
     async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
-        """Delegate path validation to the capabilities layer."""
-        return await self._delegate(self._validate_path.validate_path, request)
+        """Delegate path validation to the capabilities layer and emit audit on denial."""
+        result = await self._validate_path.validate_path(request)
+
+        if not result.allowed:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.PATH_TRAVERSAL,
+                    operation_type="validate_path",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason=result.denial_reason or "Path validation denied",
+                )
+            )
+
+        return result
 
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
-        """Delegate archive extraction validation to the capabilities layer."""
-        return await self._delegate(self._validate_archive.validate_extraction, request)
+        """Delegate archive extraction validation and emit audit on denial/rejection."""
+        result = await self._validate_archive.validate_extraction(request)
+
+        if not result.allowed or result.rejected_entries:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.UNSAFE_ARCHIVE_ENTRY,
+                    operation_type="validate_extraction",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Archive extraction denied or entries rejected",
+                )
+            )
+
+        return result
 
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
-        """Delegate code validation to the capabilities layer."""
-        return await self._delegate(self._validate_code.validate_code, request)
+        """Delegate code validation and emit audit on denial/violations."""
+        result = await self._validate_code.validate_code(request)
+
+        if not result.allowed or result.violations:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.CODE_VIOLATION,
+                    operation_type="validate_code",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Code validation denied",
+                )
+            )
+
+        return result
 
     async def redact(self, request: RedactionVO) -> RedactionVO:
-        """Delegate redaction to the capabilities layer."""
-        return await self._delegate(self._redact.redact, request)
+        """Delegate redaction and emit audit on failure."""
+        result = await self._redact.redact(request)
+
+        if result.failed:
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.REDACTION_FAILURE,
+                    operation_type="redact",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata={},
+                    severity=AuditSeverity.ERROR,
+                    redacted_reason=result.failure_reason or "Redaction failed",
+                )
+            )
+
+        return result
 
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
         """Delegate audit emission to the capabilities layer."""
-        return await self._delegate(self._emit_audit.emit_audit, event)
+        return await self._emit_audit.emit_audit(event)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
@@ -7739,25 +7792,30 @@ from modules.shared.src.security.contract_extract_archive_protocol import Extrac
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
+    SecurityPolicyVO,
 )
-from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
+from modules.shared.src.security.utility_security_path import (
+    is_within_allowed_dirs,
+    normalize_path,
+)
 
 
 class ArchiveGuard(ExtractArchiveProtocol):
     """Validates archive extraction against safety policy."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self) -> None:
-        pass
+    def __init__(self, policy: SecurityPolicyVO | None = None) -> None:
+        self._policy = policy or SecurityPolicyVO()
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Validate and guard archive extraction against safety policy."""
         opts = request.options
-        dest = normalize_path(request.destination_directory)
+        dest = request.destination_directory
         rejected: list[RejectedEntryVO] = []
         warnings: list[str] = []
 
+        # Check for missing destination BEFORE normalization
         if not dest:
             return ArchiveExtractionVO(
                 destination_directory=request.destination_directory,
@@ -7765,18 +7823,28 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 options=request.options,
                 allowed=False,
                 rejected_entries=tuple(rejected),
-                warnings=tuple(warnings),
+                warnings=tuple(["Missing destination directory"]),
                 audit_metadata={"rule": "missing_destination"},
             )
 
+        dest_normalized = normalize_path(dest)
+
         # Validate destination is within allowed directories (FR-SEC-002)
-        if not is_within_allowed_dirs(dest, []):
-            # No allowed_directories configured — allow extraction to proceed
-            # Callers should validate allowed_directories before invoking ArchiveGuard.
-            pass
+        allowed_dirs = self._policy.allowed_directories
+        if allowed_dirs and not is_within_allowed_dirs(dest_normalized, allowed_dirs):
+            return ArchiveExtractionVO(
+                destination_directory=request.destination_directory,
+                entries=request.entries,
+                options=request.options,
+                allowed=False,
+                rejected_entries=tuple(rejected),
+                warnings=tuple(["Destination outside allowed directories"]),
+                audit_metadata={"rule": "unauthorized_archive_destination"},
+            )
 
         total_size = 0
         entry_count = 0
+        max_total_size = opts.max_total_size
 
         for entry in request.entries:
             entry_count += 1
@@ -7794,7 +7862,12 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 continue
 
             if entry.uncompressed_size > opts.max_entry_size:
-                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason=f"Entry exceeds maximum size: {entry.uncompressed_size} > {opts.max_entry_size}"))
+                rejected.append(
+                    RejectedEntryVO(
+                        entry_path=entry.entry_path,
+                        reason=f"Entry exceeds maximum size: {entry.uncompressed_size} > {opts.max_entry_size}",
+                    )
+                )
                 continue
 
             if os.path.isabs(entry.entry_path):
@@ -7805,35 +7878,33 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Path traversal in entry path"))
                 continue
 
-            entry_resolved = os.path.normpath(os.path.join(dest, entry.entry_path))
-            if not entry_resolved.startswith(dest + os.sep) and entry_resolved != dest:
-                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory"))
+            entry_resolved = os.path.normpath(os.path.join(dest_normalized, entry.entry_path))
+            if not entry_resolved.startswith(dest_normalized + os.sep) and entry_resolved != dest_normalized:
+                rejected.append(
+                    RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory")
+                )
                 continue
 
             # Depth check: count nesting levels relative to destination (FR-SEC-002)
-            if len(entry_resolved) > len(dest):
-                relative = entry_resolved[len(dest):]
-                nesting_depth = relative.count(os.sep)
-                if nesting_depth > opts.max_depth:
-                    rejected.append(RejectedEntryVO(
+            relative = os.path.relpath(entry_resolved, dest_normalized)
+            nesting_depth = 0 if relative == "." else relative.count(os.sep) + 1
+            if nesting_depth > opts.max_depth:
+                rejected.append(
+                    RejectedEntryVO(
                         entry_path=entry.entry_path,
                         reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
-                    ))
-                    continue
+                    )
+                )
+                continue
 
             total_size += entry.uncompressed_size
 
-        if total_size > opts.max_total_size:
-            return ArchiveExtractionVO(
-                destination_directory=request.destination_directory,
-                entries=request.entries,
-                options=request.options,
-                allowed=False,
-                safe_destination=dest,
-                rejected_entries=tuple(rejected),
-                warnings=tuple(warnings + [f"Total extracted size {total_size} exceeds limit {opts.max_total_size}"]),
-                audit_metadata={"rule": "total_size_exceeded", "total_size": total_size},
-            )
+            # Stop early if total size exceeds limit
+            if total_size > max_total_size:
+                warning_msg = "Total extracted size exceeds limit"
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason=warning_msg))
+                warnings.append(warning_msg)
+                break
 
         allowed = len(rejected) == 0
         return ArchiveExtractionVO(
@@ -7841,7 +7912,7 @@ class ArchiveGuard(ExtractArchiveProtocol):
             entries=request.entries,
             options=request.options,
             allowed=allowed,
-            safe_destination=dest,
+            safe_destination=dest_normalized,
             rejected_entries=tuple(rejected),
             warnings=tuple(warnings),
             audit_metadata={"entry_count": entry_count, "total_size": total_size},
@@ -7862,48 +7933,24 @@ class ArchiveGuard(ExtractArchiveProtocol):
 Emits structured security audit events for violations, suspicious activity, and policy overrides.
 Implements EmitAuditProtocol.
 
-FR-SEC-004: tokens/credentials/passwords must not appear in logs. Audit events are
-observability output, so any sensitive value nested in `target_metadata` (or
+FR-SEC-004: tokens/credentials/auth tokens must not appear in logs. Audit events are
+observability output, so a sensitive value nested in `target_metadata` (or
 `redacted_reason`) is redacted at the sink before emission — defense-in-depth that
-complements SensitiveRedactor and protects against callers passing raw secrets.
+complements SensitiveRedactor and protects against callers providing raw secrets.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 import time
 import uuid
-from typing import Any, Protocol
+from typing import Protocol
 
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
-from modules.shared.src.security.taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO
+from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
 logger = logging.getLogger(__name__)
-
-# Pre-compiled patterns shared from taxonomy constant (AES305 fix).
-_SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
-    re.compile(p) for p in REDACTION_SENSITIVE_PATTERNS
-)
-
-
-def _redact_sensitive(value: object) -> Any:
-    """Recursively mask obvious secret shapes in nested audit metadata.
-
-    Strings are pattern-redacted; dict/list/tuple are walked without mutating the
-    caller's input object. Non-text scalars pass through untouched.
-    """
-    if isinstance(value, str):
-        text = value
-        for pattern in _SENSITIVE_PATTERNS:
-            text = pattern.sub("[REDACTED]", text)
-        return text
-    if isinstance(value, dict):
-        return {key: _redact_sensitive(val) for key, val in value.items()}
-    if isinstance(value, (list, tuple)):
-        return type(value)(_redact_sensitive(item) for item in value)
-    return value
 
 
 class _AuditSink(Protocol):
@@ -7916,8 +7963,13 @@ class AuditEmitter(EmitAuditProtocol):
     """Emits structured security audit events with fallback on sink failure."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, sink: _AuditSink | None = None) -> None:
+    def __init__(
+        self,
+        sink: _AuditSink | None = None,
+        fallback_buffer: list[SecurityAuditEventVO] | None = None,
+    ) -> None:
         self._sink = sink
+        self._fallback_buffer: list[SecurityAuditEventVO] = fallback_buffer if fallback_buffer is not None else []
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:
@@ -7926,15 +7978,23 @@ class AuditEmitter(EmitAuditProtocol):
         FR-SEC-004: redact sensitive values from `target_metadata` / `redacted_reason`
         before emission so secrets never reach the observability sink, regardless of
         whether the caller pre-redacted. The caller's input event is never mutated.
+
+        FR-SEC-005: when sink delivery fails, creates a fallback record stored in
+        _fallback_buffer instead of discarding it.
         """
+        raw_meta = redact_sensitive(event.target_metadata) if event.target_metadata else {}
+        safe_metadata = raw_meta if isinstance(raw_meta, dict) else {}
+        raw_reason = redact_sensitive(event.redacted_reason) if event.redacted_reason else None
+        safe_reason = str(raw_reason) if raw_reason is not None else None
+
         emitted = SecurityAuditEventVO(
             violation_category=event.violation_category,
             operation_type=event.operation_type,
             source_feature=event.source_feature,
-            target_metadata=_redact_sensitive(event.target_metadata),  # FR-SEC-004
+            target_metadata=safe_metadata,
             severity=event.severity,
             correlation_id=event.correlation_id,
-            redacted_reason=_redact_sensitive(event.redacted_reason) if event.redacted_reason else None,
+            redacted_reason=safe_reason,
             event_id=uuid.uuid4().hex[:16],
             timestamp=time.time(),
             policy_mode=event.policy_mode,
@@ -7944,20 +8004,27 @@ class AuditEmitter(EmitAuditProtocol):
             try:
                 self._sink.deliver(emitted)
             except Exception as exc:
-                # FR-SEC-005: audit sink unavailable — create local fallback record
-                logger.warning("Audit sink delivery failed: %s", exc)
-                SecurityAuditEventVO(
+                exc_str = redact_sensitive(str(exc))
+                safe_exc = str(exc_str)
+                fallback = SecurityAuditEventVO(
                     violation_category=event.violation_category,
                     operation_type=event.operation_type,
                     source_feature=event.source_feature,
-                    target_metadata=_redact_sensitive(event.target_metadata),
+                    target_metadata=safe_metadata,
                     severity=AuditSeverity.ERROR,
                     correlation_id=event.correlation_id,
-                    redacted_reason=_redact_sensitive(event.redacted_reason) if event.redacted_reason else None,
+                    redacted_reason=safe_exc,
                     event_id=uuid.uuid4().hex[:16],
                     timestamp=time.time(),
                     policy_mode="fallback",
                 )
+                self._fallback_buffer.append(fallback)
+                logger.warning(
+                    "Audit sink delivery failed; fallback record created: %s",
+                    safe_exc,
+                )
+        else:
+            self._fallback_buffer.append(emitted)
 
         return emitted
 
@@ -8015,7 +8082,11 @@ class CodeValidator(ValidateCodeProtocol):
                 strict_mode=request.strict_mode,
                 execution_context=request.execution_context,
                 allowed=False,
-                violations=(CodeViolationVO(category="size_limit", description=f"Code too large: {code_bytes} > {request.max_code_size}"),),
+                violations=(
+                    CodeViolationVO(
+                        category="size_limit", description=f"Code too large: {code_bytes} > {request.max_code_size}"
+                    ),
+                ),
                 audit_metadata={"rule": "code_oversized", "size": code_bytes},
             )
 
@@ -8051,10 +8122,20 @@ class CodeValidator(ValidateCodeProtocol):
                     max_code_size=request.max_code_size,
                     strict_mode=request.strict_mode,
                     allowed=False,
-                    violations=(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg} at line {exc.lineno}", location_hint=f"line {exc.lineno}"),),
+                    violations=(
+                        CodeViolationVO(
+                            category="syntax_error",
+                            description=f"Syntax error: {exc.msg} at line {exc.lineno}",
+                            location_hint=f"line {exc.lineno}",
+                        ),
+                    ),
                     audit_metadata={"rule": "syntax_error", "line": exc.lineno},
                 )
-            violations.append(CodeViolationVO(category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"))
+            violations.append(
+                CodeViolationVO(
+                    category="syntax_error", description=f"Syntax error: {exc.msg}", location_hint=f"line {exc.lineno}"
+                )
+            )
             # Non-strict mode records the syntax error as a violation and stops:
             # an unparseable tree cannot be walked, so do not fall through to ast.walk.
             return CodeValidationVO(
@@ -8073,18 +8154,34 @@ class CodeValidator(ValidateCodeProtocol):
                 for alias in node.names:
                     mod = alias.name.split(".")[0]
                     if mod in blocked_modules:
-                        violations.append(CodeViolationVO(category="blocked_module_import", description=f"Blocked import: {alias.name}"))
+                        violations.append(
+                            CodeViolationVO(
+                                category="blocked_module_import", description=f"Blocked import: {alias.name}"
+                            )
+                        )
             elif isinstance(node, ast.ImportFrom):
                 if node.module:
                     mod = node.module.split(".")[0]
                     if mod in blocked_modules:
-                        violations.append(CodeViolationVO(category="blocked_module_import", description=f"Blocked import from: {node.module}"))
+                        violations.append(
+                            CodeViolationVO(
+                                category="blocked_module_import", description=f"Blocked import from: {node.module}"
+                            )
+                        )
             elif isinstance(node, ast.Call):
                 func = node.func
                 if isinstance(func, ast.Name) and func.id in blocked_functions:
-                    violations.append(CodeViolationVO(category="blocked_function_call", description=f"Blocked function call: {func.id}()"))
+                    violations.append(
+                        CodeViolationVO(
+                            category="blocked_function_call", description=f"Blocked function call: {func.id}()"
+                        )
+                    )
                 elif isinstance(func, ast.Attribute) and func.attr in blocked_functions:
-                    violations.append(CodeViolationVO(category="blocked_function_call", description=f"Blocked method call: .{func.attr}()"))
+                    violations.append(
+                        CodeViolationVO(
+                            category="blocked_function_call", description=f"Blocked method call: .{func.attr}()"
+                        )
+                    )
 
         allowed = len(violations) == 0
         return CodeValidationVO(
@@ -8105,9 +8202,17 @@ class CodeValidator(ValidateCodeProtocol):
             functions = set()
             for construct in self._policy.blocked_code_constructs:
                 if construct in {
-                    "os", "subprocess", "shutil", "importlib", "sys",
-                    "socket", "ctypes", "multiprocessing", "threading",
-                    "signal", "pickle",
+                    "os",
+                    "subprocess",
+                    "shutil",
+                    "importlib",
+                    "sys",
+                    "socket",
+                    "ctypes",
+                    "multiprocessing",
+                    "threading",
+                    "signal",
+                    "pickle",
                 }:
                     modules.add(construct)
                 else:
@@ -8116,11 +8221,35 @@ class CodeValidator(ValidateCodeProtocol):
 
         # Defaults (preserved for backward compatibility)
         return (
-            frozenset({"os", "subprocess", "shutil", "importlib", "sys",
-                        "socket", "ctypes", "multiprocessing", "threading",
-                        "signal", "pickle"}),
-            frozenset({"eval", "exec", "compile", "__import__", "breakpoint",
-                       "globals", "locals", "getattr", "setattr", "delattr"}),
+            frozenset(
+                {
+                    "os",
+                    "subprocess",
+                    "shutil",
+                    "importlib",
+                    "sys",
+                    "socket",
+                    "ctypes",
+                    "multiprocessing",
+                    "threading",
+                    "signal",
+                    "pickle",
+                }
+            ),
+            frozenset(
+                {
+                    "eval",
+                    "exec",
+                    "compile",
+                    "__import__",
+                    "breakpoint",
+                    "globals",
+                    "locals",
+                    "getattr",
+                    "setattr",
+                    "delattr",
+                }
+            ),
         )
 
     def __repr__(self) -> str:
@@ -8148,13 +8277,31 @@ from modules.shared.src.security.taxonomy_security_vo import (
     PathValidationVO,
     SecurityPolicyVO,
 )
-from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
+from modules.shared.src.security.utility_security_path import (
+    is_within_allowed_dirs,
+    normalize_path,
+    resolve_path,
+)
 
 
 class _PathResolver(Protocol):
     """Protocol for resolving canonical paths (DI boundary)."""
 
     def resolve(self, path: str) -> str: ...
+
+
+class _OsPathResolver:
+    """Default resolver using os.path.realpath."""
+
+    def resolve(self, path: str) -> str:
+        return resolve_path(path)
+
+
+def _redact_path(path: str) -> str:
+    parts = path.replace("\\", "/").split("/")
+    if len(parts) <= 2:
+        return "***"
+    return "/" + "/".join(["***"] + list(parts[-2:]))
 
 
 class PathValidator(ValidatePathProtocol):
@@ -8167,7 +8314,7 @@ class PathValidator(ValidatePathProtocol):
         path_resolver: _PathResolver | None = None,
     ) -> None:
         self._policy = policy
-        self._resolver = path_resolver
+        self._resolver = path_resolver or _OsPathResolver()
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_path(self, request: PathValidationVO) -> PathValidationVO:
@@ -8184,66 +8331,60 @@ class PathValidator(ValidatePathProtocol):
                 audit_metadata={"rule": "empty_path"},
             )
 
-        if not os.path.isabs(target):
-            base = request.base_directory or (self._policy.allowed_directories[0] if self._policy.allowed_directories else None)
-            if base is None:
-                return PathValidationVO(
-                    target_path=request.target_path,
-                    access_mode=request.access_mode,
-                    allowed=False,
-                    denial_reason="No base directory configured and policy has no allowed directories",
-                    audit_metadata={"rule": "no_allowed_directory"},
-                )
-            target = os.path.join(base, target)
-
-        try:
-            normalized = normalize_path(target)
-        except (OSError, ValueError) as exc:
+        # Check for path traversal BEFORE normalization
+        if ".." in target.replace("\\", "/").split("/"):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
-                allowed=False,
-                denial_reason=f"Path resolution failed: {exc}",
-                audit_metadata={"rule": "path_resolution_failed"},
-            )
-
-        if ".." in normalized.split(os.sep):
-            return PathValidationVO(
-                target_path=request.target_path,
-                access_mode=request.access_mode,
+                base_directory=request.base_directory,
+                operation_context=request.operation_context,
                 allowed=False,
                 denial_reason="Path traversal detected",
                 audit_metadata={"rule": "path_traversal"},
             )
 
-        if self._resolver:
-            try:
-                resolved = self._resolver.resolve(normalized)
-                if resolved != normalized:
-                    return PathValidationVO(
-                        target_path=request.target_path,
-                        access_mode=request.access_mode,
-                        allowed=False,
-                        denial_reason="Symbolic link escape",
-                        audit_metadata={"rule": "symlink_escape", "path": _redact_path(normalized)},
-                    )
-            except (OSError, ValueError):
-                return PathValidationVO(
-                    target_path=request.target_path,
-                    access_mode=request.access_mode,
-                    allowed=False,
-                    denial_reason="Symlink resolution failed",
-                    audit_metadata={"rule": "symlink_resolution_failed"},
-                )
+        if not os.path.isabs(target):
+            base = request.base_directory
+            if base is None and self._policy.allowed_directories:
+                base = self._policy.allowed_directories[0]
 
-        allowed_dirs = list(self._policy.allowed_directories) if self._policy.allowed_directories else []
-        if not is_within_allowed_dirs(normalized, allowed_dirs):
+            if base is None:
+                base = "/"
+
+            target = os.path.join(base, target)
+
+        try:
+            normalized = normalize_path(target)
+            resolved = self._resolver.resolve(normalized)
+        except (OSError, ValueError):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
                 allowed=False,
+                denial_reason="Symlink resolution failed",
+                audit_metadata={"rule": "path_resolution_failed"},
+            )
+
+        # Symlink escape check
+        if resolved != normalized:
+            return PathValidationVO(
+                target_path=request.target_path,
+                access_mode=request.access_mode,
+                allowed=False,
+                denial_reason="Symbolic link escape",
+                audit_metadata={"rule": "symlink_escape", "path": _redact_path(resolved)},
+            )
+
+        allowed_dirs = self._policy.allowed_directories
+        if allowed_dirs and not is_within_allowed_dirs(resolved, allowed_dirs):
+            return PathValidationVO(
+                target_path=request.target_path,
+                access_mode=request.access_mode,
+                base_directory=request.base_directory,
+                operation_context=request.operation_context,
+                allowed=False,
                 denial_reason="Path outside allowed directories",
-                audit_metadata={"rule": "unauthorized_access", "path": _redact_path(normalized)},
+                audit_metadata={"rule": "unauthorized_access", "path": _redact_path(resolved)},
             )
 
         return PathValidationVO(
@@ -8252,20 +8393,13 @@ class PathValidator(ValidatePathProtocol):
             base_directory=request.base_directory,
             operation_context=request.operation_context,
             allowed=True,
-            canonical_path=normalized,
-            audit_metadata={"path": _redact_path(normalized), "mode": request.access_mode.value},
+            canonical_path=resolved,
+            audit_metadata={"path": _redact_path(resolved), "mode": request.access_mode.value},
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def __repr__(self) -> str:
         return "PathValidator()"
-
-
-def _redact_path(path: str) -> str:
-    parts = path.replace("\\", "/").split("/")
-    if len(parts) <= 2:
-        return "***"
-    return "/".join(["***"] + parts[-2:])
 ```
 
 ---
@@ -8283,11 +8417,12 @@ from __future__ import annotations
 
 import re
 
+from modules.shared.src.security import taxonomy_security_constant
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-
-# ─── Taxonomy imports ─────────────────────
-from modules.shared.src.security.taxonomy_security_constant import KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
+
+KV_VALUE = taxonomy_security_constant.KV_VALUE
+REDACTION_SENSITIVE_PATTERNS = taxonomy_security_constant.REDACTION_SENSITIVE_PATTERNS
 
 
 class SensitiveRedactor(RedactSensitiveProtocol):
@@ -8304,7 +8439,11 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def redact(self, request: RedactionVO) -> RedactionVO:
-        """Detect and redact sensitive values from text."""
+        """Detect and redact sensitive values from text.
+
+        FR-SEC-004: preserves non-sensitive key names during key-based redaction,
+        replacing only the value portion with [REDACTED].
+        """
         try:
             text = request.text
             redacted_count = 0
@@ -8316,18 +8455,14 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
             all_keys = self._key_names + request.key_names
             for key in all_keys:
-                # Quoted-key aware so custom key names also match JSON/`"key": "value"` forms
-                # — FR-SEC-004 nested/structured. Value half reuses KV_VALUE so spaced
-                # quoted values are consumed whole.
-                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + KV_VALUE
-                text, count = re.subn(pattern, "[REDACTED]", text)
+                # Case-insensitive quoted-key aware matching
+                pattern = rf'((["\']?)(?i:{re.escape(key)})\2\s*[:=]\s*)' + KV_VALUE
+                text, count = re.subn(pattern, r"\1[REDACTED]", text)
                 redacted_count += count
 
             if len(text) > 10_000:
                 text = text[:10_000] + "\n[TRUNCATED]"
 
-            # FR-SEC-004: the returned `text` carries the redacted (safe) output,
-            # never the raw secret — any consumer reading `.text` stays leak-free.
             return RedactionVO(
                 text=text,
                 sensitivity_level=request.sensitivity_level,
@@ -8337,8 +8472,6 @@ class SensitiveRedactor(RedactSensitiveProtocol):
                 redacted_count=redacted_count,
             )
         except Exception as exc:
-            # FR-SEC-004: on failure, prefer masking the entire payload over
-            # leaking the original secret — never echo request.text back.
             return RedactionVO(
                 text="[REDACTION_FAILED]",
                 sensitivity_level=request.sensitivity_level,
@@ -8375,6 +8508,7 @@ import logging
 
 from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
+from modules.shared.src.security.utility_security_path import resolve_path
 
 from .agent_security_orchestrator import SecurityOrchestrator
 from .capabilities_archive_guard import ArchiveGuard
@@ -8384,6 +8518,13 @@ from .capabilities_path_validator import PathValidator
 from .capabilities_sensitive_redactor import SensitiveRedactor
 
 logger = logging.getLogger("BlenderMCPServer")
+
+
+class _OsPathResolver:
+    """Adapter exposing utility resolve_path as a resolver protocol."""
+
+    def resolve(self, path: str) -> str:
+        return resolve_path(path)
 
 
 class SecurityContainer:
@@ -8418,11 +8559,17 @@ class SecurityContainer:
         logger.info("Wiring security feature module (5 individual capabilities)")
 
         # Capabilities layer — each implements its own protocol
-        validate_path_cap = PathValidator(policy=self._policy)
-        validate_archive_cap = ArchiveGuard()
+        validate_path_cap = PathValidator(
+            policy=self._policy,
+            path_resolver=_OsPathResolver(),
+        )
+        validate_archive_cap = ArchiveGuard(policy=self._policy)
         validate_code_cap = CodeValidator(policy=self._policy)
-        redact_cap = SensitiveRedactor()
-        emit_audit_cap = AuditEmitter()
+        redact_cap = SensitiveRedactor(
+            extra_patterns=self._policy.redaction_patterns,
+            extra_key_names=self._policy.redaction_key_names,
+        )
+        emit_audit_cap = AuditEmitter(sink=None, fallback_buffer=[])
 
         # Agent layer — implements aggregate, depends on all 5 protocols
         self._orchestrator = SecurityOrchestrator(
@@ -8531,6 +8678,7 @@ class AssetSearchVO:
     Input: query.
     Output: assets, total, next_token, provider.
     """
+
     # Input
     query: SearchQuery
     # Output
@@ -8547,6 +8695,7 @@ class AssetDownloadVO:
     Input: asset_id, destination_path.
     Output: success, file_path, message.
     """
+
     # Input
     asset_id: AssetId
     destination_path: FilePath
@@ -8563,12 +8712,14 @@ class ImportGlbVO:
     Input: file_path, object_name.
     Output: success, object_name, message.
     """
+
     # Input
     file_path: str
     object_name: ObjectName | None = None
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -8578,6 +8729,7 @@ class ExportModelVO:
     Input: object_name, file_path, export_format.
     Output: success, message.
     """
+
     # Input
     object_name: ObjectName
     file_path: str
@@ -8585,6 +8737,7 @@ class ExportModelVO:
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
     message: str = ""
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -8612,6 +8765,7 @@ class AssetDownloadCacheVO:
     integrity_ok: bool = True
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -8635,6 +8789,7 @@ class AssetExtractArchiveVO:
     rejected_entries: tuple[str, ...] = field(default_factory=tuple)
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -8660,6 +8815,7 @@ class AssetImportBlenderVO:
     license_summary: str | None = None
     message: str = ""
     error: ErrorMessage | None = None
+    error_summary: str | None = None
 
 
 @dataclass(frozen=True)
@@ -9232,8 +9388,8 @@ SECURITY_SOURCE_FEATURE: str = "security"
 # Shared Redaction Patterns (AES305 — single source of truth)
 # ============================================================
 
-# Quoted-key aware value half — matches shell (password=secret), YAML
-# (password: secret), and JSON ("password": "secret") forms.
+# Quoted-key aware value half — matches shell (cred=secret), YAML
+# (cred: secret), and JSON ("cred": "secret") forms.
 KV_VALUE: str = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
 
 REDACTION_SENSITIVE_PATTERNS: tuple[str, ...] = (
@@ -9261,7 +9417,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from enum import Enum
-from typing import Any, NewType
+from typing import NewType
 
 # ============================================================
 # Access Mode
@@ -9300,7 +9456,7 @@ class PathValidationVO:
     allowed: bool = False
     canonical_path: str | None = None
     denial_reason: str | None = None
-    audit_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -9357,7 +9513,7 @@ class ArchiveExtractionVO:
     safe_destination: str | None = None
     rejected_entries: tuple[RejectedEntryVO, ...] = dc_field(default_factory=tuple)
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
-    audit_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -9390,8 +9546,8 @@ class CodeValidationVO:
     # Output
     allowed: bool = False
     violations: tuple[CodeViolationVO, ...] = dc_field(default_factory=tuple)
-    redacted_metadata: dict = dc_field(default_factory=dict)
-    audit_metadata: dict = dc_field(default_factory=dict)
+    redacted_metadata: dict[str, object] = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -9410,14 +9566,7 @@ class SensitivityLevel(str, Enum):
 
 @dataclass(frozen=True)
 class RedactionVO:
-    """Unified redaction — input and output in one VO.
-
-    Caller provides ``text`` (the value to redact) as input.
-    Callee returns ``text`` as the redacted (safe) output and also populates
-    ``redacted_text``, ``redacted_count``, ``failed``, ``failure_reason``.
-    The returned RedactionVO never contains the original secret (FR-SEC-004):
-    on success ``text`` is the redacted value; on failure it is masked.
-    """
+    """Unified redaction — input and output in one VO."""
 
     # Input
     text: str = ""
@@ -9459,17 +9608,13 @@ class ViolationCategory(str, Enum):
 
 @dataclass(frozen=True)
 class SecurityAuditEventVO:
-    """Unified security audit event — input context and emitted event in one VO.
-
-    Caller sets violation_category, operation_type, source_feature, severity, etc.
-    Callee sets event_id, timestamp, policy_mode.
-    """
+    """Unified security audit event — input context and emitted event in one VO."""
 
     # Input (context)
     violation_category: ViolationCategory = ViolationCategory.PATH_TRAVERSAL
     operation_type: str = ""
     source_feature: str = ""
-    target_metadata: dict = dc_field(default_factory=dict)
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
     severity: AuditSeverity = AuditSeverity.WARNING
     correlation_id: str | None = None
     redacted_reason: str | None = None
@@ -9514,7 +9659,7 @@ FileSize = NewType("FileSize", int)
 # Metadata Type
 # ============================================================
 
-MetadataMap = dict[str, Any]
+MetadataMap = dict[str, object]
 ```
 
 ---
@@ -9543,21 +9688,96 @@ def normalize_path(path: str) -> str:
     return os.path.normpath(os.path.abspath(path))
 
 
-def is_within_allowed_dirs(target: str, allowed_dirs: list[str]) -> bool:
+def resolve_path(path: str) -> str:
+    """Return the canonical resolved path, following symlinks safely."""
+    return os.path.realpath(os.path.abspath(path))
+
+
+def is_within_allowed_dirs(
+    target: str,
+    allowed_dirs: list[str] | tuple[str, ...],
+    *,
+    allow_empty: bool = False,
+) -> bool:
     """Return ``True`` when *target* resolves inside one of *allowed_dirs*.
 
-    Both *target* and each entry in *allowed_dirs* are normalized before
-    comparison. An empty *allowed_dirs* list implies no restriction
-    (returns ``True``).
+    For security enforcement, allow_empty defaults to False: an empty
+    allow-list means no directory is allowed (deny by default).
     """
     if not allowed_dirs:
-        return True
+        return allow_empty
+
     norm_target = normalize_path(target)
+
     for allowed_dir in allowed_dirs:
         norm_allowed = normalize_path(allowed_dir)
-        if norm_target.startswith(norm_allowed + os.sep) or norm_target == norm_allowed:
+        if norm_target == norm_allowed:
             return True
+        if norm_target.startswith(norm_allowed + os.sep):
+            return True
+
     return False
+```
+
+---
+
+## File: modules/shared/src/security/utility_security_redactor.py
+
+```python
+"""Security utility: stateless sensitive-value redaction."""
+
+from __future__ import annotations
+
+import re
+
+from .taxonomy_security_constant import REDACTION_SENSITIVE_PATTERNS
+
+_SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(re.compile(p) for p in REDACTION_SENSITIVE_PATTERNS)
+
+_SENSITIVE_KEY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(rf"(?i)\b({p})\b", re.IGNORECASE)
+    for p in (
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "api[_-]?key",
+        "access[_-]?key",
+        "private[_-]?key",
+        "credential",
+    )
+)
+
+
+def is_sensitive_key(key: str) -> bool:
+    """Return True if the key name looks like a secret holder."""
+    return next((True for p in _SENSITIVE_KEY_PATTERNS if p.search(key)), False)
+
+
+def redact_sensitive(value: object) -> object:
+    """Recursively mask sensitive values without mutating input objects."""
+    if isinstance(value, str):
+        text = value
+        for pattern in _SENSITIVE_PATTERNS:
+            text = pattern.sub("[REDACTED]", text)
+        return text
+
+    if isinstance(value, dict):
+        redacted: dict[str, object] = {}
+        for key, val in value.items():
+            if is_sensitive_key(key) and isinstance(val, str):
+                candidate = val
+                for pattern in _SENSITIVE_PATTERNS:
+                    candidate = pattern.sub("[REDACTED]", candidate)
+                redacted[key] = "[REDACTED]" if candidate == val else candidate
+            else:
+                redacted[key] = redact_sensitive(val)
+        return redacted
+
+    if isinstance(value, (list, tuple)):
+        return type(value)(redact_sensitive(item) for item in value)
+
+    return value
 ```
 
 ---
@@ -9567,8 +9787,8 @@ def is_within_allowed_dirs(target: str, allowed_dirs: list[str]) -> bool:
 ````markdown
 # PRD — blender-arwaky
 
-**Version:** 1.0.0  
-**Date:** 2026-07-29  
+**Version:** 1.0.0
+**Date:** 2026-07-29
 
 ---
 
@@ -9580,13 +9800,14 @@ Blender artists and pipeline engineers lack a unified, programmable interface to
 
 ## Goals & Success Metrics
 
-| Goal | Success Metric |
-|---|---|
-| **Remote Blender control** | All core Blender operations (scene, object, render, asset, camera) executable via CLI and MCP without opening Blender GUI |
-| **Safety by default** | Path traversal, code injection, and secret leakage prevented at architecture level — zero CVEs from delegated security layer |
-| **Background job tracking** | Long-running renders and downloads report progress, support cancellation, and auto-cleanup without blocking the caller |
-| **Observability built-in** | Health, metrics, audit, and structured logging available out of the box — no separate monitoring stack required |
-| **AI-agent ready** | Every capability accessible through MCP with identical semantics as CLI; no business logic in surface layers |
+
+| Goal                            | Success Metric                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote Blender control**      | All core Blender operations (scene, object, render, asset, camera) executable via CLI and MCP without opening Blender GUI        |
+| **Safety by default**           | Path traversal, code injection, and secret leakage prevented at architecture level — zero CVEs from delegated security layer    |
+| **Background job tracking**     | Long-running renders and downloads report progress, support cancellation, and auto-cleanup without blocking the caller           |
+| **Observability built-in**      | Health, metrics, audit, and structured logging available out of the box — no separate monitoring stack required                 |
+| **AI-agent ready**              | Every capability accessible through MCP with identical semantics as CLI; no business logic in surface layers                     |
 | **Deterministic configuration** | Settings resolved from file → env → defaults with strict schema validation; all features derive workspace root from one source |
 
 ---
@@ -9595,22 +9816,23 @@ Blender artists and pipeline engineers lack a unified, programmable interface to
 
 **blender-arwaky** consists of 14 interconnected feature modules:
 
-| Module | Summary |
-|---|---|
-| **Launcher** | Finds, launches, and terminates the Blender process. Single authority for process lifecycle. |
-| **Gateway** | Transport layer to Blender (socket/pipe). Manages connection, heartbeat, reconnection, operation queue, and raw Python code execution. |
-| **Config** | Reads and validates settings from file, environment, and defaults. Provides immutable snapshot, workspace root, and redaction rules to all modules. |
-| **Dispatcher** | Action catalog + routing. CLI and MCP never call domain modules directly — they submit requests to dispatcher, which validates, routes, and returns results in a standardized envelope. |
-| **Asset** | Searches, downloads, extracts, and imports external assets (including HDRI) into Blender. Delegates path/archive security to Security module. |
-| **Object** | Technical operations on 3D objects: create primitives, transform, material, modifier, delete, and inspect. One object per request. |
-| **Scene** | Scene state inspection and bulk cleanup. Determines preservation policy (cameras, lights, protected) and delegates deletion execution to Object. |
-| **Render** | Viewport screenshot, scene render, camera configuration (lens, framing, depth of field), and HDRI lighting. Long renders → Background Job. |
-| **Job** | Tracks background task lifecycle: create, progress, cancel, cleanup, capacity. Single authority for task records. |
-| **Security** | Path validation, archive extraction safety, untrusted code validation, sensitive value redaction, and audit events. All other modules delegate security decisions here. |
-| **Diagnostics** | Observability: health composition, operational metrics, audit events, structured logging, and diagnostics snapshot. No other module computes its own health. |
-| **CLI** | Terminal interface. Parses input, routes to owning feature aggregate, renders results. Zero business logic. |
-| **MCP** | Model Context Protocol interface. Every capability available in CLI is also available through MCP with identical semantics. |
-| **Telemetry** | Anonymous usage analytics (opt-in). Separate stream from diagnostics — never shares data, storage, or purpose. |
+
+| Module          | Summary                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Config**      | Reads and validates settings from file, environment, and defaults. Provides immutable snapshot, workspace root, and redaction rules to all modules.                                      |
+| **Security**    | Path validation, archive extraction safety, untrusted code validation, sensitive value redaction, and audit events. All other modules delegate security decisions here.                  |
+| **Launcher**    | Finds, launches, and terminates the Blender process. Single authority for process lifecycle.                                                                                             |
+| **Gateway**     | Transport layer to Blender (socket/pipe). Manages connection, heartbeat, reconnection, operation queue, and raw Python code execution.                                                   |
+| **Dispatcher**  | Action catalog + routing. CLI and MCP never call domain modules directly — they submit requests to dispatcher, which validates, routes, and returns results in a standardized envelope. |
+| **Object**      | Technical operations on 3D objects: create primitives, transform, material, modifier, delete, and inspect. One object per request.                                                       |
+| **Scene**       | Scene state inspection and bulk cleanup. Determines preservation policy (cameras, lights, protected) and delegates deletion execution to Object.                                         |
+| **Render**      | Viewport screenshot, scene render, camera configuration (lens, framing, depth of field), and HDRI lighting. Long renders → Background Job.                                              |
+| **Asset**       | Searches, downloads, extracts, and imports external assets (including HDRI) into Blender. Delegates path/archive security to Security module.                                            |
+| **Job**         | Tracks background task lifecycle: create, progress, cancel, cleanup, capacity. Single authority for task records.                                                                        |
+| **Diagnostics** | Observability: health composition, operational metrics, audit events, structured logging, and diagnostics snapshot. No other module computes its own health.                             |
+| **CLI**         | Terminal interface. Parses input, routes to owning feature aggregate, renders results. Zero business logic.                                                                              |
+| **MCP**         | Model Context Protocol interface. Every capability available in CLI is also available through MCP with identical semantics.                                                              |
+| **Telemetry**   | Anonymous usage analytics (opt-in). Separate stream from diagnostics — never shares data, storage, or purpose.                                                                          |
 
 ---
 
@@ -9704,19 +9926,19 @@ flowchart TB
 - **Blender Artist / TD**: Needs to automate renders, import assets, and clean up scenes without leaving their editor or CI pipeline.
 - **AI Agent Orchestrator**: An LLM or agent framework that controls Blender through MCP — needs predictable, safe, and well-documented capabilities.
 - **Pipeline Engineer**: Integrates Blender into a larger studio pipeline — needs headless operation, job tracking, and structured output (JSON).
-- **Technical Product Manager**: Evaluates the system for adoption — needs clear boundaries, security guarantees, and observable behavior.
 
 ---
 
 ## Non-functional Requirements
 
-| Area | Requirement |
-|---|---|
-| **Security** | All path/code/archive validation delegated to central Security feature. Redaction at ingestion for all outputs. Opt-in telemetry only. |
-| **Performance** | Health probes bounded by timeout (one slow subsystem never stalls composition). Metrics pull-based at configured interval. |
-| **Reliability** | Gateway reconnects with backoff. Audit/log sink failure → fallback buffer, never blocks originating op. Background jobs survive disconnects. |
-| **Portability** | Cross-platform path handling. Blender version compatibility range configurable. |
-| **Observability** | Structured logging, metrics, audit, and health snapshot available by default. No feature maintains private log format. |
+
+| Area              | Requirement                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Security**      | All path/code/archive validation delegated to central Security feature. Redaction at ingestion for all outputs. Opt-in telemetry only.        |
+| **Performance**   | Health probes bounded by timeout (one slow subsystem never stalls composition). Metrics pull-based at configured interval.                    |
+| **Reliability**   | Gateway reconnects with backoff. Audit/log sink failure → fallback buffer, never blocks originating op. Background jobs survive disconnects. |
+| **Portability**   | Cross-platform path handling. Blender version compatibility range configurable.                                                               |
+| **Observability** | Structured logging, metrics, audit, and health snapshot available by default. No feature maintains private log format.                        |
 
 ---
 
@@ -10137,16 +10359,16 @@ A single rule with **12 sub-conditions** — each has `allowed`, `mandatory`, an
 | #  | Scope                                                           | Allowed Imports                                            | Mandatory Imports             | Forbidden Imports                                                |
 | ---- | ----------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------ |
 | 1  | `taxonomy(vo)`                                                  | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
-| 2  | `taxonomy(entity,error,event)`                                  | taxonomy                                                   | taxonomy(vo&#124;constant)    | agent*, surface*, contract*, utility*, capabilities*, root       |
+| 2  | `taxonomy(entity,error,event)`                                  | taxonomy                                                   | taxonomy(vo|constant)    | agent*, surface*, contract*, utility*, capabilities*, root       |
 | 3  | `taxonomy(constant)`                                            | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
 | 4  | `utility`                                                       | taxonomy                                                   | None                          | agent*, surface*, contract*, capabilities*, root                 |
 | 5  | `contract(protocol)`                                            | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, contract(aggregate), root       |
 | 6  | `contract(aggregate)`                                           | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, root                            |
 | 7  | `capabilities`                                                  | taxonomy, contract(protocol), utility                      | taxonomy, contract(protocol)  | surface*, agent*, capabilities*, root                            |
 | 8  | `agent(orchestrator)`                                           | taxonomy, contract(aggregate), contract(protocol), utility | taxonomy, contract(aggregate) | surface*, capabilities*, root                                    |
-| 9  | `surfaces(command&#124;controller&#124;page)`                   | taxonomy, contract(aggregate), utility                     | None                          | agent*, capabilities*, contract(protocol), root                  |
-| 10 | `surfaces(hook&#124;store&#124;action&#124;screen&#124;router)` | taxonomy                                                   | None                          | agent*, capabilities*, contract(protocol), smart surfaces*, root |
-| 11 | `surfaces(component&#124;view&#124;layout)`                     | taxonomy                                                   | None                          | agent*, contract*, capabilities*, all surface*, root             |
+| 9  | `surfaces(command|controller|page)`                   | taxonomy, contract(aggregate), utility                     | None                          | agent*, capabilities*, contract(protocol), root                  |
+| 10 | `surfaces(hook|store|action|screen|router)` | taxonomy                                                   | None                          | agent*, capabilities*, contract(protocol), smart surfaces*, root |
+| 11 | `surfaces(component|view|layout)`                     | taxonomy                                                   | None                          | agent*, contract*, capabilities*, all surface*, root             |
 | 12 | `root`                                                          | taxonomy, contract, capabilities, agent, surface           | None                          | None                                                             |
 
 ---
@@ -10426,4 +10648,3 @@ Orphan detection per category:
 ```
 
 ---
-
