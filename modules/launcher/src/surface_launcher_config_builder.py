@@ -13,6 +13,7 @@ config-driven resolution via workspace resolver and settings retriever.
 
 from __future__ import annotations
 
+import logging
 import os
 
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
@@ -20,6 +21,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
     LaunchMode,
 )
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherConfigBuilder:
@@ -91,7 +94,7 @@ class LauncherConfigBuilder:
             if workspace.path:
                 return os.path.join(workspace.path, "launcher_state.json")
         except Exception:
-            pass
+            logger.exception("Failed to resolve workspace for state path")
 
         # Fallback to config-derived state_persistence_location
         state_loc = self._config.get_string("launcher.state_persistence_location", "")

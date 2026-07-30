@@ -103,7 +103,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
                 return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, stale=True, depth=depth)
 
         ready = True
-        # Check bridge readiness at any depth when bridge endpoint is configured
+        # Check bridge readiness at all depths when bridge endpoint is configured
         if self._bridge is not None:
             ready = self._bridge(timeout_seconds=1.0 if depth == ProbeDepth.LIGHTWEIGHT else 2.0)
 

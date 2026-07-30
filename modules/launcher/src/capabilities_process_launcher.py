@@ -1,7 +1,7 @@
 """Capabilities: Process launcher — FR-LAU-002.
 
 Spawns Blender, enforces idempotency, waits for readiness, and emits a
-lifecycle event. Activates the integration addon and passes bridge settings
+lifecycle event. Activates the integration addon and forwards bridge settings
 so the integration component is ready on startup. Implements LaunchProtocol.
 
 The actual spawn and readiness probe are injected (DI boundaries) so the

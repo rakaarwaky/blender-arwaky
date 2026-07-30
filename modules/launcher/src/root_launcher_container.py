@@ -47,7 +47,7 @@ from .capabilities_process_launcher import ProcessLauncher
 from .capabilities_process_shutdown import ProcessShutdown
 from .capabilities_runtime_status import RuntimeStatusChecker
 from .capabilities_state_persistence import StatePersistence
-from .utility_launcher_config_builder import LauncherConfigBuilder
+from .surface_launcher_config_builder import LauncherConfigBuilder
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -154,7 +154,7 @@ class LauncherContainer:
             ),
         )
 
-        # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
+        # FR-INT-002: Forward bridge endpoint to spawner for addon integration
         _bridge_endpoint: str | None = None
         if self._bridge_host and self._bridge_port:
             _bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"

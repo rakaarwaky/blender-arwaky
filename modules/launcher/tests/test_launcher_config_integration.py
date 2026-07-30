@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from modules.launcher.src import create_launcher_feature
-from modules.launcher.src.utility_launcher_config_builder import LauncherConfigBuilder
+from modules.launcher.src.surface_launcher_config_builder import LauncherConfigBuilder
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.shared.src.config.taxonomy_config_constant import (
     DEFAULT_SETTINGS,
