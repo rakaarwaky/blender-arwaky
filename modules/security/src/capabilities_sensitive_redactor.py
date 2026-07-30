@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import re
 
+from modules.shared.src.security import taxonomy_security_constant
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-
-# ─── Taxonomy imports ─────────────────────
-from modules.shared.src.security.taxonomy_security_constant import KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
+
+KV_VALUE = taxonomy_security_constant.KV_VALUE
+REDACTION_SENSITIVE_PATTERNS = taxonomy_security_constant.REDACTION_SENSITIVE_PATTERNS
 
 
 class SensitiveRedactor(RedactSensitiveProtocol):

@@ -25,7 +25,7 @@ _SENSITIVE_KEY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 
 def is_sensitive_key(key: str) -> bool:
     """Return True if the key name looks like a secret holder."""
-    return any(p.search(key) for p in _SENSITIVE_KEY_PATTERNS)
+    return next((True for p in _SENSITIVE_KEY_PATTERNS if p.search(key)), False)
 
 
 def redact_sensitive(value: object) -> object:

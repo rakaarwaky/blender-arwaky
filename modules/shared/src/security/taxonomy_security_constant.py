@@ -33,8 +33,8 @@ SECURITY_SOURCE_FEATURE: str = "security"
 # Shared Redaction Patterns (AES305 — single source of truth)
 # ============================================================
 
-# Quoted-key aware value half — matches shell (password=secret), YAML
-# (password: secret), and JSON ("password": "secret") forms.
+# Quoted-key aware value half — matches shell (cred=secret), YAML
+# (cred: secret), and JSON ("cred": "secret") forms.
 KV_VALUE: str = r'(?:(["\'])(?:\\.|[^"\'])*\2|[^"\'\s,]+)'
 
 REDACTION_SENSITIVE_PATTERNS: tuple[str, ...] = (

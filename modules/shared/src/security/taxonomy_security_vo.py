@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from enum import Enum
-from typing import Any, NewType
+from typing import NewType
 
 # ============================================================
 # Access Mode
@@ -48,7 +48,7 @@ class PathValidationVO:
     allowed: bool = False
     canonical_path: str | None = None
     denial_reason: str | None = None
-    audit_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -105,7 +105,7 @@ class ArchiveExtractionVO:
     safe_destination: str | None = None
     rejected_entries: tuple[RejectedEntryVO, ...] = dc_field(default_factory=tuple)
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
-    audit_metadata: dict = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -138,8 +138,8 @@ class CodeValidationVO:
     # Output
     allowed: bool = False
     violations: tuple[CodeViolationVO, ...] = dc_field(default_factory=tuple)
-    redacted_metadata: dict = dc_field(default_factory=dict)
-    audit_metadata: dict = dc_field(default_factory=dict)
+    redacted_metadata: dict[str, object] = dc_field(default_factory=dict)
+    audit_metadata: dict[str, object] = dc_field(default_factory=dict)
 
 
 # ============================================================
@@ -158,14 +158,7 @@ class SensitivityLevel(str, Enum):
 
 @dataclass(frozen=True)
 class RedactionVO:
-    """Unified redaction — input and output in one VO.
-
-    Caller provides ``text`` (the value to redact) as input.
-    Callee returns ``text`` as the redacted (safe) output and also populates
-    ``redacted_text``, ``redacted_count``, ``failed``, ``failure_reason``.
-    The returned RedactionVO never contains the original secret (FR-SEC-004):
-    on success ``text`` is the redacted value; on failure it is masked.
-    """
+    """Unified redaction — input and output in one VO."""
 
     # Input
     text: str = ""
@@ -207,17 +200,13 @@ class ViolationCategory(str, Enum):
 
 @dataclass(frozen=True)
 class SecurityAuditEventVO:
-    """Unified security audit event — input context and emitted event in one VO.
-
-    Caller sets violation_category, operation_type, source_feature, severity, etc.
-    Callee sets event_id, timestamp, policy_mode.
-    """
+    """Unified security audit event — input context and emitted event in one VO."""
 
     # Input (context)
     violation_category: ViolationCategory = ViolationCategory.PATH_TRAVERSAL
     operation_type: str = ""
     source_feature: str = ""
-    target_metadata: dict = dc_field(default_factory=dict)
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
     severity: AuditSeverity = AuditSeverity.WARNING
     correlation_id: str | None = None
     redacted_reason: str | None = None
@@ -262,4 +251,4 @@ FileSize = NewType("FileSize", int)
 # Metadata Type
 # ============================================================
 
-MetadataMap = dict[str, Any]
+MetadataMap = dict[str, object]
