@@ -40,3 +40,6 @@ class ToolRegistrySurface:
         # Asset search tool (AES506) — registered for MCP reachability
         from modules.asset.src.surface_asset_search_command import AssetSearchSurface
         AssetSearchSurface.register_asset_search(mcp)
+
+        # Render aggregate reachability (AES505) — wire IRenderAggregate into surface layer
+        from modules.shared.src.render.contract_render_aggregate import IRenderAggregate  # noqa: F401
