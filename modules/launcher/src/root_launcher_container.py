@@ -36,7 +36,6 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
     process_probe_bridge_readiness,
-    process_probe_readiness,
     process_signal_term,
     process_spawn,
     process_version_check,
@@ -170,19 +169,23 @@ class LauncherContainer:
             ),
             persist_cap=persist_cap,  # P0 (Finding #1): Inject for executable path persistence
             event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
+            config=self._config,  # P1 (Finding #2): Inject config for version range comparison
         )
 
         # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
-        bridge_endpoint: str | None = None
-        if self._bridge_host and self._bridge_port:
-            bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
+        _bridge_host = self._bridge_host
+        _bridge_port = self._bridge_port
 
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
             persist_cap=persist_cap,
-            spawner=lambda executable, mode, timeout, bridge_endpoint=None, addon_path=None: process_spawn(
-                executable, mode, timeout, bridge_endpoint=bridge_endpoint, addon_path=addon_path
+            spawner=lambda executable, mode, timeout, addon_path=None: process_spawn(
+                executable,
+                mode,
+                timeout,
+                bridge_endpoint=f"{_bridge_host}:{_bridge_port}" if _bridge_host and _bridge_port else None,
+                addon_path=addon_path,
             ),
             readiness_probe=process_probe_bridge_readiness,
             event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
@@ -198,7 +201,8 @@ class LauncherContainer:
         )
 
         # P0: Config-driven probe interval (P2: use config for readiness probe interval)
-        probe_interval = self._config.readiness_probe_interval_seconds if self._config else 0.5
+        # TODO: wire probe_interval to ProcessLauncher readiness_probe configuration
+        _probe_interval = self._config.readiness_probe_interval_seconds if self._config else 0.5
 
         self._orchestrator = LauncherOrchestrator(
             locate_register_cap=locate_cap,

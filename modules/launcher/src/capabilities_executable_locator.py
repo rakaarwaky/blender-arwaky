@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import shutil
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
@@ -81,8 +82,8 @@ class ExecutableLocator(LocateRegisterProtocol):
                 ref = self._validate(path)
             except ExecutableValidationError:
                 continue
-            self._register(config, path)
-            self._emit_registered(source, path)
+            self._register(path)
+            self._emit_registered(path)
             return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
         return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
@@ -156,7 +157,7 @@ class ExecutableLocator(LocateRegisterProtocol):
 
         # Apply supported_version_range from config if provided (P1 — Finding #2 fix)
         if self._config and self._config.supported_version_range:
-            range_compat = self._compare_to_range(major, minor, version)
+            range_compat = self._compare_to_range(major, minor)
             if range_compat is not None:
                 return range_compat
 
@@ -176,7 +177,6 @@ class ExecutableLocator(LocateRegisterProtocol):
         self,
         major: int,
         minor: int,
-        version: str,
     ) -> VersionCompatibility | None:
         """Compare parsed version against supported_version_range string.
 
@@ -224,12 +224,10 @@ class ExecutableLocator(LocateRegisterProtocol):
                         return None
 
         # Check against parsed range
-        if min_major is not None:
-            if major < min_major or (major == min_major and minor < min_minor):
-                return VersionCompatibility.UNSUPPORTED
-        if max_major is not None:
-            if major > max_major or (major == max_major and minor > max_minor):
-                return VersionCompatibility.WARNING
+        if min_major is not None and (major < min_major or (major == min_major and minor < min_minor)):
+            return VersionCompatibility.UNSUPPORTED
+        if max_major is not None and (major > max_major or (major == max_major and minor > max_minor)):
+            return VersionCompatibility.WARNING
 
         # Within range — check if it's at the upper boundary (potential experimental)
         if max_major is not None and major == max_major and minor == max_minor:
@@ -237,7 +235,7 @@ class ExecutableLocator(LocateRegisterProtocol):
 
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, config: LauncherConfigVO, path: str) -> None:
+    def _register(self, path: str) -> None:
         """Register the discovered executable path.
 
         FR-LAU-001 (P0 fix): Persists the executable path to state store so it survives
@@ -246,7 +244,7 @@ class ExecutableLocator(LocateRegisterProtocol):
         """
         # Persist executable path registration (Finding #1 — P0 Critical fix)
         if self._persist is not None:
-            try:
+            with suppress(Exception):
                 self._persist.persist(
                     RuntimeStateVO(
                         executable_path=path,
@@ -256,10 +254,8 @@ class ExecutableLocator(LocateRegisterProtocol):
                         last_status=RuntimeState.NOT_RUNNING,
                     )
                 )
-            except Exception as exc:
-                pass  # Registration failure is non-blocking
 
-    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
+    def _emit_registered(self, path: str) -> None:
         """Emit executable registered event.
 
         FR-LAU-001: Emits lifecycle event when executable is successfully registered.

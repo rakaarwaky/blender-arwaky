@@ -111,7 +111,7 @@ class ProcessShutdown(ShutdownProtocol):
             if self._signal is not None and not force:
                 self._signal(current.process_id)
 
-            if not self._wait_exit(current.process_id):
+            if not self._wait_exit():
                 if (force or allow_escalation) and self._force_enabled and self._kill is not None:
                     self._kill(current.process_id)
                     escalated = True
@@ -123,7 +123,7 @@ class ProcessShutdown(ShutdownProtocol):
                         process_reference=str(current.process_id),
                     )
                     # Post-kill verification: confirm process is dead after SIGKILL (P0 — Finding #5 fix)
-                    post_kill_dead = self._verify_process_dead(current.process_id)
+                    post_kill_dead = self._verify_process_dead()
                     if not post_kill_dead:
                         duration_ms = (time.monotonic() - start) * 1000.0
                         return ShutdownOutcomeVO(
@@ -174,7 +174,7 @@ class ProcessShutdown(ShutdownProtocol):
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _wait_exit(self, process_id: int) -> bool:
+    def _wait_exit(self) -> bool:
         """Wait for process to exit within timeout period.
 
         Returns True if the process has exited (state is NOT_RUNNING or STALE).
@@ -187,7 +187,7 @@ class ProcessShutdown(ShutdownProtocol):
             time.sleep(0.05)
         return False
 
-    def _verify_process_dead(self, process_id: int) -> bool:
+    def _verify_process_dead(self) -> bool:
         """Verify process is actually dead after force termination (P0 — Finding #5 fix).
 
         Performs a direct liveness check against the OS. Returns True if the
