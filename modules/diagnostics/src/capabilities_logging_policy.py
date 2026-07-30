@@ -12,6 +12,7 @@ import logging
 import re
 from collections import deque
 from datetime import datetime, timezone
+from typing import Any
 
 from modules.shared.src.diagnostics.contract_logging_policy_protocol import (
     LoggingPolicyProtocol,

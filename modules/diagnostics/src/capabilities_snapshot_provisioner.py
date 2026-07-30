@@ -23,7 +23,6 @@ from modules.shared.src.diagnostics.contract_snapshot_provision_protocol import 
     SnapshotProvisionProtocol,
 )
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
-    AuditSummaryVO,
     DiagnosticsSnapshotVO,
     SnapshotRequestVO,
 )

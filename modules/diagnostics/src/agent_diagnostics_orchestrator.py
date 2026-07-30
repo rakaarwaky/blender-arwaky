@@ -10,6 +10,9 @@ via protocol interfaces.
 
 from __future__ import annotations
 
+from modules.shared.src.diagnostics.contract_audit_emission_protocol import (
+    AuditEmissionProtocol,
+)
 from modules.shared.src.diagnostics.contract_diagnostics_aggregate import (
     IDiagnosticsAggregate,
 )
@@ -51,7 +54,7 @@ class DiagnosticsOrchestrator(IDiagnosticsAggregate):
         self,
         health_composer: HealthCompositionProtocol,
         metrics_collector: MetricsCollectionProtocol,
-        audit_emitter: "AuditEmissionProtocol",
+        audit_emitter: AuditEmissionProtocol,
         logging_policy: LoggingPolicyProtocol,
         snapshot_provisioner: SnapshotProvisionProtocol,
     ) -> None:
