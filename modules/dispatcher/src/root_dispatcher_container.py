@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
+    DEFAULT_BACKGROUND_CAPACITY,
+)
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
@@ -55,14 +58,15 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        sync_dispatch = (
-            SyncDispatchExecutor(execute_action=self._action_executor)
-            if self._action_executor
+        sync_dispatch = SyncDispatchExecutor(execute_action=self._action_executor) if self._action_executor else None
+        background_submit = (
+            BackgroundSubmitExecutor(
+                job_tracker=self._job_lifecycle,
+                background_capacity=DEFAULT_BACKGROUND_CAPACITY,
+            )
+            if self._job_lifecycle
             else None
         )
-        background_submit = BackgroundSubmitExecutor(
-            job_tracker=self._job_lifecycle,
-        ) if self._job_lifecycle else None
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(
