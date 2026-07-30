@@ -3,7 +3,11 @@
 Discovers, validates, and registers the Blender executable following the
 deterministic discovery order. Implements LocateRegisterProtocol.
 
-Dependencies are injected (config provider, command runner) so the logic is
+Security integration (per PRD + FR-LAU "Depends On"):
+  - Delegates path validation to security module's ValidatePathProtocol
+  - Redacts full paths in events using security module's _redact_path utility
+
+Dependencies are injected (config provider, command runner, path_validator) so the logic is
 testable without spawning or probing a real Blender install.
 """
 
@@ -29,6 +33,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
     VersionCompatibility,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 
 
 class _CommandRunner(Protocol):
@@ -38,17 +43,22 @@ class _CommandRunner(Protocol):
 
 
 class ExecutableLocator(LocateRegisterProtocol):
-    """Locates and registers the Blender executable per FR-LAU-001."""
+    """Locates and registers the Blender executable per FR-LAU-001.
+
+    Security integration (FR-SEC-001): delegates path validation to security module.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
         config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
+        path_validator: ValidatePathProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
+        self._path_validator = path_validator
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -91,8 +101,23 @@ class ExecutableLocator(LocateRegisterProtocol):
         return order
 
     def _validate(self, path: str) -> ExecutableReferenceVO:
-        # Resolve symlinks for canonical path (FR-LAU-001: normalized + symlink-safe)
-        canonical = os.path.realpath(path)
+        # Security integration (FR-SEC-001): delegate path validation to security module
+        if self._path_validator is not None:
+            from modules.shared.src.security.taxonomy_security_vo import (
+                AccessMode,
+                PathValidationVO,
+            )
+
+            result = self._path_validator.validate_path_sync(
+                PathValidationVO(target_path=path, access_mode=AccessMode.READ)
+            )
+            if not result.allowed:
+                raise ExecutableValidationError(f"Security path validation denied: {result.denial_reason}")
+            canonical = result.canonical_path or os.path.realpath(path)
+        else:
+            # Fallback to native check (no security module available)
+            canonical = os.path.realpath(path)
+
         if not os.path.isfile(canonical) or not os.access(canonical, os.X_OK):
             raise ExecutableValidationError(f"Not an executable file: {canonical}")
         version = self._detect_version(canonical)
@@ -127,10 +152,16 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)
         if events is not None:
-            events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                state_before=RuntimeState.NOT_RUNNING,
-                state_after=RuntimeState.RUNNING_READY,
-                process_reference=path,
-                reason_summary=f"registered_from_{source.value}",
-            ))
+            # FR-SEC-001: redact full paths in diagnostic output
+            from modules.security.src.capabilities_path_validator import _redact_path
+
+            redacted_path = _redact_path(path)
+            events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=redacted_path,
+                    reason_summary=f"registered_from_{source.value}",
+                )
+            )

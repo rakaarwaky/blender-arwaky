@@ -135,5 +135,14 @@ class PathValidator(ValidatePathProtocol):
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def validate_path_sync(self, request: PathValidationVO) -> PathValidationVO:
+        """Synchronous wrapper for async validate_path (for use in sync contexts)."""
+        import asyncio
+
+        try:
+            return asyncio.get_event_loop().run_until_complete(self.validate_path(request))
+        except RuntimeError:
+            return asyncio.run(self.validate_path(request))
+
     def __repr__(self) -> str:
         return "PathValidator()"

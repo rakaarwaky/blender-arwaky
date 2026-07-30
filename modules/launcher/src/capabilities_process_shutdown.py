@@ -4,6 +4,9 @@ Graceful shutdown first, escalating to force termination when allowed.
 Idempotent for absent processes; reports termination method. Implements
 ShutdownProtocol.
 
+Security integration (per PRD + FR-SEC-005):
+  - Emits SecurityAuditEventVO on shutdown failures and escalations
+
 Signal sender and killer are injected DI boundaries.
 """
 
@@ -26,6 +29,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ShutdownOutcomeVO,
     TerminationMethod,
 )
+from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
+from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
 
 
 class _SignalSender(Protocol):
@@ -51,6 +56,7 @@ class ProcessShutdown(ShutdownProtocol):
         killer: _ProcessKiller | None = None,
         timeout_seconds: float = 10.0,
         force_enabled: bool = True,
+        audit_event_sink: EmitAuditProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._status = status_protocol
@@ -58,6 +64,7 @@ class ProcessShutdown(ShutdownProtocol):
         self._kill = killer
         self._timeout = timeout_seconds
         self._force_enabled = force_enabled
+        self._audit_events = audit_event_sink
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -91,6 +98,8 @@ class ProcessShutdown(ShutdownProtocol):
                 self._kill(current.process_id)
                 escalated = True
                 method = TerminationMethod.FORCE
+                # FR-SEC-005: emit security audit event on force escalation
+                self._emit_security_audit(ViolationCategory.POLICY_OVERRIDE, "force_termination")
                 self._emit(
                     LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
                     RuntimeState.STOPPING,
@@ -98,6 +107,8 @@ class ProcessShutdown(ShutdownProtocol):
                     process_reference=str(current.process_id),
                 )
             else:
+                # FR-SEC-005: emit security audit event on graceful shutdown failure
+                self._emit_security_audit(ViolationCategory.PERMISSION_DENIED, "graceful_shutdown_timeout")
                 duration_ms = (time.monotonic() - start) * 1000.0
                 return ShutdownOutcomeVO(
                     success=False,
@@ -136,12 +147,30 @@ class ProcessShutdown(ShutdownProtocol):
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", method: str = ""
     ) -> None:
         if self._events is not None:
+            # FR-SEC-004: redact sensitive data in events
+            from modules.security.src.capabilities_path_validator import _redact_path
+
             self._events(
                 LauncherLifecycleEvent(
                     event_category=category,
                     state_before=before,
                     state_after=after,
-                    process_reference=process_reference,
+                    process_reference=_redact_path(process_reference),
                     method=method,
+                )
+            )
+
+    def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
+        """FR-SEC-005: emit security audit event for shutdown operations."""
+        if self._audit_events is not None:
+            from modules.security.src.capabilities_path_validator import _redact_path
+
+            self._audit_events.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=violation,
+                    operation_type="shutdown_operation",
+                    source_feature="launcher",
+                    target_metadata={"reason": _redact_path(reason)},
+                    severity=AuditSeverity.WARNING,
                 )
             )

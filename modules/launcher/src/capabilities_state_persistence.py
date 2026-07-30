@@ -3,6 +3,10 @@
 Persists runtime state with atomic (temp + rename) writes and corruption-safe
 reads that fall back to empty state. Implements PersistStateProtocol.
 
+Security integration (per PRD + FR-SEC-001):
+  - Delegates path validation to security module's ValidatePathProtocol
+  - Validates persistence file path before writing
+
 The store path and I/O are injected DI boundaries; no secrets are persisted.
 """
 
@@ -20,6 +24,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
     RuntimeStateVO,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
 
 _SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
 
@@ -28,8 +34,13 @@ class StatePersistence(PersistStateProtocol):
     """Corruption-safe runtime state persistence with concurrent access safety."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, path_resolver: Callable[[], str | None]) -> None:
+    def __init__(
+        self,
+        path_resolver: Callable[[], str | None],
+        path_validator: ValidatePathProtocol | None = None,
+    ) -> None:
         self._resolve_path = path_resolver
+        self._path_validator = path_validator
         self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -45,7 +56,7 @@ class StatePersistence(PersistStateProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _persist_impl(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
-        """Atomic write with secret detection (FR-LAU-005)."""
+        """Atomic write with security path validation and secret detection (FR-LAU-005)."""
         warnings: list[str] = []
         if self._contains_secret(state):
             warnings.append("state contained secret-like field; not persisted")
@@ -53,6 +64,15 @@ class StatePersistence(PersistStateProtocol):
         path = self._resolve_path()
         if not path:
             return PersistenceOutcomeVO(success=False, warnings=tuple(warnings + ["no persistence location"]))
+
+        # FR-SEC-001: validate persistence file path through security module
+        if self._path_validator is not None:
+            result = self._path_validator.validate_path_sync(
+                PathValidationVO(target_path=path, access_mode=AccessMode.WRITE)
+            )
+            if not result.allowed:
+                warnings.append(f"path validation denied: {result.denial_reason}")
+                return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
         payload = self._to_dict(state)
         try:

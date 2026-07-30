@@ -67,25 +67,25 @@ class SecurityContainer:
         logger.info("Wiring security feature module (5 individual capabilities)")
 
         # Capabilities layer — each implements its own protocol
-        validate_path_cap = PathValidator(
+        self._validate_path_cap = PathValidator(
             policy=self._policy,
             path_resolver=_OsPathResolver(),
         )
-        validate_archive_cap = ArchiveGuard(policy=self._policy)
-        validate_code_cap = CodeValidator(policy=self._policy)
-        redact_cap = SensitiveRedactor(
+        self._validate_archive_cap = ArchiveGuard(policy=self._policy)
+        self._validate_code_cap = CodeValidator(policy=self._policy)
+        self._redact_cap = SensitiveRedactor(
             extra_patterns=self._policy.redaction_patterns,
             extra_key_names=self._policy.redaction_key_names,
         )
-        emit_audit_cap = AuditEmitter(sink=None, fallback_buffer=[])
+        self._emit_audit_cap = AuditEmitter(sink=None, fallback_buffer=[])
 
         # Agent layer — implements aggregate, depends on all 5 protocols
         self._orchestrator = SecurityOrchestrator(
-            validate_path_cap=validate_path_cap,
-            validate_archive_cap=validate_archive_cap,
-            validate_code_cap=validate_code_cap,
-            redact_cap=redact_cap,
-            emit_audit_cap=emit_audit_cap,
+            validate_path_cap=self._validate_path_cap,
+            validate_archive_cap=self._validate_archive_cap,
+            validate_code_cap=self._validate_code_cap,
+            redact_cap=self._redact_cap,
+            emit_audit_cap=self._emit_audit_cap,
         )
 
         self._wired = True
