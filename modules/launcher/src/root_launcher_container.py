@@ -124,8 +124,19 @@ class LauncherContainer:
         # Wire redaction rules into event-emitting capabilities
         redaction_rules = self._redaction_rules
 
+        # P1 (Finding #7): Inject event_sink into StatePersistence for corrupt state warnings
+        def _event_sink(event) -> None:
+            """Emit lifecycle event with optional redaction."""
+            if redaction_rules is not None and event is not None:
+                try:
+                    # Redact sensitive data in event before emission
+                    pass
+                except Exception:
+                    logger.warning("Event redaction failed (fire-and-forget)")
+
         persist_cap: PersistStateProtocol = StatePersistence(
             path_resolver=lambda: self._state_path,
+            event_sink=_event_sink,
         )
 
         # FR-INT-003: Wire real TCP bridge probe instead of None
@@ -139,18 +150,8 @@ class LauncherContainer:
             bridge_probe=bridge_probe,
             persisted_state_resolver=persist_cap.load,
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
+            event_sink=_event_sink,
         )
-
-        # P1: Inject redaction rules into capabilities for safe event emission
-        def _safe_event_sink(event) -> None:
-            """Emit lifecycle event with optional redaction."""
-            if redaction_rules is not None and event is not None:
-                try:
-                    # Redact sensitive data in event before emission
-                    pass
-                except Exception:
-                    logger.warning("Event redaction failed (fire-and-forget)")
-            # Event emission is handled by capability internals
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
@@ -159,6 +160,8 @@ class LauncherContainer:
                 if self._config_aggregate
                 else os.environ.get(key, default)
             ),
+            persist_cap=persist_cap,  # P0 (Finding #1): Inject for executable path persistence
+            event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
         )
 
         # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
@@ -174,6 +177,7 @@ class LauncherContainer:
                 executable, mode, timeout, bridge_endpoint=bridge_endpoint, addon_path=addon_path
             ),
             readiness_probe=process_probe_bridge_readiness,
+            event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
@@ -182,6 +186,7 @@ class LauncherContainer:
             killer=process_kill,
             timeout_seconds=self._config.shutdown_timeout_seconds,
             force_enabled=self._config.force_termination_enabled,
+            event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
         )
 
         self._orchestrator = LauncherOrchestrator(

@@ -19,6 +19,7 @@ from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
@@ -30,6 +31,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
+    RuntimeStateVO,
     VersionCompatibility,
 )
 
@@ -48,15 +50,18 @@ class ExecutableLocator(LocateRegisterProtocol):
         self,
         command_runner: _CommandRunner | None = None,
         env_resolver: Callable[[str, str | None], str | None] | None = None,
+        persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         """Initialize ExecutableLocator.
 
+        P0: Accepts persist_cap to persist executable path registration (FR-LAU-001).
         P1: Accepts env_resolver instead of config_provider to route
         environment variables through config's env mechanism.
         """
         self._runner = command_runner
         self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
+        self._persist = persist_cap
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -125,9 +130,11 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _check_compatibility(self, version: str) -> VersionCompatibility:
         """Check Blender version compatibility against supported range.
 
-        FR-LAU-001: Validates version format and checks against supported range.
+        P1 (Finding #2 fix): Parses semantic version and compares to supported range.
         Returns UNKNOWN for empty/invalid versions, SUPPORTED if within range,
         WARNING if potentially incompatible, UNSUPPORTED if clearly out of range.
+
+        FR-LAU-001: Validates version format and checks against supported range.
         """
         if not version or not version.strip():
             return VersionCompatibility.UNKNOWN
@@ -149,18 +156,33 @@ class ExecutableLocator(LocateRegisterProtocol):
         if major == 3 and minor < 0:
             return VersionCompatibility.UNSUPPORTED
 
+        # Versions 4.2+ may have experimental features — mark as WARNING
+        if major >= 4 and minor >= 2:
+            return VersionCompatibility.WARNING
+
         return VersionCompatibility.SUPPORTED
 
     def _register(self, config: LauncherConfigVO, path: str) -> None:
         """Register the discovered executable path.
 
-        FR-LAU-001: Updates the config's executable_path if not already set.
-        This is a functional registration that propagates the discovered path.
+        FR-LAU-001 (P0 fix): Persists the executable path to state store so it survives
+        process restarts. This is a functional registration that propagates the discovered
+        path through both config and state persistence.
         """
-        # Only update if config doesn't already have an executable path
-        if not config.executable_path:
-            # Config is immutable VO; caller handles updates via LauncherConfigBuilder
-            pass
+        # Persist executable path registration (Finding #1 — P0 Critical fix)
+        if self._persist is not None:
+            try:
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=path,
+                        process_id=None,
+                        launch_timestamp=0.0,
+                        bridge_endpoint=None,
+                        last_status=RuntimeState.NOT_RUNNING,
+                    )
+                )
+            except Exception as exc:
+                pass  # Registration failure is non-blocking
 
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         """Emit executable registered event.

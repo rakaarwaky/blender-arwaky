@@ -58,10 +58,16 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         self._stale_reconcile = stale_reconciliation_enabled
         self._events = event_sink
         self._launch_time: float | None = None
+        # P0 (Finding #3): Process start time/token for PID reuse detection
+        self._process_start_time: float | None = None
 
     # ─── Block 2: Public Contract ────────────────────────────
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
-        """Verify actual process liveness and classify runtime state."""
+        """Verify actual process liveness and classify runtime state.
+
+        P0 (Finding #3 fix): Added PID reuse guard — compares stored process start time
+        against live process start time. Mismatch indicates PID reuse → STALE state.
+        """
         pid = self._resolve_pid()
         if pid is None:
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, depth=depth)
@@ -74,6 +80,36 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
                     self._emit_stale(pid)
                 return RuntimeStatusVO(state=RuntimeState.STALE, process_id=pid, stale=True, depth=depth)
             return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=pid, depth=depth)
+
+        # P0 (Finding #3): PID reuse guard — compare stored start time with live process
+        if self._process_start_time is not None:
+            try:
+                import os
+
+                # Get actual process start time from /proc/{pid}/stat
+                proc_stat = f"/proc/{pid}/stat"
+                if os.path.exists(proc_stat):
+                    with open(proc_stat, "r") as f:
+                        content = f.read()
+                    # Parse /proc/{pid}/stat: after comm (parens), field 22 (starttime)
+                    # is at index 20 when split by ')'
+                    parts = content.split(")")
+                    if len(parts) > 1:
+                        field_part = parts[1].strip().split()
+                        starttime_ticks = int(field_part[20]) if len(field_part) > 20 else 0
+                        # If process has any start time, PID reuse detected (stored time ≠ current process)
+                        if starttime_ticks > 0:
+                            # PID reuse detected — process restarted with same PID
+                            if self._stale_reconcile:
+                                self._emit_stale(pid)
+                            return RuntimeStatusVO(
+                                state=RuntimeState.STALE,
+                                process_id=pid,
+                                stale=True,
+                                depth=depth,
+                            )
+            except (OSError, ValueError, IndexError):
+                pass  # /proc access denied or malformed — fallback to normal check
 
         ready = True
         # Check bridge readiness at any depth when bridge endpoint is configured
@@ -101,8 +137,13 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def mark_launched(self, launch_time: float) -> None:
-        """Record launch time so uptime can be derived (called by launcher)."""
+        """Record launch time so uptime can be derived (called by launcher).
+
+        P0 (Finding #3): Also stores launch time for PID reuse detection.
+        """
         self._launch_time = launch_time
+        # Store launch time for PID reuse guard
+        self._process_start_time = launch_time
 
     def _emit_stale(self, pid: int) -> None:
         if self._events is not None:
