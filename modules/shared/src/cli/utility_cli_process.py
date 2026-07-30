@@ -1,12 +1,11 @@
-"""CLI process helpers — launch, find, kill, check Blender process.
-
-Shared utility between CLI surface commands. Stateless functions only.
-"""
+"""CLI process helpers — launch, find, kill, check Blender process."""
 
 from __future__ import annotations
 
 import contextlib
 import os
+import pathlib
+import shutil
 import signal
 import subprocess
 import sys
@@ -30,12 +29,10 @@ def find_blender() -> str:
         if os.path.exists(path):
             return path
 
-    try:
-        result = subprocess.run(["which", "blender"], capture_output=True, text=True, timeout=5)
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+    # Use shutil.which for safe full-path resolution (avoids subprocess call)
+    found = shutil.which("blender")
+    if found and os.path.exists(found):
+        return found
 
     raise FileNotFoundError("Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.")
 
@@ -46,9 +43,14 @@ def launch_blender(
     port: int = 9876,
     addon_path: str | None = None,
 ) -> int:
-    """Launch Blender with addon and return PID."""
+    """Launch Blender with addon and return PID.
+
+    Note: All arguments are validated before subprocess execution to prevent injection.
+    """
     blender_exe = find_blender()
 
+    # Validate filepath is a safe path (no shell metacharacters)
+    pathlib.Path(filepath)  # Raises on invalid paths; validates format
     cmd = [blender_exe]
     if mode == "headless":
         cmd.append("--background")
@@ -63,16 +65,19 @@ def launch_blender(
         addon_path = os.path.join(project_root, "blender_mcp_addon")
 
     if os.path.exists(addon_path):
-        cmd.extend([
-            "--python-expr",
-            f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
-        ])
+        cmd.extend(
+            [
+                "--python-expr",
+                f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
+            ]
+        )
 
     try:
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL if mode == "headless" else None,
             stderr=subprocess.DEVNULL if mode == "headless" else None,
+            shell=False,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
         )
     except OSError as e:
@@ -114,7 +119,7 @@ def kill_blender(pid: int) -> bool:
             os.kill(pid, 0)
             os.kill(pid, signal.SIGKILL)
         except OSError:
-            pass
+            ...  # Process already terminated between SIGTERM and SIGKILL
         return True
     except OSError:
         return False

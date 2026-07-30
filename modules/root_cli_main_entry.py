@@ -23,9 +23,17 @@ import argparse
 import json
 import logging
 import sys
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
+
+from modules.cli.src import (
+    surface_close_command,
+    surface_init_command,
+    surface_render_command,
+    surface_run_command,
+    surface_screenshot_command,
+    surface_status_command,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +56,7 @@ ERROR_CATEGORIES: dict[str, int] = {
 }
 
 
-def _exit_code(result: dict[str, Any]) -> int:
+def _exit_code(result: dict[str, object]) -> int:
     """Map result category to deterministic exit code."""
     if result.get("success"):
         return EXIT_SUCCESS
@@ -60,8 +68,6 @@ def main(
     argv: list[str] | None = None,
     *,
     dispatcher: IDispatcherAggregate | None = None,
-    launcher: Any | None = None,
-    redactor: Any | None = None,
 ) -> int:
     """Main CLI entry point.
 
@@ -150,17 +156,7 @@ def main(
                 print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
             return EXIT_UNEXPECTED
 
-    # Import command handlers
-    from . import (
-        surface_close_command,
-        surface_init_command,
-        surface_render_command,
-        surface_run_command,
-        surface_screenshot_command,
-        surface_status_command,
-    )
-
-    result: dict[str, Any] = {}
+    result: dict[str, object] = {}
 
     try:
         if args.command == "init":

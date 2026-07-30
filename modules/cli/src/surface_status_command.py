@@ -1,12 +1,11 @@
 """CLI status command — Show active Blender status."""
 
-from typing import Any
 
 from .utility_cli_process import is_running
 from .utility_cli_registry import Registry
 
 
-def handle(_args: Any) -> dict[str, Any]:
+def handle(_args: object) -> dict[str, object]:
     """Handle status command: show active Blender instance status."""
     registry = Registry()
 
