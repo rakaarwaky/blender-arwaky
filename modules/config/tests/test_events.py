@@ -59,11 +59,16 @@ def test_recent_events_limit_slicing():
 
 
 @pytest.mark.unit
-def test_log_record_emitted(caplog):
+def test_events_recorded_no_logging(caplog):
+    """Events are stored in the ring buffer but NOT logged (Finding #8: AES agent rules forbid stdout/stderr I/O)."""
     orch = _orchestrator()
     with caplog.at_level(logging.INFO, logger="BlenderMCPServer"):
         orch.load()
-    assert any("config_event" in r.message for r in caplog.records)
+    # Events are recorded in the buffer
+    events = orch.recent_events()
+    assert len(events) >= 1
+    # No log records emitted (logging was removed to comply with AES agent rules)
+    assert not any("config_event" in r.message for r in caplog.records)
 
 
 @pytest.mark.unit

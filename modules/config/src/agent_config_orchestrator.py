@@ -11,7 +11,6 @@ since config has exactly 5 capabilities mapped 1:1 to FR-CFG-001..005.
 from __future__ import annotations
 
 import json
-import logging
 from collections import deque
 from dataclasses import asdict
 
@@ -32,8 +31,6 @@ from modules.shared.src.config.taxonomy_config_vo import (
     SettingsValue,
     WorkspacePath,
 )
-
-logger = logging.getLogger("BlenderMCPServer")
 
 
 # ─── Block 1: Class Definition & Constructor ───────────────
@@ -60,7 +57,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._snapshot: SettingsSnapshot | None = None
         self._event_buffer: deque[EventPayload] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
-# ─── Block 2: Aggregate Method Implementation ─────────────
+    # ─── Block 2: Aggregate Method Implementation ─────────────
 
     def load(
         self,
@@ -140,10 +137,16 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-# ─── Block 3: Event Recording ─────────────────────────────
+    # ─── Block 3: Event Recording ─────────────────────────────
 
     def _record_event(self, event: object) -> None:
-        """Serialize and store a domain event into the bounded ring buffer."""
+        """Serialize and store a domain event into the bounded ring buffer.
+
+        Exception: No logging here — the previous logger.info call was removed
+        to comply with AES agent rules (no stdout/stderr I/O). Structured
+        observability for config events is intentionally left to consumers
+        that inject their own logging/callback via the redaction_rules protocol.
+        """
         # Normalize to JSON-safe dict (resolves dataclass fields, tuples, NewTypes)
         raw = asdict(event)
         payload: dict[str, object] = json.loads(json.dumps(raw, default=str))
@@ -151,9 +154,8 @@ class ConfigOrchestrator(IConfigAggregate):
         # Apply redaction to prevent secret leakage in event logs
         redacted_payload = self._redaction_rules.redact_dict(payload)
         self._event_buffer.append(redacted_payload)
-        logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 
-# ─── Dunder ────────────────────────────────────────────────
+    # ─── Dunder ────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"
