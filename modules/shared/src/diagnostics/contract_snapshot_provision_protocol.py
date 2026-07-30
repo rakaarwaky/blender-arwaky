@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_diagnostics_vo import DiagnosticsSnapshotVO
+from .taxonomy_diagnostics_vo import DiagnosticsSnapshotVO, SnapshotRequestVO
 
 
 class SnapshotProvisionProtocol(ABC):
@@ -19,8 +19,7 @@ class SnapshotProvisionProtocol(ABC):
     @abstractmethod
     async def get_snapshot(
         self,
-        detail_level: str = "summary",
-        section_filter: list[str] | None = None,
+        request: SnapshotRequestVO,
     ) -> DiagnosticsSnapshotVO:
         """Serve one canonical point-in-time diagnostics snapshot.
 
@@ -31,12 +30,5 @@ class SnapshotProvisionProtocol(ABC):
         Read-only, idempotent. Bounded latency — reuse composed state, recompute only when freshness expired.
         Stale sections carry staleness indicators. No secrets/raw code/credentials/sensitive paths;
         audit summary = categories+counts. First run with no history → empty-window indicators.
-
-        Args:
-            detail_level: "summary" or "full".
-            section_filter: List of sections to include (health, metrics, audit_summary).
-
-        Returns:
-            DiagnosticsSnapshotVO with health, metrics, audit summary, config metadata, staleness.
         """
         ...
