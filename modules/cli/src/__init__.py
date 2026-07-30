@@ -2,7 +2,6 @@
 
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
 
-from .root_cli_main_entry import main
 from .utility_cli_process import (
     find_blender,
     is_running,
@@ -21,7 +20,6 @@ __all__ = [
     "is_running",
     "kill_blender",
     "launch_blender",
-    "main",
     "render_handle",
     "run_handle",
     "screenshot_handle",
