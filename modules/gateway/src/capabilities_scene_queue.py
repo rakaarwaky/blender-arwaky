@@ -27,9 +27,9 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     ChannelConflictError,
+    PendingOpsLimitError,
     OperationWaitTimeoutError,
     TimeoutError,
-    TooManyPendingOperationsError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
     ItemDequeued,
@@ -80,7 +80,7 @@ class OperationQueue(IOperationQueueProtocol):
                         reason="queue_full",
                     )
                 )
-                raise TooManyPendingOperationsError(
+                raise PendingOpsLimitError(
                     max_depth=self._max_depth,
                     request_id=operation.request_id,
                 )
@@ -235,6 +235,11 @@ class SceneQueueExecutor(SceneQueueProtocol):
             raise ChannelConflictError(f"Queue depth limit {self._max_depth} reached") from None
         acquired = self._execution_lock.acquire(timeout=self._wait_timeout_seconds)
         if not acquired:
+            # P1: Remove enqueued operation on timeout to prevent stale queue entries
+            try:
+                self._queue.get_nowait()
+            except Exception:
+                pass
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
         self._processing = True
         try:
@@ -242,6 +247,21 @@ class SceneQueueExecutor(SceneQueueProtocol):
         finally:
             self._processing = False
             self._execution_lock.release()
+
+    def fail_pending(self, error: Exception) -> int:
+        """P1: Fail and remove all pending operations in the queue.
+
+        Returns the number of operations cancelled.
+        """
+        cancelled = 0
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+                cancelled += 1
+            except Exception:
+                break
+        logger.info("Failed %d pending operations in scene queue", cancelled)
+        return cancelled
 
     def get_queue_status(self) -> QueueStatusVO:
         return QueueStatusVO(

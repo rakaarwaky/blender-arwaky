@@ -29,7 +29,7 @@ class GatewayContainer:
 
         self._connection = ConnectionExecutor(
             transport=self._transport,
-            config=ConnectionConfigVO(host="localhost", port=50051),
+            config=ConnectionConfigVO(host="localhost", port=9876),
         )
 
         self._maintenance = MaintenanceExecutor(

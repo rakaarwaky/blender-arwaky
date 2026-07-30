@@ -219,16 +219,21 @@ class TransportExecutor(TransportProtocol):
             raise TransportParseError(f"Failed to parse response: {exc}") from None
         actual_tracking_id = message.get("tracking_id", "")
         if actual_tracking_id != expected_tracking_id:
+            # P0: Discard orphan response — raise error instead of returning uncorrelated data
             self._pending_tracking_ids.pop(expected_tracking_id, None)
             logger.warning(
                 "Orphan response discarded: expected=%s, got=%s",
                 expected_tracking_id,
                 actual_tracking_id,
             )
+            raise ProviderError(
+                message=f"Orphan response: expected={expected_tracking_id}, got={actual_tracking_id}",
+                details={"expected_tracking_id": expected_tracking_id, "actual_tracking_id": actual_tracking_id},
+            )
         payload_raw = message.get("payload")
         payload = bytes.fromhex(payload_raw) if payload_raw else None
         return TransportOutcomeVO(
-            tracking_id=actual_tracking_id,
+            tracking_id=expected_tracking_id,
             status=message.get("status", "error"),
             payload=payload,
         )

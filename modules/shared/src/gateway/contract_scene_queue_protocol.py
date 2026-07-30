@@ -37,6 +37,15 @@ class SceneQueueProtocol(ABC):
         """
         ...
 
+    @abstractmethod
+    def fail_pending(self, error: Exception) -> int:
+        """Fail all pending operations in the queue with the given error.
+
+        P1: Removes enqueued operations so they won't execute after failure.
+        Returns the number of operations cancelled.
+        """
+        ...
+
 
 class IOperationQueueProtocol(ABC):
     """FIFO operation queue with depth limits and cancellation support."""
