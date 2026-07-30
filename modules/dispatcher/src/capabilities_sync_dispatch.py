@@ -13,7 +13,6 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
-    ActionExecutorProtocol,
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
@@ -35,7 +34,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, execute_action: ActionExecutorProtocol | object) -> None:
+    def __init__(self, execute_action: object) -> None:
         if execute_action is None:
             raise ValueError(
                 "SyncDispatchExecutor requires a non-null action executor. "

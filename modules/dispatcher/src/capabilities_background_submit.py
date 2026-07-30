@@ -13,7 +13,6 @@ import logging
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
-    JobTrackerProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import (
@@ -40,7 +39,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def __init__(
         self,
-        job_tracker: IJobLifecycle | JobTrackerProtocol | object,
+        job_tracker: IJobLifecycle | object,
         background_capacity: int = 50,
         max_result_data_size: int = 1_000_000,
     ) -> None:
