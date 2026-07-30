@@ -8,6 +8,7 @@ Dependencies: Only taxonomy (for type annotations).
 
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import signal
@@ -17,7 +18,7 @@ import time
 logger = logging.getLogger("BlenderMCPServer")
 
 
-def process_alive(process_id: int) -> bool:
+def process_alive(process_id: int | None) -> bool:
     """Check if a process is alive using os.kill(pid, 0).
 
     Returns False for invalid PIDs (<=0 or None).
@@ -29,10 +30,10 @@ def process_alive(process_id: int) -> bool:
         os.kill(process_id, 0)
         return True
     except OSError as e:
-        if e.errno == os.errno.ESRCH:
+        if e.errno == errno.ESRCH:
             return False
         logger.warning("os.kill(pid=%d) returned EPERM: %s", process_id, e)
-        return False
+        return True
 
 
 def process_signal_term(process_id: int) -> bool:
@@ -67,31 +68,15 @@ def process_kill(process_id: int) -> bool:
         return False
 
 
-def process_spawn(
-    executable: str,
-    mode: str,
-    bridge_endpoint: str | None = None,
-    addon_path: str | None = None,
-) -> int:
-    """Spawn a Blender process with the given mode and optional integration args.
-
-    FR-INT-002: Passes bridge endpoint and addon path as CLI arguments so the
-    Gateway can connect to the running Blender instance.
+def process_spawn(executable: str, mode: str) -> int:
+    """Spawn a Blender process with the given mode.
 
     Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
-    Uses a new process session (start_new_session=True) for orphan child cleanup support.
     """
     args = [executable]
     if mode == "headless":
         args += ["--background", "--python-exit-code", "1"]
-
-    # FR-INT-002: Pass bridge endpoint and addon path for Gateway integration
-    if bridge_endpoint:
-        args += ["--bridge-endpoint", bridge_endpoint]
-    if addon_path:
-        args += ["--python-additional", addon_path]
-
-    proc = subprocess.Popen(args, start_new_session=True)
+    proc = subprocess.Popen(args)
     return proc.pid
 
 
@@ -101,15 +86,14 @@ def process_version_check(args: list[str], timeout: float = 5.0) -> tuple[int, s
     return proc.returncode, proc.stdout
 
 
-def process_probe_readiness(process_id: int, timeout_seconds: float, interval_seconds: float = 0.5) -> bool:
+def process_probe_readiness(process_id: int, timeout_seconds: float) -> bool:
     """Poll process liveness until timeout. Returns True while alive.
 
-    Checks at configurable interval (default 0.5s, per LauncherConfigVO.readiness_probe_interval_seconds);
-    returns False if process dies before timeout.
+    Checks every 0.2 seconds; returns False if process dies before timeout.
     """
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         if not process_alive(process_id):
             return False
-        time.sleep(interval_seconds)
+        time.sleep(0.2)
     return True

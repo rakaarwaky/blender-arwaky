@@ -6,15 +6,12 @@ dispatcher module: Capabilities → Agent Orchestrator → (exposed as Dispatche
 This file is the composition root for the dispatcher feature. It instantiates
 the six dispatcher capabilities, connects them to the aggregate facade, and
 provides the assembled orchestrator for dependency injection by callers.
-
-FR-INT-008: Integrates with ConfigContainer for redaction rules in result normalization.
 """
 
 from __future__ import annotations
 
 import logging
 
-from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
@@ -23,7 +20,6 @@ from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor
 from .capabilities_request_validation import RequestValidationExecutor
 from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -34,27 +30,13 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(
-        self,
-        job_lifecycle: IJobLifecycle | None = None,
-        redaction_rules: IRedactionRulesProtocol | None = None,
-    ) -> None:
+    def __init__(self, job_lifecycle: IJobLifecycle | None = None) -> None:
         self._job_lifecycle = job_lifecycle
-        self._redaction_rules = redaction_rules
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
-        self._execute_action: object | None = None
 
-    def wire(self, execute_action: object | None = None) -> None:
-        """Wire the six dispatcher capabilities to the orchestrator.
-
-        FR-DSP-004: SyncDispatchExecutor requires a non-null action executor.
-        Pass an execute_action callable (e.g., Gateway's code execution executor)
-        to enable synchronous dispatch routing.
-
-        FR-INT-008: Redaction rules are wired into ResultNormalizationExecutor
-        for security-compliant result sanitization.
-        """
+    def wire(self) -> None:
+        """Wire the six dispatcher capabilities to the orchestrator."""
         if self._wired:
             return
 
@@ -67,40 +49,21 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        background_submit = (
-            BackgroundSubmitExecutor(
-                job_tracker=self._job_lifecycle,
-            )
-            if self._job_lifecycle
-            else None
-        )
-
-        # FR-INT-008: Wire redaction rules into ResultNormalizationExecutor
-        result_normalization = ResultNormalizationExecutor(
-            redaction_rules=self._redaction_rules,
-        )
-
-        # FR-DSP-004: Wire SyncDispatchExecutor with provided action executor
-        execute_action = execute_action or self._execute_action
-        sync_dispatch: SyncDispatchExecutor | None = None
-        if execute_action is not None:
-            sync_dispatch = SyncDispatchExecutor(execute_action=execute_action)
+        background_submit = BackgroundSubmitExecutor(
+            job_tracker=self._job_lifecycle,
+        ) if self._job_lifecycle else None
+        result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog_registration,
             action_discovery=action_discovery,
             request_validation=request_validation,
             background_submit=background_submit,
-            sync_dispatch=sync_dispatch,
             result_normalization=result_normalization,
         )
 
         self._wired = True
         logger.info("Dispatcher feature module wired successfully")
-
-    def set_execute_action(self, executor: object) -> None:
-        """Register an action executor for sync dispatch routing."""
-        self._execute_action = executor
 
     @property
     def agent(self) -> DispatcherOrchestrator:
@@ -113,21 +76,8 @@ class DispatcherContainer:
         return self._orchestrator
 
 
-def create_dispatcher_feature(
-    job_lifecycle: IJobLifecycle | None = None,
-    execute_action: object | None = None,
-    redaction_rules: IRedactionRulesProtocol | None = None,
-) -> DispatcherOrchestrator:
-    """Factory function to create and wire the dispatcher feature module.
-
-    Args:
-        job_lifecycle: Optional job lifecycle tracker for background submission.
-        execute_action: Optional action executor for sync dispatch routing.
-        redaction_rules: Optional redaction rules for result sanitization.
-    """
-    container = DispatcherContainer(
-        job_lifecycle=job_lifecycle,
-        redaction_rules=redaction_rules,
-    )
-    container.wire(execute_action=execute_action)
+def create_dispatcher_feature(job_lifecycle: IJobLifecycle | None = None) -> DispatcherOrchestrator:
+    """Factory function to create and wire the dispatcher feature module."""
+    container = DispatcherContainer(job_lifecycle=job_lifecycle)
+    container.wire()
     return container.agent

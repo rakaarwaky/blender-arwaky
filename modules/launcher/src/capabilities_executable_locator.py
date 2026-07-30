@@ -3,20 +3,25 @@
 Discovers, validates, and registers the Blender executable following the
 deterministic discovery order. Implements LocateRegisterProtocol.
 
-Dependencies are injected (config provider, command runner) so the logic is
+Security integration (per PRD + FR-LAU "Depends On"):
+  - Delegates path validation to security module's ValidatePathProtocol
+  - Redacts full paths in events using security module's _redact_path utility
+
+Dependencies are injected (config provider, command runner, path_validator) so the logic is
 testable without spawning or probing a real Blender install.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
-from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
@@ -28,8 +33,10 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
+    RuntimeStateVO,
     VersionCompatibility,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 
 
 class _CommandRunner(Protocol):
@@ -39,20 +46,27 @@ class _CommandRunner(Protocol):
 
 
 class ExecutableLocator(LocateRegisterProtocol):
-    """Locates and registers the Blender executable per FR-LAU-001."""
+    """Locates and registers the Blender executable per FR-LAU-001.
+
+    Security integration (FR-SEC-001): delegates path validation to security module.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
         config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
+        path_validator: ValidatePathProtocol | None = None,
+        env_resolver: Callable[[str, str | None], str | None] | None = None,
+        persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
-        redaction_rules: IRedactionRulesProtocol | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
+        self._path_validator = path_validator
+        self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
+        self._persist = persist_cap
         self._events = event_sink
-        self._redaction_rules = redaction_rules
 
     # ─── Block 2: Public Contract ────────────────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
@@ -94,8 +108,23 @@ class ExecutableLocator(LocateRegisterProtocol):
         return order
 
     def _validate(self, path: str) -> ExecutableReferenceVO:
-        # Resolve symlinks for canonical path (FR-LAU-001: normalized + symlink-safe)
-        canonical = os.path.realpath(path)
+        # Security integration (FR-SEC-001): delegate path validation to security module
+        if self._path_validator is not None:
+            from modules.shared.src.security.taxonomy_security_vo import (
+                AccessMode,
+                PathValidationVO,
+            )
+
+            result = self._path_validator.validate_path_sync(
+                PathValidationVO(target_path=path, access_mode=AccessMode.READ)
+            )
+            if not result.allowed:
+                raise ExecutableValidationError(f"Security path validation denied: {result.denial_reason}")
+            canonical = result.canonical_path or os.path.realpath(path)
+        else:
+            # Fallback to native check (no security module available)
+            canonical = os.path.realpath(path)
+
         if not os.path.isfile(canonical) or not os.access(canonical, os.X_OK):
             raise ExecutableValidationError(f"Not an executable file: {canonical}")
         version = self._detect_version(canonical)
@@ -117,75 +146,19 @@ class ExecutableLocator(LocateRegisterProtocol):
         return out.strip().splitlines()[0] if out.strip() else ""
 
     def _check_compatibility(self, version: str) -> VersionCompatibility:
-        """Check version compatibility against configured supported_version_range.
-
-        FR-LAU-001: Parses the supported_version_range from config (format: "X.Y+"
-        meaning "minimum X.Y") and compares with detected version.
-
-        Returns:
-            SUPPORTED  — version meets or exceeds minimum requirement
-            WARNING    — version is older than minimum but may still work
-            UNSUPPORTED — version is significantly below minimum
-            UNKNOWN    — no version string or no config range specified
-        """
         if not version:
             return VersionCompatibility.UNKNOWN
-
-        # Parse detected version (e.g., "3.6.0" -> [3, 6, 0])
-        detected = self._parse_version(version)
-        if detected is None:
-            return VersionCompatibility.UNKNOWN
-
-        config = self._config_provider()
-        range_str = getattr(config, "supported_version_range", "") or ""
-
-        if not range_str:
-            # No range configured — assume supported (backward compat)
-            return VersionCompatibility.SUPPORTED
-
-        # Parse range string (format: "X.Y+" means minimum X.Y)
-        min_version = self._parse_version_range(range_str)
-        if min_version is None:
-            return VersionCompatibility.UNKNOWN
-
-        # Compare major versions for warning/unsupported verdicts
-        major_diff = detected[0] - min_version[0] if len(detected) and len(min_version) else 0
-
-        if major_diff > 0:
-            # Future version — supported with warning
-            return VersionCompatibility.WARNING
-        elif major_diff == 0:
-            # Same major — check minor/patch
-            if tuple(detected[1:]) >= tuple(min_version[1:]):
-                return VersionCompatibility.SUPPORTED
-            return VersionCompatibility.WARNING
-        else:
-            # Older major version — unsupported
-            return VersionCompatibility.UNSUPPORTED
-
-    @staticmethod
-    def _parse_version(version_str: str) -> tuple[int, ...] | None:
-        """Parse a version string into a tuple of integers.
-
-        Handles formats like "3.6", "3.6.0", "4.1.2".
-        Returns None if parsing fails.
-        """
         try:
-            parts = version_str.strip().split(".")
-            return tuple(int(p) for p in parts if p.isdigit()) or None
-        except (IndexError, ValueError):
-            return None
-
-    @staticmethod
-    def _parse_version_range(range_str: str) -> tuple[int, ...] | None:
-        """Parse a version range string into minimum version tuple.
-
-        Supports format "X.Y+" meaning "minimum X.Y".
-        Strips trailing '+' and parses remaining version parts.
-        Returns None if parsing fails.
-        """
-        range_str = range_str.strip().rstrip("+")
-        return ExecutableLocator._parse_version(range_str)
+            parts = [int(p) for p in version.split(".")[:2]]
+            major = parts[0]
+            minor = parts[1] if len(parts) > 1 else 0
+            if major < 3:
+                return VersionCompatibility.UNSUPPORTED
+            if major > 4 or (major == 4 and minor >= 2):
+                return VersionCompatibility.WARNING
+            return VersionCompatibility.SUPPORTED
+        except (ValueError, IndexError):
+            return VersionCompatibility.UNKNOWN
 
     def _register(self, _config: LauncherConfigVO, path: str) -> None:
         provider = self._config_provider
@@ -193,33 +166,31 @@ class ExecutableLocator(LocateRegisterProtocol):
         if callable(setter):
             setter(path)
 
+        if self._persist is not None:
+            with contextlib.suppress(Exception):
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=path,
+                        process_id=None,
+                        launch_timestamp=0.0,
+                        bridge_endpoint=None,
+                        last_status=RuntimeState.NOT_RUNNING,
+                    )
+                )
+
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)
-        if events is None:
-            return
+        if events is not None:
+            # FR-SEC-001: redact full paths in diagnostic output
+            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
 
-        # FR-INT-008: Apply redaction rules for security compliance
-        event = LauncherLifecycleEvent(
-            event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-            state_before=RuntimeState.NOT_RUNNING,
-            state_after=RuntimeState.RUNNING_READY,
-            process_reference=path,
-            reason_summary=f"registered_from_{source.value}",
-        )
-
-        if self._redaction_rules is not None:
-            # Redact sensitive data in event fields
-            raw_data = {
-                "process_reference": event.process_reference,
-                "reason_summary": event.reason_summary,
-            }
-            redacted = self._redaction_rules.redact_dict(raw_data)
-            event = LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                state_before=RuntimeState.NOT_RUNNING,
-                state_after=RuntimeState.RUNNING_READY,
-                process_reference=redacted.get("process_reference", path),
-                reason_summary=redacted.get("reason_summary", f"registered_from_{source.value}"),
+            redacted_path = _redact_path(path)
+            events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=redacted_path,
+                    reason_summary=f"registered_from_{source.value}",
+                )
             )
-
-        events(event)

@@ -3,15 +3,14 @@
 Wires concrete capabilities to the agent orchestrator and bootstraps the
 launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrchestrator).
 
-FR-INT-008: Integrates with ConfigContainer for redaction rules and settings.
+Security integration: injects ValidatePathProtocol and RedactSensitiveProtocol
+from the security module per PRD data flow diagram (Security -->|path validation| Launcher).
 """
 
 from __future__ import annotations
 
 import logging
-import socket
 
-from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
@@ -37,6 +36,8 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_spawn,
     process_version_check,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_launcher_orchestrator import LauncherOrchestrator
 from .capabilities_executable_locator import ExecutableLocator
@@ -48,49 +49,26 @@ from .capabilities_state_persistence import StatePersistence
 logger = logging.getLogger("BlenderMCPServer")
 
 
-def _tcp_bridge_probe(host: str, port: int, timeout_seconds: float = 1.0) -> bool:
-    """Probe a TCP bridge endpoint for readiness (FR-INT-003).
-
-    Returns True if the host:port is accepting connections within timeout.
-    """
-    sock: socket.SocketType | None = None
-    try:
-        sock = socket.create_connection((host, port), timeout=timeout_seconds)
-        return True
-    except (OSError, TimeoutError, ConnectionRefusedError):
-        return False
-    finally:
-        if sock is not None:
-            sock.close()
-
-
-class _BridgeProbeWrapper:
-    """Wrapper to provide a callable bridge probe with captured host/port."""
-
-    def __init__(self, host: str, port: int) -> None:
-        self._host = host
-        self._port = port
-
-    def __call__(self, timeout_seconds: float = 1.0) -> bool:
-        return _tcp_bridge_probe(self._host, self._port, timeout_seconds)
-
-
 class LauncherContainer:
+    """Dependency injection container for the launcher feature module.
+
+    Security integration (per PRD + FR-LAU "Depends On"):
+      - Injects ValidatePathProtocol for executable + persistence path validation
+      - Uses security module's redaction for event reasons and bridge endpoints
+    """
+
     def __init__(
         self,
         config: LauncherConfigVO | None = None,
         state_path: str | None = None,
-        bridge_host: str | None = "localhost",
-        bridge_port: int | None = 50051,
-        redaction_rules: IRedactionRulesProtocol | None = None,
+        security_policy: SecurityPolicyVO | None = None,
     ) -> None:
         self._config = config or LauncherConfigVO()
         self._state_path = state_path
-        self._bridge_host = bridge_host
-        self._bridge_port = bridge_port
-        self._redaction_rules = redaction_rules
+        self._security_policy = security_policy or SecurityPolicyVO()
         self._orchestrator: LauncherOrchestrator | None = None
         self._wired: bool = False
+        self._path_validator: ValidatePathProtocol | None = None
 
     def wire(self) -> None:
         if self._wired:
@@ -98,49 +76,51 @@ class LauncherContainer:
 
         logger.info("Wiring launcher feature module")
 
+        # ─── Security integration: wire path validator + audit emitter (FR-SEC-001/005) ───
+        from modules.security.src.root_security_container import SecurityContainer
+
+        sec_container = SecurityContainer(policy=self._security_policy)
+        sec_container.wire()
+        # Extract capabilities directly from security container (orchestrator wraps them privately)
+        self._path_validator = getattr(sec_container, "_validate_path_cap", None)
+        self._audit_emitter = getattr(sec_container, "_emit_audit_cap", None)
+
+        # ─── Persistence with security path validation ───
         persist_cap: PersistStateProtocol = StatePersistence(
             path_resolver=lambda: self._state_path,
+            path_validator=self._path_validator,
         )
-
-        # FR-INT-003: Wire real TCP bridge probe instead of None
-        bridge_host = self._bridge_host or "localhost"
-        bridge_port = self._bridge_port or 50051
-        bridge_probe = _BridgeProbeWrapper(bridge_host, bridge_port)
 
         status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
             liveness_checker=process_alive,
             pid_resolver=lambda: self._resolve_persisted_pid(persist_cap),
-            bridge_probe=bridge_probe,
+            bridge_probe=None,
             persisted_state_resolver=persist_cap.load,
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
         )
 
-        # FR-INT-008: Wire redaction rules into ExecutableLocator for event security
+        # ─── Executable locator with security path validation ───
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
-            redaction_rules=self._redaction_rules,
+            path_validator=self._path_validator,
         )
-
-        # FR-INT-002: Forward bridge endpoint to spawner for addon integration
-        bridge_endpoint: str | None = None
-        if self._bridge_host and self._bridge_port:
-            bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
 
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode, bridge_endpoint=bridge_endpoint),
+            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
             readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
-            probe_interval_seconds=self._config.readiness_probe_interval_seconds,
-            persist_cap=persist_cap,
+            audit_event_sink=self._audit_emitter,
         )
+
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
             signal_sender=process_signal_term,
             killer=process_kill,
             timeout_seconds=self._config.shutdown_timeout_seconds,
             force_enabled=self._config.force_termination_enabled,
+            audit_event_sink=self._audit_emitter,
         )
 
         self._orchestrator = LauncherOrchestrator(
@@ -152,7 +132,7 @@ class LauncherContainer:
         )
 
         self._wired = True
-        logger.info("Launcher feature module wired successfully")
+        logger.info("Launcher feature module wired successfully (with security integration)")
 
     def _resolve_persisted_pid(self, persist_cap: PersistStateProtocol) -> int | None:
         state = persist_cap.load()
@@ -168,16 +148,22 @@ class LauncherContainer:
 def create_launcher_feature(
     config: LauncherConfigVO | None = None,
     state_path: str | None = None,
-    bridge_host: str | None = "localhost",
-    bridge_port: int | None = 50051,
-    redaction_rules: IRedactionRulesProtocol | None = None,
+    security_policy: SecurityPolicyVO | None = None,
 ) -> ILauncherOperateAggregate:
-    container = LauncherContainer(
-        config=config,
-        state_path=state_path,
-        bridge_host=bridge_host,
-        bridge_port=bridge_port,
-        redaction_rules=redaction_rules,
-    )
+    """Factory function to create and wire the launcher feature module.
+
+    Security integration (per PRD + FR-LAU "Depends On"):
+      - Accepts optional security_policy for path validation and redaction
+      - Delegates path validation to security module's PathValidator
+
+    Args:
+        config: Optional launcher configuration.
+        state_path: Optional state persistence file path.
+        security_policy: Optional security policy for path validation and redaction.
+
+    Returns:
+        The assembled ILauncherOperateAggregate ready for use.
+    """
+    container = LauncherContainer(config=config, state_path=state_path, security_policy=security_policy)
     container.wire()
     return container.agent

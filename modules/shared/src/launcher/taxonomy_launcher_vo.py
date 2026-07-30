@@ -185,7 +185,6 @@ class RuntimeStateVO:
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
 
     def contains_secret(self) -> bool:
-        """Check if any field name matches a secret-like key."""
         from dataclasses import fields
 
         from .taxonomy_launcher_constant import SECRET_KEYS
@@ -204,6 +203,19 @@ class PersistenceOutcomeVO:
     success: bool = False
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
     reconciled: bool = False
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 (Finding #14): Load result with corruption differentiation.
+
+    Differentiates between corrupt/unreadable content and missing/empty state file.
+    Returns the loaded state when available, plus warnings for corruption events.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 @dataclass(frozen=True)

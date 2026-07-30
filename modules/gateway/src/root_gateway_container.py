@@ -4,7 +4,7 @@ Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
 from modules.security.src.capabilities_code_validator import CodeValidator
-from modules.shared.src.gateway.contract_gateway_operate_aggregate import IGatewayAggregate
+from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
