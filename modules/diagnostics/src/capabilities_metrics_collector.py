@@ -3,7 +3,7 @@
 FR-DIA-002: Collect Operational Metrics
 Pulls operational counters, gauges, and latency summaries from features
 and exposes them as immutable snapshots.
-Implements MetricsCollectionProtocol and MetricsStateProviderProtocol.
+Implements MetricsCollectionProtocol.
 """
 
 from __future__ import annotations
@@ -14,9 +14,6 @@ from datetime import datetime, timezone
 from modules.shared.src.diagnostics.contract_metrics_collection_protocol import (
     MetricsCollectionProtocol,
 )
-from modules.shared.src.diagnostics.contract_metrics_state_provider_protocol import (
-    MetricsStateProviderProtocol,
-)
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     LatencySummaryVO,
     MetricsSampleVO,
@@ -26,12 +23,14 @@ from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
 logger = logging.getLogger(__name__)
 
 
-class MetricsCollector(MetricsCollectionProtocol, MetricsStateProviderProtocol):
+class MetricsCollector(MetricsCollectionProtocol):
     """Collect operational metrics from features.
 
     Pulls counters, gauges, and latency summaries from features at
     configured interval and exposes immutable snapshots.
     """
+
+    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(self) -> None:
         self._counters: dict[str, int] = {}
@@ -39,6 +38,8 @@ class MetricsCollector(MetricsCollectionProtocol, MetricsStateProviderProtocol):
         self._collection_timestamp: str = ""
         self._counter_reset_indicator: bool = False
         self._last_snapshot: MetricsSnapshotVO | None = None
+
+    # ─── Block 2: Protocol Method Implementation ─────────────
 
     async def collect_metrics_snapshot(
         self,
@@ -104,6 +105,8 @@ class MetricsCollector(MetricsCollectionProtocol, MetricsStateProviderProtocol):
     async def get_metrics(self) -> MetricsSnapshotVO | None:
         """Return the latest metrics snapshot for snapshot provider contract."""
         return self._last_snapshot
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def __repr__(self) -> str:
         return "MetricsCollector()"

@@ -24,11 +24,5 @@ class SnapshotProvisionProtocol(ABC):
         """Serve one canonical point-in-time diagnostics snapshot.
 
         FR-DIA-005: CLI/MCP consume snapshots — never probe subsystems or compute health themselves.
-        Consistent point-in-time view from composed state. Detail: summary (safe for routine)
-        or full (per-subsystem/metric depth). Section filter: health/metrics/audit only.
-        Identical shape for all consumers; formatting belongs to consumer.
-        Read-only, idempotent. Bounded latency — reuse composed state, recompute only when freshness expired.
-        Stale sections carry staleness indicators. No secrets/raw code/credentials/sensitive paths;
-        audit summary = categories+counts. First run with no history → empty-window indicators.
         """
         ...

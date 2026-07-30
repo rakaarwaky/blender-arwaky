@@ -4,7 +4,7 @@ FR-DIA-001: Compose System Health
 Aggregates subsystem states into one composed health view with bounded
 probes and explicit staleness. Probe timeout and freshness tolerance are
 configured at construction via the container (FRD config keys).
-Implements HealthCompositionProtocol and HealthStateProviderProtocol.
+Implements HealthCompositionProtocol.
 """
 
 from __future__ import annotations
@@ -15,9 +15,6 @@ from datetime import datetime, timezone
 from modules.shared.src.diagnostics.contract_health_composition_protocol import (
     HealthCompositionProtocol,
 )
-from modules.shared.src.diagnostics.contract_health_state_provider_protocol import (
-    HealthStateProviderProtocol,
-)
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     HealthCompositionRequestVO,
     HealthDetailsVO,
@@ -25,12 +22,14 @@ from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
 )
 
 
-class HealthComposer(HealthCompositionProtocol, HealthStateProviderProtocol):
+class HealthComposer(HealthCompositionProtocol):
     """Compose system health from subsystem states.
 
     Aggregates launcher, gateway, config, and job capacity into a single
     health view with bounded probes and explicit staleness.
     """
+
+    # ─── Block 1: Class Definition & Constructor ──────────────
 
     def __init__(
         self,
@@ -43,6 +42,8 @@ class HealthComposer(HealthCompositionProtocol, HealthStateProviderProtocol):
         self._cache_time: float = 0.0
         self._cache_key: tuple | None = None
 
+    # ─── Block 2: Protocol Method Implementation ─────────────
+
     async def compose_health(
         self,
         request: HealthCompositionRequestVO,
@@ -51,7 +52,7 @@ class HealthComposer(HealthCompositionProtocol, HealthStateProviderProtocol):
 
         FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
         Overall status: healthy when all required report healthy;
-        degraded when any reports degraded/stale; unhealthy when any fails.
+        degraded when a subsystem reports degraded/stale; unhealthy when a subsystem fails.
         """
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
@@ -121,10 +122,17 @@ class HealthComposer(HealthCompositionProtocol, HealthStateProviderProtocol):
         job_status = "healthy" if request.job_capacity_available else "degraded"
         subsystems.append(SubsystemHealthVO(name="job_capacity", status=job_status))
 
-        all_statuses = [s.status for s in subsystems]
-        if all(s == "healthy" for s in all_statuses):
+        all_healthy = True
+        has_unhealthy = False
+        for s in subsystems:
+            if s.status != "healthy":
+                all_healthy = False
+            if s.status in ("unhealthy", "failed", "unreachable", "timeout"):
+                has_unhealthy = True
+
+        if all_healthy:
             overall = "healthy"
-        elif any(s in ("unhealthy", "failed", "unreachable", "timeout") for s in all_statuses):
+        elif has_unhealthy:
             overall = "unhealthy"
         else:
             overall = "degraded"
@@ -151,6 +159,8 @@ class HealthComposer(HealthCompositionProtocol, HealthStateProviderProtocol):
     async def get_health(self) -> HealthDetailsVO | None:
         """Return the most recently composed health state for snapshot provider contract."""
         return self._composition_cache
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     async def _probe_launcher(self, status: str) -> str:
         """Simulate launcher probe — returns status."""

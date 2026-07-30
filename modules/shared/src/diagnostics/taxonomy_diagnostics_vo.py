@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import field as dc_field
-from typing import Any
 
 # ============================================================
 # Health Composition (FR-DIA-001)
@@ -88,7 +87,7 @@ class AuditRecordVO:
     severity: str = "info"
     source_feature: str = ""
     operation_type: str = ""
-    target_metadata: dict[str, Any] = dc_field(default_factory=dict)
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
     correlation_id: str | None = None
 
     # Output (emitted event — frozen by dataclass(frozen=True))
@@ -146,6 +145,7 @@ class LogResultVO:
     redacted_count: int = 0
     drop_counter: int = 0  # records dropped due to backpressure
 
+
 # ============================================================
 # Diagnostics Request / Config VOs (added for issue #49)
 # ============================================================
@@ -184,7 +184,7 @@ class AuditEventRequestVO:
     severity: str = "info"
     source_feature: str = ""
     operation_type: str = ""
-    target_metadata: dict[str, Any] = dc_field(default_factory=dict)
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
     correlation_id: str | None = None
 
 
@@ -195,7 +195,7 @@ class LogRecordRequestVO:
     level: str = "info"
     source_feature: str = ""
     message: str = ""
-    fields: dict[str, Any] = dc_field(default_factory=dict)
+    fields: dict[str, object] = dc_field(default_factory=dict)
     tracking_id: str | None = None
 
 
