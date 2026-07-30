@@ -22,7 +22,7 @@ Before starting, read:
 - Use `gh` CLI to list open issues: `gh issue list --state open`
 - Pick the **oldest open issue by timestamp** (or the one with the highest priority label).
 - Work on only **1 issue per session**.
-- If no open issues exist → **STOP**. Do not create any file.
+- If no open issues exist → **STOP**. Do not create any file, branch, or worktree.
 
 ### 2. Prepare
 
@@ -32,36 +32,77 @@ Before starting, read:
 - Understand which files will be modified and which layers are affected.
 - Do NOT modify any files during this step.
 
-### 3. Create Feature Branch
+### 3. Setup Worktree and Feature Branch
 
-- Ensure you are on an up-to-date `develop` branch:
+**All implementation work must happen inside a Git worktree. Do not edit files in the main repository working directory.**
+
+- Ensure `.worktree/` is ignored locally:
 
   ```bash
-  git checkout develop
-  git pull origin develop
+  echo ".worktree/" >> "$(git rev-parse --git-common-dir)/info/exclude"
+```
+
+- Fetch the latest `develop` branch:
+
+  ```bash
+  git fetch origin develop
+  git worktree prune
   ```
-- Create a new feature branch based on the issue type and number:
+- Determine the branch name and worktree path based on the issue type and number:
 
   - `feat/<issue-number>-<short-description>` for new features
   - `fix/<issue-number>-<short-description>` for bug fixes
   - `perf/<issue-number>-<short-description>` for performance improvements
   - `chore/<issue-number>-<short-description>` for maintenance tasks
 
-  Example:
+  Example variables:
 
   ```bash
-  git checkout -b feat/42-add-user-authentication
+  ISSUE_NUMBER=42
+  SHORT_DESC=add-user-authentication
+  BRANCH_TYPE=feat
+  BRANCH_NAME="${BRANCH_TYPE}/${ISSUE_NUMBER}-${SHORT_DESC}"
+  WORKTREE_PATH=".worktree/${ISSUE_NUMBER}-${SHORT_DESC}"
+  ```
+- Create a new worktree with a new feature branch based on `origin/develop`:
+
+  ```bash
+  git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" origin/develop
+  ```
+- Move into the worktree:
+
+  ```bash
+  cd "$WORKTREE_PATH"
+  ```
+- Confirm you are working inside the correct worktree and branch:
+
+  ```bash
+  pwd
+  git branch --show-current
+  git status
   ```
 
-### 4. Implement
+Example:
 
-Execute the issue requirements exactly as described. Apply the fixes to actual source files.
+```bash
+git worktree add .worktree/42-add-user-authentication -b feat/42-add-user-authentication origin/develop
+cd .worktree/42-add-user-authentication
+```
+
+If the worktree or branch already exists from a previous attempt, reuse it instead of creating a duplicate.
+
+### 4. Implement Inside the Worktree
+
+Execute the issue requirements exactly as described. Apply the fixes to actual source files **inside the worktree**.
 
 - Follow the relevant skill workflow if applicable.
 - Write tests for any new or changed functionality.
 - Do NOT deviate from the issue's design or proposed fixes.
+- Do NOT modify files in the main repository working directory.
 
-### 5. Verify
+### 5. Verify Inside the Worktree
+
+Run verification commands from inside the worktree.
 
 - Run the project linter: `cargo clippy --all-targets -- -D warnings`
 - Run all tests: `cargo test --workspace` or equivalent
@@ -69,10 +110,12 @@ Execute the issue requirements exactly as described. Apply the fixes to actual s
 - Confirm the original issue is resolved with no regressions.
 - If verification fails, fix and re-verify.
 
-### 6. Report, Commit, and Create PR
+### 6. Report, Commit, Push, and Create PR from Worktree Branch
 
 **Write a report:**
+
 `.agents/reports/done-<feature-name>-<role>-YYYY-MM-DD-HHmmss.md`
+
 Where `<role>` is derived from the issue label or title (e.g., `architect`, `business-analyst`, `tech-lead`, or `developer`).
 
 Do not write Fullstack Developer as role.
@@ -88,6 +131,9 @@ GitHub Issue #<issue-number>: {issue-title}
 ## Branch Created
 `{branch-name}` (e.g., `feat/42-add-user-authentication`)
 
+## Worktree
+`{worktree-path}` (e.g., `.worktree/42-add-user-authentication`)
+
 ## Execution Summary
 {Brief overview of what was implemented. Mention which skills were used.}
 
@@ -98,12 +144,12 @@ GitHub Issue #<issue-number>: {issue-title}
 {List any deviations from the issue's design or additional context. Write "None" if exact match.}
 ```
 
-**Commit to feature branch, push, and create PR to `develop`:**
+**Commit to feature branch, push, and create PR to `develop` from the worktree branch:**
 
 ```bash
 git add .
 git commit -m "feat({scope}): {description of changes} (Refs #<issue-number>)"
-git push origin <feature-branch-name>
+git push -u origin <feature-branch-name>
 ```
 
 **Before creating the PR, read the PR template:**
@@ -112,7 +158,7 @@ git push origin <feature-branch-name>
 cat .github/PULL_REQUEST_TEMPLATE.md
 ```
 
-**Create PR from feature branch to `develop` using the template format:**
+**Create PR from the worktree feature branch to `develop` using the template format:**
 
 ```bash
 gh pr create --base develop --head <feature-branch-name> --title "feat({scope}): {title}" --body "$(cat .github/PULL_REQUEST_TEMPLATE.md | sed 's/{issue-number}/<issue-number>/g')"
@@ -123,27 +169,33 @@ gh pr create --base develop --head <feature-branch-name> --title "feat({scope}):
 - ❌ Close the issue (Merge Master will do this after merge)
 - ❌ Merge the PR (Merge Master will do this)
 - ❌ Create PR from `develop` to `main` (Merge Master handles this)
+- ❌ Delete the worktree before Merge Master merges the PR
+- ❌ Commit the `.worktree/` directory
 
 ## Branch Strategy
 
 
-| Step | Action                                                                                   |
-| ------ | ------------------------------------------------------------------------------------------ |
-| 1    | Create feature branch from`develop`: `feat/`, `fix/`, `perf/`, or `chore/`               |
-| 2    | Commit and push changes to feature branch                                                |
-| 3    | Create PR from feature branch →`develop`: `gh pr create --base develop --head <branch>` |
-| 4    | Wait for Merge Master to review, merge, and close the issue                              |
+| Step | Action                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------- |
+| 1    | Create Git worktree from`origin/develop`: `.worktree/<issue-number>-<short-description>`  |
+| 2    | Create feature branch inside the worktree:`feat/`, `fix/`, `perf/`, or `chore/`           |
+| 3    | Implement, test, and commit only inside the worktree                                      |
+| 4    | Push the worktree branch to origin                                                        |
+| 5    | Create PR from worktree branch →`develop`: `gh pr create --base develop --head <branch>` |
+| 6    | Wait for Merge Master to review, merge, and close the issue                               |
 
 **Rules:**
 
 - Never commit directly to `main` or `develop`
+- Always create a new Git worktree for each issue under `.worktree/`
+- Always work only inside the created worktree
 - Always create a new feature branch for each issue
-- Always create PR from feature branch to `develop` (NOT to `main`)
+- Always create PR from the worktree feature branch to `develop` (NOT to `main`)
 - Do NOT merge PRs — that is the Merge Master's responsibility
 - Do NOT close issues — that is the Merge Master's responsibility
 - Always read `.github/PULL_REQUEST_TEMPLATE.md` before creating a PR
 - Reference the issue number in commit messages with `Refs #<issue-number>`
-- Keep the feature branch alive until Merge Master merges and deletes it
+- Keep the feature branch and worktree alive until Merge Master merges and deletes it
 
 ```
 
