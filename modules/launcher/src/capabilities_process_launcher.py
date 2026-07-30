@@ -9,6 +9,7 @@ logic is testable without launching a real Blender process.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -28,6 +29,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 class _ProcessSpawner(Protocol):
@@ -137,4 +140,4 @@ class ProcessLauncher(LaunchProtocol):
                     )
                 )
             except Exception:
-                pass  # Event emission is fire-and-forget
+                logger.warning("Event emission failed (fire-and-forget)")

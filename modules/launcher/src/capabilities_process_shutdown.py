@@ -9,6 +9,7 @@ Signal sender and killer are injected DI boundaries.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -28,6 +29,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     TerminationMethod,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 class _SignalSender(Protocol):
@@ -159,4 +162,4 @@ class ProcessShutdown(ShutdownProtocol):
                     )
                 )
             except Exception:
-                pass  # Event emission is fire-and-forget
+                logger.warning("Event emission failed (fire-and-forget)")

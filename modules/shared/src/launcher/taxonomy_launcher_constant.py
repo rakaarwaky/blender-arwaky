@@ -40,5 +40,5 @@ LAUNCHER_EVENT_STALE_STATE_DETECTED: str = "stale_state_detected"
 LAUNCHER_EVENT_EXECUTABLE_REGISTERED: str = "executable_registered"
 
 # ─── Source Feature Name ────────────────────────────────────
-# REMOVED: LAUNCHER_SOURCE_FEATURE is never imported by any consumer.
-# If needed in the future, document its intended use before re-adding.
+# REMOVED: LAUNCHER_SOURCE_FEATURE was removed; no consumer imports it.
+# If needed later, document intended use before re-adding.
