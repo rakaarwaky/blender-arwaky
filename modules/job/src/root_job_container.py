@@ -19,6 +19,7 @@ from .capabilities_job_event_publisher import JobLoggingEventPublisher
 from .capabilities_job_monitor import JobStatusMonitor
 from .capabilities_job_repository import InMemoryJobLifecycleRepository
 from .capabilities_job_resolver import JobCleanupResolver
+from .capabilities_job_scheduler import JobSchedulerCapability
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -52,6 +53,9 @@ class JobContainer:
         cancellation = JobCancellationEvaluator()
         cleanup = JobCleanupResolver()
         capacity = JobCapacityChecker()
+        scheduler = JobSchedulerCapability()
+        _ = scheduler
+
 
         self._orchestrator = JobOrchestrator(
             lifecycle=lifecycle,
