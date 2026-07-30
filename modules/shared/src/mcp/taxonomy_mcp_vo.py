@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -12,7 +11,7 @@ class McpToolDef:
 
     name: str
     description: str
-    parameters: dict[str, Any] | None = None
+    parameters: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -47,6 +46,6 @@ class McpResponse:
     """MCP response envelope structure."""
 
     success: bool
-    data: Any = None
+    data: object = None
     error: str | None = None
     tool: str | None = None
