@@ -22,15 +22,6 @@ def tuple_str(coords: CoordinateList) -> str:
     return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
 
-def validate_finite_vector(vector: CoordinateList, field_name: str) -> None:
-    """Validate that all vector components are finite numeric values."""
-    for index, value in enumerate(vector):
-        if not isinstance(value, (int, float)):
-            raise ValueError(f"{field_name}[{index}] is not numeric: {value}")
-        if not math.isfinite(float(value)):
-            raise ValueError(f"{field_name}[{index}] is not finite: {value}")
-
-
 def validate_scale(scale: ScaleVector) -> None:
     """Validate scale values are finite and non-zero.
 

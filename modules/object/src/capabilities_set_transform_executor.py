@@ -13,12 +13,8 @@ Structure:
 import logging
 from typing import Any
 
-from modules.shared.src.common.taxonomy_core_vo import (
-    CoordinateList,
-    Prompt,
-    ScaleVector,
-    SuccessFlag,
-)
+from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
+from modules.shared.src.common.utility_code_builder import quote_string, tuple_str, validate_scale
 from modules.shared.src.object.contract_set_transform_protocol import SetObjectTransformProtocol
 from modules.shared.src.object.taxonomy_object_vo import SetObjectTransformVO
 
@@ -49,7 +45,7 @@ class SetTransformExecutor(SetObjectTransformProtocol):
 
         # Validate transform values (finite, non-zero scale unless allowed)
         if request.scale is not None:
-            self._validate_scale(request.scale)
+            validate_scale(request.scale)
 
         # Generate and execute transform code
         code = self._generate_transform_code(request)
@@ -78,7 +74,7 @@ class SetTransformExecutor(SetObjectTransformProtocol):
         """
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({SetTransformExecutor._safe_str(str(request.object_name))})",
+            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})",
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
         ]
 
@@ -86,13 +82,13 @@ class SetTransformExecutor(SetObjectTransformProtocol):
         lines.append(self._check_locked_channels_code())
 
         if request.location is not None:
-            lines.append(f"obj.location = {SetTransformExecutor._tuple_str(request.location)}")
+            lines.append(f"obj.location = {tuple_str(request.location)}")
 
         if request.rotation is not None:
-            lines.append(f"obj.rotation_euler = {SetTransformExecutor._tuple_str(request.rotation)}")
+            lines.append(f"obj.rotation_euler = {tuple_str(request.rotation)}")
 
         if request.scale is not None:
-            lines.append(f"obj.scale = {SetTransformExecutor._tuple_str(request.scale)}")
+            lines.append(f"obj.scale = {tuple_str(request.scale)}")
 
         return "\n".join(lines)
 
@@ -109,28 +105,6 @@ class SetTransformExecutor(SetObjectTransformProtocol):
             "    if rot: raise ValueError(f'Rotation channel {i} is locked')\n"
             "    if scl: raise ValueError(f'Scale channel {i} is locked')\n"
         )
-
-    @staticmethod
-    def _validate_scale(scale: ScaleVector) -> None:
-        """Validate scale values are finite and non-zero unless explicitly allowed.
-
-        FR-OBJ-003: Scale values must be finite and non-zero.
-        """
-        for i, val in enumerate(scale):
-            if not isinstance(val, (int, float)):
-                raise ValueError(f"Scale component {i} is not numeric: {val}")
-            if val == 0:
-                raise ValueError(f"Scale component {i} is zero — non-zero scale is required")
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
-
-    @staticmethod
-    def _tuple_str(coords: CoordinateList) -> str:
-        """Format a 3-element sequence of floats for embedding in generated Python code."""
-        return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
     def __repr__(self) -> str:
         return "SetTransformExecutor()"

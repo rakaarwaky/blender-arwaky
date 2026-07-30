@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectType, Prompt, SuccessFlag
+from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.taxonomy_object_error import InvalidModifierTypeError, ModifierActionConfirmationError
 from modules.shared.src.object.taxonomy_object_vo import ApplyModifierVO
@@ -113,47 +114,47 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
         """
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({ApplyModifierExecutor._safe_str(str(request.object_name))})",
+            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})",
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
-            f"mod_type = {ApplyModifierExecutor._safe_str(mod_type_enum)}\n",
+            f"mod_type = {quote_string(mod_type_enum)}\n",
         ]
 
         action = request.action
 
         if action == "add":
             lines.append(
-                f"mod = obj.modifiers.new(name={ApplyModifierExecutor._safe_str(str(request.modifier_name))}, type=mod_type)\n"
+                f"mod = obj.modifiers.new(name={quote_string(str(request.modifier_name))}, type=mod_type)\n"
             )
         elif action == "update":
             lines.append(
                 f"# Update existing modifier or add new\n"
                 f"existing_mod = None\n"
                 f"for mod in obj.modifiers:\n"
-                f"    if mod.name == {ApplyModifierExecutor._safe_str(str(request.modifier_name))}:\n"
+                f"    if mod.name == {quote_string(str(request.modifier_name))}:\n"
                 f"        existing_mod = mod\n"
                 f"        break\n"
                 f"if existing_mod:\n"
                 f"    # Update existing modifier parameters\n"
-                f"    params = {ApplyModifierExecutor._safe_str(str(getattr(request, 'parameters', {})))}\n"
+                f"    params = {quote_string(str(getattr(request, 'parameters', {})))}\n"
                 f"    for param_name, param_value in params.items():\n"
                 f"        try:\n"
                 f"            setattr(existing_mod, param_name, param_value)\n"
                 f"        except Exception:\n"
                 f"            pass\n"
                 f"else:\n"
-                f"    obj.modifiers.new(name={ApplyModifierExecutor._safe_str(str(request.modifier_name))}, type=mod_type)\n"
+                f"    obj.modifiers.new(name={quote_string(str(request.modifier_name))}, type=mod_type)\n"
             )
         elif action == "remove":
             lines.append(
                 f"# Remove modifier by name\n"
                 f"for mod in list(obj.modifiers):\n"
-                f"    if mod.name == {ApplyModifierExecutor._safe_str(str(request.modifier_name))}:\n"
+                f"    if mod.name == {quote_string(str(request.modifier_name))}:\n"
                 f"        obj.modifiers.remove(mod)\n"
             )
         elif action == "apply":
             lines.append(
                 f"# Add modifier then apply destructively\n"
-                f"mod = obj.modifiers.new(name={ApplyModifierExecutor._safe_str(str(request.modifier_name))}, type=mod_type)\n"
+                f"mod = obj.modifiers.new(name={quote_string(str(request.modifier_name))}, type=mod_type)\n"
                 "for o in bpy.context.selected_objects:\n"
                 "    o.select_set(False)\n"
                 "obj.select_set(True)\n"
@@ -162,11 +163,6 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
             )
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
 
     def __repr__(self) -> str:
         return "ApplyModifierExecutor()"

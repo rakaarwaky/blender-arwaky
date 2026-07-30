@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
+from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
 from modules.shared.src.object.taxonomy_object_error import DeletionProtectionError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import DeleteObjectVO
@@ -56,7 +57,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         # Check if object exists
         exists_code = (
             "import bpy\n"
-            f"obj = bpy.data.objects.get({DeleteObjectExecutor._safe_str(str(request.object_name))})\n"
+            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})\n"
             "if obj is None:\n"
             '    raise ValueError("Object not found in scene.")\n'
             "result = True\n"
@@ -115,7 +116,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         """
         check_code = (
             "import bpy\n"
-            f"obj = bpy.data.objects.get({DeleteObjectExecutor._safe_str(str(request.object_name))})\n"
+            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})\n"
             "protected = False\n"
             "# Check if active camera\n"
             "if bpy.context.scene.camera == obj:\n"
@@ -154,7 +155,7 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         """
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({DeleteObjectExecutor._safe_str(str(request.object_name))})",
+            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})",
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
         ]
 
@@ -183,11 +184,6 @@ class DeleteObjectExecutor(DeleteObjectProtocol):
         lines.append("bpy.data.objects.remove(obj, do_unlink=True)\n")
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
 
     def __repr__(self) -> str:
         return "DeleteObjectExecutor()"
