@@ -96,7 +96,8 @@ class ProcessLauncher(LaunchProtocol):
 
         start = time.monotonic()
         try:
-            pid = self._spawner(executable, mode.value, timeout)
+            mode_str = mode.value if hasattr(mode, "value") else str(mode)
+            pid = self._spawner(executable, mode_str, timeout)
         except Exception as exc:
             self._emit_security_audit(ViolationCategory.UNAUTHORIZED_ACCESS, str(exc))
             self._emit(
