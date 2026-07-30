@@ -17,16 +17,16 @@ class ISceneAggregate(ISceneInspectionProtocol, ISceneCleanupProtocol):
     """Facade for scene feature behavior.
 
     Combines:
-    - FR-SCN-001 inspection
-    - FR-SCN-002 cleanup
+    - FR-SCN-001 inspection (get_scene_info)
+    - FR-SCN-002 cleanup (cleanup_scene)
     """
 
     @abstractmethod
-    async def inspect_scene(self, request: SceneInspectionVO) -> SceneInspectionVO:
-        """Facade method for FR-SCN-001 scene inspection."""
+    async def get_scene_info(self, request: SceneInspectionVO) -> SceneInspectionVO:
+        """FR-SCN-001: Inspect scene state."""
         ...
 
     @abstractmethod
-    async def cleanup_scene_objects(self, request: SceneCleanupVO) -> SceneCleanupVO:
-        """Facade method for FR-SCN-002 scene cleanup."""
+    async def cleanup_scene(self, request: SceneCleanupVO) -> SceneCleanupVO:
+        """FR-SCN-002: Cleanup scene objects."""
         ...
