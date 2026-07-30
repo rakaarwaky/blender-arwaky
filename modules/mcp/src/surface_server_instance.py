@@ -84,7 +84,7 @@ class ServerInstanceSurface:
             record_startup()
 
             # Protocol version negotiation (FR-MCP-004)
-            # FastMCP passes version info via request context;
+            # FastMCP handles version info via request context;
             # here we validate that the server supports the requested version.
             # Incompatible versions are rejected with an unsupported error.
             # NOTE: FastMCP handles version internally; we validate at lifespan
