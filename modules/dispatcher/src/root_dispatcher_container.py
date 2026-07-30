@@ -14,7 +14,6 @@ import logging
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
-from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor
 from .capabilities_request_validation import RequestValidationExecutor
 from .capabilities_result_normalization import ResultNormalizationExecutor
@@ -50,14 +49,16 @@ class DispatcherContainer:
         # container level. The orchestrator will raise a clear "SyncDispatchProtocol
         # not configured" RuntimeError if dispatch_sync() is called, instead of
         # silently returning fake success (FR-DSP-004 routing integrity).
-        background_submit = BackgroundSubmitExecutor()
+        # BackgroundSubmitExecutor not wired — no job tracker is available at the
+        # container level. The orchestrator will raise a clear "BackgroundSubmitProtocol
+        # not configured" RuntimeError if submit_background() is called, instead of
+        # silently creating synthetic job IDs (FR-DSP-005 atomic submission).
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog_registration,
             action_discovery=action_discovery,
             request_validation=request_validation,
-            background_submit=background_submit,
             result_normalization=result_normalization,
         )
 
