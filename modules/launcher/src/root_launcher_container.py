@@ -125,6 +125,8 @@ class LauncherContainer:
             status_protocol=status_cap,
             spawner=lambda executable, mode, _timeout: process_spawn(executable, mode, bridge_endpoint=bridge_endpoint),
             readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
+            probe_interval_seconds=self._config.readiness_probe_interval_seconds,
+            persist_cap=persist_cap,
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,

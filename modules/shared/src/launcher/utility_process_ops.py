@@ -79,6 +79,7 @@ def process_spawn(
     Gateway can connect to the running Blender instance.
 
     Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
+    Uses a new process session (start_new_session=True) for orphan child cleanup support.
     """
     args = [executable]
     if mode == "headless":
@@ -90,7 +91,7 @@ def process_spawn(
     if addon_path:
         args += ["--python-additional", addon_path]
 
-    proc = subprocess.Popen(args)
+    proc = subprocess.Popen(args, start_new_session=True)
     return proc.pid
 
 
@@ -100,14 +101,15 @@ def process_version_check(args: list[str], timeout: float = 5.0) -> tuple[int, s
     return proc.returncode, proc.stdout
 
 
-def process_probe_readiness(process_id: int, timeout_seconds: float) -> bool:
+def process_probe_readiness(process_id: int, timeout_seconds: float, interval_seconds: float = 0.5) -> bool:
     """Poll process liveness until timeout. Returns True while alive.
 
-    Checks every 0.2 seconds; returns False if process dies before timeout.
+    Checks at configurable interval (default 0.5s, per LauncherConfigVO.readiness_probe_interval_seconds);
+    returns False if process dies before timeout.
     """
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         if not process_alive(process_id):
             return False
-        time.sleep(0.2)
+        time.sleep(interval_seconds)
     return True

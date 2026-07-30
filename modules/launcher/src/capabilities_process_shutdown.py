@@ -26,6 +26,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ShutdownOutcomeVO,
     TerminationMethod,
 )
+from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
 
 class _SignalSender(Protocol):
@@ -141,7 +142,7 @@ class ProcessShutdown(ShutdownProtocol):
                     event_category=category,
                     state_before=before,
                     state_after=after,
-                    process_reference=process_reference,
+                    process_reference=redact_sensitive(process_reference),
                     method=method,
                 )
             )
