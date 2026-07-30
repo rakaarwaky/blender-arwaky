@@ -21,6 +21,7 @@ from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycl
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ProbeDepth,
     RuntimeState,
+    RuntimeStateVO,
     RuntimeStatusVO,
 )
 
@@ -48,7 +49,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         liveness_checker: _LivenessChecker,
         pid_resolver: Callable[[], int | None],
         bridge_probe: _BridgeProbe | None = None,
-        persisted_state_resolver: Callable[[], RuntimeStatusVO | None] = lambda: None,
+        persisted_state_resolver: Callable[[], RuntimeStateVO | None] = lambda: None,
         stale_reconciliation_enabled: bool = True,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:

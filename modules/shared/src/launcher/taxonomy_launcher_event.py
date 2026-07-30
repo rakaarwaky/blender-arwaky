@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from modules.shared.src.common.taxonomy_core_vo import DurationMs
+
 from .taxonomy_launcher_vo import RuntimeState
 
 
@@ -22,7 +24,7 @@ class LauncherLifecycleEvent:
     event_category: str = ""
     state_before: RuntimeState = RuntimeState.NOT_RUNNING
     state_after: RuntimeState = RuntimeState.NOT_RUNNING
-    process_reference: str = ""  # redacted process summary, not full env
-    method: str = ""  # launch or termination method when applicable
-    duration_ms: float = 0.0
-    reason_summary: str = ""  # already redacted
+    process_reference: str = ""
+    method: str = ""
+    duration_ms: DurationMs = DurationMs(0.0)
+    reason_summary: str = ""
