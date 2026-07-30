@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from ..common.taxonomy_core_vo import ConfigPath
+from .taxonomy_config_vo import SettingsValue
+
 
 class ConfigGetterProtocol(ABC):
     """Protocol for retrieving configuration values.
@@ -16,6 +19,6 @@ class ConfigGetterProtocol(ABC):
     """
 
     @abstractmethod
-    def get(self, key: str, default: str | None = None) -> str | None:
+    def get(self, key: ConfigPath, default: SettingsValue = None) -> SettingsValue:
         """Retrieve a configuration value by key."""
         ...

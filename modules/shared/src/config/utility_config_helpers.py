@@ -11,7 +11,6 @@ import copy
 import os
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -21,8 +20,10 @@ from modules.shared.src.config.taxonomy_config_constant import (
 )
 from modules.shared.src.config.taxonomy_config_error import ConfigParseError
 
+from .taxonomy_config_vo import SettingsData, SettingsValue
 
-def parse_env_value(value: str) -> Any:
+
+def parse_env_value(value: str) -> SettingsValue:
     """Parse environment value as typed scalar (scalar-only per Q7).
 
     boolean-like → bool, integer-like → int, float-like → float,
@@ -35,12 +36,11 @@ def parse_env_value(value: str) -> Any:
         return False
     try:
         return int(value)
-    except ValueError:
-        pass
-    try:
-        return float(value)
-    except ValueError:
-        pass
+    except (ValueError, TypeError):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
     if value.lower() in ("null", "none", ""):
         return None
     return value
@@ -49,7 +49,7 @@ def parse_env_value(value: str) -> Any:
 def search_project_root(markers: tuple[str, ...]) -> Path | None:
     """Search upward from cwd for recognized project markers.
 
-    Returns first parent containing any marker, or None.
+    Returns first parent containing a recognized marker, or None.
     Returns None if cwd cannot be resolved.
     """
     try:
@@ -81,10 +81,10 @@ def resolve_default_config_path(explicit: ConfigPath | None = None) -> ConfigPat
     return ConfigPath(str(Path.cwd() / DEFAULT_CONFIG_FILENAME))
 
 
-def load_yaml_safe(path: ConfigPath) -> dict[str, Any]:
+def load_yaml_safe(path: ConfigPath) -> SettingsData:
     """Read a YAML file safely.
 
-    Decode 'utf-8-sig' (BOM tolerated). UnicodeDecodeError → ConfigParseError.
+    Decode utf-8-sig (BOM tolerated). UnicodeDecodeError → ConfigParseError.
     yaml.YAMLError → ConfigParseError. None → {}. Non-dict root → ConfigParseError.
     """
     raw = Path(str(path)).read_bytes()
@@ -105,12 +105,12 @@ def load_yaml_safe(path: ConfigPath) -> dict[str, Any]:
     return data
 
 
-def deep_merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+def deep_merge_dicts(base: SettingsData, override: SettingsData) -> SettingsData:
     """Recursively merge ``override`` into a copy of ``base``.
 
     Dict + dict recurses; override wins otherwise. Inputs never mutated.
     """
-    result: dict[str, Any] = copy.deepcopy(base)
+    result: SettingsData = copy.deepcopy(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge_dicts(result[key], value)
@@ -119,7 +119,7 @@ def deep_merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str
     return result
 
 
-def set_nested_value(target: dict[str, Any], segments: tuple[str, ...], value: Any) -> None:
+def set_nested_value(target: SettingsData, segments: tuple[str, ...], value: SettingsValue) -> None:
     """Set ``value`` at dotted ``segments`` inside ``target`` in place.
 
     Creates intermediate dicts for missing/non-dict nodes.
@@ -137,16 +137,16 @@ def set_nested_value(target: dict[str, Any], segments: tuple[str, ...], value: A
 
 
 def apply_env_overrides(
-    config: dict[str, Any],
+    config: SettingsData,
     environ: Mapping[str, str],
     prefix: str,
     reserved: tuple[str, ...],
-) -> tuple[dict[str, Any], int]:
+) -> tuple[SettingsData, int]:
     """Apply environment variable overrides with nested key convention.
 
     Iterates sorted(environ.items()) for determinism. Skips reserved keys and
     keys whose remainder after prefix is empty. Lowercases remainder, splits on
-    '.', creates intermediates (env may introduce new keys). Returns
+    ., creates intermediates (env may introduce new keys). Returns
     (newdict, applied_count). Inputs not mutated.
     """
     result = copy.deepcopy(config)
@@ -169,8 +169,8 @@ def apply_env_overrides(
 
 
 def validate_settings_schema(
-    data: dict[str, Any],
-    schema: dict[str, Any],
+    data: SettingsData,
+    schema: SettingsData,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Validate ``data`` against a Python-native schema.
 
@@ -179,7 +179,7 @@ def validate_settings_schema(
     errors: list[str] = []
     warnings: list[str] = []
 
-    def walk(node: Any, node_schema: dict[str, Any], path: str) -> None:
+    def walk(node: SettingsValue, node_schema: SettingsData, path: str) -> None:
         node_type = node_schema.get("type", "any")
         required = node_schema.get("required", False)
 
@@ -257,7 +257,7 @@ def validate_settings_schema(
 def parse_settings_path(path: str, escape_enabled: bool) -> tuple[str, ...]:
     """Split a dotted path into segments.
 
-    When ``escape_enabled``, '\\.' yields a literal '.' inside a segment.
+    When ``escape_enabled``, \\. yields a literal . inside a segment.
     Empty path → (). Trailing/leading/repeated separators produce empty
     segments which resolve as missing keys (returns default).
     """
@@ -285,3 +285,4 @@ def parse_settings_path(path: str, escape_enabled: bool) -> tuple[str, ...]:
         i += 1
     segments.append(current)
     return tuple(segments)
+

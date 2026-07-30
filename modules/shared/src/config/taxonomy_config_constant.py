@@ -6,7 +6,7 @@ No classes, no functions — only ALL_CAPS declarations.
 
 from __future__ import annotations
 
-from typing import Any
+from .taxonomy_config_vo import SettingsValue
 
 # ─── Sensitive Key Patterns (FR-CFG-005) ──────────────────────
 
@@ -60,7 +60,7 @@ PROJECT_MARKERS: tuple[str, ...] = (
 
 # ─── Compile-Time Defaults (FR-CFG-001, Q4) ──────────────────
 
-DEFAULT_SETTINGS: dict[str, Any] = {
+DEFAULT_SETTINGS: dict[str, SettingsValue] = {
     "blender": {"executable_path": "blender", "host": "localhost", "port": 9876},
     "server": {"transport": "stdio", "log_dir": "log"},
 }
@@ -68,7 +68,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
 # ─── Settings Schema (FR-CFG-001, Q3) ───────────────────────
 # Python-native schema: node = {"type", "required", "children"}.
 
-SETTINGS_SCHEMA: dict[str, Any] = {
+SETTINGS_SCHEMA: dict[str, SettingsValue] = {
     "blender": {
         "type": "dict",
         "required": False,
@@ -106,3 +106,4 @@ POLICY_MODE_STRICT: str = "strict"
 POLICY_MODE_PERMISSIVE: str = "permissive"
 
 DEFAULT_POLICY_MODE: str = "strict"
+

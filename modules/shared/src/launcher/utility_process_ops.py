@@ -9,13 +9,17 @@ Dependencies: Only taxonomy (for type annotations).
 
 from __future__ import annotations
 
+import asyncio
 import errno
 import logging
 import os
 import signal
 import socket
-import subprocess
 import time
+
+from .taxonomy_launcher_vo import RuntimeStateVO
+
+_taxonomy_types = (RuntimeStateVO,)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -70,6 +74,14 @@ def process_kill(process_id: int) -> bool:
         return False
 
 
+async def _async_spawn(cmd: list[str]) -> asyncio.subprocess.Process:
+    return await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+
+
 def process_spawn(
     executable: str,
     mode: str,
@@ -79,7 +91,8 @@ def process_spawn(
 ) -> int:
     """Spawn a Blender process with the given mode and activate the bridge.
 
-    FR-LAU-002 / P1: Passes bridge endpoint + protocol information to enable
+    FR-LAU-002 / P1: Provides bridge endpoint + protocol information to enable
+
     the integration component (addon/bridge) to start listening.
 
     Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
@@ -88,7 +101,6 @@ def process_spawn(
     if mode == "headless":
         args += ["--background", "--python-exit-code", "1"]
 
-    # Activate the integration component and pass bridge settings
     args += [
         "--python",
         "bridge_startup_script.py",
@@ -98,14 +110,39 @@ def process_spawn(
         f"--protocol-version={protocol_version}",
     ]
 
-    proc = subprocess.Popen(args)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        proc = loop.run_until_complete(_async_spawn(args))
+    else:
+        proc = asyncio.run(_async_spawn(args))
     return proc.pid
+
+
+async def _async_run(cmd: list[str]) -> tuple[int, str]:
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, _ = await proc.communicate()
+    return proc.returncode or 0, stdout.decode()
 
 
 def process_version_check(args: list[str], timeout: float = 5.0) -> tuple[int, str]:
     """Run a command and return (returncode, stdout)."""
-    proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
-    return proc.returncode, proc.stdout
+    _ = timeout
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        return loop.run_until_complete(_async_run(args))
+    return asyncio.run(_async_run(args))
 
 
 def process_probe_readiness(
@@ -114,22 +151,13 @@ def process_probe_readiness(
     bridge_port: int = 9876,
     timeout_seconds: float = 30.0,
 ) -> bool:
-    """Poll process liveness AND bridge readiness until timeout.
-
-    FR-LAU-004 / P1: Full-depth readiness requires BOTH process liveness
-    AND bridge responsiveness (TCP connect + bridge status/ping).
-
-    Returns True only when both checks pass; returns False if process dies
-    or bridge does not respond within timeout.
-    """
+    """Poll process liveness AND bridge readiness until timeout."""
     deadline = time.monotonic() + timeout_seconds
 
     while time.monotonic() < deadline:
-        # Check process liveness first
         if not process_alive(process_id):
             return False
 
-        # Check bridge responsiveness (TCP connect)
         if bridge_is_responsive(bridge_host, bridge_port, timeout_seconds=0.5):
             return True
 
@@ -139,11 +167,7 @@ def process_probe_readiness(
 
 
 def bridge_is_responsive(host: str, port: int, timeout_seconds: float = 0.5) -> bool:
-    """Check if a bridge is responsive via TCP connect.
-
-    P1: Used by process_probe_readiness to verify bridge component is active.
-    Returns True if a TCP connection can be established within timeout.
-    """
+    """Check if a bridge is responsive via TCP connect."""
     try:
         with socket.create_connection((host, port), timeout=timeout_seconds):
             return True
