@@ -1,8 +1,8 @@
 """Capability: FIFO operation queue and scene operation serialization.
 
 FR-GWY-004: Serialize Scene-Mutating Operations
-- Mutating operations pass through queue
-- Read-only operations bypass queue
+- Mutating operations route through queue
+- Read-only operations skip queue
 - Enforces depth limit and wait timeout
 - Processes one operation at a time in FIFO order
 
@@ -28,8 +28,8 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import (
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     ChannelConflictError,
     OperationWaitTimeoutError,
+    PendingOpsLimitError,
     TimeoutError,
-    TooManyPendingOperationsError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
     ItemDequeued,
@@ -80,7 +80,7 @@ class OperationQueue(IOperationQueueProtocol):
                         reason="queue_full",
                     )
                 )
-                raise TooManyPendingOperationsError(
+                raise PendingOpsLimitError(
                     max_depth=self._max_depth,
                     request_id=operation.request_id,
                 )
@@ -214,7 +214,7 @@ class OperationState:
 class SceneQueueExecutor(SceneQueueProtocol):
     """Concrete implementation for serialized scene operation queue.
 
-    FR-GWY-004: FIFO queue for mutating operations. Read-only bypasses queue.
+    FR-GWY-004: FIFO queue for mutating operations. Read-only skips queue.
     Enforces depth limit (channel conflict) and wait timeout.
     """
 
