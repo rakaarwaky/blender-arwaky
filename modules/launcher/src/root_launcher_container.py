@@ -29,6 +29,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
+    process_probe_bridge_readiness,
     process_probe_readiness,
     process_signal_term,
     process_spawn,
@@ -123,10 +124,10 @@ class LauncherContainer:
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode, bridge_endpoint=bridge_endpoint),
-            readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
-            probe_interval_seconds=self._config.readiness_probe_interval_seconds,
-            persist_cap=persist_cap,
+            spawner=lambda executable, mode, timeout, bridge_endpoint=None, addon_path=None: process_spawn(
+                executable, mode, timeout, bridge_endpoint=bridge_endpoint, addon_path=addon_path
+            ),
+            readiness_probe=process_probe_bridge_readiness,
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,

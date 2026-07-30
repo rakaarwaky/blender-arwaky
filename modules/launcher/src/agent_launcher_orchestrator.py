@@ -17,6 +17,7 @@ shutdown capabilities so status is consistent across operations.
 from __future__ import annotations
 
 import logging
+import time
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
@@ -53,12 +54,14 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         shutdown_cap: ShutdownProtocol,
         status_cap: RuntimeStatusProtocol,
         persist_cap: PersistStateProtocol,
+        config: LauncherConfigVO | None = None,
     ) -> None:
         self._locate = locate_register_cap
         self._launch = launch_cap
         self._shutdown = shutdown_cap
         self._status = status_cap
         self._persist = persist_cap
+        self._config = config
 
     # ─── Block 2: Aggregate Implementation ───────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
@@ -69,34 +72,21 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
     def launch(
         self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
     ) -> LaunchOutcomeVO:
-        """Delegate launch to the capabilities layer; persist state on success."""
+        """Delegate launch to the capabilities layer, persist state, and mark launch time."""
         logger.info("Orchestrating launch (mode=%s)", mode.value)
-        outcome = self._launch.launch(mode, readiness_timeout_seconds)
-
-        # FR-LAU-005: Persist runtime state after successful launch
-        if outcome.success and outcome.process_id is not None:
-            self._persist.persist(
-                RuntimeStateVO(
-                    process_id=outcome.process_id,
-                    last_status=RuntimeState.RUNNING_READY,
-                )
-            )
-
-        return outcome
+        result = self._launch.launch(mode, readiness_timeout_seconds)
+        if result.success and result.process_id is not None:
+            # Mark launch time so uptime can be calculated by status checker
+            self._status.mark_launched(time.time())
+            self._persist_state_after_launch(result)
+        return result
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Delegate shutdown to the capabilities layer; persist state change."""
+        """Delegate shutdown to the capabilities layer and update persisted state."""
         logger.info("Orchestrating shutdown (force=%s)", force)
         result = self._shutdown.shutdown(force, allow_escalation)
-
-        # FR-LAU-005: Persist runtime state after shutdown
-        self._persist.persist(
-            RuntimeStateVO(
-                process_id=None,
-                last_status=RuntimeState.NOT_RUNNING,
-            )
-        )
-
+        if result.success:
+            self._persist_state_after_shutdown(result)
         return result
 
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
@@ -112,3 +102,34 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
     def status(self) -> RuntimeStatusProtocol:
         """Expose the status capability for health composition consumers."""
         return self._status
+
+    # ─── Persistence helpers (Critical #7: orchestrator coordination) ─────
+    def _persist_state_after_launch(self, outcome: LaunchOutcomeVO) -> None:
+        """Persist runtime state after a successful launch."""
+        try:
+            self._persist.persist(
+                RuntimeStateVO(
+                    executable_path=self._config.executable_path if self._config else "",
+                    process_id=outcome.process_id,
+                    launch_timestamp=time.time(),
+                    bridge_endpoint=outcome.bridge_endpoint,
+                    last_status=RuntimeState.RUNNING_READY,
+                )
+            )
+        except Exception as exc:
+            logger.warning("Failed to persist state after launch: %s", exc)
+
+    def _persist_state_after_shutdown(self, outcome: ShutdownOutcomeVO) -> None:
+        """Persist runtime state after a successful shutdown."""
+        try:
+            self._persist.persist(
+                RuntimeStateVO(
+                    executable_path="",
+                    process_id=None,
+                    launch_timestamp=0.0,
+                    bridge_endpoint=None,
+                    last_status=RuntimeState.NOT_RUNNING,
+                )
+            )
+        except Exception as exc:
+            logger.warning("Failed to persist state after shutdown: %s", exc)

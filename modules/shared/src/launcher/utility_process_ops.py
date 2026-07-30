@@ -82,14 +82,15 @@ def process_spawn(
     Uses a new process session (start_new_session=True) for orphan child cleanup support.
     """
     args = [executable]
-    if mode == "headless":
-        args += ["--background", "--python-exit-code", "1"]
 
     # FR-INT-002: Pass bridge endpoint and addon path for Gateway integration
     if bridge_endpoint:
         args += ["--bridge-endpoint", bridge_endpoint]
     if addon_path:
         args += ["--python-additional", addon_path]
+
+    if mode == "headless":
+        args += ["--background", "--python-exit-code", "1"]
 
     proc = subprocess.Popen(args, start_new_session=True)
     return proc.pid
@@ -113,3 +114,33 @@ def process_probe_readiness(process_id: int, timeout_seconds: float, interval_se
             return False
         time.sleep(interval_seconds)
     return True
+
+
+def process_probe_bridge_readiness(process_id: int, timeout_seconds: float, bridge_endpoint: str | None = None) -> bool:
+    """Poll process liveness AND bridge endpoint responsiveness.
+
+    Returns True only when the process is alive AND the bridge health
+    endpoint is reachable. Checks every 0.2 seconds.
+    """
+    if not bridge_endpoint:
+        return process_probe_readiness(process_id, timeout_seconds)
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if not process_alive(process_id):
+            return False
+        if _bridge_health_check(bridge_endpoint):
+            return True
+        time.sleep(0.2)
+    return False
+
+
+def _bridge_health_check(bridge_endpoint: str) -> bool:
+    """Lightweight HTTP health check against the bridge endpoint."""
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(bridge_endpoint + "/health", method="GET")
+        with urllib.request.urlopen(req, timeout=1) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
