@@ -6,16 +6,13 @@ FR-RND-002: Render scene image.
 from __future__ import annotations
 
 import logging
-import uuid
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    JobId,
     Prompt,
     PythonCode,
     RenderEngine,
     SuccessFlag,
-    TaskUuid,
 )
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
@@ -26,7 +23,6 @@ from modules.shared.src.job.contract_job_capacity_protocol import (
 from modules.shared.src.job.taxonomy_job_vo import (
     CapacityDecision,
     JobPolicy,
-    OperationType,
 )
 from modules.shared.src.render.contract_render_scene_image_protocol import (
     IRenderSceneImageProtocol,
@@ -45,7 +41,6 @@ from modules.shared.src.render.taxonomy_render_error import (
     RenderErrorCategory,
 )
 from modules.shared.src.render.taxonomy_render_event import (
-    RenderSubmittedToBackgroundEvent,
     SceneRenderCompletedEvent,
     SceneRenderFailedEvent,
 )
@@ -74,10 +69,12 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
         job_capacity: IJobCapacity | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
         self._job_capacity = job_capacity
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def render_scene(self, request: RenderSceneVO) -> RenderSceneVO:
@@ -124,6 +121,13 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
                 task_ref=None,
                 message=Prompt("Scene render completed"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit SceneRenderCompletedEvent")
+
             logger.info("scene_render_completed event=%s", event)
 
             return replace(
@@ -149,6 +153,13 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
                 phase="execution",
                 message=Prompt(str(exc)),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(failed_event)
+                except Exception:
+                    logger.warning("Failed to emit SceneRenderFailedEvent")
+
             logger.info("scene_render_failed event=%s", failed_event)
 
             return self._failure(

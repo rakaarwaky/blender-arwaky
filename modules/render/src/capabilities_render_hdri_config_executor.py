@@ -9,7 +9,6 @@ import logging
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    FilePath,
     LightStrength,
     Prompt,
     PythonCode,
@@ -57,9 +56,11 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         self,
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def configure_hdri(self, request: HdriConfigVO) -> HdriConfigVO:
@@ -101,6 +102,13 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
                 rotation=metrics.applied_rotation,
                 message=Prompt("HDRI lighting configured"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit HdriLightingConfiguredEvent")
+
             logger.info("hdri_lighting_configured event=%s", event)
 
             return replace(

@@ -11,7 +11,6 @@ from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
     DurationMs,
-    FilePath,
     Prompt,
     PythonCode,
     SuccessFlag,
@@ -59,9 +58,11 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         self,
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def capture_viewport(self, request: ViewportCaptureVO) -> ViewportCaptureVO:
@@ -97,6 +98,13 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
                 duration_ms=duration_ms,
                 message=Prompt("Viewport capture completed"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit ViewportCapturedEvent")
+
             logger.info("viewport_captured event=%s", event)
 
             return replace(
@@ -154,7 +162,7 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         if max_size > 0 and max_size < 64:
             return RenderError(
                 category=RenderErrorCategory.VALIDATION,
-                message=Prompt(f"max_size must be at least 64 pixels"),
+                message=Prompt("max_size must be at least 64 pixels"),
             )
 
         return None
