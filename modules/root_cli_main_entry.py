@@ -24,8 +24,6 @@ import json
 import logging
 import sys
 
-from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
-
 from modules.cli.src import (
     surface_close_command,
     surface_init_command,
@@ -34,6 +32,7 @@ from modules.cli.src import (
     surface_screenshot_command,
     surface_status_command,
 )
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
 
 logger = logging.getLogger(__name__)
 
