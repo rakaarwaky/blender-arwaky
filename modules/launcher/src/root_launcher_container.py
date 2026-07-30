@@ -7,6 +7,7 @@ launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrc
 from __future__ import annotations
 
 import logging
+import socket
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
@@ -44,10 +45,45 @@ from .capabilities_state_persistence import StatePersistence
 logger = logging.getLogger("BlenderMCPServer")
 
 
+def _tcp_bridge_probe(host: str, port: int, timeout_seconds: float = 1.0) -> bool:
+    """Probe a TCP bridge endpoint for readiness (FR-INT-003).
+
+    Returns True if the host:port is accepting connections within timeout.
+    """
+    sock: socket.SocketType | None = None
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout_seconds)
+        return True
+    except (OSError, TimeoutError, ConnectionRefusedError):
+        return False
+    finally:
+        if sock is not None:
+            sock.close()
+
+
+class _BridgeProbeWrapper:
+    """Wrapper to provide a callable bridge probe with captured host/port."""
+
+    def __init__(self, host: str, port: int) -> None:
+        self._host = host
+        self._port = port
+
+    def __call__(self, timeout_seconds: float = 1.0) -> bool:
+        return _tcp_bridge_probe(self._host, self._port, timeout_seconds)
+
+
 class LauncherContainer:
-    def __init__(self, config: LauncherConfigVO | None = None, state_path: str | None = None) -> None:
+    def __init__(
+        self,
+        config: LauncherConfigVO | None = None,
+        state_path: str | None = None,
+        bridge_host: str | None = "localhost",
+        bridge_port: int | None = 50051,
+    ) -> None:
         self._config = config or LauncherConfigVO()
         self._state_path = state_path
+        self._bridge_host = bridge_host
+        self._bridge_port = bridge_port
         self._orchestrator: LauncherOrchestrator | None = None
         self._wired: bool = False
 
@@ -61,10 +97,15 @@ class LauncherContainer:
             path_resolver=lambda: self._state_path,
         )
 
+        # FR-INT-003: Wire real TCP bridge probe instead of None
+        bridge_host = self._bridge_host or "localhost"
+        bridge_port = self._bridge_port or 50051
+        bridge_probe = _BridgeProbeWrapper(bridge_host, bridge_port)
+
         status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
             liveness_checker=process_alive,
             pid_resolver=lambda: self._resolve_persisted_pid(persist_cap),
-            bridge_probe=None,
+            bridge_probe=bridge_probe,
             persisted_state_resolver=persist_cap.load,
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
         )
@@ -73,10 +114,16 @@ class LauncherContainer:
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
         )
+
+        # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
+        bridge_endpoint: str | None = None
+        if self._bridge_host and self._bridge_port:
+            bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
+
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
+            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode, bridge_endpoint=bridge_endpoint),
             readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
@@ -112,7 +159,14 @@ class LauncherContainer:
 def create_launcher_feature(
     config: LauncherConfigVO | None = None,
     state_path: str | None = None,
+    bridge_host: str | None = "localhost",
+    bridge_port: int | None = 50051,
 ) -> ILauncherOperateAggregate:
-    container = LauncherContainer(config=config, state_path=state_path)
+    container = LauncherContainer(
+        config=config,
+        state_path=state_path,
+        bridge_host=bridge_host,
+        bridge_port=bridge_port,
+    )
     container.wire()
     return container.agent

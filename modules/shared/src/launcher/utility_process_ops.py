@@ -67,14 +67,29 @@ def process_kill(process_id: int) -> bool:
         return False
 
 
-def process_spawn(executable: str, mode: str) -> int:
-    """Spawn a Blender process with the given mode.
+def process_spawn(
+    executable: str,
+    mode: str,
+    bridge_endpoint: str | None = None,
+    addon_path: str | None = None,
+) -> int:
+    """Spawn a Blender process with the given mode and optional integration args.
+
+    FR-INT-002: Passes bridge endpoint and addon path as CLI arguments so the
+    Gateway can connect to the running Blender instance.
 
     Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
     """
     args = [executable]
     if mode == "headless":
         args += ["--background", "--python-exit-code", "1"]
+
+    # FR-INT-002: Pass bridge endpoint and addon path for Gateway integration
+    if bridge_endpoint:
+        args += ["--bridge-endpoint", bridge_endpoint]
+    if addon_path:
+        args += ["--python-additional", addon_path]
+
     proc = subprocess.Popen(args)
     return proc.pid
 
