@@ -120,11 +120,11 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
                 message=Prompt("HDRI lighting configured"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("HDRI configuration failed")
             return self._failure(
                 normalized,
-                Prompt(f"[{RenderErrorCategory.ENVIRONMENT_STATE.value}] HDRI configuration failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.ENVIRONMENT_STATE.value}] HDRI configuration failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -177,7 +177,12 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: HdriConfigVO, message: Prompt) -> HdriConfigVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderHdriConfigExecutor()"

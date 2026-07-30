@@ -100,11 +100,11 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
                 message=Prompt("Camera configured"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Camera configuration failed")
             return self._failure(
                 request,
-                Prompt(f"[{RenderErrorCategory.CAMERA_SETUP.value}] Camera configuration failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.CAMERA_SETUP.value}] Camera configuration failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -131,7 +131,12 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: CameraConfigVO, message: Prompt) -> CameraConfigVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderCameraConfigExecutor()"

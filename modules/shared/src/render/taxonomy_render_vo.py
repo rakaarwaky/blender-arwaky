@@ -76,6 +76,7 @@ class ViewportCaptureVO:
     width: ResolutionX = field(default_factory=lambda: ResolutionX(0))
     height: ResolutionY = field(default_factory=lambda: ResolutionY(0))
     duration_ms: DurationMs = field(default_factory=lambda: DurationMs(0.0))
+    error_summary: str | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
@@ -105,6 +106,7 @@ class RenderSceneVO:
     engine_used: RenderEngine = field(default_factory=lambda: RenderEngine(RENDER_ENGINE_CYCLES))
     denoising_applied: UseDenoising = field(default_factory=lambda: UseDenoising(False))
     task_ref: TaskUuid | None = None
+    error_summary: str | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
@@ -132,6 +134,7 @@ class CameraConfigVO:
     final_focal_length: FocalLength = field(default_factory=lambda: FocalLength(DEFAULT_FOCAL_LENGTH))
     active_status: EnabledFlag = field(default_factory=lambda: EnabledFlag(False))
     depth_of_field_applied: EnabledFlag = field(default_factory=lambda: EnabledFlag(False))
+    error_summary: str | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
@@ -153,6 +156,7 @@ class HdriConfigVO:
     environment_ref: ObjectName = field(default_factory=lambda: ObjectName(""))
     applied_strength: LightStrength = field(default_factory=lambda: LightStrength(0.0))
     applied_rotation: RotationDegrees = field(default_factory=lambda: RotationDegrees(0.0))
+    error_summary: str | None = None
     message: Prompt = field(default_factory=lambda: Prompt(""))
 
 
