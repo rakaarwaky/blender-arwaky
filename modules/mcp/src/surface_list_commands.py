@@ -6,7 +6,6 @@ FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
@@ -36,7 +35,7 @@ class ListCommandsSurface:
         async def list_commands(
             domain: str | None = None,
             format: str | None = None,
-        ) -> dict[str, Any]:
+        ) -> dict[str, object]:
             """List all available BlenderArwaky actions."""
             try:
                 result = await container.routing.route_tool_call(

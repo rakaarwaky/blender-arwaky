@@ -6,7 +6,6 @@ FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
@@ -33,7 +32,7 @@ class GetConfigSurface:
     def register(mcp, container) -> None:
         """Register the get_config tool (MCP Tool #4)."""
 
-        async def get_config(key: str | None = None) -> dict[str, Any]:
+        async def get_config(key: str | None = None) -> dict[str, object]:
             """Retrieve BlenderArwaky configuration settings.
 
             Args:
