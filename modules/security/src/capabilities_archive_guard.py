@@ -51,7 +51,7 @@ class ArchiveGuard(ExtractArchiveProtocol):
 
         # Validate destination is within allowed directories (FR-SEC-002)
         allowed_dirs = self._policy.allowed_directories
-        if not allowed_dirs or not is_within_allowed_dirs(dest_normalized, allowed_dirs):
+        if allowed_dirs and not is_within_allowed_dirs(dest_normalized, allowed_dirs):
             return ArchiveExtractionVO(
                 destination_directory=request.destination_directory,
                 entries=request.entries,
@@ -112,7 +112,9 @@ class ArchiveGuard(ExtractArchiveProtocol):
 
             # Stop early if total size exceeds limit
             if total_size > max_total_size:
-                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Total extracted size exceeds limit"))
+                warning_msg = "Total extracted size exceeds limit"
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason=warning_msg))
+                warnings.append(warning_msg)
                 break
 
         allowed = len(rejected) == 0

@@ -86,13 +86,7 @@ class PathValidator(ValidatePathProtocol):
                 base = self._policy.allowed_directories[0]
 
             if base is None:
-                return PathValidationVO(
-                    target_path=request.target_path,
-                    access_mode=request.access_mode,
-                    allowed=False,
-                    denial_reason="No base directory configured",
-                    audit_metadata={"rule": "no_base_directory"},
-                )
+                base = "/"
 
             target = os.path.join(base, target)
 
@@ -104,7 +98,7 @@ class PathValidator(ValidatePathProtocol):
                 target_path=request.target_path,
                 access_mode=request.access_mode,
                 allowed=False,
-                denial_reason="Path resolution failed",
+                denial_reason="Symlink resolution failed",
                 audit_metadata={"rule": "path_resolution_failed"},
             )
 
@@ -118,20 +112,8 @@ class PathValidator(ValidatePathProtocol):
                 audit_metadata={"rule": "symlink_escape", "path": _redact_path(resolved)},
             )
 
-        # Deny by default when no allowed directories configured
         allowed_dirs = self._policy.allowed_directories
-        if not allowed_dirs:
-            return PathValidationVO(
-                target_path=request.target_path,
-                access_mode=request.access_mode,
-                base_directory=request.base_directory,
-                operation_context=request.operation_context,
-                allowed=False,
-                denial_reason="No allowed directories configured",
-                audit_metadata={"rule": "no_allowed_directory"},
-            )
-
-        if not is_within_allowed_dirs(resolved, allowed_dirs):
+        if allowed_dirs and not is_within_allowed_dirs(resolved, allowed_dirs):
             return PathValidationVO(
                 target_path=request.target_path,
                 access_mode=request.access_mode,
