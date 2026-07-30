@@ -1,15 +1,14 @@
-"""CLI process helpers — launch, find, kill, check Blender process securely."""
+"""CLI process helpers — launch, find, kill, check Blender process securely via asyncio."""
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import pathlib
 import shutil
 import signal
 import socket
-import subprocess
-import sys
 import time
 
 from modules.shared.src.cli.taxonomy_cli_vo import BlenderProcessVo, CliResultVo
@@ -50,6 +49,15 @@ def find_blender() -> CliResultVo:
         error="Blender executable not found. Set BLENDER_EXECUTABLE env var or install Blender.",
         category="not_found",
         ref="cli-404",
+    )
+
+
+async def _async_launch(cmd: list[str]) -> asyncio.subprocess.Process:
+    """Launch process asynchronously via asyncio.create_subprocess_exec."""
+    return await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
     )
 
 
@@ -107,17 +115,18 @@ def launch_blender(
             ]
         )
 
-    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
-
     try:
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL if mode == "headless" else None,
-            stderr=subprocess.DEVNULL if mode == "headless" else None,
-            shell=False,
-            creationflags=creation_flags,
-        )
-    except OSError as e:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            proc = loop.run_until_complete(_async_launch(cmd))
+        else:
+            proc = asyncio.run(_async_launch(cmd))
+        pid = proc.pid
+    except Exception as e:
         return CliResultVo(
             success=False,
             error=f"Failed to launch Blender process: {e}",
@@ -129,7 +138,7 @@ def launch_blender(
         _wait_for_addon(port, timeout=30)
     except TimeoutError as e:
         with contextlib.suppress(Exception):
-            process.kill()
+            os.kill(pid, signal.SIGKILL)
         return CliResultVo(
             success=False,
             error=f"Blender addon not ready on port {port} after 30s: {e}",
@@ -137,11 +146,11 @@ def launch_blender(
             ref="cli-504",
         )
 
-    proc_vo = BlenderProcessVo(pid=process.pid, port=port, filepath=resolved_filepath, is_running=True)
+    proc_vo = BlenderProcessVo(pid=pid, port=port, filepath=resolved_filepath, is_running=True)
     return CliResultVo(
         success=True,
         message="Blender session started",
-        data={"process": proc_vo, "pid": process.pid, "port": port},
+        data={"process": proc_vo, "pid": pid, "port": port},
     )
 
 
