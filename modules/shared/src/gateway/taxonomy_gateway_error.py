@@ -108,6 +108,10 @@ class PendingOpsLimitError(ServerError):
         )
 
 
+# Backward compatibility alias
+TooManyPendingOperationsError = PendingOpsLimitError
+
+
 class OperationWaitTimeoutError(ServerError):
     """Raised when a queued operation exceeds the configured wait timeout.
 

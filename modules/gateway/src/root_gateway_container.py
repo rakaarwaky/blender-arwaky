@@ -4,6 +4,7 @@ Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
 from modules.security.src.capabilities_code_validator import CodeValidator
+from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
@@ -56,15 +57,19 @@ class GatewayContainer:
             code_executor=self._code_executor,
         )
 
-    def get_orchestrator(self) -> GatewayOrchestrator:
+    @property
+    def agent(self) -> IGatewayAggregate:
+        return self._orchestrator
+
+    def get_orchestrator(self) -> IGatewayAggregate:
         return self._orchestrator
 
 
-def create_gateway_feature() -> GatewayOrchestrator:
+def create_gateway_feature() -> IGatewayAggregate:
     """Factory function to create the gateway orchestrator.
 
     Returns:
-        GatewayOrchestrator: Wired orchestrator ready for use.
+        IGatewayAggregate: Wired orchestrator ready for use.
     """
     container = GatewayContainer()
     return container.get_orchestrator()
