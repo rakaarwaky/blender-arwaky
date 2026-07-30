@@ -5,6 +5,9 @@ deterministic discovery order. Implements LocateRegisterProtocol.
 
 Dependencies are injected (config provider, command runner) so the logic is
 testable without spawning or probing a real Blender install.
+
+P1: Routes BLENDER_PATH through environment resolver instead of direct
+os.environ.get() for config feature alignment.
 """
 
 from __future__ import annotations
@@ -43,12 +46,17 @@ class ExecutableLocator(LocateRegisterProtocol):
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
-        config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
+        env_resolver: Callable[[str, str | None], str | None] | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
-        self._config_provider = config_provider or (lambda: LauncherConfigVO())
+        """Initialize ExecutableLocator.
+
+        P1: Accepts env_resolver instead of config_provider to route
+        environment variables through config's env mechanism.
+        """
         self._runner = command_runner
+        self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -80,7 +88,8 @@ class ExecutableLocator(LocateRegisterProtocol):
             order.append((RegistrationSource.OVERRIDE, override))
         if config.executable_path:
             order.append((RegistrationSource.CONFIGURED, config.executable_path))
-        env = os.environ.get("BLENDER_PATH")
+        # P1: Route BLENDER_PATH through env_resolver (config's env mechanism)
+        env = self._env_resolver("BLENDER_PATH", None)
         if env:
             order.append((RegistrationSource.ENVIRONMENT, env))
         for loc in config.search_locations:
@@ -150,30 +159,22 @@ class ExecutableLocator(LocateRegisterProtocol):
         """
         # Only update if config doesn't already have an executable path
         if not config.executable_path:
-            # Create a new config with the registered path (immutable VO)
-            pass  # Config is passed by reference; caller handles updates
+            # Config is immutable VO; caller handles updates via LauncherConfigBuilder
+            pass
 
-        # Emit registration event with correct state transition
+    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
+        """Emit executable registered event.
+
+        FR-LAU-001: Emits lifecycle event when executable is successfully registered.
+        """
         if self._events is not None:
+            from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
+
             self._events(
                 LauncherLifecycleEvent(
                     event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
                     state_before=RuntimeState.NOT_RUNNING,
-                    state_after=RuntimeState.RUNNING_READY,
+                    state_after=RuntimeState.NOT_RUNNING,
                     process_reference=path,
-                    reason_summary=f"registered_from_{config.source.value if hasattr(config, 'source') else 'discovery'}",
-                )
-            )
-
-    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
-        events = getattr(self, "_events", None)
-        if events is not None:
-            events(
-                LauncherLifecycleEvent(
-                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                    state_before=RuntimeState.NOT_RUNNING,
-                    state_after=RuntimeState.RUNNING_READY,
-                    process_reference=path,
-                    reason_summary=f"registered_from_{source.value}",
                 )
             )

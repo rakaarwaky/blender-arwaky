@@ -5,15 +5,19 @@ Idempotent for absent processes; reports termination method. Implements
 ShutdownProtocol.
 
 Signal sender and killer are injected DI boundaries.
+
+P0: Integrates PersistStateProtocol for internal state persistence after termination.
 """
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable
 from typing import Protocol
 
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
@@ -24,10 +28,13 @@ from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycl
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ProbeDepth,
     RuntimeState,
+    RuntimeStateVO,
     ShutdownOutcomeVO,
     TerminationMethod,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 class _SignalSender(Protocol):
@@ -49,6 +56,7 @@ class ProcessShutdown(ShutdownProtocol):
     def __init__(
         self,
         status_protocol: RuntimeStatusProtocol,
+        persist_cap: PersistStateProtocol | None = None,
         signal_sender: _SignalSender | None = None,
         killer: _ProcessKiller | None = None,
         timeout_seconds: float = 10.0,
@@ -56,6 +64,7 @@ class ProcessShutdown(ShutdownProtocol):
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._status = status_protocol
+        self._persist = persist_cap
         self._signal = signal_sender
         self._kill = killer
         self._timeout = timeout_seconds
@@ -113,6 +122,22 @@ class ProcessShutdown(ShutdownProtocol):
                     )
 
             duration_ms = (time.monotonic() - start) * 1000.0
+
+            # Post-termination persistence: record NOT_RUNNING state
+            if self._persist is not None:
+                try:
+                    self._persist.persist(
+                        RuntimeStateVO(
+                            executable_path="",
+                            process_id=None,
+                            launch_timestamp=0.0,
+                            bridge_endpoint=None,
+                            last_status=RuntimeState.NOT_RUNNING,
+                        )
+                    )
+                except Exception as exc:
+                    logger.warning("Failed to persist state after shutdown: %s", exc)
+
             self._emit(
                 LAUNCHER_EVENT_APPLICATION_STOPPED,
                 RuntimeState.STOPPING,
