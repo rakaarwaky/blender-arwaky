@@ -54,6 +54,7 @@ class _FakeStatus:
         return self.alive and self.pid == self.pid
 
     def check_status(self, depth="lightweight"):
+        del depth
         if self.alive:
             return RuntimeStatusVO(
                 state=RuntimeState.RUNNING_READY if self.ready else RuntimeState.RUNNING_UNRESPONSIVE,
@@ -73,7 +74,7 @@ def _build_feature(status_backend):
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
         spawner=lambda _exe, _mode, _to: 1000,
-        readiness_probe=lambda _pid, _to, **kw: status_backend.ready,
+        readiness_probe=lambda _pid, _to, **_kw: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,
@@ -254,9 +255,8 @@ def test_aggregate_is_implemented():
 # ─── Integration fixes for issue #100: probe interval, persist_cap, event redaction ──
 
 
-def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
+def test_processlauncher_probe_interval_and_persist_cap():
     """FR-LAU-005 + INT-003: ProcessLauncher accepts probe_interval_seconds and persist_cap."""
-    state_file = tmp_path / "state.json"
 
     # Track persist calls
     persist_calls: list = []
@@ -275,7 +275,7 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=_FakeStatus(),
         spawner=lambda _exe, _mode, _to: 2000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        readiness_probe=lambda _pid, _to, **_kw: True,
         probe_interval_seconds=1.5,
         persist_cap=mock_persist,
     )
@@ -380,7 +380,7 @@ def test_orchestrator_persist_on_launch(tmp_path):
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
         spawner=lambda _exe, _mode, _to: 3000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        readiness_probe=lambda _pid, _to, **_kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
@@ -410,11 +410,6 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
         def liveness(self, _pid):
             return self.alive
 
-        def check_status(self, _depth="lightweight"):
-            if self.alive:
-                return RuntimeStateVO(last_status=RuntimeState.RUNNING_READY, process_id=4000)
-            return RuntimeStateVO(last_status=RuntimeState.NOT_RUNNING, process_id=None)
-
     status_backend = _RunningStatus()
     cap = StatePersistence(path_resolver=lambda: str(state_file))
 
@@ -428,7 +423,7 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
         spawner=lambda _exe, _mode, _to: 4000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        readiness_probe=lambda _pid, _to, **_kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
