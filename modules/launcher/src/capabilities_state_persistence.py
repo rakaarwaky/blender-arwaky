@@ -27,6 +27,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
 
+
 class StatePersistence(PersistStateProtocol):
     """Corruption-safe runtime state persistence with concurrent access safety."""
 
