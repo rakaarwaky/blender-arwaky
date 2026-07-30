@@ -18,7 +18,6 @@ from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor
 from .capabilities_request_validation import RequestValidationExecutor
 from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -47,7 +46,10 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        sync_dispatch = SyncDispatchExecutor()
+        # SyncDispatchExecutor not wired — no action executor is available at the
+        # container level. The orchestrator will raise a clear "SyncDispatchProtocol
+        # not configured" RuntimeError if dispatch_sync() is called, instead of
+        # silently returning fake success (FR-DSP-004 routing integrity).
         background_submit = BackgroundSubmitExecutor()
         result_normalization = ResultNormalizationExecutor()
 
@@ -55,7 +57,6 @@ class DispatcherContainer:
             catalog_registration=catalog_registration,
             action_discovery=action_discovery,
             request_validation=request_validation,
-            sync_dispatch=sync_dispatch,
             background_submit=background_submit,
             result_normalization=result_normalization,
         )
