@@ -147,7 +147,6 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
 
         # Add size/parameter adjustments for specific primitives
         if request.scale is not None:
-        if request.scale is not None:
             lines.append(f"bpy.context.active_object.scale = {tuple_str(request.scale)}")
 
         if request.location is not None:

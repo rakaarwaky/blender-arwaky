@@ -88,9 +88,6 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         object_ref = quote_string(str(request.object_name))
         lines = [
             "import bpy",
-        object_ref = quote_string(str(request.object_name))
-        lines = [
-            "import bpy",
             f"obj = bpy.data.objects.get({object_ref})",
             'if obj is None:',
             '    raise ValueError("Object not found in scene.")',
