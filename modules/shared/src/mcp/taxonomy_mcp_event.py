@@ -9,9 +9,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
 
-from . import taxonomy_mcp_constant as _taxonomy_mcp_constant  # AES202: mandatory taxonomy(constant) import
-
-
 class McpEventKind(StrEnum):
     """MCP event type enumeration."""
 

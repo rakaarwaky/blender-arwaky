@@ -7,7 +7,7 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
-from modules.shared.src.common.taxonomy_core_vo import Details, DurationMs, ErrorMessage, ErrorString, IterationCount
+from modules.shared.src.common.taxonomy_core_vo import Details, ErrorMessage, ErrorString
 
 
 class GatewayError(Exception):
