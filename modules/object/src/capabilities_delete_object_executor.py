@@ -15,7 +15,7 @@ from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
 from modules.shared.src.object.contract_delete_object_protocol import DeleteObjectProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import DeletionProtectionError, ObjectNotFoundError
+from modules.shared.src.object.taxonomy_object_error import DeletionProtectionError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import DeleteObjectVO
 
 logger = logging.getLogger("BlenderMCPServer")

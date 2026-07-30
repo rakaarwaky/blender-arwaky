@@ -21,7 +21,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SuccessFlag,
 )
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import ObjectAmbiguityError, ObjectNotFoundError
+from modules.shared.src.object.taxonomy_object_error import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import PlaceAssetVO
 
 logger = logging.getLogger("BlenderMCPServer")
