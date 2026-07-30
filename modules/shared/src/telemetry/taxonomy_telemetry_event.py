@@ -114,7 +114,8 @@ class TelemetryEvent:
     """PII-free telemetry event structure.
 
     FRD: Never includes raw payloads, names, paths, prompts, error messages,
-    or any customer/user-identifiable information.
+    or customer/user-identifiable information.
+
     """
 
     category: TelemetryCategory

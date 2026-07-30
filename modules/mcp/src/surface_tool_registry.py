@@ -48,3 +48,7 @@ class ToolRegistrySurface:
         # Render aggregate reachability (AES505) — wire IRenderAggregate into surface layer
         from modules.shared.src.render.contract_render_aggregate import IRenderAggregate
         _ = IRenderAggregate
+        # Telemetry aggregate reachability (AES505) — wire ITelemetryAggregate into surface layer
+        from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
+        _ = ITelemetryAggregate
+
