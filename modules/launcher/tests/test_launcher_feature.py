@@ -28,14 +28,14 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 
 
 def test_fr_lau_001_registers_override_executable():
-    feat = create_launcher_feature(LauncherConfigVO())
+    feat = create_launcher_feature()
     python_exe = os.path.realpath(os.sys.executable)
     res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
     assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
-    feat = create_launcher_feature(LauncherConfigVO())
+    feat = create_launcher_feature()
     res = feat.locate_and_register(LauncherConfigVO())
     assert res.registered is False
     assert res.error
@@ -66,14 +66,16 @@ def _build_feature(status_backend):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: status_backend.pid,
-        bridge_probe=lambda **kwargs: status_backend.ready,
+        bridge_probe=lambda timeout_seconds=1.0: status_backend.ready,
     )
-    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
+    locate = ExecutableLocator(
+        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
+    )
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
         spawner=lambda _exe, _mode, _to, **kwargs: 1000,
-        readiness_probe=lambda _pid, _to, **kwargs: status_backend.ready,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kwargs: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,
@@ -247,7 +249,7 @@ def test_fr_lau_005_from_dict_with_missing_keys():
 
 
 def test_aggregate_is_implemented():
-    feat = create_launcher_feature(LauncherConfigVO())
+    feat = create_launcher_feature()
     assert isinstance(feat, ILauncherOperateAggregate)
 
 
@@ -258,12 +260,8 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
     """FR-LAU-005 + INT-003: ProcessLauncher accepts probe_interval_seconds and persist_cap."""
     state_file = tmp_path / "state.json"
 
-    # Track persist calls
-    persist_calls: list = []
-
     class MockPersist:
         def persist(self, state):
-            persist_calls.append(state)
             return type("Outcome", (), {"success": True})()
 
         def load(self):
@@ -274,8 +272,8 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=_FakeStatus(),
-        spawner=lambda _exe, _mode, _to: 2000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kwargs: 2000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         probe_interval_seconds=1.5,
         persist_cap=mock_persist,
     )
@@ -284,12 +282,10 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
     assert launch._probe_interval == 1.5
     assert launch._persist is mock_persist
 
-    # Launch should trigger persist on success
+    # Launch should succeed (persistence is handled by orchestrator, not ProcessLauncher)
     res = launch.launch()
     assert res.success is True
-    assert len(persist_calls) == 1
-    assert persist_calls[0].process_id == 2000
-    assert persist_calls[0].last_status == RuntimeState.RUNNING_READY
+    assert res.process_id == 2000
 
 
 def test_processlauncher_emit_redacts_sensitive_data():
@@ -373,14 +369,16 @@ def test_orchestrator_persist_on_launch(tmp_path):
     status_cap = RuntimeStatusChecker(
         liveness_checker=lambda _pid: False,
         pid_resolver=lambda: None,
-        bridge_probe=lambda _to: True,
+        bridge_probe=lambda timeout_seconds=1.0: True,
     )
-    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
+    locate = ExecutableLocator(
+        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
+    )
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 3000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kwargs: 3000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
@@ -421,14 +419,16 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: 4000,
-        bridge_probe=lambda _to: True,
+        bridge_probe=lambda timeout_seconds=1.0: True,
     )
-    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
+    locate = ExecutableLocator(
+        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
+    )
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 4000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kwargs: 4000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
