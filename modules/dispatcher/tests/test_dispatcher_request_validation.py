@@ -13,9 +13,9 @@ from __future__ import annotations
 import pytest
 
 from modules.dispatcher.src.capabilities_request_validation import (
-    DispatchRequestError,
     RequestValidationExecutor,
 )
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchError
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 
@@ -63,7 +63,7 @@ class TestUnknownAction:
         """FR-DSP-003: Unknown action produces not-found error."""
         executor = RequestValidationExecutor(catalog={})
         request = _make_request(action_name="unknown")
-        with pytest.raises(DispatchRequestError) as exc_info:
+        with pytest.raises(DispatchError) as exc_info:
             executor.validate_request(request)
         assert exc_info.value.error_category == "not_found_error"
 
@@ -88,7 +88,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="create_obj", parameters={})
-        with pytest.raises(DispatchRequestError, match="Missing required parameter"):
+        with pytest.raises(DispatchError, match="Missing required parameter"):
             executor.validate_request(request)
 
     def test_type_mismatch_raises_error(self) -> None:
@@ -105,7 +105,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="set_val", parameters={"count": "string"})
-        with pytest.raises(DispatchRequestError, match="must be integer"):
+        with pytest.raises(DispatchError, match="must be integer"):
             executor.validate_request(request)
 
     def test_value_below_minimum(self) -> None:
@@ -122,7 +122,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="adjust", parameters={"value": -1})
-        with pytest.raises(DispatchRequestError, match="below minimum"):
+        with pytest.raises(DispatchError, match="below minimum"):
             executor.validate_request(request)
 
     def test_value_above_maximum(self) -> None:
@@ -139,7 +139,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="adjust", parameters={"value": 200})
-        with pytest.raises(DispatchRequestError, match="above maximum"):
+        with pytest.raises(DispatchError, match="above maximum"):
             executor.validate_request(request)
 
     def test_string_below_min_length(self) -> None:
@@ -156,7 +156,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="name_input", parameters={"name": "ab"})
-        with pytest.raises(DispatchRequestError, match="below minLength"):
+        with pytest.raises(DispatchError, match="below minLength"):
             executor.validate_request(request)
 
     def test_string_above_max_length(self) -> None:
@@ -173,7 +173,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="name_input", parameters={"name": "a" * 20})
-        with pytest.raises(DispatchRequestError, match="above maxLength"):
+        with pytest.raises(DispatchError, match="above maxLength"):
             executor.validate_request(request)
 
     def test_enum_value_violation(self) -> None:
@@ -190,7 +190,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="mode_select", parameters={"mode": "ultra"})
-        with pytest.raises(DispatchRequestError, match="not in allowed set"):
+        with pytest.raises(DispatchError, match="not in allowed set"):
             executor.validate_request(request)
 
     def test_payload_size_exceeded(self) -> None:
@@ -207,7 +207,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog, max_payload_size=10)
         request = _make_request(action_name="big_action", parameters={"data": "x" * 100})
-        with pytest.raises(DispatchRequestError, match="exceeds limit"):
+        with pytest.raises(DispatchError, match="exceeds limit"):
             executor.validate_request(request)
 
     def test_strict_mode_rejects_unknown_params(self) -> None:
@@ -224,7 +224,7 @@ class TestParameterValidation:
         }
         executor = RequestValidationExecutor(catalog=catalog, unknown_parameter_policy="strict")
         request = _make_request(action_name="limited", parameters={"known": "ok", "extra": "bad"})
-        with pytest.raises(DispatchRequestError, match="Unknown extra parameters"):
+        with pytest.raises(DispatchError, match="Unknown extra parameters"):
             executor.validate_request(request)
 
     def test_tolerant_mode_ignores_unknown_params(self) -> None:
@@ -258,7 +258,7 @@ class TestExecutionMode:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="sync_only", execution_mode="background")
-        with pytest.raises(DispatchRequestError, match="does not support background"):
+        with pytest.raises(DispatchError, match="does not support background"):
             executor.validate_request(request)
 
     def test_background_on_eligible_succeeds(self) -> None:
@@ -285,7 +285,7 @@ class TestDestructiveConfirmation:
         }
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="delete")
-        with pytest.raises(DispatchRequestError, match="requires explicit confirmation"):
+        with pytest.raises(DispatchError, match="requires explicit confirmation"):
             executor.validate_request(request)
 
     def test_destructive_with_confirmation_succeeds(self) -> None:
@@ -310,7 +310,7 @@ class TestTimeoutOverride:
         catalog = {"action": _make_catalog_entry(action_name="action")}
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="action", timeout_override=-1.0)
-        with pytest.raises(DispatchRequestError, match="out of bounds"):
+        with pytest.raises(DispatchError, match="out of bounds"):
             executor.validate_request(request)
 
     def test_excessive_timeout_raises_error(self) -> None:
@@ -318,7 +318,7 @@ class TestTimeoutOverride:
         catalog = {"action": _make_catalog_entry(action_name="action")}
         executor = RequestValidationExecutor(catalog=catalog, max_timeout_override=100.0)
         request = _make_request(action_name="action", timeout_override=200.0)
-        with pytest.raises(DispatchRequestError, match="out of bounds"):
+        with pytest.raises(DispatchError, match="out of bounds"):
             executor.validate_request(request)
 
     def test_valid_timeout_succeeds(self) -> None:

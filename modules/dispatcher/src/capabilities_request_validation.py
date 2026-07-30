@@ -16,6 +16,10 @@ from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
+    DispatchError,
+    DispatchErrorCategory,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -24,19 +28,6 @@ DEFAULT_TIMEOUT: float = 30.0
 MAX_TIMEOUT_OVERRIDE: float = 3600.0
 MAX_PAYLOAD_SIZE: int = 1_000_000
 DESTRUCTIVE_CONFIRMATION_ENFORCED: bool = True
-
-
-class DispatchRequestError(ValueError):
-    """Validation failure carrying the FRD error category for the result envelope.
-
-    Duck-typed by the orchestrator via ``getattr(e, "error_category", ...)`` so the
-    agent layer can surface the correct category without importing this capability type
-    (respects AES201 agent→capabilities boundary).
-    """
-
-    def __init__(self, message: str, error_category: str = "validation_error") -> None:
-        super().__init__(message)
-        self.error_category = error_category
 
 
 class RequestValidationExecutor(RequestValidationProtocol):
@@ -76,8 +67,8 @@ class RequestValidationExecutor(RequestValidationProtocol):
         """
         metadata = self._catalog.get(request.action_name)
         if metadata is None:
-            raise DispatchRequestError(
-                f"Unknown action: {request.action_name}", "not_found_error"
+            raise DispatchError(
+                f"Unknown action: {request.action_name}", DispatchErrorCategory.NOT_FOUND
             )
 
         warnings: list[str] = []
@@ -86,9 +77,9 @@ class RequestValidationExecutor(RequestValidationProtocol):
         # Execution-mode compatibility (FR-DSP-003)
         exec_mode = request.execution_mode
         if exec_mode == "background" and not metadata.background_eligibility_flag:
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Action '{request.action_name}' does not support background execution mode",
-                "unsupported_error",
+                DispatchErrorCategory.UNSUPPORTED,
             )
 
         # FR-DSP-003: Sync mode requires non-background-only action (warn if background-only)
@@ -103,9 +94,9 @@ class RequestValidationExecutor(RequestValidationProtocol):
             and self._destructive_confirmation_enforced
             and not request.confirmation_flag
         ):
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Destructive action '{request.action_name}' requires explicit confirmation",
-                "confirmation_error",
+                DispatchErrorCategory.CONFIRMATION,
             )
 
         # Timeout-override bounds (FR-DSP-003)
@@ -113,10 +104,10 @@ class RequestValidationExecutor(RequestValidationProtocol):
             request.timeout_override < 0
             or request.timeout_override > self._max_timeout_override
         ):
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Timeout override {request.timeout_override} out of bounds "
                 f"[0, {self._max_timeout_override}]",
-                "timeout_error",
+                DispatchErrorCategory.TIMEOUT,
             )
 
         resolved_metadata = {
@@ -162,8 +153,8 @@ class RequestValidationExecutor(RequestValidationProtocol):
         # Required fields present
         for field_name in required:
             if field_name not in request.parameters:
-                raise DispatchRequestError(
-                    f"Missing required parameter: {field_name}", "validation_error"
+                raise DispatchError(
+                    f"Missing required parameter: {field_name}", DispatchErrorCategory.VALIDATION
                 )
 
         # Unknown extra parameters (strict vs tolerant)
@@ -171,9 +162,9 @@ class RequestValidationExecutor(RequestValidationProtocol):
         extra = set(request.parameters.keys()) - declared_params - set(required)
         if extra:
             if self._unknown_parameter_policy == "strict":
-                raise DispatchRequestError(
+                raise DispatchError(
                     f"Unknown extra parameters: {', '.join(sorted(extra))}",
-                    "validation_error",
+                    DispatchErrorCategory.VALIDATION,
                 )
             warnings.append(
                 f"Unknown extra parameters ignored: {', '.join(sorted(extra))}"
@@ -192,9 +183,9 @@ class RequestValidationExecutor(RequestValidationProtocol):
         except TypeError:
             payload_size = 0
         if payload_size > self._max_payload_size:
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Parameter payload size {payload_size} exceeds limit {self._max_payload_size}",
-                "validation_error",
+                DispatchErrorCategory.VALIDATION,
             )
 
     def _validate_field(self, field_name: str, value: Any, field_def: dict[str, Any]) -> None:
@@ -206,45 +197,45 @@ class RequestValidationExecutor(RequestValidationProtocol):
         # Numeric range
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             if "minimum" in field_def and value < field_def["minimum"]:
-                raise DispatchRequestError(
+                raise DispatchError(
                     f"Parameter '{field_name}' value {value} below minimum {field_def['minimum']}",
-                    "validation_error",
+                    DispatchErrorCategory.VALIDATION,
                 )
             if "maximum" in field_def and value > field_def["maximum"]:
-                raise DispatchRequestError(
+                raise DispatchError(
                     f"Parameter '{field_name}' value {value} above maximum {field_def['maximum']}",
-                    "validation_error",
+                    DispatchErrorCategory.VALIDATION,
                 )
 
         # String length
         if isinstance(value, str):
             if "minLength" in field_def and len(value) < field_def["minLength"]:
-                raise DispatchRequestError(
+                raise DispatchError(
                     f"Parameter '{field_name}' length {len(value)} below minLength "
                     f"{field_def['minLength']}",
-                    "validation_error",
+                    DispatchErrorCategory.VALIDATION,
                 )
             if "maxLength" in field_def and len(value) > field_def["maxLength"]:
-                raise DispatchRequestError(
+                raise DispatchError(
                     f"Parameter '{field_name}' length {len(value)} above maxLength "
                     f"{field_def['maxLength']}",
-                    "validation_error",
+                    DispatchErrorCategory.VALIDATION,
                 )
 
         # Enumerated allowed values
         if "enum" in field_def and value not in field_def["enum"]:
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Parameter '{field_name}' value {value!r} not in allowed set "
                 f"{field_def['enum']}",
-                "validation_error",
+                DispatchErrorCategory.VALIDATION,
             )
 
     def _check_type(self, field_name: str, value: Any, declared_type: str) -> None:
         """Check a parameter value against its declared primitive type."""
         if isinstance(value, bool) and declared_type != "boolean":
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Parameter '{field_name}' must be {declared_type}, got bool",
-                "validation_error",
+                DispatchErrorCategory.VALIDATION,
             )
 
         type_map: dict[str, Any] = {
@@ -259,9 +250,9 @@ class RequestValidationExecutor(RequestValidationProtocol):
         if expected is None:
             return
         if not isinstance(value, expected):
-            raise DispatchRequestError(
+            raise DispatchError(
                 f"Parameter '{field_name}' must be {declared_type}, got {type(value).__name__}",
-                "validation_error",
+                DispatchErrorCategory.VALIDATION,
             )
 
     def __repr__(self) -> str:
