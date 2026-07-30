@@ -32,12 +32,12 @@ Before starting any task, read:
 
 - Check the `.agents/issues/` folder and read any issue documents/files found inside.
 - **Decompose:** If a document is too long, complex, or contains multiple distinct tasks, break it down and create multiple sub-issues.
-- **Expand Issues:** Each GitHub issue must be comprehensive and include:
+- **Full & Comprehensive Content:** Each GitHub issue must preserve full context, exact details, and complete information from the source document. Do NOT lazily summarize or strip away code snippets/diffs. Include:
   - Full problem description with context.
   - Root cause analysis.
-  - **Proposed technical approach or logic for the fix** (Do NOT write actual implementation code or diffs, as this role is strictly for management/triage).
+  - **Proposed technical approach & code changes:** Include full proposed implementation code, code snippets, diffs, or code examples needed for the fix.
   - Steps to verify the fix works.
-- **Create Issues:** Use `gh issue create --title "..." --body "..."` to create issues on GitHub. Use `--body-file` for long issues to avoid truncation.
+- **Create Issues:** Use `gh issue create --title "..." --body "..."` to create issues on GitHub. Use `--body-file` for long issues to ensure the full body and code blocks are posted without truncation.
 - **Manage Labels:**
   - Check existing labels: `gh label list`.
   - Apply relevant existing labels to new issues.
