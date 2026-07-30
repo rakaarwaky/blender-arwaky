@@ -2,18 +2,21 @@
 
 Implements the DispatcherOrchestrator Aggregate — coordinates all dispatcher capabilities
 to provide a unified action routing facade for CLI and MCP consumers.
-
-Structure:
-  1. Constants & configuration
-  2. Protocol method implementations (Aggregate facade methods)
-  3. Dunder methods, factories, and helpers
 """
+
+from __future__ import annotations
 
 import logging
 
-from modules.shared.src.dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
-from modules.shared.src.dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
-from modules.shared.src.dispatcher.contract_catalog_registration_protocol import CatalogRegistrationProtocol
+from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
+    ActionDiscoveryProtocol,
+)
+from modules.shared.src.dispatcher.contract_background_submit_protocol import (
+    BackgroundSubmitProtocol,
+)
+from modules.shared.src.dispatcher.contract_catalog_registration_protocol import (
+    CatalogRegistrationProtocol,
+)
 from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
 from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
@@ -27,6 +30,10 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.dispatcher.taxonomy_discovery_filter_vo import DiscoveryFilterVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
+    DispatchError,
+    DispatchErrorCategory,
+)
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
@@ -45,9 +52,9 @@ class DispatcherOrchestrator(IDispatcherAggregate):
 
     def __init__(
         self,
-        catalog_registration: CatalogRegistrationProtocol | None = None,
-        action_discovery: ActionDiscoveryProtocol | None = None,
-        request_validation: RequestValidationProtocol | None = None,
+        catalog_registration: CatalogRegistrationProtocol,
+        action_discovery: ActionDiscoveryProtocol,
+        request_validation: RequestValidationProtocol,
         sync_dispatch: SyncDispatchProtocol | None = None,
         background_submit: BackgroundSubmitProtocol | None = None,
         result_normalization: ResultNormalizationProtocol | None = None,
@@ -91,32 +98,17 @@ class DispatcherOrchestrator(IDispatcherAggregate):
         return self._discovery.discover_actions()
 
     def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
-        """Validate an action request against the catalog.
-
-        FR-DSP-003: Delegates to RequestValidationProtocol.
-        Unknown action -> not found error; invalid params -> field-level detail.
-        Returns enriched same VO type (merged input+output pattern).
-        """
-        if self._validation is None:
-            raise RuntimeError("RequestValidationProtocol not configured")
+        """FR-DSP-003: Validate an action request against the catalog."""
         return self._validation.validate_request(request)
 
     def dispatch_sync(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Dispatch a validated action synchronously to its owning feature.
-
-        FR-DSP-004: Delegates to SyncDispatchProtocol.
-        Routes to owning feature, enforces timeout, maps errors.
-        """
+        """FR-DSP-004: Dispatch a validated action synchronously."""
         if self._dispatch is None:
             raise RuntimeError("SyncDispatchProtocol not configured")
         return self._dispatch.dispatch_sync(request)
 
     def submit_background(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
-        """Submit an action for background execution via job feature.
-
-        FR-DSP-005: Delegates to BackgroundSubmitProtocol.
-        Creates job, returns task reference. Enforces capacity limits.
-        """
+        """FR-DSP-005: Submit an action for background execution."""
         if self._bg_submit is None:
             raise RuntimeError("BackgroundSubmitProtocol not configured")
         return self._bg_submit.submit_background(request)
@@ -144,7 +136,6 @@ class DispatcherOrchestrator(IDispatcherAggregate):
         in a single call for consumers who don't need intermediate results.
         Takes an ActionCommandVO instead of separate action_name/parameters.
         """
-
         try:
             validated = self.validate_request(request)
 
@@ -152,26 +143,29 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             long_running = validated.resolved_metadata.get("long_running_flag", False)
 
             if bg_eligible or long_running:
-                envelope = self.submit_background(validated)
-            else:
-                envelope = self.dispatch_sync(validated)
+                return self.submit_background(validated)
 
-            return envelope
+            return self.dispatch_sync(validated)
 
-        except ValueError as e:
-            logger.error("Action execution failed: %s", e)
-            # Duck-typed category: DispatchRequestError carries .error_category so the
-            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
+        except DispatchError as e:
+            logger.error("Dispatch rejected: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
+                message=self._safe_message(e),
                 tracking_id=request.validated_tracking_id,
-                error_category=error_category,
+                error_category=e.error_category,
             )
 
         except Exception as e:
             logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
+            return UnifiedResultEnvelopeVO.error_envelope(
+                message="Action execution failed unexpectedly",
+                tracking_id=request.validated_tracking_id,
+                error_category=DispatchErrorCategory.EXECUTION,
+            )
+
+    @staticmethod
+    def _safe_message(error: Exception) -> str:
+        return "Action request could not be processed"
 
     def __repr__(self) -> str:
         return (

@@ -31,6 +31,29 @@ def _make_mock_execute():
     return MockExecute()
 
 
+def _make_orchestrator(
+    catalog: dict | None = None,
+    with_discovery: bool = False,
+    with_validation: bool = False,
+    with_dispatch: bool = False,
+    with_normalization: bool = False,
+) -> DispatcherOrchestrator:
+    """Create a DispatcherOrchestrator with minimal required dependencies."""
+    catalog_reg = CatalogRegistrationExecutor(catalog)
+    discovery = ActionDiscoveryExecutor(catalog or {})
+    validation = RequestValidationExecutor(catalog or {})
+    dispatch = SyncDispatchExecutor(_make_mock_execute()) if with_dispatch else None
+    normalization = ResultNormalizationExecutor() if with_normalization else None
+    return DispatcherOrchestrator(
+        catalog_registration=catalog_reg,
+        action_discovery=discovery,
+        request_validation=validation,
+        sync_dispatch=dispatch,
+        background_submit=None,
+        result_normalization=normalization,
+    )
+
+
 def _make_metadata(
     action_name: str = "test_action",
     usage_examples: list[str] | None = None,
@@ -55,21 +78,19 @@ class TestRegistrationViaOrchestrator:
 
     def test_register_action_succeeds(self) -> None:
         """FR-DSP-001: Orchestrator delegates registration to catalog capability."""
-        catalog = CatalogRegistrationExecutor()
-        orchestrator = DispatcherOrchestrator(catalog_registration=catalog)
+        orch = _make_orchestrator()
         metadata = _make_metadata(action_name="reg_test")
-        result = orchestrator.register_action(metadata)
+        result = orch.register_action(metadata)
         assert result.action_name == "reg_test"
         assert result.catalog_version == 1
 
     def test_register_duplicate_increments_version(self) -> None:
         """FR-DSP-001: Duplicate registration increments catalog version."""
-        catalog = CatalogRegistrationExecutor()
-        orchestrator = DispatcherOrchestrator(catalog_registration=catalog)
+        orch = _make_orchestrator()
         metadata1 = _make_metadata(action_name="dup_via_orch")
-        orchestrator.register_action(metadata1)
+        orch.register_action(metadata1)
         metadata2 = _make_metadata(action_name="dup_via_orch", description="updated")
-        result = orchestrator.register_action(metadata2)
+        result = orch.register_action(metadata2)
         assert result.catalog_version == 2
 
 
@@ -81,16 +102,10 @@ class TestDiscoveryViaOrchestrator:
 
     def test_discover_returns_all_actions(self) -> None:
         """FR-DSP-002: discover_actions returns all registered actions."""
-        catalog = CatalogRegistrationExecutor()
-        discovery = ActionDiscoveryExecutor(catalog={})
-        orchestrator = DispatcherOrchestrator(
-            catalog_registration=catalog,
-            action_discovery=discovery,
-        )
         metadata = _make_metadata(action_name="discover_me")
-        catalog.register_action(metadata)
-        discovery._catalog = catalog._catalog  # Share catalog state
-        result = orchestrator.discover_actions()
+        catalog = {"discover_me": metadata}
+        orch = _make_orchestrator(catalog=catalog)
+        result = orch.discover_actions()
         assert isinstance(result, DiscoveryOutcomeVO)
 
     def test_discover_with_name_filter(self) -> None:
@@ -120,20 +135,18 @@ class TestValidationViaOrchestrator:
                 parameter_schema={"type": "object", "properties": {}, "required": []},
             ),
         }
-        validation = RequestValidationExecutor(catalog=catalog)
-        orchestrator = DispatcherOrchestrator(request_validation=validation)
+        orch = _make_orchestrator(catalog=catalog)
         request = ActionCommandVO(action_name="valid")
-        result = orchestrator.validate_request(request)
+        result = orch.validate_request(request)
         assert result.validated_tracking_id != ""
 
     def test_validate_unknown_action_raises(self) -> None:
-        """FR-DSP-003: Unknown action raises DispatchRequestError."""
+        """FR-DSP-003: Unknown action raises DispatchError."""
         catalog: dict[str, ActionMetadataVO] = {}
-        validation = RequestValidationExecutor(catalog=catalog)
-        orchestrator = DispatcherOrchestrator(request_validation=validation)
+        orch = _make_orchestrator(catalog=catalog)
         request = ActionCommandVO(action_name="unknown")
         with pytest.raises(Exception, match="Unknown action"):
-            orchestrator.validate_request(request)
+            orch.validate_request(request)
 
 
 # ─── FR-DSP-004: Sync Dispatch via Orchestrator ───────────────────────────
@@ -144,22 +157,16 @@ class TestSyncDispatchViaOrchestrator:
 
     def test_sync_dispatch_returns_envelope(self) -> None:
         """FR-DSP-004: Sync dispatch returns a UnifiedResultEnvelopeVO."""
-        mock = _make_mock_execute()
         catalog = {
             "sync_test": _make_metadata(
                 action_name="sync_test",
                 parameter_schema={"type": "object", "properties": {}, "required": []},
             ),
         }
-        validation = RequestValidationExecutor(catalog=catalog)
-        sync = SyncDispatchExecutor(execute_action=mock)
-        orchestrator = DispatcherOrchestrator(
-            request_validation=validation,
-            sync_dispatch=sync,
-        )
+        orch = _make_orchestrator(catalog=catalog, with_dispatch=True)
         request = ActionCommandVO(action_name="sync_test")
-        validated = orchestrator.validate_request(request)
-        result = orchestrator.dispatch_sync(validated)
+        validated = orch.validate_request(request)
+        result = orch.dispatch_sync(validated)
         assert isinstance(result, UnifiedResultEnvelopeVO)
         assert result.success is True
 
@@ -195,7 +202,7 @@ class TestNormalizationViaOrchestrator:
 class TestFullPipeline:
     """Full dispatcher pipeline via execute_action facade (FR-DSP-004/005)."""
 
-    def test_execute_action_unknown_raises(self) -> None:
+    def test_execute_action_unknown_returns_error(self) -> None:
         """FR-DSP-003: Unknown action in pipeline returns error envelope."""
         validation = RequestValidationExecutor(catalog={})
         normalization = ResultNormalizationExecutor()
@@ -216,17 +223,11 @@ class TestFullPipeline:
                 parameter_schema={"type": "object", "properties": {}, "required": []},
             ),
         }
-        validation = RequestValidationExecutor(catalog=catalog)
-        normalization = ResultNormalizationExecutor()
-        orchestrator = DispatcherOrchestrator(
-            request_validation=validation,
-            result_normalization=normalization,
-        )
+        orch = _make_orchestrator(catalog=catalog)
         request = ActionCommandVO(action_name="test")
-        validated = orchestrator.validate_request(request)
-        # Without sync_dispatch configured, dispatch_sync raises RuntimeError
+        validated = orch.validate_request(request)
         with pytest.raises(RuntimeError, match="SyncDispatchProtocol not configured"):
-            orchestrator.dispatch_sync(validated)
+            orch.dispatch_sync(validated)
 
     def test_execute_action_with_exception_handled(self) -> None:
         """FR-DSP-006: Exceptions during execution produce error envelope."""
@@ -236,21 +237,23 @@ class TestFullPipeline:
                 parameter_schema={"type": "object", "properties": {}, "required": []},
             ),
         }
-        validation = RequestValidationExecutor(catalog=catalog)
-        normalization = ResultNormalizationExecutor()
 
         class FailingExecute:
             def execute_action(self, action_name: str, params: dict) -> None:  # noqa: ARG002
                 raise RuntimeError("boom")
 
-        sync = SyncDispatchExecutor(execute_action=FailingExecute())
-        orchestrator = DispatcherOrchestrator(
+        catalog_reg = CatalogRegistrationExecutor(catalog)
+        discovery = ActionDiscoveryExecutor(catalog)
+        validation = RequestValidationExecutor(catalog)
+        dispatch = SyncDispatchExecutor(execute_action=FailingExecute())
+        orch = DispatcherOrchestrator(
+            catalog_registration=catalog_reg,
+            action_discovery=discovery,
             request_validation=validation,
-            sync_dispatch=sync,
-            result_normalization=normalization,
+            sync_dispatch=dispatch,
         )
         request = ActionCommandVO(action_name="failing")
-        validated = orchestrator.validate_request(request)
-        result = orchestrator.dispatch_sync(validated)
+        validated = orch.validate_request(request)
+        result = orch.dispatch_sync(validated)
         assert isinstance(result, UnifiedResultEnvelopeVO)
         assert result.success is False
