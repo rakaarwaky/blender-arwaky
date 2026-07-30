@@ -5,14 +5,23 @@ configuration. This file was created to fix broken imports in surface_server_sta
 and surface_server_instance.py (LB04, O01).
 """
 
+from __future__ import annotations
+
 import logging
 import os
+
+from modules.shared.src.mcp.contract_mcp_protocol import McpSchemaProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class ServerBootstrapManager:
-    """Bootstrap manager for MCP server lifecycle configuration."""
+    """Bootstrap manager for MCP server lifecycle configuration.
+
+    Implements McpSchemaProtocol compliance for capabilities layer.
+    """
+
+    _protocol: type = McpSchemaProtocol
 
     @staticmethod
     def resolve_log_file() -> str:

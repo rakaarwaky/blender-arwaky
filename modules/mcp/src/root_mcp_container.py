@@ -15,7 +15,6 @@ from modules.shared.src.mcp.contract_mcp_protocol import (
 )
 from modules.shared.src.mcp.mcp_response_formatter import McpResponseImpl
 from modules.shared.src.mcp.mcp_routing_proxy import McpRoutingImpl
-from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
 
 logger = logging.getLogger("BlenderMCPServer")
 
