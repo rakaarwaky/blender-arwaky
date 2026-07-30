@@ -1,8 +1,9 @@
-"""Utility: Job event emitter (default implementation).
+"""Capability: Job event publisher (logging adapter).
 
-Wires JobEvent through Python logging for decoupled emission.
-Serves as the default IJobEventPublisher when no external bus is available.
+Implements IJobEventPublisher. This is an external-adaptation capability,
+not a utility, because it implements a contract and performs I/O via logging.
 """
+
 from __future__ import annotations
 
 import logging
@@ -10,20 +11,12 @@ import logging
 from modules.shared.src.job.contract_job_event_protocol import IJobEventPublisher
 from modules.shared.src.job.taxonomy_job_event import JobEvent
 
-logger = logging.getLogger("BlenderMCPServer")
 
-
-class JobEventEmitter(IJobEventPublisher):
-    """Default event emitter that delegates to Python logging."""
-
+class JobLoggingEventPublisher(IJobEventPublisher):
     def __init__(self, logger_name: str = "BlenderMCPServer") -> None:
         self._logger = logging.getLogger(logger_name)
 
     def emit(self, event: JobEvent) -> None:
-        """Emit a job event through structured logging.
-
-        Maintains backward compatibility with the previous _emit() pattern.
-        """
         self._logger.info(
             "Job event: %s job=%s state=%s op=%s",
             event.event_type,
@@ -31,3 +24,6 @@ class JobEventEmitter(IJobEventPublisher):
             event.state_after,
             event.operation_type,
         )
+
+    def __repr__(self) -> str:
+        return "<JobLoggingEventPublisher>"

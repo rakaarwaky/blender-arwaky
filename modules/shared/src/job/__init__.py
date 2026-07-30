@@ -3,6 +3,7 @@ from .contract_job_aggregate import IJobAggregate
 from .contract_job_cancellation_protocol import IJobCancellation
 from .contract_job_capacity_protocol import IJobCapacity
 from .contract_job_cleanup_protocol import IJobCleanup
+from .contract_job_event_protocol import IJobEventPublisher
 from .contract_job_lifecycle_protocol import IJobLifecycle
 from .contract_job_monitor_protocol import IJobMonitor
 from .contract_job_protocol import JobSchedulerProtocol
@@ -21,6 +22,7 @@ __all__ = [
     "IJobCancellation",
     "IJobCapacity",
     "IJobCleanup",
+    "IJobEventPublisher",
     "IJobLifecycle",
     "IJobMonitor",
     "JobSchedulerProtocol",

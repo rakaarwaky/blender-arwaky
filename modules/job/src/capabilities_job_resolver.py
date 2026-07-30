@@ -20,9 +20,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
 class JobCleanupResolver(IJobCleanup):
     """Resolves cleanup decisions per FR-JOB-004."""
 
-    def __init__(self) -> None:
-        pass
-
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def resolve(

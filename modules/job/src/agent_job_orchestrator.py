@@ -1,4 +1,3 @@
-# modules/job/src/agent_job_orchestrator.py
 """Agent: Job feature orchestrator.
 
 Composes 5 capabilities into executable flows.
@@ -6,7 +5,7 @@ Controls sequence and movement, not business calculation.
 """
 from __future__ import annotations
 
-import time
+from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import JobId, Timestamp
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
@@ -32,7 +31,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
     CleanupSummary,
     CompleteTaskCommand,
     CreateTaskCommand,
-    DeletedCount,
     FailTaskCommand,
     JobPolicy,
     JobStatusSnapshot,
@@ -41,8 +39,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
 
 
 class JobOrchestrator(IJobAggregate):
-    """Thin agent facade composing 5 job capabilities."""
-
     def __init__(
         self,
         lifecycle: IJobLifecycle,
@@ -51,6 +47,7 @@ class JobOrchestrator(IJobAggregate):
         cleanup: IJobCleanup,
         capacity: IJobCapacity,
         policy: JobPolicy,
+        clock: Callable[[], Timestamp],
     ) -> None:
         self._lifecycle = lifecycle
         self._monitor = monitor
@@ -58,6 +55,7 @@ class JobOrchestrator(IJobAggregate):
         self._cleanup = cleanup
         self._capacity = capacity
         self._policy = policy
+        self._clock = clock
 
     def submit_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
         active = ActiveCount(self._lifecycle.active_count())
@@ -117,27 +115,28 @@ class JobOrchestrator(IJobAggregate):
         return self._monitor.project(raw)
 
     def cleanup_expired_tasks(self) -> CleanupSummary:
-        now = Timestamp(time.time())
+        now = self._clock()
         terminal = self._lifecycle.list_terminal()
         running = self._lifecycle.list_running()
 
         decision = self._cleanup.resolve(terminal, running, now, self._policy)
+        warnings: list[str] = list(decision.warnings)
 
         reclaimed = 0
         for job_id in decision.stale_timeout_ids:
             try:
                 self._lifecycle.apply_timeout(job_id)
                 reclaimed += 1
-            except (TaskNotFoundError, InvalidStateTransitionError):
-                pass
+            except (TaskNotFoundError, InvalidStateTransitionError) as exc:
+                warnings.append(f"Skipped stale timeout for {job_id}: {exc}")
 
         purged = self._lifecycle.delete_records(decision.purge_ids)
 
         return CleanupSummary(
             purged=int(purged),
-            retained=len(terminal) - int(purged) + int(self._lifecycle.active_count()),
+            retained=max(0, len(terminal) - int(purged) + int(self._lifecycle.active_count())),
             reclaimed_capacity=reclaimed,
-            warnings=decision.warnings,
+            warnings=tuple(warnings),
         )
 
     def get_capacity_status(self) -> CapacityStatus:
