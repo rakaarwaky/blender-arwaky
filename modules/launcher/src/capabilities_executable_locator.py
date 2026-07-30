@@ -16,6 +16,7 @@ from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import ExecutableValidationError
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
@@ -26,6 +27,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
+    RuntimeStateVO,
     VersionCompatibility,
 )
 
@@ -43,10 +45,12 @@ class ExecutableLocator(LocateRegisterProtocol):
     def __init__(
         self,
         config_provider: Callable[[], LauncherConfigVO] | None = None,
+        persist_cap: PersistStateProtocol | None = None,
         command_runner: _CommandRunner | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
+        self._persist = persist_cap
         self._runner = command_runner
         self._events = event_sink
 
@@ -126,11 +130,27 @@ class ExecutableLocator(LocateRegisterProtocol):
             return VersionCompatibility.UNKNOWN
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, _config: LauncherConfigVO, path: str) -> None:
+    def _register(self, config: LauncherConfigVO, path: str) -> None:
+        # Persist authoritative config via injected provider
         provider = self._config_provider
         setter = getattr(provider, "set_executable_path", None)
         if callable(setter):
             setter(path)
+        # Internal persistence: record executable_path after registration
+        if self._persist is not None:
+            try:
+                existing = self._persist.load()
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=path,
+                        process_id=existing.process_id if existing else None,
+                        launch_timestamp=existing.launch_timestamp if existing else 0.0,
+                        bridge_endpoint=existing.bridge_endpoint if existing else None,
+                        last_status=existing.last_status if existing else RuntimeState.NOT_RUNNING,
+                    )
+                )
+            except Exception:
+                pass
 
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)

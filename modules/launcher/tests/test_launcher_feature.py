@@ -525,3 +525,111 @@ def test_locate_falls_back_to_configured_path():
     if os.path.exists(configured_path):
         assert res.source == RegistrationSource.CONFIGURED
         assert res.registered is True
+
+
+# ─── P0: Internal persistence integration tests ──────────────────────────
+
+
+def test_process_launcher_persists_after_spawn(tmp_path):
+    """P0: ProcessLauncher should persist runtime state after successful spawn."""
+    from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+    from modules.shared.src.launcher.taxonomy_launcher_vo import (
+        LaunchRequestVO,
+        ProbeDepth,
+        RuntimeState,
+        RuntimeStatusVO,
+    )
+
+    state_file = tmp_path / "state.json"
+    persist_cap = StatePersistence(path_resolver=lambda: str(state_file))
+
+    class MockStatus(RuntimeStatusProtocol):
+        def check_status(self, depth=ProbeDepth.LIGHTWEIGHT):
+            return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING)
+
+    launcher = ProcessLauncher(
+        executable_resolver=lambda: "/usr/bin/blender",
+        status_protocol=MockStatus(),
+        persist_cap=persist_cap,
+        spawner=lambda _e, _m, _t: 1234,
+        readiness_probe=lambda _p, _t, _i=0.5: True,
+    )
+
+    result = launcher.launch()
+    assert result.success is True
+
+    # Verify persisted state has process_id and launch_timestamp
+    loaded = persist_cap.load()
+    assert loaded is not None
+    assert loaded.process_id == 1234
+    assert loaded.executable_path == "/usr/bin/blender"
+    assert loaded.last_status == RuntimeState.STARTING
+
+
+def test_process_shutdown_persists_after_termination(tmp_path):
+    """P0: ProcessShutdown should persist NOT_RUNNING status after termination."""
+    from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+    from modules.shared.src.launcher.taxonomy_launcher_vo import (
+        ProbeDepth,
+        RuntimeState,
+        RuntimeStatusVO,
+    )
+
+    state_file = tmp_path / "state.json"
+    persist_cap = StatePersistence(path_resolver=lambda: str(state_file))
+
+    class MockStatus(RuntimeStatusProtocol):
+        def __init__(self):
+            self._call_count = 0
+
+        def check_status(self, depth=ProbeDepth.LIGHTWEIGHT):
+            self._call_count += 1
+            # After first call (initial check), return NOT_RUNNING so _wait_exit succeeds quickly
+            if self._call_count == 1:
+                return RuntimeStatusVO(state=RuntimeState.RUNNING_READY, process_id=5678)
+            return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING)
+
+    shutdown = ProcessShutdown(
+        status_protocol=MockStatus(),
+        persist_cap=persist_cap,
+        signal_sender=lambda _p: True,
+        killer=None,
+    )
+
+    result = shutdown.shutdown()
+    assert result.success is True
+
+    # Verify persisted state shows NOT_RUNNING
+    loaded = persist_cap.load()
+    assert loaded is not None
+    assert loaded.process_id is None
+    assert loaded.last_status == RuntimeState.NOT_RUNNING
+
+
+def test_executable_locator_persists_registration(tmp_path):
+    """P0: ExecutableLocator should persist executable_path after registration."""
+    from modules.shared.src.launcher.taxonomy_launcher_vo import (
+        LauncherConfigVO,
+        VersionCompatibility,
+    )
+
+    state_file = tmp_path / "state.json"
+    persist_cap = StatePersistence(path_resolver=lambda: str(state_file))
+
+    locator = ExecutableLocator(
+        config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"),
+        persist_cap=persist_cap,
+        command_runner=lambda _args, _timeout=5.0: "Blender 4.0.0",
+    )
+
+    # Create a mock executable reference for validation
+    import os
+
+    python_exe = os.path.realpath(os.sys.executable)
+    result = locator.locate_and_register(override=python_exe)
+    assert result.registered is True
+
+    # Verify persisted state has executable_path
+    loaded = persist_cap.load()
+    assert loaded is not None
+    assert loaded.executable_path == python_exe

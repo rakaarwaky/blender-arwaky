@@ -71,16 +71,19 @@ class LauncherContainer:
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
+            persist_cap=persist_cap,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
         )
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
+            persist_cap=persist_cap,
             spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
             readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
+            persist_cap=persist_cap,
             signal_sender=process_signal_term,
             killer=process_kill,
             timeout_seconds=self._config.shutdown_timeout_seconds,

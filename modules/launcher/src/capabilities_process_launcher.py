@@ -15,6 +15,7 @@ from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STARTED,
@@ -27,6 +28,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchRequestVO,
     ProbeDepth,
     RuntimeState,
+    RuntimeStateVO,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
@@ -53,6 +55,7 @@ class ProcessLauncher(LaunchProtocol):
         self,
         executable_resolver: Callable[[], str | None],
         status_protocol: RuntimeStatusProtocol,
+        persist_cap: PersistStateProtocol | None = None,
         spawner: _ProcessSpawner | None = None,
         readiness_probe: _ReadinessProbe | None = None,
         probe_interval_seconds: float = 0.5,
@@ -60,6 +63,7 @@ class ProcessLauncher(LaunchProtocol):
     ) -> None:
         self._resolve_executable = executable_resolver
         self._status = status_protocol
+        self._persist = persist_cap
         self._spawner = spawner
         self._probe = readiness_probe
         self._probe_interval = probe_interval_seconds
@@ -95,6 +99,21 @@ class ProcessLauncher(LaunchProtocol):
                 LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc)
             )
             return LaunchOutcomeVO(success=False, error_message=f"Spawn failed: {exc}")
+
+        # Internal persistence: record process_id and launch timestamp immediately after spawn
+        if self._persist is not None:
+            try:
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=executable,
+                        process_id=pid,
+                        launch_timestamp=time.time(),
+                        bridge_endpoint=req.bridge_endpoint.host if req.bridge_endpoint else None,
+                        last_status=RuntimeState.STARTING,
+                    )
+                )
+            except Exception:
+                logger.warning("Persistence failed during launch (non-fatal)", exc_info=True)
 
         ready = False
         if self._probe is not None:
