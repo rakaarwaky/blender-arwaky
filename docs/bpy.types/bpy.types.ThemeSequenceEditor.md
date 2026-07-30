@@ -1,0 +1,255 @@
+# bpy.types.ThemeSequenceEditor
+
+# ThemeSequenceEditor(bpy_struct)
+
+ 
+
+base class — [`bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)
+
+   class bpy.types.ThemeSequenceEditor(bpy_struct) 
+
+Theme settings for the Sequence Editor
+
+   active_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      audio_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      color_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      effect_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      grid 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      image_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      keyframe_border 
+
+Color of keyframe border (array of 4 items, in [0, 1], default (0.0, 0.0, 0.0, 0.0))
+
+  Type: 
+
+[`bpy_prop_array`](bpy.types.bpy_prop_array.html#bpy.types.bpy_prop_array)[float]
+
+      keyframe_border_selected 
+
+Color of selected keyframe border (array of 4 items, in [0, 1], default (0.0, 0.0, 0.0, 0.0))
+
+  Type: 
+
+[`bpy_prop_array`](bpy.types.bpy_prop_array.html#bpy.types.bpy_prop_array)[float]
+
+      mask_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      meta_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      metadatabg 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      metadatatext 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      movie_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      movieclip_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      preview_back 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      row_alternate 
+
+Overlay color on every other row (array of 4 items, in [0, 1], default (0.0, 0.0, 0.0, 0.0))
+
+  Type: 
+
+[`bpy_prop_array`](bpy.types.bpy_prop_array.html#bpy.types.bpy_prop_array)[float]
+
+      scene_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      selected_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      selected_text 
+
+Text strip editing selection (array of 4 items, in [0, 1], default (0.0, 0.0, 0.0, 0.0))
+
+  Type: 
+
+[`bpy_prop_array`](bpy.types.bpy_prop_array.html#bpy.types.bpy_prop_array)[float]
+
+      space 
+
+Settings for space (readonly, never None)
+
+  Type: 
+
+[`ThemeSpaceGeneric`](bpy.types.ThemeSpaceGeneric.html#bpy.types.ThemeSpaceGeneric)
+
+      text_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      text_strip_cursor 
+
+Text strip editing cursor (array of 4 items, in [0, 1], default (0.0, 0.0, 0.0, 0.0))
+
+  Type: 
+
+[`bpy_prop_array`](bpy.types.bpy_prop_array.html#bpy.types.bpy_prop_array)[float]
+
+      transition_strip 
+
+(array of 3 items, in [0, 1], default (0.0, 0.0, 0.0))
+
+  Type: 
+
+[`mathutils.Color`](mathutils.html#mathutils.Color)
+
+      classmethod bl_rna_get_subclass(id, default=None, /)  Parameters:  
+- id (str) – The RNA type identifier. 
+- default ([`bpy.types.Struct`](bpy.types.Struct.html#bpy.types.Struct) | None) – The value to return when not found.   Returns: 
+
+The RNA type or default when not found.
+
+  Return type: 
+
+[`bpy.types.Struct`](bpy.types.Struct.html#bpy.types.Struct)
+
+      classmethod bl_rna_get_subclass_py(id, default=None, /)  Parameters:  
+- id (str) – The RNA type identifier. 
+- default (type | None) – The value to return when not found.   Returns: 
+
+The class or default when not found.
+
+  Return type: 
+
+type
+
+      
+
+## Inherited Properties
+
+  
+- [`bpy_struct.id_data`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)       
+
+## Inherited Functions
+
+  
+- [`bpy_struct.as_pointer`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer) 
+- [`bpy_struct.driver_add`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add) 
+- [`bpy_struct.driver_remove`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove) 
+- [`bpy_struct.get`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.get) 
+- [`bpy_struct.id_properties_clear`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear) 
+- [`bpy_struct.id_properties_ensure`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure) 
+- [`bpy_struct.id_properties_ui`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui) 
+- [`bpy_struct.is_property_hidden`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden) 
+- [`bpy_struct.is_property_overridable_library`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library) 
+- [`bpy_struct.is_property_readonly`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly) 
+- [`bpy_struct.is_property_set`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set) 
+- [`bpy_struct.items`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)   
+- [`bpy_struct.keyframe_delete`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete) 
+- [`bpy_struct.keyframe_insert`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert) 
+- [`bpy_struct.keys`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys) 
+- [`bpy_struct.path_from_id`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id) 
+- [`bpy_struct.path_from_module`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module) 
+- [`bpy_struct.path_resolve`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve) 
+- [`bpy_struct.pop`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop) 
+- [`bpy_struct.property_overridable_library_set`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set) 
+- [`bpy_struct.property_unset`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset) 
+- [`bpy_struct.rna_ancestors`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors) 
+- [`bpy_struct.type_recast`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast) 
+- [`bpy_struct.values`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)     
+
+## References
+
+  
+- [`Theme.sequence_editor`](bpy.types.Theme.html#bpy.types.Theme.sequence_editor)

@@ -63,11 +63,11 @@ modules/config/src/root_config_container.py
 modules/diagnostics/__init__.py
 modules/diagnostics/src/__init__.py
 modules/diagnostics/src/agent_diagnostics_orchestrator.py
-modules/diagnostics/src/capabilities_audit_emission.py
-modules/diagnostics/src/capabilities_health_composition.py
+modules/diagnostics/src/capabilities_audit_emitter.py
+modules/diagnostics/src/capabilities_health_composer.py
 modules/diagnostics/src/capabilities_logging_policy.py
-modules/diagnostics/src/capabilities_metrics_collection.py
-modules/diagnostics/src/capabilities_snapshot_provision.py
+modules/diagnostics/src/capabilities_metrics_collector.py
+modules/diagnostics/src/capabilities_snapshot_provisioner.py
 modules/diagnostics/src/root_diagnostics_container.py
 modules/dispatcher/src/__init__.py
 modules/dispatcher/src/agent_dispatcher_orchestrator.py
@@ -78,14 +78,6 @@ modules/dispatcher/src/capabilities_request_validation.py
 modules/dispatcher/src/capabilities_result_normalization.py
 modules/dispatcher/src/capabilities_sync_dispatch.py
 modules/dispatcher/src/root_dispatcher_container.py
-modules/dispatcher/src/surface_action_registry.py
-modules/dispatcher/src/surface_asset_action.py
-modules/dispatcher/src/surface_config_action.py
-modules/dispatcher/src/surface_job_action.py
-modules/dispatcher/src/surface_launcher_action.py
-modules/dispatcher/src/surface_object_action.py
-modules/dispatcher/src/surface_render_action.py
-modules/dispatcher/src/surface_scene_action.py
 modules/gateway/__init__.py
 modules/gateway/src/__init__.py
 modules/gateway/src/agent_gateway_orchestrator.py
@@ -214,6 +206,7 @@ modules/shared/src/dispatcher/contract_action_discovery_protocol.py
 modules/shared/src/dispatcher/contract_background_submit_protocol.py
 modules/shared/src/dispatcher/contract_catalog_registration_protocol.py
 modules/shared/src/dispatcher/contract_dispatcher_aggregate.py
+modules/shared/src/dispatcher/contract_execute_action_protocol.py
 modules/shared/src/dispatcher/contract_request_validation_protocol.py
 modules/shared/src/dispatcher/contract_result_normalization_protocol.py
 modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py
@@ -221,6 +214,9 @@ modules/shared/src/dispatcher/taxonomy_action_command_vo.py
 modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py
 modules/shared/src/dispatcher/taxonomy_discovery_filter_vo.py
 modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py
+modules/shared/src/dispatcher/taxonomy_dispatch_constant.py
+modules/shared/src/dispatcher/taxonomy_dispatch_error.py
+modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py
 modules/shared/src/dispatcher/taxonomy_raw_outcome_vo.py
 modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py
 modules/shared/src/gateway/__init__.py
@@ -328,6 +324,7 @@ modules/shared/src/security/taxonomy_security_error.py
 modules/shared/src/security/taxonomy_security_event.py
 modules/shared/src/security/taxonomy_security_vo.py
 modules/shared/src/security/utility_security_path.py
+modules/shared/src/security/utility_security_redactor.py
 modules/shared/src/telemetry/__init__.py
 modules/shared/src/telemetry/contract_telemetry_aggregate.py
 modules/shared/src/telemetry/contract_telemetry_classification_protocol.py
