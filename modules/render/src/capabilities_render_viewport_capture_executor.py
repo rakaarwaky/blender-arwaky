@@ -11,7 +11,6 @@ from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
     DurationMs,
-    FilePath,
     Prompt,
     PythonCode,
     SuccessFlag,
@@ -163,7 +162,7 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         if max_size > 0 and max_size < 64:
             return RenderError(
                 category=RenderErrorCategory.VALIDATION,
-                message=Prompt(f"max_size must be at least 64 pixels"),
+                message=Prompt("max_size must be at least 64 pixels"),
             )
 
         return None

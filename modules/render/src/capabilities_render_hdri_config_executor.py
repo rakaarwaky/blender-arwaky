@@ -9,7 +9,6 @@ import logging
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    FilePath,
     LightStrength,
     Prompt,
     PythonCode,

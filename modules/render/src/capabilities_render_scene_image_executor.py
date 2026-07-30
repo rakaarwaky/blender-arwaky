@@ -6,16 +6,13 @@ FR-RND-002: Render scene image.
 from __future__ import annotations
 
 import logging
-import uuid
 from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    JobId,
     Prompt,
     PythonCode,
     RenderEngine,
     SuccessFlag,
-    TaskUuid,
 )
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
@@ -26,7 +23,6 @@ from modules.shared.src.job.contract_job_capacity_protocol import (
 from modules.shared.src.job.taxonomy_job_vo import (
     CapacityDecision,
     JobPolicy,
-    OperationType,
 )
 from modules.shared.src.render.contract_render_scene_image_protocol import (
     IRenderSceneImageProtocol,
@@ -45,7 +41,6 @@ from modules.shared.src.render.taxonomy_render_error import (
     RenderErrorCategory,
 )
 from modules.shared.src.render.taxonomy_render_event import (
-    RenderSubmittedToBackgroundEvent,
     SceneRenderCompletedEvent,
     SceneRenderFailedEvent,
 )
