@@ -5,12 +5,9 @@ FR-MCP-002: Route Tool Calls — dispatcher aggregate via routing protocol
 FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
-import logging
+from __future__ import annotations
 
-from modules.shared.src.mcp.contract_mcp_protocol import (
-    McpResponseProtocol,
-    McpRoutingProtocol,
-)
+import logging
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -26,11 +23,13 @@ class ExecuteCommandSurface:
 
     def __init__(
         self,
-        routing: McpRoutingProtocol,
-        response: McpResponseProtocol,
+        routing: object,
+        response: object,
     ) -> None:
         self._routing = routing
         self._response = response
+
+
 
     @staticmethod
     def register(mcp, container) -> None:
