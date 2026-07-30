@@ -1,9 +1,9 @@
-"""Gateway orchestrator — Aggregate facade coordinating connection, transport, and execution.
+"""Gateway orchestrator -- Aggregate facade coordinating gateway protocols.
 
-FR-GWY: Coordinates connection, maintenance, transport, and code execution
-via individual protocol delegation. Scene queue coordination is delegated
-to GatewaySceneCoordinator to keep type count under AES405 limit.
+FR-GWY: Coordinates connection, maintenance, transport, scene queue, and code execution.
 """
+
+from __future__ import annotations
 
 import logging
 
@@ -13,6 +13,7 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
+from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.contract_maintenance_protocol import (
     ConnectionMaintenanceProtocol,
 )
@@ -26,6 +27,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionOutcomeVO,
     CodeExecutionVO,
     ConnectionOutcomeVO,
+    ConnectionState,
     ConnectionStatusVO,
     QueueStatusVO,
     SceneOperationOutcomeVO,
@@ -37,13 +39,10 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class GatewayOrchestrator:
-    """Aggregate facade for the Gateway feature.
+class GatewayOrchestrator(IGatewayAggregate):
+    """Aggregate facade for the Gateway feature."""
 
-    Coordinates connection, transport, and execution via protocol delegation.
-    """
-
-    # ─── Block 1: Class Definition & Constructor ──────────────
+    # -- Block 1: Class Definition & Constructor --
 
     def __init__(
         self,
@@ -59,15 +58,14 @@ class GatewayOrchestrator:
         self._scene_queue = scene_queue
         self._code_executor = code_executor
 
-    # ─── Block 2: Protocol Method Implementation ─────────────
+    # -- Block 2: Aggregate Method Implementation --
 
     def establish_connection(self) -> ConnectionOutcomeVO:
         """FR-GWY-001: Establish connection and wire transport layer."""
         logger.info("Establishing gateway connection")
         result = self._connection.establish_connection()
 
-        # Wire connection to transport and maintenance
-        if result.state.value == "connected":
+        if result.state == ConnectionState.CONNECTED:
             self._maintenance.set_state(result.state)
 
         return result
@@ -76,7 +74,7 @@ class GatewayOrchestrator:
         """FR-GWY-002: Graceful disconnect."""
         logger.info("Disconnecting gateway")
         self._connection.disconnect()
-        self._maintenance.set_state(None)
+        self._maintenance.set_state(ConnectionState.CLOSED)
 
     def get_connection_status(self) -> ConnectionStatusVO:
         """FR-GWY-002: Query connection state."""

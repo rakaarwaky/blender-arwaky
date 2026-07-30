@@ -45,6 +45,8 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
+from dataclasses import replace
+
 from modules.shared.src.gateway.utility_schema_helper import (
     effective_command_timeout_ms,
     get_command_spec,
@@ -102,8 +104,10 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
                 data_bytes = len(result.data.encode("utf-8")) if isinstance(result.data, str) else len(result.data)
                 if data_bytes > self._max_response_bytes:
                     if isinstance(result.data, str):
-                        result.data = result.data[: self._max_response_bytes] + "\n...[truncated]"
-                    result.truncated = True
+                        truncated = result.data[: self._max_response_bytes] + "\n...[truncated]"
+                    else:
+                        truncated = result.data[: self._max_response_bytes]
+                    result = replace(result, data=truncated, truncated=True)
             logger.info("Command %s completed in %.1fms", action, elapsed_ms)
             await self._event_publisher.publish(CommandDispatched(action=action, execution_time_ms=elapsed_ms))
             return result
@@ -222,10 +226,12 @@ class TransportExecutor(TransportProtocol):
                 expected_tracking_id,
                 actual_tracking_id,
             )
+        payload_raw = message.get("payload")
+        payload = bytes.fromhex(payload_raw) if payload_raw else None
         return TransportOutcomeVO(
             tracking_id=actual_tracking_id,
             status=message.get("status", "error"),
-            payload=(message.get("payload") or "").encode("hex") if message.get("payload") else None,
+            payload=payload,
         )
 
     def set_socket(self, sock: socket.SocketType) -> None:
