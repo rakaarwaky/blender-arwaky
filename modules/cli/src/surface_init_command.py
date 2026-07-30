@@ -1,28 +1,19 @@
-"""CLI init command — Start Blender with a file."""
-
-import os
 from typing import Any
 
-from .utility_cli_process import launch_blender
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
+from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from modules.shared.src.launcher.taxonomy_launcher_vo import LaunchMode, TimeoutSeconds
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
-    return {"success": False, "error": message, "category": category, "ref": ref}
-
-
-def handle(args: Any) -> dict[str, Any]:
-    """Handle init command: start Blender with the given file."""
-    registry = Registry()
-
-    error = registry.assert_no_active()
-    if error:
-        return _mask_error("state", "cli-409", error)
-
-    filepath = os.path.abspath(args.filepath)
+def handle(args: Any, launcher: ILauncherOperateAggregate | None = None) -> CliResultVo:
+    if launcher is None:
+        return CliResultVo(success=False, error="Launcher aggregate not available", category="configuration_error", ref="cli-500")
     try:
-        pid = launch_blender(filepath, mode=args.mode, port=args.port)
-        registry.set_active(filepath, pid, args.port)
-        return {"success": True, "message": "Blender session started", "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
-    except Exception:
-        return _mask_error("unexpected", "cli-500")
+        mode = LaunchMode.HEADLESS if args.mode == "headless" else LaunchMode.INTERFACE
+        timeout = TimeoutSeconds(float(getattr(args, "timeout", 30)))
+        outcome = launcher.launch(mode=mode, readiness_timeout_seconds=timeout)
+        if outcome.success:
+            return CliResultVo(success=True, message="Blender session started", data={"pid": outcome.process_id, "bridge_endpoint": outcome.bridge_endpoint})
+        return CliResultVo(success=False, error=outcome.error or "Launch failed", category="timeout" if outcome.error and "timeout" in outcome.error.lower() else "upstream_error", ref="cli-init")
+    except Exception as exc:
+        return CliResultVo(success=False, error=str(exc), category="unexpected", ref="cli-init")

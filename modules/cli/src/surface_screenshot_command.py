@@ -1,41 +1,19 @@
-"""CLI screenshot command — Capture viewport screenshot."""
-
-import os
 from typing import Any
 
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_registry import Registry
-
-
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
-    return {"success": False, "error": message, "category": category, "ref": ref}
+from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 
 
-def handle(args: Any) -> dict[str, Any]:
-    """Handle screenshot command: capture viewport screenshot."""
-    registry = Registry()
-    error = registry.assert_active(args.filepath)
-    if error:
-        return _mask_error("state", "cli-409", error)
-
-    port = registry.get_port()
-    params = {
-        "filepath": args.output,
-        "max_size": args.max_size,
-        "view_angle": args.view_angle,
-        "shading_mode": args.shading,
-        "show_overlays": not args.no_overlays,
-        "focus_object": args.focus_object,
-    }
-
+def handle(args: Any, dispatcher: IDispatcherAggregate | None = None) -> CliResultVo:
+    if dispatcher is None:
+        return CliResultVo(success=False, error="Dispatcher aggregate not available", category="configuration_error", ref="cli-500")
     try:
-        with BlenderSocketClient(port=port) as client:
-            result = client.send_command("get_viewport_screenshot", params)
-            if os.path.exists(args.output):
-                return {"success": True, "message": "Screenshot saved", "filepath": args.output, "result": result}
-            return _mask_error("unexpected", "cli-500", "Screenshot file was not created")
-    except ConnectionError:
-        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
-    except Exception:
-        return _mask_error("unexpected", "cli-500")
+        params: dict[str, object] = {"filepath": args.output, "max_size": args.max_size, "view_angle": args.view_angle, "shading_mode": args.shading, "show_overlays": not args.no_overlays, "focus_object": args.focus_object}
+        request = ActionCommandVO(action_name="get_viewport_screenshot", parameters=params)
+        envelope = dispatcher.execute_action(request)
+        if envelope.success:
+            return CliResultVo(success=True, message="Screenshot saved", data={"filepath": args.output})
+        return CliResultVo(success=False, error=envelope.message or "Screenshot failed", category=envelope.error_category or "unexpected", ref="cli-screenshot")
+    except Exception as exc:
+        return CliResultVo(success=False, error=str(exc), category="unexpected", ref="cli-screenshot")

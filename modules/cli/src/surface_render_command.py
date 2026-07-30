@@ -1,35 +1,19 @@
-"""CLI render command — Execute full frame render."""
-
 from typing import Any
 
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_registry import Registry
-
-
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
-    return {"success": False, "error": message, "category": category, "ref": ref}
+from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 
 
-def handle(args: Any) -> dict[str, Any]:
-    """Handle render command: execute full frame render."""
-    registry = Registry()
-    error = registry.assert_active(args.filepath)
-    if error:
-        return _mask_error("state", "cli-409", error)
-
-    port = registry.get_port()
-    params = {
-        "output_path": args.output,
-        "resolution_x": args.resolution_x,
-        "resolution_y": args.resolution_y,
-    }
-
+def handle(args: Any, dispatcher: IDispatcherAggregate | None = None) -> CliResultVo:
+    if dispatcher is None:
+        return CliResultVo(success=False, error="Dispatcher aggregate not available", category="configuration_error", ref="cli-500")
     try:
-        with BlenderSocketClient(port=port) as client:
-            result = client.send_command("render", params)
-            return {"success": True, "message": "Render started", "filepath": args.output, "result": result}
-    except ConnectionError:
-        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
-    except Exception:
-        return _mask_error("unexpected", "cli-500")
+        params: dict[str, object] = {"output_path": args.output, "resolution_x": args.resolution_x, "resolution_y": args.resolution_y}
+        request = ActionCommandVO(action_name="render", parameters=params)
+        envelope = dispatcher.execute_action(request)
+        if envelope.success:
+            return CliResultVo(success=True, message="Render started", data={"filepath": args.output})
+        return CliResultVo(success=False, error=envelope.message or "Render failed", category=envelope.error_category or "unexpected", ref="cli-render")
+    except Exception as exc:
+        return CliResultVo(success=False, error=str(exc), category="unexpected", ref="cli-render")
