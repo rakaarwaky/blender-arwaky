@@ -126,7 +126,7 @@ def inspection_executor(mock_code_executor: MockCodeExecutor):
     """Provide a SceneInspectionExecutor with mock code executor."""
     from modules.scene.src.capabilities_scene_inspection_executor import SceneInspectionExecutor
 
-    return SceneInspectionExecutor(mock_code_executor)
+    return SceneInspectionExecutor(mock_code_executor, event_emitter=None)
 
 
 @pytest.fixture
