@@ -21,6 +21,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
 )
 
+
 class StatePersistence(PersistStateProtocol):
     """Corruption-safe runtime state persistence with concurrent access safety."""
 
