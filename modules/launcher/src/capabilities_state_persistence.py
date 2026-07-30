@@ -9,13 +9,17 @@ The store path and I/O are injected DI boundaries; no secrets are persisted.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 import threading
 from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
+
+logger = logging.getLogger(__name__)
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    LoadOutcomeVO,
     PersistenceOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
@@ -43,6 +47,30 @@ class StatePersistence(PersistStateProtocol):
         with self._lock:
             return self._load_impl()
 
+    def load_with_warnings(self) -> LoadOutcomeVO:
+        """Load persisted state with explicit warnings and corruption flag.
+
+        Returns LoadOutcomeVO with warnings list and corrupted flag instead of
+        silently returning None on failures.
+        """
+        with self._lock:
+            path = self._resolve_path()
+            if not path or not os.path.exists(path):
+                return LoadOutcomeVO(state=None, warnings=(), corrupted=False)
+
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    data = json.load(fh)
+                if not isinstance(data, dict):
+                    warning = "Persisted state is not a JSON object"
+                    logger.warning(warning)
+                    return LoadOutcomeVO(state=None, warnings=(warning,), corrupted=True)
+                return LoadOutcomeVO(state=self._from_dict(data), warnings=(), corrupted=False)
+            except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
+                warning = f"Persisted state unreadable: {exc}"
+                logger.warning(warning, exc_info=True)
+                return LoadOutcomeVO(state=None, warnings=(warning,), corrupted=True)
+
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _persist_impl(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
         """Atomic write with secret detection (FR-LAU-005)."""
@@ -63,7 +91,10 @@ class StatePersistence(PersistStateProtocol):
             return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
     def _load_impl(self) -> RuntimeStateVO | None:
-        """Load persisted state with corruption fallback (FR-LAU-005)."""
+        """Load persisted state with corruption fallback (FR-LAU-005).
+
+        Catches TypeError for malformed fields (e.g., non-numeric launch_timestamp).
+        """
         path = self._resolve_path()
         if not path or not os.path.exists(path):
             return None
@@ -73,7 +104,7 @@ class StatePersistence(PersistStateProtocol):
             if not isinstance(data, dict):
                 return None
             return self._from_dict(data)
-        except (OSError, json.JSONDecodeError, ValueError):
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
             return None
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
@@ -95,15 +126,26 @@ class StatePersistence(PersistStateProtocol):
         }
 
     def _from_dict(self, data: dict) -> RuntimeStateVO:
+        """Convert dict to RuntimeStateVO with type safety.
+
+        Handles TypeError for malformed fields (e.g., non-numeric launch_timestamp).
+        """
         last = data.get("last_status", "not_running")
         try:
             last_state = RuntimeState(last)
         except ValueError:
             last_state = RuntimeState.NOT_RUNNING
+
+        # Safely convert launch_timestamp to float
+        try:
+            launch_ts = float(data.get("launch_timestamp", 0.0))
+        except (TypeError, ValueError):
+            launch_ts = 0.0
+
         return RuntimeStateVO(
             executable_path=data.get("executable_path", ""),
             process_id=data.get("process_id"),
-            launch_timestamp=float(data.get("launch_timestamp", 0.0)),
+            launch_timestamp=launch_ts,
             bridge_endpoint=data.get("bridge_endpoint"),
             last_status=last_state,
         )

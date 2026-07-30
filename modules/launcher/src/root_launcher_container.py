@@ -114,6 +114,7 @@ class LauncherContainer:
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
+            persist_cap=persist_cap,
         )
 
         # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
@@ -143,6 +144,7 @@ class LauncherContainer:
             shutdown_cap=shutdown_cap,
             status_cap=status_cap,
             persist_cap=persist_cap,
+            executable_resolver=lambda: self._config.executable_path,
         )
 
         self._wired = True

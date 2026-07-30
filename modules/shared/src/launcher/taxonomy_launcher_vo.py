@@ -16,6 +16,24 @@ TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 
 # ============================================================
+# FRD Error Categories (machine-readable, traceable)
+# ============================================================
+
+
+class LauncherErrorCode(str, Enum):
+    """Machine-readable error codes mapped to FRD error categories."""
+
+    CONFIGURATION_ERROR = "configuration_error"  # config / executable path error
+    TIMEOUT_ERROR = "timeout_error"  # timeout on launch/shutdown
+    VALIDATION_ERROR = "validation_error"  # validation failure
+    STATE_ERROR = "state_error"  # invalid runtime state
+    LAUNCH_ERROR = "launch_error"  # spawn/execution failure
+    TERMINATION_ERROR = "termination_error"  # shutdown/kill failure
+    PERSISTENCE_ERROR = "persistence_error"  # persistence failure
+    UNKNOWN = "unknown"  # unclassified error
+
+
+# ============================================================
 # Bridge Endpoint (FR-LAU-002 / P0: Shared endpoint VO)
 # ============================================================
 
@@ -122,18 +140,35 @@ class ExecutableReferenceVO:
 
 @dataclass(frozen=True)
 class RegistrationOutcomeVO:
-    """Unified registration result — input and output in one VO."""
+    """Unified registration result — input and output in one VO.
+
+    FRD error categories are now machine-readable via error_code.
+    """
 
     executable: ExecutableReferenceVO | None = None
-    source: RegistrationSource = RegistrationSource.SYSTEM_PATH
+    source: RegistrationSource | None = None
     registered: bool = False
     warning: str | None = None
     error: str | None = None
+    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
-# FR-LAU-002: Launch
+# FR-LAU-002: Launch Request / Outcome
 # ============================================================
+
+
+@dataclass(frozen=True)
+class LaunchRequestVO:
+    """Launch request containing mode, readiness timeout, and bridge endpoint settings.
+
+    FR-LAU-002: Input includes "bridge endpoint settings" — this VO provides
+    a contract-level way to pass endpoint host/port/protocol information.
+    """
+
+    mode: LaunchMode = LaunchMode.INTERFACE
+    readiness_timeout_seconds: TimeoutSeconds | None = None
+    bridge_endpoint: BridgeEndpointVO | None = None
 
 
 @dataclass(frozen=True)
@@ -147,11 +182,23 @@ class LaunchOutcomeVO:
     duration_ms: float = 0.0
     launch_method: LaunchMethod = LaunchMethod.SPAWN
     error: str | None = None
+    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # FR-LAU-003: Shut Down
 # ============================================================
+
+
+@dataclass(frozen=True)
+class ShutdownRequestVO:
+    """FR-LAU-003 shutdown input with explicit force/escalation confirmation semantics.
+
+    Replaces ambiguous force/allow_escalation booleans with a single request VO.
+    """
+
+    force_requested: bool = False
+    escalation_confirmed: bool = True
 
 
 @dataclass(frozen=True)
@@ -164,6 +211,7 @@ class ShutdownOutcomeVO:
     final_state: RuntimeState = RuntimeState.NOT_RUNNING
     escalated: bool = False
     error: str | None = None
+    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
@@ -173,7 +221,11 @@ class ShutdownOutcomeVO:
 
 @dataclass(frozen=True)
 class RuntimeStatusVO:
-    """Unified runtime status — input and output in one VO."""
+    """Unified runtime status — input and output in one VO.
+
+    FRD FR-LAU-004 requires process ref summary, readiness, staleness, uptime.
+    Additional metadata fields added for diagnostics integration.
+    """
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
     process_id: int | None = None
@@ -181,6 +233,11 @@ class RuntimeStatusVO:
     stale: bool = False
     uptime_seconds: float | None = None
     depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT
+    # Additional diagnostics metadata (secrets redacted)
+    process_reference: str = ""
+    bridge_endpoint_summary: str = ""
+    probe_duration_ms: float = 0.0
+    classification_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -217,6 +274,18 @@ class PersistenceOutcomeVO:
     success: bool = False
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
     reconciled: bool = False
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 load result with warnings.
+
+    Replaces silent load failures with explicit warning emission.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 @dataclass(frozen=True)

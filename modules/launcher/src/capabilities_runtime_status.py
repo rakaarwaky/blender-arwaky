@@ -8,11 +8,14 @@ Liveness and process-info lookup are injected DI boundaries.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
+
+logger = logging.getLogger(__name__)
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_STALE_STATE_DETECTED,
     LAUNCHER_EVENT_STATUS_CHECKED,
@@ -86,18 +89,29 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         state = RuntimeState.RUNNING_READY if ready else RuntimeState.RUNNING_UNRESPONSIVE
         uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
 
+        # FR-INT-001: Make event emission safe — never fail status checks due to observability failures
         if self._events is not None:
-            self._events(
-                LauncherLifecycleEvent(
-                    event_category=LAUNCHER_EVENT_STATUS_CHECKED,
-                    state_before=state,
-                    state_after=state,
-                    process_reference=str(pid),
-                    reason_summary=f"status_check_depth={depth.value}",
+            try:
+                self._events(
+                    LauncherLifecycleEvent(
+                        event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                        state_before=state,
+                        state_after=state,
+                        process_reference=str(pid),
+                        reason_summary=f"status_check_depth={depth.value}",
+                    )
                 )
-            )
+            except Exception:
+                logger.warning("status event emission failed", exc_info=True)
 
-        return RuntimeStatusVO(state=state, process_id=pid, ready=ready, uptime_seconds=uptime, depth=depth)
+        return RuntimeStatusVO(
+            state=state,
+            process_id=pid,
+            ready=ready,
+            uptime_seconds=uptime,
+            depth=depth,
+            process_reference=str(pid),
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def mark_launched(self, launch_time: float) -> None:

@@ -18,6 +18,7 @@ from modules.launcher.src.capabilities_state_persistence import StatePersistence
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
+    LaunchRequestVO,
     RegistrationSource,
     RuntimeState,
     RuntimeStateVO,
@@ -30,13 +31,13 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 def test_fr_lau_001_registers_override_executable():
     feat = create_launcher_feature(LauncherConfigVO())
     python_exe = os.path.realpath(os.sys.executable)
-    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+    res = feat.locate_and_register(override=python_exe)
     assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
     feat = create_launcher_feature(LauncherConfigVO())
-    res = feat.locate_and_register(LauncherConfigVO())
+    res = feat.locate_and_register()
     assert res.registered is False
     assert res.error
 
@@ -102,6 +103,17 @@ def test_fr_lau_002_launch_spawns_when_not_running():
     assert res.process_id == 1000
     assert res.ready is True
     backend.alive = True
+
+
+def test_fr_lau_002_launch_with_request_vo():
+    """FR-LAU-002: launch accepts LaunchRequestVO with bridge endpoint settings."""
+    backend = _FakeStatus()
+    backend.alive = False
+    feat = _build_feature(backend)
+    request = LaunchRequestVO(bridge_endpoint=None)
+    res = feat.launch(request)
+    assert res.success is True
+    assert res.process_id == 1000
 
 
 def test_fr_lau_003_shutdown_absent_is_idempotent():
@@ -246,6 +258,54 @@ def test_fr_lau_005_from_dict_with_missing_keys():
     assert loaded.last_status == RuntimeState.NOT_RUNNING
 
 
+def test_fr_lau_005_load_with_warnings_missing_file(tmp_path):
+    """FR-LAU-005: load_with_warnings returns empty outcome for missing file."""
+    state_file = tmp_path / "launcher_state.json"
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    outcome = cap.load_with_warnings()
+    assert outcome.state is None
+    assert outcome.corrupted is False
+    assert len(outcome.warnings) == 0
+
+
+def test_fr_lau_005_load_with_warnings_corrupt_json(tmp_path):
+    """FR-LAU-005: load_with_warnings returns warnings and corrupted flag for invalid JSON."""
+    state_file = tmp_path / "launcher_state.json"
+    state_file.write_text("{ this is not valid json")
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    outcome = cap.load_with_warnings()
+    assert outcome.state is None
+    assert outcome.corrupted is True
+    assert len(outcome.warnings) == 1
+    assert "Persisted state unreadable" in outcome.warnings[0]
+
+
+def test_fr_lau_005_load_with_warnings_non_dict(tmp_path):
+    """FR-LAU-005: load_with_warnings returns warnings and corrupted flag for non-dict JSON."""
+    state_file = tmp_path / "launcher_state.json"
+    state_file.write_text('["not", "a", "dict"]')
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    outcome = cap.load_with_warnings()
+    assert outcome.state is None
+    assert outcome.corrupted is True
+    assert len(outcome.warnings) == 1
+    assert outcome.warnings[0] == "Persisted state is not a JSON object"
+
+
+def test_fr_lau_005_load_with_warnings_success(tmp_path):
+    """FR-LAU-005: load_with_warnings returns state with no warnings on success."""
+    state_file = tmp_path / "launcher_state.json"
+    state_file.write_text(
+        '{"executable_path": "/usr/bin/blender", "process_id": 42, "launch_timestamp": 1700000000.0, "last_status": "running_ready"}'
+    )
+    cap = StatePersistence(path_resolver=lambda: str(state_file))
+    outcome = cap.load_with_warnings()
+    assert outcome.state is not None
+    assert outcome.state.process_id == 42
+    assert outcome.corrupted is False
+    assert len(outcome.warnings) == 0
+
+
 def test_aggregate_is_implemented():
     feat = create_launcher_feature(LauncherConfigVO())
     assert isinstance(feat, ILauncherOperateAggregate)
@@ -274,8 +334,8 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=_FakeStatus(),
-        spawner=lambda _exe, _mode, _to: 2000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kw: 2000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         probe_interval_seconds=1.5,
         persist_cap=mock_persist,
     )
@@ -365,7 +425,7 @@ def test_processshutdown_emit_redacts_sensitive_data():
 
 
 def test_orchestrator_persist_on_launch(tmp_path):
-    """FR-LAU-005: LauncherOrchestrator.persist() called after successful launch."""
+    """FR-LAU-005: LauncherOrchestrator persists state after successful launch."""
     state_file = tmp_path / "state.json"
     cap = StatePersistence(path_resolver=lambda: str(state_file))
 
@@ -373,14 +433,14 @@ def test_orchestrator_persist_on_launch(tmp_path):
     status_cap = RuntimeStatusChecker(
         liveness_checker=lambda _pid: False,
         pid_resolver=lambda: None,
-        bridge_probe=lambda _to: True,
+        bridge_probe=lambda timeout_seconds=1.0, **kw: True,
     )
     locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 3000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kw: 3000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
@@ -388,7 +448,9 @@ def test_orchestrator_persist_on_launch(tmp_path):
         signal_sender=lambda _pid: True,
         killer=lambda _pid: True,
     )
-    orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
+    orchestrator = LauncherOrchestrator(
+        locate, launch, shutdown, status_cap, cap, executable_resolver=lambda: "/usr/bin/blender"
+    )
 
     # Launch should persist state
     res = orchestrator.launch()
@@ -400,7 +462,7 @@ def test_orchestrator_persist_on_launch(tmp_path):
 
 
 def test_orchestrator_persist_on_shutdown(tmp_path):
-    """FR-LAU-005: LauncherOrchestrator.persist() called after shutdown."""
+    """FR-LAU-005: LauncherOrchestrator persists state after shutdown."""
     state_file = tmp_path / "state.json"
 
     class _RunningStatus:
@@ -421,14 +483,14 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: 4000,
-        bridge_probe=lambda _to: True,
+        bridge_probe=lambda timeout_seconds=1.0, **kw: True,
     )
     locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 4000,
-        readiness_probe=lambda _pid, _to, **kw: True,
+        spawner=lambda _exe, _mode, timeout, **kw: 4000,
+        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
         persist_cap=cap,
     )
     shutdown = ProcessShutdown(
@@ -436,7 +498,9 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
         signal_sender=lambda _pid: True,
         killer=lambda _pid: True,
     )
-    orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
+    orchestrator = LauncherOrchestrator(
+        locate, launch, shutdown, status_cap, cap, executable_resolver=lambda: "/usr/bin/blender"
+    )
 
     # Shutdown should persist NOT_RUNNING state
     res = orchestrator.shutdown()

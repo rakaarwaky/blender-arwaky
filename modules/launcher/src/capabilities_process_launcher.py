@@ -25,11 +25,11 @@ from modules.shared.src.launcher.taxonomy_launcher_constant import (
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchMethod,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
+    LauncherErrorCode,
     ProbeDepth,
     RuntimeState,
-    TimeoutSeconds,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
@@ -81,12 +81,17 @@ class ProcessLauncher(LaunchProtocol):
         self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Start Blender and confirm readiness within the configured timeout."""
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """Start Blender and confirm readiness within the configured timeout.
+
+        Accepts a LaunchRequestVO containing mode, readiness timeout, and
+        bridge endpoint settings. None defaults to configured values.
+        """
         with self._lock:
-            timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
+            # Resolve request parameters (default to configured values)
+            req = request or LaunchRequestVO()
+            mode = req.mode
+            timeout = req.readiness_timeout_seconds if req.readiness_timeout_seconds is not None else 30.0
 
             current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if current.state in (RuntimeState.RUNNING_READY, RuntimeState.RUNNING_UNRESPONSIVE, RuntimeState.STARTING):
@@ -99,10 +104,18 @@ class ProcessLauncher(LaunchProtocol):
 
             executable = self._resolve_executable()
             if not executable:
-                return LaunchOutcomeVO(success=False, error="No registered executable path")
+                return LaunchOutcomeVO(
+                    success=False,
+                    error="No registered executable path",
+                    error_code=LauncherErrorCode.CONFIGURATION_ERROR,
+                )
 
             if self._spawner is None:
-                return LaunchOutcomeVO(success=False, error="Process spawner not configured")
+                return LaunchOutcomeVO(
+                    success=False,
+                    error="Process spawner not configured",
+                    error_code=LauncherErrorCode.LAUNCH_ERROR,
+                )
 
             start = time.monotonic()
             try:
@@ -110,7 +123,7 @@ class ProcessLauncher(LaunchProtocol):
                     executable,
                     mode.value,
                     timeout,
-                    bridge_endpoint=self._bridge_endpoint,
+                    bridge_endpoint=req.bridge_endpoint,
                     addon_path=self._addon_path,
                 )
             except Exception as exc:
@@ -137,6 +150,7 @@ class ProcessLauncher(LaunchProtocol):
                     ready=False,
                     duration_ms=duration_ms,
                     error="Readiness not confirmed within timeout",
+                    error_code=LauncherErrorCode.TIMEOUT_ERROR,
                 )
 
             self._emit(
@@ -146,8 +160,30 @@ class ProcessLauncher(LaunchProtocol):
                 process_reference=str(pid),
             )
 
+            # FR-LAU-005: Persist state automatically on successful launch
+            if self._persist is not None:
+                try:
+                    from modules.shared.src.launcher.taxonomy_launcher_vo import RuntimeStateVO
+
+                    self._persist.persist(
+                        RuntimeStateVO(
+                            executable_path=executable or "",
+                            process_id=pid,
+                            launch_timestamp=time.monotonic(),
+                            bridge_endpoint=req.bridge_endpoint,
+                            last_status=RuntimeState.RUNNING_READY,
+                        )
+                    )
+                except Exception:
+                    pass  # Persist failure should not break launch
+
             return LaunchOutcomeVO(
-                success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms
+                success=True,
+                process_id=pid,
+                ready=True,
+                launch_method=LaunchMethod.SPAWN,
+                duration_ms=duration_ms,
+                bridge_endpoint=req.bridge_endpoint,
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────

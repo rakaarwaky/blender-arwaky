@@ -16,6 +16,7 @@ from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
@@ -24,9 +25,11 @@ from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycl
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ExecutableReferenceVO,
     LauncherConfigVO,
+    LauncherErrorCode,
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
+    RuntimeStateVO,
     VersionCompatibility,
 )
 
@@ -46,17 +49,29 @@ class ExecutableLocator(LocateRegisterProtocol):
         config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
+        persist_cap: PersistStateProtocol | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
         self._events = event_sink
+        self._persist = persist_cap
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
-        """Discover, validate, and register a Blender executable."""
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
+        """Discover, validate, and register a Blender executable.
+
+        Configuration is resolved from the injected config_provider — callers
+        only supply an optional override path. This establishes launcher as
+        the single authority for executable resolution.
+        """
+        config = self._config_provider()
         candidates = self._build_candidate_order(config, override)
         if not candidates:
-            return RegistrationOutcomeVO(registered=False, error="No candidate locations available")
+            return RegistrationOutcomeVO(
+                registered=False,
+                error="No candidate locations available",
+                error_code=LauncherErrorCode.CONFIGURATION_ERROR,
+            )
 
         for source, path in candidates:
             if not path or not os.path.exists(path):
@@ -65,11 +80,15 @@ class ExecutableLocator(LocateRegisterProtocol):
                 ref = self._validate(path)
             except ExecutableValidationError:
                 continue
-            self._register(config, path)
+            self._register(source, path)
             self._emit_registered(source, path)
             return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
-        return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
+        return RegistrationOutcomeVO(
+            registered=False,
+            error="No valid Blender executable found",
+            error_code=LauncherErrorCode.CONFIGURATION_ERROR,
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _build_candidate_order(
@@ -142,16 +161,24 @@ class ExecutableLocator(LocateRegisterProtocol):
 
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, config: LauncherConfigVO, path: str) -> None:
+    def _register(self, source: RegistrationSource, path: str) -> None:
         """Register the discovered executable path.
 
-        FR-LAU-001: Updates the config's executable_path if not already set.
-        This is a functional registration that propagates the discovered path.
+        FR-LAU-001: Persists the registered executable path via injected
+        PersistStateProtocol. This establishes launcher as the single
+        authority for executable resolution.
         """
-        # Only update if config doesn't already have an executable path
-        if not config.executable_path:
-            # Create a new config with the registered path (immutable VO)
-            pass  # Config is passed by reference; caller handles updates
+        # Persist the registered executable path if persist_cap is available
+        if self._persist is not None:
+            try:
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=path,
+                        last_status=RuntimeState.RUNNING_READY,
+                    )
+                )
+            except Exception:
+                pass  # Persistence failure is non-blocking for registration
 
         # Emit registration event with correct state transition
         if self._events is not None:
@@ -161,7 +188,7 @@ class ExecutableLocator(LocateRegisterProtocol):
                     state_before=RuntimeState.NOT_RUNNING,
                     state_after=RuntimeState.RUNNING_READY,
                     process_reference=path,
-                    reason_summary=f"registered_from_{config.source.value if hasattr(config, 'source') else 'discovery'}",
+                    reason_summary=f"registered_from_{source.value}",
                 )
             )
 

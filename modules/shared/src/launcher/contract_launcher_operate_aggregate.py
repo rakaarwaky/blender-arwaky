@@ -12,16 +12,14 @@ from abc import ABC, abstractmethod
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 
 from .taxonomy_launcher_vo import (
-    LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
 )
 
 
@@ -32,13 +30,22 @@ class ILauncherOperateAggregate(ABC):
     """
 
     @abstractmethod
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
-        """FR-LAU-001: Locate and register the Blender executable."""
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
+        """FR-LAU-001: Locate and register the Blender executable.
+
+        Configuration is injected via config_provider — callers only supply
+        an optional override path. This establishes launcher as the single
+        authority for executable resolution.
+        """
         ...
 
     @abstractmethod
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
-        """FR-LAU-002: Launch Blender and confirm readiness."""
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """FR-LAU-002: Launch Blender and confirm readiness.
+
+        Accepts a LaunchRequestVO containing mode, readiness timeout, and
+        bridge endpoint settings. None defaults to configured values.
+        """
         ...
 
     @abstractmethod
@@ -53,5 +60,9 @@ class ILauncherOperateAggregate(ABC):
 
     @abstractmethod
     def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
-        """FR-LAU-005: Persist runtime state (corruption-safe)."""
+        """FR-LAU-005: Persist runtime state (corruption-safe).
+
+        Kept for advanced reconciliation only; normal lifecycle flows
+        (launch/shutdown/registration) handle persistence internally.
+        """
         ...

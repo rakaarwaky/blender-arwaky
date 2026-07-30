@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import PersistenceOutcomeVO, RuntimeStateVO
+from .taxonomy_launcher_vo import LoadOutcomeVO, PersistenceOutcomeVO, RuntimeStateVO
 
 
 class PersistStateProtocol(ABC):
@@ -22,4 +22,9 @@ class PersistStateProtocol(ABC):
     @abstractmethod
     def load(self) -> RuntimeStateVO | None:
         """Load persisted state, returning None on missing/corrupt content."""
+        ...
+
+    @abstractmethod
+    def load_with_warnings(self) -> LoadOutcomeVO:
+        """Load persisted state with explicit warnings and corruption flag."""
         ...

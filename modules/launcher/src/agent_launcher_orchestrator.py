@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
@@ -27,9 +28,8 @@ from modules.shared.src.launcher.contract_persist_state_protocol import PersistS
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
@@ -37,7 +37,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
+    ShutdownRequestVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -54,37 +54,39 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         shutdown_cap: ShutdownProtocol,
         status_cap: RuntimeStatusProtocol,
         persist_cap: PersistStateProtocol,
-        config: LauncherConfigVO | None = None,
+        executable_resolver: Callable[[], str | None] | None = None,
     ) -> None:
         self._locate = locate_register_cap
         self._launch = launch_cap
         self._shutdown = shutdown_cap
         self._status = status_cap
         self._persist = persist_cap
-        self._config = config
+        self._executable_resolver = executable_resolver or (lambda: None)
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
-        """Delegate executable location/registration to the capabilities layer."""
-        logger.info("Orchestrating locate_and_register")
-        return self._locate.locate_and_register(config, override)
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
+        """Delegate executable location/registration to the capabilities layer.
 
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
+        Configuration is resolved from injected config_provider — callers
+        only supply an optional override path.
+        """
+        logger.info("Orchestrating locate_and_register")
+        return self._locate.locate_and_register(override)
+
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer, persist state, and mark launch time."""
-        logger.info("Orchestrating launch (mode=%s)", mode.value)
-        result = self._launch.launch(mode, readiness_timeout_seconds)
+        logger.info("Orchestrating launch (request=%s)", request)
+        result = self._launch.launch(request)
         if result.success and result.process_id is not None:
             # Mark launch time so uptime can be calculated by status checker
             self._status.mark_launched(time.time())
             self._persist_state_after_launch(result)
         return result
 
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
+    def shutdown(self, request: ShutdownRequestVO | None = None) -> ShutdownOutcomeVO:
         """Delegate shutdown to the capabilities layer and update persisted state."""
-        logger.info("Orchestrating shutdown (force=%s)", force)
-        result = self._shutdown.shutdown(force, allow_escalation)
+        logger.info("Orchestrating shutdown (request=%s)", request)
+        result = self._shutdown.shutdown(request)
         if result.success:
             self._persist_state_after_shutdown(result)
         return result
@@ -94,7 +96,11 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         return self._status.check_status(depth)
 
     def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
-        """Delegate state persistence to the capabilities layer."""
+        """Delegate state persistence to the capabilities layer.
+
+        Kept for advanced reconciliation only; normal lifecycle flows
+        (launch/shutdown/registration) handle persistence internally.
+        """
         return self._persist.persist(state)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
@@ -103,13 +109,14 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         """Expose the status capability for health composition consumers."""
         return self._status
 
-    # ─── Persistence helpers (Critical #7: orchestrator coordination) ─────
+    # ─── Persistence helpers (integrated into lifecycle flows) ─────
     def _persist_state_after_launch(self, outcome: LaunchOutcomeVO) -> None:
         """Persist runtime state after a successful launch."""
         try:
+            executable_path = self._executable_resolver()
             self._persist.persist(
                 RuntimeStateVO(
-                    executable_path=self._config.executable_path if self._config else "",
+                    executable_path=executable_path or "",
                     process_id=outcome.process_id,
                     launch_timestamp=time.time(),
                     bridge_endpoint=outcome.bridge_endpoint,

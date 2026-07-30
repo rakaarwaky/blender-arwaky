@@ -25,6 +25,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     ProbeDepth,
     RuntimeState,
     ShutdownOutcomeVO,
+    ShutdownRequestVO,
     TerminationMethod,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
@@ -64,9 +65,18 @@ class ProcessShutdown(ShutdownProtocol):
         self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Stop Blender gracefully, escalating to force when allowed."""
+    def shutdown(self, request: ShutdownRequestVO | None = None) -> ShutdownOutcomeVO:
+        """Stop Blender gracefully, escalating to force when allowed.
+
+        Accepts a ShutdownRequestVO with force_requested and escalation_confirmed.
+        None defaults to configured values.
+        """
         with self._lock:
+            # Resolve request parameters (default to configured values)
+            req = request or ShutdownRequestVO()
+            force = req.force_requested
+            allow_esc = req.escalation_confirmed
+
             current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
             if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
@@ -91,7 +101,7 @@ class ProcessShutdown(ShutdownProtocol):
                 self._signal(current.process_id)
 
             if not self._wait_exit(current.process_id):
-                if (force or allow_escalation) and self._force_enabled and self._kill is not None:
+                if (force or allow_esc) and self._force_enabled and self._kill is not None:
                     self._kill(current.process_id)
                     escalated = True
                     method = TerminationMethod.FORCE
