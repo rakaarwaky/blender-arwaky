@@ -14,6 +14,24 @@ from typing import NewType
 
 TimeoutSeconds = NewType("TimeoutSeconds", float)
 
+
+# ============================================================
+# Bridge Endpoint (FR-LAU-002 / P0: Shared endpoint VO)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class BridgeEndpointVO:
+    """Shared bridge endpoint — single source for Gateway connection config.
+
+    P0: Eliminates str | None bridge_endpoint across Launcher/Gateway.
+    """
+
+    host: str = "localhost"
+    port: int = 9876
+    protocol_version: str = "2.0.0"
+
+
 # ============================================================
 # Shared Taxonomy Enums (replaces primitive str types)
 # ============================================================
@@ -52,6 +70,7 @@ class LaunchMethod(str, Enum):
 # Registration Source / Discovery
 # ============================================================
 
+
 class RegistrationSource(str, Enum):
     """How the Blender executable path was discovered."""
 
@@ -75,6 +94,7 @@ class VersionCompatibility(str, Enum):
 # Runtime State Classification (FR-LAU-004)
 # ============================================================
 
+
 class RuntimeState(str, Enum):
     """Classified runtime state."""
 
@@ -89,6 +109,7 @@ class RuntimeState(str, Enum):
 # ============================================================
 # FR-LAU-001: Locate and Register
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ExecutableReferenceVO:
@@ -114,6 +135,7 @@ class RegistrationOutcomeVO:
 # FR-LAU-002: Launch
 # ============================================================
 
+
 @dataclass(frozen=True)
 class LaunchOutcomeVO:
     """Unified launch result — input and output in one VO."""
@@ -121,7 +143,7 @@ class LaunchOutcomeVO:
     success: bool = False
     process_id: int | None = None
     ready: bool = False
-    bridge_endpoint: str | None = None
+    bridge_endpoint: BridgeEndpointVO | None = None
     duration_ms: float = 0.0
     launch_method: LaunchMethod = LaunchMethod.SPAWN
     error: str | None = None
@@ -130,6 +152,7 @@ class LaunchOutcomeVO:
 # ============================================================
 # FR-LAU-003: Shut Down
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ShutdownOutcomeVO:
@@ -146,6 +169,7 @@ class ShutdownOutcomeVO:
 # ============================================================
 # FR-LAU-004: Runtime Status
 # ============================================================
+
 
 @dataclass(frozen=True)
 class RuntimeStatusVO:
@@ -165,7 +189,7 @@ class StatusCheckOutcomeVO:
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
     process_id: int | None = None
-    bridge_endpoint: str | None = None
+    bridge_endpoint: BridgeEndpointVO | None = None
     duration_ms: float = 0.0
     error: str | None = None
 
@@ -174,6 +198,7 @@ class StatusCheckOutcomeVO:
 # FR-LAU-005: Persist Runtime State
 # ============================================================
 
+
 @dataclass(frozen=True)
 class RuntimeStateVO:
     """Persisted runtime state record."""
@@ -181,7 +206,7 @@ class RuntimeStateVO:
     executable_path: str = ""
     process_id: int | None = None
     launch_timestamp: float = 0.0
-    bridge_endpoint: str | None = None
+    bridge_endpoint: BridgeEndpointVO | None = None
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
 
 
@@ -206,6 +231,7 @@ class StatePersistenceOutcomeVO:
 # ============================================================
 # Launcher Configuration
 # ============================================================
+
 
 @dataclass(frozen=True)
 class LauncherConfigVO:
