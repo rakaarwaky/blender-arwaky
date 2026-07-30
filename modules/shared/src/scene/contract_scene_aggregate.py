@@ -10,7 +10,7 @@ from abc import abstractmethod
 
 from .contract_scene_cleanup_protocol import ISceneCleanupProtocol
 from .contract_scene_inspection_protocol import ISceneInspectionProtocol
-from .taxonomy_scene_vo import SceneOverviewVO
+from .taxonomy_scene_vo import SceneCleanupVO, SceneInspectionVO
 
 
 class ISceneAggregate(ISceneInspectionProtocol, ISceneCleanupProtocol):
@@ -22,6 +22,11 @@ class ISceneAggregate(ISceneInspectionProtocol, ISceneCleanupProtocol):
     """
 
     @abstractmethod
-    async def get_scene_overview(self) -> SceneOverviewVO:
-        """Return complete scene overview Value Object."""
+    async def inspect_scene(self, request: SceneInspectionVO) -> SceneInspectionVO:
+        """Facade method for FR-SCN-001 scene inspection."""
+        ...
+
+    @abstractmethod
+    async def cleanup_scene_objects(self, request: SceneCleanupVO) -> SceneCleanupVO:
+        """Facade method for FR-SCN-002 scene cleanup."""
         ...
