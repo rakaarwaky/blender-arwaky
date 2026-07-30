@@ -122,7 +122,7 @@ class LauncherContainer:
             redaction_rules=self._redaction_rules,
         )
 
-        # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
+        # FR-INT-002: Forward bridge endpoint to spawner for addon integration
         bridge_endpoint: str | None = None
         if self._bridge_host and self._bridge_port:
             bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
