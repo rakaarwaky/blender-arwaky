@@ -18,6 +18,7 @@ import logging
 import socket
 import time
 import uuid
+from dataclasses import replace
 
 from modules.shared.src.gateway.contract_connection_protocol import (
     IBlenderConnectionProtocol,
@@ -45,8 +46,6 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
-from dataclasses import replace
-
 from modules.shared.src.gateway.utility_schema_helper import (
     effective_command_timeout_ms,
     get_command_spec,

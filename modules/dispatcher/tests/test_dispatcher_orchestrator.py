@@ -112,9 +112,11 @@ class TestDiscoveryViaOrchestrator:
         """FR-DSP-002: discover_actions respects name_filter."""
         catalog = CatalogRegistrationExecutor()
         discovery = ActionDiscoveryExecutor(catalog={})
+        validation = RequestValidationExecutor(catalog={})
         orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog,
             action_discovery=discovery,
+            request_validation=validation,
         )
         filter_criteria = DiscoveryFilterVO(name_filter="missing")
         result = orchestrator.discover_actions(filter_criteria=filter_criteria)
@@ -179,8 +181,16 @@ class TestNormalizationViaOrchestrator:
 
     def test_normalize_success_envelope(self) -> None:
         """FR-DSP-006: Success result creates proper envelope."""
+        catalog_reg = CatalogRegistrationExecutor(catalog={})
+        discovery = ActionDiscoveryExecutor(catalog={})
+        validation = RequestValidationExecutor(catalog={})
         normalization = ResultNormalizationExecutor()
-        orchestrator = DispatcherOrchestrator(result_normalization=normalization)
+        orchestrator = DispatcherOrchestrator(
+            catalog_registration=catalog_reg,
+            action_discovery=discovery,
+            request_validation=validation,
+            result_normalization=normalization,
+        )
         raw = RawOutcomeVO(success=True, data={"result": "ok"}, tracking_id="track-norm")
         result = orchestrator.normalize_result(raw)
         assert isinstance(result, UnifiedResultEnvelopeVO)
@@ -188,8 +198,16 @@ class TestNormalizationViaOrchestrator:
 
     def test_normalize_error_envelope(self) -> None:
         """FR-DSP-006: Error result creates proper envelope."""
+        catalog_reg = CatalogRegistrationExecutor(catalog={})
+        discovery = ActionDiscoveryExecutor(catalog={})
+        validation = RequestValidationExecutor(catalog={})
         normalization = ResultNormalizationExecutor()
-        orchestrator = DispatcherOrchestrator(result_normalization=normalization)
+        orchestrator = DispatcherOrchestrator(
+            catalog_registration=catalog_reg,
+            action_discovery=discovery,
+            request_validation=validation,
+            result_normalization=normalization,
+        )
         raw = RawOutcomeVO(success=False, message="fail", tracking_id="track-err")
         result = orchestrator.normalize_result(raw)
         assert isinstance(result, UnifiedResultEnvelopeVO)
@@ -204,9 +222,13 @@ class TestFullPipeline:
 
     def test_execute_action_unknown_returns_error(self) -> None:
         """FR-DSP-003: Unknown action in pipeline returns error envelope."""
+        catalog_reg = CatalogRegistrationExecutor(catalog={})
+        discovery = ActionDiscoveryExecutor(catalog={})
         validation = RequestValidationExecutor(catalog={})
         normalization = ResultNormalizationExecutor()
         orchestrator = DispatcherOrchestrator(
+            catalog_registration=catalog_reg,
+            action_discovery=discovery,
             request_validation=validation,
             result_normalization=normalization,
         )

@@ -30,11 +30,11 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.dispatcher.taxonomy_discovery_filter_vo import DiscoveryFilterVO
+from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
     DispatchError,
     DispatchErrorCategory,
 )
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -164,7 +164,7 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             )
 
     @staticmethod
-    def _safe_message(error: Exception) -> str:
+    def _safe_message(_error: Exception) -> str:
         return "Action request could not be processed"
 
     def __repr__(self) -> str:
