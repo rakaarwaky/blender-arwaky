@@ -17,55 +17,50 @@ from typing import Any
 from modules.shared.src.diagnostics.contract_logging_policy_protocol import (
     LoggingPolicyProtocol,
 )
-from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import LogResultVO
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import LogRecordRequestVO, LogResultVO
 from modules.shared.src.security.taxonomy_security_constant import (
     REDACTION_SENSITIVE_PATTERNS,
 )
 
 logger = logging.getLogger(__name__)
 
-# Pre-compiled redaction patterns (AES305 — single source of truth).
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(p) for p in REDACTION_SENSITIVE_PATTERNS
 )
 
-# Pre-compiled patterns for sensitive key names (case-insensitive).
 _SENSITIVE_KEY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(rf"(?i)\b({p})\b", re.IGNORECASE)
     for p in [
-        "password", "passwd", "secret", "token", "api[_-]?key",
-        "access[_-]?key", "private[_-]?key", "credential",
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "api[_-]?key",
+        "access[_-]?key",
+        "private[_-]?key",
+        "credential",
     ]
 )
 
 
 def _is_sensitive_key(key: str) -> bool:
-    """Return True if the key name looks like a secret holder."""
     return any(p.search(key) for p in _SENSITIVE_KEY_PATTERNS)
 
 
-def _redact_sensitive(value: object) -> Any:
-    """Recursively mask obvious secret shapes in structured fields.
-
-    Strings are pattern-redacted; dict/list/tuple are walked without mutating the
-    caller's input object. Dict values whose keys match sensitive names are also
-    redacted (handles bare-token shapes like {"api_key": "abc123"}).
-    Non-text scalars pass through untouched.
-    """
+def _redact_sensitive(value: object) -> object:
     if isinstance(value, str):
         text = value
         for pattern in _SENSITIVE_PATTERNS:
             text = pattern.sub("[REDACTED]", text)
         return text
     if isinstance(value, dict):
-        new_dict: dict[str, Any] = {}
+        new_dict: dict = {}
         for key, val in value.items():
             if _is_sensitive_key(key) and isinstance(val, str):
-                # Redact bare secret values behind sensitive keys.
-                new_val: Any = "[REDACTED]"
+                new_val = "[REDACTED]"
                 for pattern in _SENSITIVE_PATTERNS:
                     new_val = pattern.sub("[REDACTED]", val)
-                if new_val == val:  # no pattern matched — value is a secret shape
+                if new_val == val:
                     new_val = "[REDACTED]"
                 new_dict[key] = new_val
             else:
@@ -77,12 +72,7 @@ def _redact_sensitive(value: object) -> Any:
 
 
 class LoggingPolicy(LoggingPolicyProtocol):
-    """Enforce structured logging policy with redaction at ingestion.
-
-    All features log through this policy. Private per-feature log formats
-    are not permitted. Redaction applied before destination write.
-    Bounded buffer drops oldest under backpressure (drop counter exposed).
-    """
+    """Enforce structured logging policy with redaction at ingestion."""
 
     def __init__(self, max_buffer_size: int = 10000) -> None:
         self._buffer: deque[dict[str, Any]] = deque(maxlen=max_buffer_size)
@@ -91,32 +81,26 @@ class LoggingPolicy(LoggingPolicyProtocol):
 
     async def log_record(
         self,
-        level: str,
-        source_feature: str,
-        message: str,
-        fields: dict[str, Any] | None = None,
-        tracking_id: str | None = None,
+        request: LogRecordRequestVO,
     ) -> LogResultVO:
         """Write sanitized structured log entry.
 
         FR-DIA-004: Redaction applied at ingestion. No raw code/tokens/credentials/passwords/paths.
         Backpressure: buffer bounded; oldest dropped when full with counter incremented.
         """
-        # Redact message and fields at ingestion
-        redacted_message = _redact_sensitive(message) if isinstance(message, str) else message
-        redacted_fields = _redact_sensitive(fields) if fields else {}
-        redacted_count = self._count_redactions(message, fields)
+        redacted_message = _redact_sensitive(request.message) if isinstance(request.message, str) else request.message
+        redacted_fields = _redact_sensitive(request.fields) if request.fields else {}
+        redacted_count = self._count_redactions(request.message, request.fields)
 
-        entry: dict[str, Any] = {
-            "level": level,
-            "source_feature": source_feature,
+        entry: dict = {
+            "level": request.level,
+            "source_feature": request.source_feature,
             "message": redacted_message,
             "fields": redacted_fields or {},
-            "tracking_id": tracking_id,
+            "tracking_id": request.tracking_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Bounded buffer — drop oldest under backpressure
         if len(self._buffer) >= self._max_buffer_size:
             self._drop_counter += 1
             logger.warning(
@@ -127,9 +111,8 @@ class LoggingPolicy(LoggingPolicyProtocol):
 
         self._buffer.append(entry)
 
-        # Emit to Python logging (non-blocking — stdlib handles its own buffering)
-        log_fn = getattr(logger, level.lower(), logger.info)
-        log_fn("%s [%s] %s", source_feature, level, redacted_message)
+        log_fn = getattr(logger, request.level.lower(), logger.info)
+        log_fn("%s [%s] %s", request.source_feature, request.level, redacted_message)
 
         return LogResultVO(
             logged=True,
@@ -139,7 +122,6 @@ class LoggingPolicy(LoggingPolicyProtocol):
         )
 
     def _count_redactions(self, message: str, fields: dict | None) -> int:
-        """Count how many redaction patterns matched."""
         count = 0
         for pattern in _SENSITIVE_PATTERNS:
             if pattern.search(message):

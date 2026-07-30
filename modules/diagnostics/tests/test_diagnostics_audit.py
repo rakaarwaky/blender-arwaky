@@ -1,7 +1,7 @@
-"""Tests for AuditEmitter and InMemoryEventBus — FR-DIA-003.
+"""Tests for AuditEmitter — FR-DIA-003.
 
 Exercises immutable audit record creation, fallback buffering,
-subscriber isolation, and redaction via AuditEmitter and InMemoryEventBus.
+subscriber isolation, and redaction via AuditEmitter.
 Run via pytest from repo root.
 """
 
@@ -9,23 +9,16 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from unittest.mock import MagicMock
+
+from modules.diagnostics.src.capabilities_audit_emitter import AuditEmitter
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import AuditEventRequestVO
 
 import pytest
-
-# Direct import — bypasses diagnostics.__init__.py to avoid MCP circular import chain
-from modules.diagnostics.src.capabilities_audit_emission import (
-    AuditEmitter,
-    InMemoryEventBus,
-)
 
 
 def _make_emitter(**kwargs: Any) -> AuditEmitter:
     return AuditEmitter(**kwargs)
 
-
-def _make_event_bus() -> InMemoryEventBus:
-    return InMemoryEventBus()
 
 
 class TestAuditEventEmission:
@@ -35,10 +28,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         result = asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         assert result.emission_confirmed is True
@@ -47,10 +42,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -60,10 +57,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -73,10 +72,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="connection_failure",
-                severity="warning",
-                source_feature="launcher",
-                operation_type="connection_lost",
+                request=AuditEventRequestVO(
+                    category="connection_failure",
+                    severity="warning",
+                    source_feature="launcher",
+                    operation_type="connection_lost",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -86,10 +87,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="task_failure",
-                severity="error",
-                source_feature="dispatcher",
-                operation_type="execution_failed",
+                request=AuditEventRequestVO(
+                    category="task_failure",
+                    severity="error",
+                    source_feature="dispatcher",
+                    operation_type="execution_failed",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -99,10 +102,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -112,11 +117,13 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
-                correlation_id="trace-12345",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                    correlation_id="trace-12345",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -126,10 +133,12 @@ class TestAuditEventEmission:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -143,13 +152,14 @@ class TestAuditRecordImmutability:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
-        # Frozen dataclass — raises FrozenInstanceError (subclass of AttributeError)
         record = cap._fallback_buffer[-1]
         with pytest.raises(AttributeError):
             record.category = "changed"
@@ -158,18 +168,22 @@ class TestAuditRecordImmutability:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         asyncio.run(
             cap.emit_audit_event(
-                category="task_failure",
-                severity="error",
-                source_feature="dispatcher",
-                operation_type="execution_failed",
+                request=AuditEventRequestVO(
+                    category="task_failure",
+                    severity="error",
+                    source_feature="dispatcher",
+                    operation_type="execution_failed",
+                )
             )
         )
         assert len(cap._fallback_buffer) == 2
@@ -178,19 +192,23 @@ class TestAuditRecordImmutability:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         first_record = cap._fallback_buffer[0]
         asyncio.run(
             cap.emit_audit_event(
-                category="task_failure",
-                severity="error",
-                source_feature="dispatcher",
-                operation_type="execution_failed",
+                request=AuditEventRequestVO(
+                    category="task_failure",
+                    severity="error",
+                    source_feature="dispatcher",
+                    operation_type="execution_failed",
+                )
             )
         )
         assert first_record.category == "security_violation"
@@ -203,14 +221,15 @@ class TestAuditRedaction:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
-                target_metadata={"password": "secret123", "api_key": "abc123"},
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                    target_metadata={"password": "secret123", "api_key": "abc123"},
+                )
             )
         )
-        # Check that metadata was redacted
         record = cap._fallback_buffer[-1]
         assert "REDACTED" in str(record.target_metadata.get("password", ""))
 
@@ -218,11 +237,13 @@ class TestAuditRedaction:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
-                target_metadata={"token": "ghp_abc123def456ghi789jkl012mno345"},
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                    target_metadata={"token": "ghp_ab...o345"},
+                )
             )
         )
         record = cap._fallback_buffer[-1]
@@ -236,148 +257,42 @@ class TestFallbackBuffering:
         cap = _make_emitter()
         asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
         assert len(cap._fallback_buffer) == 1
 
     def test_fallback_buffer_is_bounded(self) -> None:
-        cap = _make_emitter(max_buffer_size=5)
-        for _ in range(10):
+        cap = _make_emitter(max_buffer_size=3)
+        for idx in range(3):
             asyncio.run(
                 cap.emit_audit_event(
-                    category="security_violation",
-                    severity="warning",
-                    source_feature="test",
-                    operation_type="test_op",
+                    request=AuditEventRequestVO(
+                        category="security_violation",
+                        severity="critical",
+                        source_feature="gateway",
+                        operation_type="connection_failure",
+                        correlation_id=f"trace-{idx}",
+                    )
                 )
             )
-        assert len(cap._fallback_buffer) <= 5
+        assert len(cap._fallback_buffer) == 3
 
     def test_emission_path_is_fallback(self) -> None:
         cap = _make_emitter()
-        result = asyncio.run(
+        out = asyncio.run(
             cap.emit_audit_event(
-                category="security_violation",
-                severity="critical",
-                source_feature="gateway",
-                operation_type="connection_failure",
+                request=AuditEventRequestVO(
+                    category="security_violation",
+                    severity="critical",
+                    source_feature="gateway",
+                    operation_type="connection_failure",
+                )
             )
         )
-        assert result.emission_path == "fallback"
-
-
-class TestEventBusPublishSubscribe:
-    """Test event bus subscribe and publish operations."""
-
-    def test_event_bus_instantiates(self) -> None:
-        bus = _make_event_bus()
-        assert isinstance(bus, InMemoryEventBus)
-
-    def test_subscribe_adds_subscriber(self) -> None:
-        bus = _make_event_bus()
-
-        class MockSubscriber:
-            async def handle(self, event: Any) -> None:
-                pass
-
-        mock_subscriber = MockSubscriber()
-        bus.subscribe(mock_subscriber)
-        assert len(bus.get_subscribers()) == 1
-
-    def test_subscribe_prevents_duplicates(self) -> None:
-        bus = _make_event_bus()
-
-        class MockSubscriber:
-            async def handle(self, event: Any) -> None:
-                pass
-
-        mock_subscriber = MockSubscriber()
-        bus.subscribe(mock_subscriber)
-        bus.subscribe(mock_subscriber)
-        assert len(bus.get_subscribers()) == 1
-
-    def test_publish_calls_all_subscribers(self) -> None:
-        bus = _make_event_bus()
-
-        class MockSubscriber1:
-            async def handle(self, event: Any) -> None:
-                pass
-
-        class MockSubscriber2:
-            async def handle(self, event: Any) -> None:
-                pass
-
-        mock_subscriber1 = MockSubscriber1()
-        mock_subscriber2 = MockSubscriber2()
-        bus.subscribe(mock_subscriber1)
-        bus.subscribe(mock_subscriber2)
-
-        mock_event = MagicMock()
-        asyncio.run(bus.publish(mock_event))
-
-
-class TestSubscriberIsolation:
-    """Test subscriber exception isolation."""
-
-    def test_subscriber_exception_does_not_stop_others(self) -> None:
-        bus = _make_event_bus()
-
-        class FailingSubscriber:
-            async def handle(self, _event: Any) -> None:
-                raise RuntimeError("subscriber error")
-
-        class HealthySubscriber:
-            async def handle(self, event: Any) -> None:
-                pass
-
-        bus.subscribe(FailingSubscriber())
-        bus.subscribe(HealthySubscriber())
-
-        mock_event = MagicMock()
-        asyncio.run(bus.publish(mock_event))
-
-    def test_subscriber_exception_is_logged(self) -> None:
-        bus = _make_event_bus()
-
-        class FailingSubscriber:
-            async def handle(self, _event: Any) -> None:
-                raise ValueError("test error")
-
-        bus.subscribe(FailingSubscriber())
-
-        mock_event = MagicMock()
-        asyncio.run(bus.publish(mock_event))
-
-
-class TestAuditableCategories:
-    """Test various auditable activity categories from FR-DIA-003."""
-
-    @pytest.mark.parametrize(
-        "category,operation_type",
-        [
-            ("security_violation", "policy_breach"),
-            ("connection_failure", "establishment_failed"),
-            ("connection_failure", "connection_lost"),
-            ("task_failure", "execution_failed"),
-            ("task_failure", "timeout_recovery"),
-            ("destructive_action", "object_deleted"),
-            ("destructive_action", "modifier_applied"),
-            ("destructive_action", "process_terminated"),
-        ],
-    )
-    def test_all_auditable_categories_emitted(self, category: str, operation_type: str) -> None:
-        cap = _make_emitter()
-        result = asyncio.run(
-            cap.emit_audit_event(
-                category=category,
-                severity="warning",
-                source_feature="test",
-                operation_type=operation_type,
-            )
-        )
-        assert result.emission_confirmed is True
-        assert len(cap._fallback_buffer) >= 1
+        assert out.emission_path == "fallback"

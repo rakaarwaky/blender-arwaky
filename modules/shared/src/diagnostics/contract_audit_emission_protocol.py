@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_diagnostics_vo import AuditRecordVO
+from .taxonomy_diagnostics_vo import AuditEventRequestVO, AuditRecordVO
 
 
 class AuditEmissionProtocol(ABC):
@@ -19,12 +19,7 @@ class AuditEmissionProtocol(ABC):
     @abstractmethod
     async def emit_audit_event(
         self,
-        category: str,
-        severity: str,
-        source_feature: str,
-        operation_type: str,
-        target_metadata: dict | None = None,
-        correlation_id: str | None = None,
+        request: AuditEventRequestVO,
     ) -> AuditRecordVO:
         """Produce immutable audit record for security-relevant activity.
 
@@ -33,16 +28,5 @@ class AuditEmissionProtocol(ABC):
         Audit records are immutable once emitted (frozen dataclass);
         correction = new record with same category + correlation_id + new timestamp.
         Redaction applied before emission — no raw code/tokens/credentials/paths.
-
-        Args:
-            category: Event category (security_violation, connection_failure, etc.).
-            severity: Severity level (critical, warning, info).
-            source_feature: Feature that originated the event.
-            operation_type: Type of operation performed.
-            target_metadata: Optional redacted target metadata.
-            correlation_id: Optional correlation/tracking identifier.
-
-        Returns:
-            AuditRecordVO with emission confirmation and emitted metadata.
         """
         ...
