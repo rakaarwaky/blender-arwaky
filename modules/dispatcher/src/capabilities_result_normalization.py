@@ -14,7 +14,6 @@ security compliance.
 import json
 import logging
 import sys
-from typing import Any
 
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
@@ -119,7 +118,7 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _sanitize_data(self, data: Any) -> Any:
+    def _sanitize_data(self, data: object) -> object:
         """Sanitize data payload — redact secrets, paths, raw code.
 
         FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
@@ -171,8 +170,8 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             return str(data)
 
     def _sanitize_dict(
-        self, d: dict[str, Any], redacted_keys: set[str], max_depth: int, _depth: int = 0
-    ) -> dict[str, Any]:
+        self, d: dict[str, object], redacted_keys: set[str], max_depth: int, _depth: int = 0
+    ) -> dict[str, object]:
         """Recursively sanitize a dict for secret keys and nested structures.
 
         Uses recursion with depth limit to avoid stack overflow on deeply nested data.
@@ -180,10 +179,15 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         if _depth >= max_depth:
             return {"_truncated": True, "_size_exceeded": max_depth}
 
-        result: dict[str, Any] = {}
+        result: dict[str, object] = {}
         for k, v in d.items():
             k_lower = k.lower()
-            if any(pattern in k_lower for pattern in redacted_keys):
+            _is_redacted = False
+            for _pattern in redacted_keys:
+                if _pattern in k_lower:
+                    _is_redacted = True
+                    break
+            if _is_redacted:
                 result[k] = "***REDACTED***"
             elif isinstance(v, dict):
                 result[k] = self._sanitize_dict(v, redacted_keys, max_depth, _depth + 1)

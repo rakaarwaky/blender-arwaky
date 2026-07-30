@@ -7,11 +7,11 @@ FR-DSP-002: Discover Actions
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import (
     ActionDiscoveryProtocol,
 )
+from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -26,8 +26,8 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, catalog: dict[str, Any] | None = None) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
+    def __init__(self, catalog: dict[str, ActionMetadataVO] | None = None) -> None:
+        self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -77,7 +77,7 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _format_action(self, metadata: Any, detail_level: str) -> dict[str, Any]:
+    def _format_action(self, metadata: ActionMetadataVO, detail_level: str) -> dict[str, object]:
         """Format action metadata for discovery output."""
         base = {
             "action_name": metadata.action_name,
