@@ -1,10 +1,4 @@
-"""Diagnostics domain contract: health composition protocol (ABC based).
-
-Defines the protocol for aggregating subsystem states into one composed
-health view with bounded probes and explicit staleness.
-
-FR-DIA-001: Compose System Health
-"""
+"""Diagnostics domain contract: health composition protocol."""
 
 from __future__ import annotations
 
@@ -14,23 +8,17 @@ from .taxonomy_diagnostics_vo import HealthCompositionRequestVO, HealthDetailsVO
 
 
 class HealthCompositionProtocol(ABC):
-    """Protocol for composing system health from subsystem states."""
+    """Contract protocol for health status composition."""
 
     @abstractmethod
     async def compose_health(
         self,
         request: HealthCompositionRequestVO,
     ) -> HealthDetailsVO:
-        """Aggregate subsystem states into one composed health view.
+        """Compose health status across all registered subsystem probes."""
+        ...
 
-        FR-DIA-001: Composed health covers launcher, gateway, config, and job capacity.
-        Overall status: healthy when all required report healthy;
-        degraded when any reports degraded/stale; unhealthy when any fails.
-
-        Each subsystem probe is bounded by probe_timeout_seconds configured
-        at construction — slow subsystem becomes degraded/timeout, not stalled
-        composition. Stale data carries staleness_delta_seconds indicator when
-        composition_timestamp exceeds freshness_tolerance_seconds configured
-        at construction.
-        """
+    @abstractmethod
+    async def get_health(self) -> HealthDetailsVO | None:
+        """Return cached or freshly composed health state for snapshots."""
         ...
