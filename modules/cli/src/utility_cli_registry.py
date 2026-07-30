@@ -1,6 +1,6 @@
 """CLI registry — tracks active Blender instance state via registry.json.
 
-Shared utility between CLI surface commands. Manages active entity, PID,
+Stateless functions only. Manages active entity, PID,
 and port with thread-safe singleton access.
 """
 

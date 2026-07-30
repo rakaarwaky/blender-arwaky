@@ -1,14 +1,8 @@
-"""CLI entry — Blender process management, surface commands, and utilities."""
+"""CLI entry — Blender process management, commands, and utilities."""
 
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
 
 from .root_cli_main_entry import main
-from .surface_close_command import handle as close_handle
-from .surface_init_command import handle as init_handle
-from .surface_render_command import handle as render_handle
-from .surface_run_command import handle as run_handle
-from .surface_screenshot_command import handle as screenshot_handle
-from .surface_status_command import handle as status_handle
 from .utility_cli_process import (
     find_blender,
     is_running,
@@ -33,3 +27,13 @@ __all__ = [
     "screenshot_handle",
     "status_handle",
 ]
+
+# Command handlers — imported from cmd_* modules for module-level access
+from . import cmd_close, cmd_init, cmd_render, cmd_run, cmd_screenshot, cmd_status
+
+close_handle = cmd_close.handle
+init_handle = cmd_init.handle
+render_handle = cmd_render.handle
+run_handle = cmd_run.handle
+screenshot_handle = cmd_screenshot.handle
+status_handle = cmd_status.handle
