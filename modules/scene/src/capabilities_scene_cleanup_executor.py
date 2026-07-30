@@ -162,7 +162,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
                 request,
                 Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Cleanup connection failed"),
             )
-        except Exception as exc:
+        except Exception:
             logger.exception("Scene cleanup failed")
             if self._event_emitter:
                 try:
@@ -172,13 +172,13 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
                         mode=request.mode,
                         dry_run=request.dry_run,
                         error_category=SceneErrorCategory.SCENE_STATE,
-                        message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Cleanup failed: {exc}"),
+                        message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene cleanup failed"),
                     ))
                 except Exception:
                     logger.warning("Failed to emit SceneCleanupFailedEvent on generic error")
             return self._failure(
                 request,
-                Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Cleanup failed: {exc}"),
+                Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene cleanup failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────

@@ -113,7 +113,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 scene_state_summary=None,
                 message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Inspection connection failed"),
             )
-        except Exception as e:
+        except Exception:
             logger.exception("Scene inspection failed")
             return SceneInspectionVO(
                 detail_level=request.detail_level,
@@ -122,7 +122,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
                 correlation_id=request.correlation_id,
                 success=SuccessFlag(False),
                 scene_state_summary=None,
-                message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Inspection failed: {e}"),
+                message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene inspection failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
