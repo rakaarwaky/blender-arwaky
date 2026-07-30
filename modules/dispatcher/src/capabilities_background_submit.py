@@ -7,15 +7,23 @@ FR-DSP-005: Submit Background Action
 - Does not manage task lifecycle after handoff
 """
 
+from __future__ import annotations
+
 import logging
-import uuid
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import (
+    UnifiedResultEnvelopeVO,
+)
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
+from modules.shared.src.job.taxonomy_job_vo import (
+    CreateTaskCommand,
+    OperationType,
+    TaskMetadata,
+)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,7 +39,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def __init__(
         self,
-        job_tracker: Any = None,
+        job_tracker: IJobLifecycle,
         background_capacity: int = 50,
         max_result_data_size: int = 1_000_000,
     ):
@@ -71,22 +79,19 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
                 error_category="capacity_error",
             )
 
-        # Create job via job tracker
+        # Create job via job feature (FR-DSP-005: atomic submission)
         try:
-            if self._job_tracker:
-                job_id, status = self._job_tracker.track_new_task(
-                    operation_type=request.action_name,
-                    metadata={"tracking_id": tracking_id},
-                )
-            else:
-                # Fallback for testing: generate synthetic job ID (no real tracker wired)
-                job_id = str(uuid.uuid4())
-                status = {"status": "PENDING", "job_id": job_id}
-
+            command = CreateTaskCommand(
+                operation_type=OperationType(request.action_name),
+                metadata=TaskMetadata({"tracking_id": tracking_id}),
+            )
+            snapshot = self._job_tracker.create_task(command)
+            job_id = str(snapshot.job_id)
+            status = str(snapshot.state.value)
         except Exception as e:
             logger.error("Job creation failed: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
+                message="Job creation failed",
                 tracking_id=tracking_id,
                 error_category="execution_error",
             )
@@ -95,7 +100,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         metadata = {
             "action_name": request.action_name,
             "task_reference": job_id,
-            "initial_job_state": status.get("status") if isinstance(status, dict) else str(status),
+            "initial_job_state": status,
             "polling_required": True,
         }
 
@@ -116,35 +121,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def _get_active_job_count(self) -> int:
-        """Count currently active (non-terminal) jobs.
-
-        Delegates to the wired job tracker when it exposes an active-count method;
-        returns 0 only when no tracker is present. When a tracker is present but
-        has no recognized method, logs a warning at higher level and cannot enforce
-        capacity.
-
-        Args:
-            None (uses self._job_tracker instance attribute).
-
-        Returns:
-            Active job count, or 0 when no tracker is configured.
-        """
-        tracker = self._job_tracker
-        if tracker is None:
-            return 0
-        for method in ("active_job_count", "get_active_count", "count_active_jobs", "active_count"):
-            fn: Any = getattr(tracker, method, None)
-            if callable(fn):
-                try:
-                    return int(fn())
-                except Exception:  # pragma: no cover - defensive against tracker faults
-                    logger.warning("Job tracker method %s failed", method)
-        logger.warning(
-            "Job tracker present but no active-count method; "
-            "capacity enforcement disabled — ensure job_tracker implements "
-            "active_job_count(), get_active_count(), count_active_jobs(), or active_count()"
-        )
-        return 0
+        return self._job_tracker.active_count()
 
     def __repr__(self) -> str:
         return f"BackgroundSubmitExecutor(capacity={self._capacity})"
