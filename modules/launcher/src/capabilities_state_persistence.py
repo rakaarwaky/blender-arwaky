@@ -27,6 +27,8 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
 
+_SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
+
 
 class StatePersistence(PersistStateProtocol):
     """Corruption-safe runtime state persistence with concurrent access safety."""
@@ -97,7 +99,11 @@ class StatePersistence(PersistStateProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
-        return state.contains_secret()
+        data = self._to_dict(state)
+        for key in _SECRET_KEYS:
+            if key in data:
+                return True
+        return False
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {

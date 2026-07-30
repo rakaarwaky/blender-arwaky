@@ -29,10 +29,6 @@ LAUNCHER_TERMINATION_GRACEFUL: str = "graceful"
 LAUNCHER_TERMINATION_FORCE: str = "force"
 LAUNCHER_TERMINATION_NONE: str = "none"
 
-# ─── Secret Key Detection ────────────────────────────────────
-
-SECRET_KEYS: tuple[str, ...] = ("secret", "token", "password", "credential", "auth")
-
 # ─── Event Categories ───────────────────────────────────────
 
 LAUNCHER_EVENT_APPLICATION_STARTED: str = "application_started"
