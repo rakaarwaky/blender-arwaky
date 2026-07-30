@@ -1,10 +1,9 @@
 """CLI close command — Close active Blender instance."""
 
 
+from modules.shared.src.cli.utility_cli_process import is_running, kill_blender
+from modules.shared.src.cli.utility_cli_registry import Registry
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_process import is_running, kill_blender
-from .utility_cli_registry import Registry
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
@@ -28,8 +27,9 @@ def handle(args: object) -> dict[str, object]:
     except Exception:
         save_failed = True
 
-    if pid and is_running(pid):
+    if pid and is_running(pid).success:
         kill_blender(pid)
+
 
     registry.clear()
 

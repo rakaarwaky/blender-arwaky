@@ -2,8 +2,8 @@
 
 import os
 
-from .utility_cli_process import launch_blender
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import launch_blender
+from modules.shared.src.cli.utility_cli_registry import Registry
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
@@ -20,8 +20,12 @@ def handle(args: object) -> dict[str, object]:
 
     filepath = os.path.abspath(args.filepath)
     try:
-        pid = launch_blender(filepath, mode=args.mode, port=args.port)
+        res = launch_blender(filepath, mode=args.mode, port=args.port)
+        if not res.success or not res.data:
+            return _mask_error(res.category or "launch_failed", res.ref or "cli-500", res.error or "Failed to launch")
+        pid = int(res.data.get("pid", 0))
         registry.set_active(filepath, pid, args.port)
-        return {"success": True, "message": "Blender session started", "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
+        return {"success": True, "message": res.message, "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
     except Exception:
         return _mask_error("unexpected", "cli-500")
+

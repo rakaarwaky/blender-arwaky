@@ -1,8 +1,8 @@
 """CLI status command — Show active Blender status."""
 
 
-from .utility_cli_process import is_running
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import is_running
+from modules.shared.src.cli.utility_cli_registry import Registry
 
 
 def handle(_args: object) -> dict[str, object]:
@@ -15,7 +15,8 @@ def handle(_args: object) -> dict[str, object]:
     return {
         "success": True,
         "active": True,
-        "running": registry.get_pid() is not None and is_running(registry.get_pid()),
+        "running": registry.get_pid() is not None and is_running(registry.get_pid()).success,
+
         "filepath": registry.get_active(),
         "pid": registry.get_pid(),
         "port": registry.get_port(),
