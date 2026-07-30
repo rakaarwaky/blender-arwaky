@@ -6,12 +6,15 @@ dispatcher module: Capabilities → Agent Orchestrator → (exposed as Dispatche
 This file is the composition root for the dispatcher feature. It instantiates
 the six dispatcher capabilities, connects them to the aggregate facade, and
 provides the assembled orchestrator for dependency injection by callers.
+
+FR-INT-008: Integrates with ConfigContainer for redaction rules in result normalization.
 """
 
 from __future__ import annotations
 
 import logging
 
+from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
@@ -31,8 +34,13 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(self, job_lifecycle: IJobLifecycle | None = None) -> None:
+    def __init__(
+        self,
+        job_lifecycle: IJobLifecycle | None = None,
+        redaction_rules: IRedactionRulesProtocol | None = None,
+    ) -> None:
         self._job_lifecycle = job_lifecycle
+        self._redaction_rules = redaction_rules
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
         self._execute_action: object | None = None
@@ -43,6 +51,9 @@ class DispatcherContainer:
         FR-DSP-004: SyncDispatchExecutor requires a non-null action executor.
         Pass an execute_action callable (e.g., Gateway's code execution executor)
         to enable synchronous dispatch routing.
+
+        FR-INT-008: Redaction rules are wired into ResultNormalizationExecutor
+        for security-compliant result sanitization.
         """
         if self._wired:
             return
@@ -63,7 +74,11 @@ class DispatcherContainer:
             if self._job_lifecycle
             else None
         )
-        result_normalization = ResultNormalizationExecutor()
+
+        # FR-INT-008: Wire redaction rules into ResultNormalizationExecutor
+        result_normalization = ResultNormalizationExecutor(
+            redaction_rules=self._redaction_rules,
+        )
 
         # FR-DSP-004: Wire SyncDispatchExecutor with provided action executor
         execute_action = execute_action or self._execute_action
@@ -101,13 +116,18 @@ class DispatcherContainer:
 def create_dispatcher_feature(
     job_lifecycle: IJobLifecycle | None = None,
     execute_action: object | None = None,
+    redaction_rules: IRedactionRulesProtocol | None = None,
 ) -> DispatcherOrchestrator:
     """Factory function to create and wire the dispatcher feature module.
 
     Args:
         job_lifecycle: Optional job lifecycle tracker for background submission.
         execute_action: Optional action executor for sync dispatch routing.
+        redaction_rules: Optional redaction rules for result sanitization.
     """
-    container = DispatcherContainer(job_lifecycle=job_lifecycle)
+    container = DispatcherContainer(
+        job_lifecycle=job_lifecycle,
+        redaction_rules=redaction_rules,
+    )
     container.wire(execute_action=execute_action)
     return container.agent

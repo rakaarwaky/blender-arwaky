@@ -2,6 +2,8 @@
 
 Wires concrete capabilities to the agent orchestrator and bootstraps the
 launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrchestrator).
+
+FR-INT-008: Integrates with ConfigContainer for redaction rules and settings.
 """
 
 from __future__ import annotations
@@ -9,6 +11,7 @@ from __future__ import annotations
 import logging
 import socket
 
+from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
@@ -79,11 +82,13 @@ class LauncherContainer:
         state_path: str | None = None,
         bridge_host: str | None = "localhost",
         bridge_port: int | None = 50051,
+        redaction_rules: IRedactionRulesProtocol | None = None,
     ) -> None:
         self._config = config or LauncherConfigVO()
         self._state_path = state_path
         self._bridge_host = bridge_host
         self._bridge_port = bridge_port
+        self._redaction_rules = redaction_rules
         self._orchestrator: LauncherOrchestrator | None = None
         self._wired: bool = False
 
@@ -110,9 +115,11 @@ class LauncherContainer:
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
         )
 
+        # FR-INT-008: Wire redaction rules into ExecutableLocator for event security
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
+            redaction_rules=self._redaction_rules,
         )
 
         # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
@@ -163,12 +170,14 @@ def create_launcher_feature(
     state_path: str | None = None,
     bridge_host: str | None = "localhost",
     bridge_port: int | None = 50051,
+    redaction_rules: IRedactionRulesProtocol | None = None,
 ) -> ILauncherOperateAggregate:
     container = LauncherContainer(
         config=config,
         state_path=state_path,
         bridge_host=bridge_host,
         bridge_port=bridge_port,
+        redaction_rules=redaction_rules,
     )
     container.wire()
     return container.agent
