@@ -70,7 +70,7 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     TransportMessageVO,
     TransportOutcomeVO,
 )
-from modules.shared.src.gateway.utility.utility_validator_checker import (
+from modules.shared.src.gateway.utility_validator_checker import (
     check_payload_size,
     code_fingerprint,
     validate_code_ast,
