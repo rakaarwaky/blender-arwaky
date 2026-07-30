@@ -32,6 +32,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
+    RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
@@ -65,15 +66,38 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
-        """Delegate launch to the capabilities layer."""
+    def launch(
+        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
+    ) -> LaunchOutcomeVO:
+        """Delegate launch to the capabilities layer; persist state on success."""
         logger.info("Orchestrating launch (mode=%s)", mode.value)
-        return self._launch.launch(mode, readiness_timeout_seconds)
+        outcome = self._launch.launch(mode, readiness_timeout_seconds)
+
+        # FR-LAU-005: Persist runtime state after successful launch
+        if outcome.success and outcome.process_id is not None:
+            self._persist.persist(
+                RuntimeStateVO(
+                    process_id=outcome.process_id,
+                    last_status=RuntimeState.RUNNING_READY,
+                )
+            )
+
+        return outcome
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Delegate shutdown to the capabilities layer."""
+        """Delegate shutdown to the capabilities layer; persist state change."""
         logger.info("Orchestrating shutdown (force=%s)", force)
-        return self._shutdown.shutdown(force, allow_escalation)
+        result = self._shutdown.shutdown(force, allow_escalation)
+
+        # FR-LAU-005: Persist runtime state after shutdown
+        self._persist.persist(
+            RuntimeStateVO(
+                process_id=None,
+                last_status=RuntimeState.NOT_RUNNING,
+            )
+        )
+
+        return result
 
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Delegate status check to the capabilities layer."""

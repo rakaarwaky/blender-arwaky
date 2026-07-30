@@ -14,6 +14,7 @@ from collections.abc import Callable
 from typing import Protocol
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_APPLICATION_STARTED,
@@ -28,20 +29,19 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
     TimeoutSeconds,
 )
+from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
 
 class _ProcessSpawner(Protocol):
     """Spawns Blender; returns a process id. DI boundary."""
 
-    def __call__(self, executable: str, mode: str, readiness_timeout_seconds: float) -> int:
-        ...
+    def __call__(self, executable: str, mode: str, readiness_timeout_seconds: float) -> int: ...
 
 
 class _ReadinessProbe(Protocol):
     """Probes bridge readiness; returns True when ready. DI boundary."""
 
-    def __call__(self, process_id: int, timeout_seconds: float) -> bool:
-        ...
+    def __call__(self, process_id: int, timeout_seconds: float, interval_seconds: float = 0.5) -> bool: ...
 
 
 class ProcessLauncher(LaunchProtocol):
@@ -54,16 +54,22 @@ class ProcessLauncher(LaunchProtocol):
         status_protocol: RuntimeStatusProtocol,
         spawner: _ProcessSpawner | None = None,
         readiness_probe: _ReadinessProbe | None = None,
+        probe_interval_seconds: float = 0.5,
+        persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._resolve_executable = executable_resolver
         self._status = status_protocol
         self._spawner = spawner
         self._probe = readiness_probe
+        self._probe_interval = probe_interval_seconds
+        self._persist = persist_cap
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(
+        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
+    ) -> LaunchOutcomeVO:
         """Start Blender and confirm readiness within the configured timeout."""
         timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
 
@@ -87,28 +93,61 @@ class ProcessLauncher(LaunchProtocol):
         try:
             pid = self._spawner(executable, mode.value, timeout)
         except Exception as exc:
-            self._emit(LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc))
+            self._emit(
+                LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc)
+            )
             return LaunchOutcomeVO(success=False, error=f"Spawn failed: {exc}")
 
         ready = False
         if self._probe is not None:
-            ready = self._probe(pid, timeout)
+            ready = self._probe(pid, timeout, interval_seconds=self._probe_interval)
 
         duration_ms = (time.monotonic() - start) * 1000.0
         if not ready:
-            self._emit(LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.STARTING, RuntimeState.STARTING, process_reference=str(pid))
+            self._emit(
+                LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.STARTING, RuntimeState.STARTING, process_reference=str(pid)
+            )
             return LaunchOutcomeVO(
-                success=False, process_id=pid, ready=False,
-                duration_ms=duration_ms, error="Readiness not confirmed within timeout",
+                success=False,
+                process_id=pid,
+                ready=False,
+                duration_ms=duration_ms,
+                error="Readiness not confirmed within timeout",
             )
 
-        self._emit(LAUNCHER_EVENT_APPLICATION_STARTED, RuntimeState.STARTING, RuntimeState.RUNNING_READY, process_reference=str(pid))
-        return LaunchOutcomeVO(success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms)
+        self._emit(
+            LAUNCHER_EVENT_APPLICATION_STARTED,
+            RuntimeState.STARTING,
+            RuntimeState.RUNNING_READY,
+            process_reference=str(pid),
+        )
+
+        # FR-LAU-005: Persist runtime state after successful launch
+        if self._persist is not None:
+            from modules.shared.src.launcher.taxonomy_launcher_vo import RuntimeStateVO
+
+            self._persist.persist(
+                RuntimeStateVO(
+                    process_id=pid,
+                    last_status=RuntimeState.RUNNING_READY,
+                )
+            )
+
+        return LaunchOutcomeVO(
+            success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms
+        )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _emit(self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = "") -> None:
+    def _emit(
+        self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = ""
+    ) -> None:
         if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=category, state_before=before, state_after=after,
-                process_reference=process_reference, reason_summary=reason,
-            ))
+            self._events(
+                LauncherLifecycleEvent(
+                    event_category=category,
+                    state_before=before,
+                    state_after=after,
+                    process_reference=redact_sensitive(process_reference),
+                    reason_summary=redact_sensitive(reason),
+                )
+            )
