@@ -1,7 +1,7 @@
 """Handler: MCP server instance lifecycle (FastMCP).
 
 FR-MCP-001: Expose MCP Tools — get_mcp_instance() creates FastMCP with lifespan for tool registration
-FR-MCP-002: Route Tool Calls — ToolRegistryHandler.register_tools() wires all tools to MCP router
+FR-MCP-002: Route Tool Calls — ToolRegistrySurface.register_tools() wires all tools to MCP router
 FR-MCP-003: Format MCP Responses — FastMCP wraps all tool responses in standard format
 FR-MCP-004: Protocol Negotiation — server lifespan validates client protocol version
 
@@ -140,9 +140,9 @@ class ServerInstanceSurface:
 
             # Register tools and prompts (Handler layer delegation)
             from .surface_prompt_register import PromptRegistrationModule
-            from .surface_tool_registry import ToolRegistryHandler
+            from .surface_tool_registry import ToolRegistrySurface
 
-            ToolRegistryHandler.register_tools(_mcp_instance, mcp_container)
+            ToolRegistrySurface.register_tools(_mcp_instance, mcp_container)
             PromptRegistrationModule.register_prompts(_mcp_instance)
 
             return _mcp_instance

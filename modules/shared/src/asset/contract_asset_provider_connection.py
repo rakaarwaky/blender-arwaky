@@ -7,7 +7,7 @@ for dependency inversion and AES 405 compliance.
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Protocol
 
 
 class IAssetProviderConnection(Protocol):
@@ -18,6 +18,6 @@ class IAssetProviderConnection(Protocol):
     type annotation used in AssetSearchHandler with a proper interface.
     """
 
-    async def send_command(self, action: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def send_command(self, action: str, payload: dict[str, object]) -> dict[str, object]:
         """Send a command through the gateway and return the result."""
         ...  # pragma: no cover

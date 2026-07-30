@@ -1,6 +1,6 @@
 """MCP Tools Registry — Registers core MCP tools (AES handler layer).
 
-FR-MCP-001: Expose MCP Tools — ToolRegistryHandler.register_tools() exposes 7 tools
+FR-MCP-001: Expose MCP Tools — ToolRegistrySurface.register_tools() exposes 7 tools
 FR-MCP-002: Route Tool Calls — registry wires all tools to FastMCP router via tool decorators
 FR-MCP-003: Format MCP Responses — all registered tools return standardized MCP response format
 
@@ -36,3 +36,7 @@ class ToolRegistrySurface:
         # Scene tools require code_executor — registered separately when available
         from .surface_scene_tools import SceneToolsSurface
         SceneToolsSurface.register_scene_tools(mcp)
+
+        # Asset search tool (AES506) — registered for MCP reachability
+        from modules.asset.src.surface_asset_search_command import AssetSearchSurface
+        AssetSearchSurface.register_asset_search(mcp)
