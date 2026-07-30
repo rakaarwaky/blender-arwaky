@@ -82,8 +82,8 @@ class LauncherContainer:
         sec_container = SecurityContainer(policy=self._security_policy)
         sec_container.wire()
         # Extract capabilities directly from security container (orchestrator wraps them privately)
-        self._path_validator = sec_container._validate_path_cap  # type: ignore[attr-access]
-        self._audit_emitter = sec_container._emit_audit_cap  # type: ignore[attr-access]
+        self._path_validator = getattr(sec_container, "_validate_path_cap", None)
+        self._audit_emitter = getattr(sec_container, "_emit_audit_cap", None)
 
         # ─── Persistence with security path validation ───
         persist_cap: PersistStateProtocol = StatePersistence(

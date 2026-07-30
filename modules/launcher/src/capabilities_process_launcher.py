@@ -34,6 +34,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 )
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
+from modules.shared.src.security.utility_security_path import redact_path as _redact_path
 
 
 class _ProcessSpawner(Protocol):
@@ -135,9 +136,6 @@ class ProcessLauncher(LaunchProtocol):
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = ""
     ) -> None:
         if self._events is not None:
-            # FR-SEC-004: redact bridge endpoints in events
-            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
-
             redacted_ref = _redact_path(process_reference)
             redacted_reason = _redact_path(reason) if reason else ""
             self._events(
@@ -153,8 +151,6 @@ class ProcessLauncher(LaunchProtocol):
     def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
         """FR-SEC-005: emit security audit event for launcher operations."""
         if self._audit_events is not None:
-            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
-
             self._audit_events.emit_audit(
                 SecurityAuditEventVO(
                     violation_category=violation,
