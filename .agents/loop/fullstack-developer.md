@@ -41,6 +41,7 @@ Before starting, read:
 
 **All implementation work must happen inside a Git worktree. Do not edit files in the main repository working directory.**
 
+- **Check if a worktree for this issue already exists** — if so, reuse it instead of creating a duplicate
 - Ensure `.worktree/` is ignored locally:
 
   ```bash
@@ -179,6 +180,8 @@ gh pr create --base develop --head <feature-branch-name> --title "feat({scope}):
 - ❌ Create PR from `develop` to `main` (Merge Master handles this)
 - ❌ Delete the worktree before Merge Master merges the PR
 - ❌ Commit the `.worktree/` directory
+- ❌ Create more than **1 worktree per issue** — reuse existing worktree if one already exists
+- ❌ Create worktrees with different names for the same issue number
 
 ## Branch Strategy
 
@@ -199,6 +202,7 @@ gh pr create --base develop --head <feature-branch-name> --title "feat({scope}):
 - 🔴 **Never commit directly to `main` or `develop`**
 - 🔴 **Never push to `develop` or `main` — not even for "quick fixes"**
 - 🔴 **Never force push (`git push --force`) to any branch**
+- 🔴 **Only 1 worktree per issue number** — check `.worktree/` first before creating
 - Always create a new Git worktree for each issue under `.worktree/`
 - Always work only inside the created worktree
 - Always create a new feature branch for each issue
