@@ -26,7 +26,15 @@ def _get_close_matches(unknown: str) -> list[str]:
     return difflib.get_close_matches(unknown, _KNOWN_COMMANDS, n=3, cutoff=0.4)
 
 
-def _envelope(success: bool, message: str = "", error: str | None = None, category: str | None = None, ref: str | None = None, warnings: list[str] | None = None, data: dict[str, Any] | None = None) -> dict[str, Any]:
+def _envelope(
+    success: bool,
+    message: str = "",
+    error: str | None = None,
+    category: str | None = None,
+    ref: str | None = None,
+    warnings: list[str] | None = None,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     result: dict[str, Any] = {"success": success}
     if message:
         result["message"] = message
@@ -44,7 +52,15 @@ def _envelope(success: bool, message: str = "", error: str | None = None, catego
 
 
 def _envelope_from_cli_result(cli_result: CliResultVo) -> dict[str, Any]:
-    return _envelope(success=cli_result.success, message=cli_result.message or "", error=cli_result.error, category=cli_result.category, ref=cli_result.ref, warnings=cli_result.warnings, data=cli_result.data)
+    return _envelope(
+        success=cli_result.success,
+        message=cli_result.message or "",
+        error=cli_result.error,
+        category=cli_result.category,
+        ref=cli_result.ref,
+        warnings=cli_result.warnings,
+        data=cli_result.data,
+    )
 
 
 def _exit_code(result: dict[str, Any]) -> int:
@@ -95,23 +111,40 @@ class _SuggestionParser(argparse.ArgumentParser):
         raise argparse.ArgumentError(None, message)
 
 
-def main(argv: Sequence[str] | None = None, launcher: ILauncherOperateAggregate | None = None, dispatcher: IDispatcherAggregate | None = None, redactor: RedactSensitiveProtocol | None = None) -> int:
-    parser = _SuggestionParser(prog="blender-arwaky", description="BlenderArwaky CLI — Blender lifecycle management", add_help=True)
+# Shared parent parser for root-level flags usable with any subcommand
+def _make_shared_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
+
+
+def main(
+    argv: Sequence[str] | None = None,
+    launcher: ILauncherOperateAggregate | None = None,
+    dispatcher: IDispatcherAggregate | None = None,
+    redactor: RedactSensitiveProtocol | None = None,
+) -> int:
+    parser = _SuggestionParser(
+        prog="blender-arwaky", description="BlenderArwaky CLI — Blender lifecycle management", add_help=True
+    )
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
+    # Shared parent parser for common flags (--json, --quiet) on each subparser
+    shared_parent: argparse.ArgumentParser | None = None
+
     init_parser = subparsers.add_parser("init", help="Start Blender with a file")
+    _make_shared_parser(init_parser)
     init_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     init_parser.add_argument("--mode", choices=["gui", "headless"], default="headless", help="Blender mode")
     init_parser.add_argument("--port", type=int, default=9876, help="TCP port for addon")
 
     run_parser = subparsers.add_parser("run", help="Execute an action on active Blender")
+    _make_shared_parser(run_parser)
     run_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     run_parser.add_argument("--action", required=True, help="Action name")
     run_parser.add_argument("--params", type=str, default="{}", help="JSON parameters")
 
     ss_parser = subparsers.add_parser("screenshot", help="Capture viewport screenshot")
+    _make_shared_parser(ss_parser)
     ss_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     ss_parser.add_argument("--output", required=True, help="Output image path")
     ss_parser.add_argument("--max-size", type=int, default=800, help="Max dimension in pixels")
@@ -121,15 +154,18 @@ def main(argv: Sequence[str] | None = None, launcher: ILauncherOperateAggregate 
     ss_parser.add_argument("--focus-object", help="Object name to frame")
 
     render_parser = subparsers.add_parser("render", help="Execute full frame render")
+    _make_shared_parser(render_parser)
     render_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     render_parser.add_argument("--output", required=True, help="Output image path")
     render_parser.add_argument("--resolution-x", type=int, default=1920, help="Render width")
     render_parser.add_argument("--resolution-y", type=int, default=1080, help="Render height")
 
     close_parser = subparsers.add_parser("close", help="Close active Blender instance")
+    _make_shared_parser(close_parser)
     close_parser.add_argument("--filepath", required=True, help="Path to .blend file")
 
-    subparsers.add_parser("status", help="Show active Blender status")
+    status_parser = subparsers.add_parser("status", help="Show active Blender status")
+    _make_shared_parser(status_parser)
 
     try:
         args = parser.parse_args(argv)
@@ -174,7 +210,9 @@ def main(argv: Sequence[str] | None = None, launcher: ILauncherOperateAggregate 
                 params = json.loads(args.params)
             except json.JSONDecodeError as e:
                 logger.debug("Invalid JSON params: %s", e)
-                result = _envelope(success=False, error="Invalid JSON parameters", category="validation_error", ref="cli-400")
+                result = _envelope(
+                    success=False, error="Invalid JSON parameters", category="validation_error", ref="cli-400"
+                )
             else:
                 args.params = params
                 result = _envelope_from_cli_result(surface_run_command.handle(args, dispatcher=dispatcher))
