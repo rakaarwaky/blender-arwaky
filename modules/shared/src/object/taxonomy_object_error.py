@@ -6,7 +6,15 @@ AES401: Error fields use taxonomy-typed values instead of primitives.
 
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString, ObjectName
+from ..common.taxonomy_core_vo import (
+    ActionName,
+    ChannelName,
+    ErrorString,
+    ModifierName,
+    ObjectName,
+    PrimitiveType,
+    ProtectedCategory,
+)
 from ..common.taxonomy_domain_error import DomainError
 
 
@@ -30,7 +38,7 @@ class ObjectNotFoundError(DomainError):
 class TransformLockError(DomainError):
     """Raised when attempting to modify a locked transform channel."""
 
-    def __init__(self, channel: str) -> None:
+    def __init__(self, channel: ChannelName) -> None:
         super().__init__(ErrorString(f"Transform channel '{channel}' is locked"))
         self.channel = channel
 
@@ -38,7 +46,7 @@ class TransformLockError(DomainError):
 class MaterialAssignmentError(DomainError):
     """Raised when material assignment is incompatible with the object type."""
 
-    def __init__(self, object_name: ObjectName, reason: str) -> None:
+    def __init__(self, object_name: ObjectName, reason: ErrorString) -> None:
         super().__init__(ErrorString(f"Cannot assign material to '{object_name}': {reason}"))
         self.object_name = object_name
         self.reason = reason
@@ -47,7 +55,7 @@ class MaterialAssignmentError(DomainError):
 class ModifierActionConfirmationError(DomainError):
     """Raised when a destructive modifier action requires explicit confirmation."""
 
-    def __init__(self, modifier_name: str, action: str) -> None:
+    def __init__(self, modifier_name: ModifierName, action: ActionName) -> None:
         super().__init__(ErrorString(f"Destructive action '{action}' on modifier '{modifier_name}' requires confirmation"))
         self.modifier_name = modifier_name
         self.action = action
@@ -56,7 +64,7 @@ class ModifierActionConfirmationError(DomainError):
 class DeletionProtectionError(DomainError):
     """Raised when attempting to delete a protected object without confirmation."""
 
-    def __init__(self, object_name: ObjectName, protected_category: str) -> None:
+    def __init__(self, object_name: ObjectName, protected_category: ProtectedCategory) -> None:
         super().__init__(ErrorString(f"Cannot delete protected object '{object_name}' (category: {protected_category})"))
         self.object_name = object_name
         self.protected_category = protected_category
@@ -65,7 +73,7 @@ class DeletionProtectionError(DomainError):
 class InvalidPrimitiveTypeError(DomainError):
     """Raised when an unsupported primitive type is requested."""
 
-    def __init__(self, primitive_type: str) -> None:
+    def __init__(self, primitive_type: PrimitiveType) -> None:
         super().__init__(ErrorString(f"Invalid primitive type: '{primitive_type}'"))
         self.primitive_type = primitive_type
 
@@ -73,6 +81,6 @@ class InvalidPrimitiveTypeError(DomainError):
 class InvalidModifierTypeError(DomainError):
     """Raised when an unsupported modifier type is requested."""
 
-    def __init__(self, modifier_type: str) -> None:
+    def __init__(self, modifier_type: ModifierName) -> None:
         super().__init__(ErrorString(f"Invalid modifier type: '{modifier_type}'"))
         self.modifier_type = modifier_type

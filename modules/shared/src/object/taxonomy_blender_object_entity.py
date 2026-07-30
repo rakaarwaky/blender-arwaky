@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from ..common.taxonomy_core_vo import ObjectId, ObjectIdList, ObjectName, ObjectType, ScaleFactor
 from ..common.taxonomy_vector3d_vo import Vector3D
@@ -76,6 +75,6 @@ class BlenderObject:
             self.children_ids.remove(child_id)
 
 
-def create_object_id(raw: Any) -> ObjectId:
+def create_object_id(raw: ObjectName | UUID) -> ObjectId:
     """Factory helper to create an ObjectId from a raw UUID or string."""
     return ObjectId(raw)

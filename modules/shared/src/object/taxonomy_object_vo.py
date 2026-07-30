@@ -7,7 +7,6 @@ Caller sets input fields; callee sets output fields.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from ..common.taxonomy_core_vo import (
     AssetId,
@@ -62,7 +61,7 @@ class GetObjectInfoVO:
     parent_name: ObjectName | None = None
     collection_names: list[ObjectName] = field(default_factory=list)
     material_names: list[MaterialName] = field(default_factory=list)
-    modifier_summaries: list[dict[str, Any]] = field(default_factory=list)
+    modifier_summaries: list[dict[str, object]] = field(default_factory=list)
     visibility: bool = True
     detail_level: str = "full"
     message: str = ""
