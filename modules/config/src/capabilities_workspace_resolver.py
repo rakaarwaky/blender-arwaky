@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigPath, Timestamp, Timestamp
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath, Timestamp
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
