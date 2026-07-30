@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.job.contract_job_aggregate import IJobAggregate
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
@@ -29,7 +30,8 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, job_tracker: IJobAggregate | None = None) -> None:
+        self._job_tracker = job_tracker
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
 
@@ -48,7 +50,7 @@ class DispatcherContainer:
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
         sync_dispatch = SyncDispatchExecutor()
-        background_submit = BackgroundSubmitExecutor()
+        background_submit = BackgroundSubmitExecutor(job_tracker=self._job_tracker)
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(

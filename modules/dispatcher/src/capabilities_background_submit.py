@@ -8,14 +8,13 @@ FR-DSP-005: Submit Background Action
 """
 
 import logging
-import uuid
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
+from modules.shared.src.job.contract_job_aggregate import IJobAggregate
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -31,10 +30,12 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def __init__(
         self,
-        job_tracker: Any = None,
+        job_tracker: IJobAggregate | None = None,
         background_capacity: int = 50,
         max_result_data_size: int = 1_000_000,
-    ):
+    ) -> None:
+        if job_tracker is None:
+            raise ValueError("BackgroundSubmitExecutor requires a real job tracker")
         self._job_tracker = job_tracker
         self._capacity = background_capacity
         self._max_data_size = max_result_data_size
@@ -71,22 +72,20 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
                 error_category="capacity_error",
             )
 
-        # Create job via job tracker
+        # Create job via real job tracker — no synthetic IDs (FR-DSP-005)
         try:
-            if self._job_tracker:
-                job_id, status = self._job_tracker.track_new_task(
-                    operation_type=request.action_name,
-                    metadata={"tracking_id": tracking_id},
-                )
-            else:
-                # Fallback for testing: generate synthetic job ID (no real tracker wired)
-                job_id = str(uuid.uuid4())
-                status = {"status": "PENDING", "job_id": job_id}
+            snapshot = self._job_tracker.submit_task(
+                operation_type=request.action_name,
+                correlation_id=tracking_id,
+                metadata={"tracking_id": tracking_id},
+            )
+            job_id = snapshot.job_id
+            status_str = str(getattr(snapshot.state, "value", snapshot.state))
 
-        except Exception as e:
-            logger.error("Job creation failed: %s", e)
+        except Exception:
+            logger.exception("Background submission failed")
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
+                message="Background submission failed",
                 tracking_id=tracking_id,
                 error_category="execution_error",
             )
@@ -95,7 +94,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         metadata = {
             "action_name": request.action_name,
             "task_reference": job_id,
-            "initial_job_state": status.get("status") if isinstance(status, dict) else str(status),
+            "initial_job_state": status_str,
             "polling_required": True,
         }
 
@@ -133,11 +132,11 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         if tracker is None:
             return 0
         for method in ("active_job_count", "get_active_count", "count_active_jobs", "active_count"):
-            fn: Any = getattr(tracker, method, None)
+            fn: object = getattr(tracker, method, None)
             if callable(fn):
                 try:
                     return int(fn())
-                except Exception:  # pragma: no cover - defensive against tracker faults
+                except Exception:
                     logger.warning("Job tracker method %s failed", method)
         logger.warning(
             "Job tracker present but no active-count method; "
