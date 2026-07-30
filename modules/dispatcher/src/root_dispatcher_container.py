@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
+
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
@@ -28,7 +30,8 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, job_lifecycle: IJobLifecycle | None = None) -> None:
+        self._job_lifecycle = job_lifecycle
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
 
@@ -46,11 +49,9 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        # SyncDispatchExecutor not wired — no action executor is available at the
-        # container level. The orchestrator will raise a clear "SyncDispatchProtocol
-        # not configured" RuntimeError if dispatch_sync() is called, instead of
-        # silently returning fake success (FR-DSP-004 routing integrity).
-        background_submit = BackgroundSubmitExecutor()
+        background_submit = BackgroundSubmitExecutor(
+            job_tracker=self._job_lifecycle,
+        ) if self._job_lifecycle else None
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(
@@ -75,8 +76,8 @@ class DispatcherContainer:
         return self._orchestrator
 
 
-def create_dispatcher_feature() -> DispatcherOrchestrator:
+def create_dispatcher_feature(job_lifecycle: IJobLifecycle | None = None) -> DispatcherOrchestrator:
     """Factory function to create and wire the dispatcher feature module."""
-    container = DispatcherContainer()
+    container = DispatcherContainer(job_lifecycle=job_lifecycle)
     container.wire()
     return container.agent
