@@ -20,7 +20,6 @@ from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
     HealthCompositionRequestVO,
     LogRecordRequestVO,
     MetricsSampleVO,
-    SnapshotRequestVO,
 )
 
 

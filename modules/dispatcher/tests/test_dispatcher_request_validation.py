@@ -15,9 +15,9 @@ import pytest
 from modules.dispatcher.src.capabilities_request_validation import (
     RequestValidationExecutor,
 )
-from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchError
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchError
 
 
 def _make_catalog_entry(

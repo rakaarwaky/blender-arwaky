@@ -12,6 +12,7 @@ from modules.shared.src.common.taxonomy_core_vo import ActionName
 from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
     TelemetryClassificationProtocol,
 )
+from modules.shared.src.telemetry.taxonomy_event_constant import FEATURE_AREAS
 from modules.shared.src.telemetry.taxonomy_telemetry_event import (
     ClassificationResult,
     FeatureArea,
@@ -19,7 +20,6 @@ from modules.shared.src.telemetry.taxonomy_telemetry_event import (
     OutcomeCategory,
     TelemetryCategory,
 )
-from modules.shared.src.telemetry.taxonomy_event_constant import FEATURE_AREAS
 
 logger = logging.getLogger("blender-arwaky.telemetry")
 

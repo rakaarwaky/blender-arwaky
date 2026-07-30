@@ -36,12 +36,12 @@ from modules.shared.src.job.taxonomy_job_constant import (
     TERMINAL_JOB_STATES,
 )
 from modules.shared.src.job.taxonomy_job_entity import JobRecord
-from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
     TaskNotFoundError,
     ValidationError,
 )
+from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_vo import (
     ActiveCount,
     CancellationReason,

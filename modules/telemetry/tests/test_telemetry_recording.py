@@ -9,8 +9,6 @@ FR-TLM-001: Record Anonymous Usage Event
 
 from __future__ import annotations
 
-import pytest
-
 from modules.shared.src.common.taxonomy_core_vo import (
     ActionName,
     EnabledFlag,

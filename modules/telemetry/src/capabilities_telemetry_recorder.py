@@ -23,13 +23,13 @@ from modules.shared.src.common.taxonomy_core_vo import (
 from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
     TelemetryRecordingProtocol,
 )
+from modules.shared.src.telemetry.taxonomy_event_constant import ALLOWED_ACTIONS
 from modules.shared.src.telemetry.taxonomy_telemetry_event import (
     RecordingResult,
     TelemetryDraft,
     TelemetryRecord,
     TelemetryRejectionReason,
 )
-from modules.shared.src.telemetry.taxonomy_event_constant import ALLOWED_ACTIONS
 
 logger = logging.getLogger("blender-arwaky.telemetry")
 

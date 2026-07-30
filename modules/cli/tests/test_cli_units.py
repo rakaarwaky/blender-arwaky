@@ -13,9 +13,9 @@ plan/report.
 """
 
 import importlib.util as _importlib_util
-import sys
 import os
 import struct
+import sys
 from unittest import mock
 
 import pytest

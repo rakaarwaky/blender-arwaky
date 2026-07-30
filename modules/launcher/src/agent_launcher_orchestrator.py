@@ -18,13 +18,13 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
-from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
     LaunchMode,

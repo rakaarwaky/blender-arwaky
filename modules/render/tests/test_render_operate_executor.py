@@ -26,12 +26,12 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ResolutionY,
     UseDenoising,
 )
-from modules.shared.src.security.contract_validate_path_protocol import (
-    ValidatePathProtocol,
-)
 from modules.shared.src.render.taxonomy_render_vo import (
     RenderSceneVO,
     ViewportCaptureVO,
+)
+from modules.shared.src.security.contract_validate_path_protocol import (
+    ValidatePathProtocol,
 )
 from modules.shared.src.security.taxonomy_security_vo import (
     AccessMode,

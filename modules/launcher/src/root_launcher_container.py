@@ -7,7 +7,6 @@ launcher module: Capabilities → Agent Orchestrator → (exposed as LauncherOrc
 from __future__ import annotations
 
 import logging
-import time
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
@@ -26,13 +25,6 @@ from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProto
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
 )
-
-from .agent_launcher_orchestrator import LauncherOrchestrator
-from .capabilities_executable_locator import ExecutableLocator
-from .capabilities_process_launcher import ProcessLauncher
-from .capabilities_process_shutdown import ProcessShutdown
-from .capabilities_runtime_status import RuntimeStatusChecker
-from .capabilities_state_persistence import StatePersistence
 from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
@@ -41,6 +33,13 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_spawn,
     process_version_check,
 )
+
+from .agent_launcher_orchestrator import LauncherOrchestrator
+from .capabilities_executable_locator import ExecutableLocator
+from .capabilities_process_launcher import ProcessLauncher
+from .capabilities_process_shutdown import ProcessShutdown
+from .capabilities_runtime_status import RuntimeStatusChecker
+from .capabilities_state_persistence import StatePersistence
 
 logger = logging.getLogger("BlenderMCPServer")
 

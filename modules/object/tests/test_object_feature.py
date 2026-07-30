@@ -15,15 +15,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from modules.shared.src.object.taxonomy_object_error import (
-    DeletionProtectionError,
-    InvalidModifierTypeError,
-    InvalidPrimitiveTypeError,
-    ModifierActionConfirmationError,
-    ObjectAmbiguityError,
-    ObjectNotFoundError,
-)
-
 from modules.object.src.capabilities_apply_modifier_executor import ApplyModifierExecutor
 from modules.object.src.capabilities_create_primitive_executor import CreatePrimitiveExecutor
 from modules.object.src.capabilities_delete_object_executor import DeleteObjectExecutor
@@ -40,6 +31,14 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ScaleVector,
 )
 from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
+from modules.shared.src.object.taxonomy_object_error import (
+    DeletionProtectionError,
+    InvalidModifierTypeError,
+    InvalidPrimitiveTypeError,
+    ModifierActionConfirmationError,
+    ObjectAmbiguityError,
+    ObjectNotFoundError,
+)
 from modules.shared.src.object.taxonomy_object_vo import (
     ApplyModifierVO,
     CreatePrimitiveVO,

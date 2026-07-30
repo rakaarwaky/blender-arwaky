@@ -7,7 +7,6 @@ and surface_server_instance.py (LB04, O01).
 
 import logging
 import os
-from pathlib import Path
 
 logger = logging.getLogger("BlenderMCPServer")
 

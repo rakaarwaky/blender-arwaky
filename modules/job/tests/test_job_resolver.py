@@ -17,11 +17,9 @@ from modules.shared.src.common.taxonomy_core_vo import (
 )
 from modules.shared.src.job.taxonomy_job_constant import (
     JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
     JOB_STATE_RUNNING,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
-    CleanupDecision,
     JobPolicy,
     JobStatusSnapshot,
     OperationType,

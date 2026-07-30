@@ -10,10 +10,10 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+import pytest
+
 from modules.diagnostics.src.capabilities_audit_emitter import AuditEmitter
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import AuditEventRequestVO
-
-import pytest
 
 
 def _make_emitter(**kwargs: Any) -> AuditEmitter:

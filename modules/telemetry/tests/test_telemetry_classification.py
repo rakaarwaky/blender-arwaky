@@ -13,7 +13,6 @@ import pytest
 
 from modules.shared.src.common.taxonomy_core_vo import ActionName
 from modules.shared.src.telemetry.taxonomy_telemetry_event import (
-    ClassificationResult,
     FeatureArea,
 )
 from modules.telemetry.src.capabilities_telemetry_classifier import (

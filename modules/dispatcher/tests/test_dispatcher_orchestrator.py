@@ -15,8 +15,8 @@ from modules.dispatcher.src.capabilities_result_normalization import ResultNorma
 from modules.dispatcher.src.capabilities_sync_dispatch import SyncDispatchExecutor
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
-from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_discovery_filter_vo import DiscoveryFilterVO
+from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 

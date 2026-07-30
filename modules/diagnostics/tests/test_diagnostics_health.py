@@ -8,7 +8,7 @@ Run via pytest from repo root.
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 from modules.diagnostics.src.capabilities_health_composer import HealthComposer
 from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import HealthCompositionRequestVO

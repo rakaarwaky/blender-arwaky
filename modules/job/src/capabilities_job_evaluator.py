@@ -23,7 +23,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
 from modules.shared.src.job.utility_job_sanitizer import sanitize_cancellation_reason
 from modules.shared.src.job.utility_job_signaler import signal_executor
 
-
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 
 
