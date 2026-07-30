@@ -31,7 +31,8 @@ def _make_orchestrator(
         validate_code_result = CodeValidationVO(code_text="x=1", allowed=True)
     mock_validate_code.validate_code = AsyncMock(return_value=validate_code_result)
 
-    mock_emit_audit = emit_audit_sink or AsyncMock()
+    mock_emit_audit = emit_audit_sink or MagicMock()
+    mock_emit_audit.emit_audit = AsyncMock()
 
     mock_validate_path = AsyncMock()
     mock_validate_archive = AsyncMock()
@@ -155,7 +156,8 @@ class TestOrchestratorDelegation:
             emit_audit_cap=mock_emit_audit,
         )
         import asyncio
-        from modules.shared.src.security.taxonomy_security_vo import PathValidationVO, AccessMode
+
+        from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
         asyncio.run(orchestrator.validate_path(PathValidationVO(target_path="/safe/file", access_mode=AccessMode.READ)))
         assert mock_validate_path.validate_path.called
 
@@ -171,6 +173,7 @@ class TestOrchestratorDelegation:
             emit_audit_cap=mock_emit_audit,
         )
         import asyncio
+
         from modules.shared.src.security.taxonomy_security_vo import RedactionVO
         asyncio.run(orchestrator.redact(RedactionVO(text="test")))
         assert mock_redact.redact.called

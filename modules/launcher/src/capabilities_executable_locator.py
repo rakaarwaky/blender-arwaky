@@ -13,6 +13,7 @@ testable without spawning or probing a real Blender install.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 from collections.abc import Callable
@@ -20,6 +21,7 @@ from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
+from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
     ExecutableValidationError,
@@ -31,6 +33,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RegistrationOutcomeVO,
     RegistrationSource,
     RuntimeState,
+    RuntimeStateVO,
     VersionCompatibility,
 )
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
@@ -54,11 +57,15 @@ class ExecutableLocator(LocateRegisterProtocol):
         config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
         path_validator: ValidatePathProtocol | None = None,
+        env_resolver: Callable[[str, str | None], str | None] | None = None,
+        persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
         self._path_validator = path_validator
+        self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
+        self._persist = persist_cap
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
@@ -141,13 +148,35 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _check_compatibility(self, version: str) -> VersionCompatibility:
         if not version:
             return VersionCompatibility.UNKNOWN
-        return VersionCompatibility.SUPPORTED
+        try:
+            parts = [int(p) for p in version.split(".")[:2]]
+            major = parts[0]
+            minor = parts[1] if len(parts) > 1 else 0
+            if major < 3:
+                return VersionCompatibility.UNSUPPORTED
+            if major > 4 or (major == 4 and minor >= 2):
+                return VersionCompatibility.WARNING
+            return VersionCompatibility.SUPPORTED
+        except (ValueError, IndexError):
+            return VersionCompatibility.UNKNOWN
 
     def _register(self, _config: LauncherConfigVO, path: str) -> None:
         provider = self._config_provider
         setter = getattr(provider, "set_executable_path", None)
         if callable(setter):
             setter(path)
+
+        if self._persist is not None:
+            with contextlib.suppress(Exception):
+                self._persist.persist(
+                    RuntimeStateVO(
+                        executable_path=path,
+                        process_id=None,
+                        launch_timestamp=0.0,
+                        bridge_endpoint=None,
+                        last_status=RuntimeState.NOT_RUNNING,
+                    )
+                )
 
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)

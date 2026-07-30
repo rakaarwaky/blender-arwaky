@@ -12,6 +12,7 @@ The store path and I/O are injected DI boundaries; no secrets are persisted.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
@@ -19,6 +20,7 @@ import threading
 from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
+from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     PersistenceOutcomeVO,
     RuntimeState,
@@ -38,10 +40,12 @@ class StatePersistence(PersistStateProtocol):
         self,
         path_resolver: Callable[[], str | None],
         path_validator: ValidatePathProtocol | None = None,
+        event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._resolve_path = path_resolver
         self._path_validator = path_validator
         self._lock = threading.Lock()
+        self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
     def persist(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
@@ -91,19 +95,35 @@ class StatePersistence(PersistStateProtocol):
             with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
             if not isinstance(data, dict):
+                self._emit_corrupt_state(path, "state_data_not_dict")
                 return None
             return self._from_dict(data)
-        except (OSError, json.JSONDecodeError, ValueError):
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            self._emit_corrupt_state(path, f"load_error: {exc}")
             return None
+
+    def _emit_corrupt_state(self, path: str, reason: str) -> None:
+        events = getattr(self, "_events", None)
+        if events is not None:
+            from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_CORRUPT_STATE_DETECTED
+            from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
+
+            with contextlib.suppress(Exception):
+                events(
+                    LauncherLifecycleEvent(
+                        event_category=LAUNCHER_EVENT_CORRUPT_STATE_DETECTED,
+                        state_before=RuntimeState.NOT_RUNNING,
+                        state_after=RuntimeState.NOT_RUNNING,
+                        process_reference=path,
+                        reason_summary=reason,
+                    )
+                )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
         data = self._to_dict(state)
-        for key in _SECRET_KEYS:
-            if key in data:
-                return True
-        return False
+        return bool([key for key in _SECRET_KEYS if key in data])
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {
