@@ -14,7 +14,6 @@ config-driven resolution via workspace resolver and settings retriever.
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
@@ -56,10 +55,7 @@ class LauncherConfigBuilder:
 
         # Parse search_locations (list → tuple)
         search_locs = snapshot.get("launcher.search_locations", [])
-        if isinstance(search_locs, list):
-            search_locations = tuple(str(loc) for loc in search_locs)
-        else:
-            search_locations = ()
+        search_locations = tuple(str(loc) for loc in search_locs) if isinstance(search_locs, list) else ()
 
         # Parse default_launch_mode enum
         try:

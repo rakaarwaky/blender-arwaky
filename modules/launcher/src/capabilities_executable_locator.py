@@ -159,30 +159,24 @@ class ExecutableLocator(LocateRegisterProtocol):
 
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, config: LauncherConfigVO, path: str) -> None:
+    def _register(self, config: LauncherConfigVO, _path: str) -> None:
         """Register the discovered executable path.
 
         FR-LAU-001: Updates the config's executable_path if not already set.
         This is a functional registration that propagates the discovered path.
         """
-        # Only update if config doesn't already have an executable path
-        if not config.executable_path:
-            # Config is immutable VO; caller handles updates via LauncherConfigBuilder
-            pass
 
-    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
+    def _emit_registered(self, source: RegistrationSource, _path: str) -> None:
         """Emit executable registered event.
 
         FR-LAU-001: Emits lifecycle event when executable is successfully registered.
         """
         if self._events is not None:
-            from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
-
             self._events(
                 LauncherLifecycleEvent(
                     event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
                     state_before=RuntimeState.NOT_RUNNING,
-                    state_after=RuntimeState.NOT_RUNNING,
-                    process_reference=path,
+                    state_after=RuntimeState.RUNNING_READY,
+                    source=source,
                 )
             )

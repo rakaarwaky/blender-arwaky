@@ -8,6 +8,7 @@ Liveness and process-info lookup are injected DI boundaries.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 from collections.abc import Callable
@@ -105,9 +106,6 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         # Check bridge readiness at any depth when bridge endpoint is configured
         if self._bridge is not None:
             ready = self._bridge(timeout_seconds=1.0 if depth == ProbeDepth.LIGHTWEIGHT else 2.0)
-        elif depth == ProbeDepth.FULL:
-            # Full probe without bridge: assume ready if process is alive
-            pass
 
         state = RuntimeState.RUNNING_READY if ready else RuntimeState.RUNNING_UNRESPONSIVE
         uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
@@ -158,7 +156,7 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         persistence store to clear the stale process reference.
         """
         if self._state_corrector is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._state_corrector.persist(
                     RuntimeStateVO(
                         executable_path="",
@@ -168,8 +166,6 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
                         last_status=RuntimeState.NOT_RUNNING,
                     )
                 )
-            except Exception:
-                pass  # Correction failure is non-fatal
 
     def _emit_stale(self, pid: int) -> None:
         if self._events is not None:

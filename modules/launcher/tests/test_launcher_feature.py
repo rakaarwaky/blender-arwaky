@@ -272,12 +272,11 @@ def test_aggregate_is_implemented():
 # ─── Integration fixes for issue #100: probe interval, persist_cap, event redaction ──
 
 
-def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
+def test_processlauncher_probe_interval_and_persist_cap():
     """FR-LAU-005 + INT-003: ProcessLauncher accepts probe_interval_seconds and persist_cap."""
-    state_file = tmp_path / "state.json"
 
     class MockPersist:
-        def persist(self, state):
+        def persist(self, _state):
             return type("Outcome", (), {"success": True})()
 
         def load(self):

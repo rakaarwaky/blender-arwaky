@@ -166,7 +166,7 @@ class ProcessShutdown(ShutdownProtocol):
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _wait_exit(self, process_id: int, verify_after_timeout: bool = False) -> bool:
+    def _wait_exit(self, _process_id: int, verify_after_timeout: bool = False) -> bool:
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
             st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)

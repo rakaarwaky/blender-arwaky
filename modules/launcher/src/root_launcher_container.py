@@ -36,7 +36,6 @@ from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
     process_probe_bridge_readiness,
-    process_probe_readiness,
     process_signal_term,
     process_spawn,
     process_version_check,
@@ -48,7 +47,7 @@ from .capabilities_process_launcher import ProcessLauncher
 from .capabilities_process_shutdown import ProcessShutdown
 from .capabilities_runtime_status import RuntimeStatusChecker
 from .capabilities_state_persistence import StatePersistence
-from .launcher_config_builder import LauncherConfigBuilder
+from .utility_launcher_config_builder import LauncherConfigBuilder
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -122,7 +121,7 @@ class LauncherContainer:
             self._state_path = None
 
         # Wire redaction rules into event-emitting capabilities
-        redaction_rules = self._redaction_rules
+        _redaction_rules = self._redaction_rules
 
         persist_cap: PersistStateProtocol = StatePersistence(
             path_resolver=lambda: self._state_path,
@@ -144,12 +143,6 @@ class LauncherContainer:
         # P1: Inject redaction rules into capabilities for safe event emission
         def _safe_event_sink(event) -> None:
             """Emit lifecycle event with optional redaction."""
-            if redaction_rules is not None and event is not None:
-                try:
-                    # Redact sensitive data in event before emission
-                    pass
-                except Exception:
-                    logger.warning("Event redaction failed (fire-and-forget)")
             # Event emission is handled by capability internals
 
         locate_cap: LocateRegisterProtocol = ExecutableLocator(
@@ -162,16 +155,16 @@ class LauncherContainer:
         )
 
         # FR-INT-002: Pass bridge endpoint to process_spawn for addon integration
-        bridge_endpoint: str | None = None
+        _bridge_endpoint: str | None = None
         if self._bridge_host and self._bridge_port:
-            bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
+            _bridge_endpoint = f"{self._bridge_host}:{self._bridge_port}"
 
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
             persist_cap=persist_cap,
-            spawner=lambda executable, mode, timeout, bridge_endpoint=None, addon_path=None: process_spawn(
-                executable, mode, timeout, bridge_endpoint=bridge_endpoint, addon_path=addon_path
+            spawner=lambda executable, mode, timeout, addon_path=None: process_spawn(
+                executable, mode, timeout, bridge_endpoint=_bridge_endpoint, addon_path=addon_path
             ),
             readiness_probe=process_probe_bridge_readiness,
         )

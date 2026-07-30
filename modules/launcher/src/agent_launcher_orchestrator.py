@@ -119,7 +119,7 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         except Exception as exc:
             logger.warning("Failed to persist state after launch: %s", exc)
 
-    def _persist_state_after_shutdown(self, outcome: ShutdownOutcomeVO) -> None:
+    def _persist_state_after_shutdown(self, _outcome: ShutdownOutcomeVO) -> None:
         """Persist runtime state after a successful shutdown."""
         try:
             self._persist.persist(
