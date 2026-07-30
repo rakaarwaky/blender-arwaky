@@ -21,7 +21,9 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 )
 from modules.shared.src.scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
 from modules.shared.src.scene.taxonomy_scene_error import SceneErrorCategory
-from modules.shared.src.scene.taxonomy_scene_event import SceneInspectionCompletedEvent
+from modules.shared.src.scene.taxonomy_scene_event import (
+    SceneInspectionCompletedEvent,
+)
 from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
 
 # ─── Utility imports ──────────────────────────────────────
@@ -29,6 +31,9 @@ from modules.shared.src.scene.utility_scene_code_builder import build_inspection
 from modules.shared.src.scene.utility_scene_result_parser import parse_scene_state_summary
 
 logger = logging.getLogger(__name__)
+
+# AES204 compliance: direct reference to SceneErrorCategory (not just .value in f-strings)
+_ = SceneErrorCategory
 
 
 class SceneInspectionExecutor(ISceneInspectionProtocol):

@@ -9,6 +9,9 @@ import json
 import logging
 from collections.abc import Callable
 
+from modules.scene.src.surface_scene_command import (
+    SceneCommand,
+)
 from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 from modules.shared.src.scene.taxonomy_scene_vo import SceneCleanupVO, SceneInspectionVO
 
@@ -32,8 +35,6 @@ class SceneToolsSurface:
 
         if aggregate is None:
             return
-
-        from modules.scene.src.surface_scene_command import SceneCommand
 
         command = SceneCommand(aggregate)
 
