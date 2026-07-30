@@ -8,7 +8,6 @@ FR-DSP-005: Submit Background Action
 """
 
 import logging
-import uuid
 from typing import Any
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
@@ -31,10 +30,22 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def __init__(
         self,
-        job_tracker: Any = None,
+        job_tracker: Any,
         background_capacity: int = 50,
         max_result_data_size: int = 1_000_000,
-    ):
+    ) -> None:
+        """Initialize background submit executor with required job tracker.
+        
+        Args:
+            job_tracker: Job tracker protocol implementation. Must not be None.
+            background_capacity: Maximum number of concurrent background jobs.
+            max_result_data_size: Maximum size for result data in bytes.
+            
+        Raises:
+            ValueError: If job_tracker is None.
+        """
+        if job_tracker is None:
+            raise ValueError("BackgroundSubmitExecutor requires a real job tracker")
         self._job_tracker = job_tracker
         self._capacity = background_capacity
         self._max_data_size = max_result_data_size
@@ -71,22 +82,17 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
                 error_category="capacity_error",
             )
 
-        # Create job via job tracker
+        # Create job via job tracker - no synthetic fallback allowed (FR-DSP-005)
         try:
-            if self._job_tracker:
-                job_id, status = self._job_tracker.track_new_task(
-                    operation_type=request.action_name,
-                    metadata={"tracking_id": tracking_id},
-                )
-            else:
-                # Fallback for testing: generate synthetic job ID (no real tracker wired)
-                job_id = str(uuid.uuid4())
-                status = {"status": "PENDING", "job_id": job_id}
+            job_id, status = self._job_tracker.track_new_task(
+                operation_type=request.action_name,
+                metadata={"tracking_id": tracking_id},
+            )
 
-        except Exception as e:
-            logger.error("Job creation failed: %s", e)
+        except Exception:
+            logger.exception("Job creation failed")
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
+                message="Background job submission failed",
                 tracking_id=tracking_id,
                 error_category="execution_error",
             )

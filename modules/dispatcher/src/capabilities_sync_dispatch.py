@@ -32,7 +32,17 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, execute_action: Any = None) -> None:
+    def __init__(self, execute_action: Any) -> None:
+        """Initialize sync dispatch executor with required action executor.
+        
+        Args:
+            execute_action: Action executor protocol implementation. Must not be None.
+            
+        Raises:
+            ValueError: If execute_action is None.
+        """
+        if execute_action is None:
+            raise ValueError("SyncDispatchExecutor requires a non-null action executor")
         self._execute = execute_action
         self._pool = ThreadPoolExecutor(max_workers=1)
 
@@ -73,18 +83,16 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
                 owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
                 raise RuntimeError(f"Owning feature {owning_feature} is degraded")
 
-            if self._execute is not None:
-                if applied_timeout and applied_timeout > 0:
-                    # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
-                    future = self._pool.submit(self._execute.execute_action, action_name, params)
-                    try:
-                        result = future.result(timeout=applied_timeout)
-                    except FuturesTimeoutError:
-                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
-                else:
-                    result = self._execute.execute_action(action_name, params)
+            # FR-DSP-004: Always execute through wired owning feature/gateway - no fake fallback
+            if applied_timeout and applied_timeout > 0:
+                # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
+                future = self._pool.submit(self._execute.execute_action, action_name, params)
+                try:
+                    result = future.result(timeout=applied_timeout)
+                except FuturesTimeoutError:
+                    raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
             else:
-                result = {"status": "dispatched", "action": action_name}
+                result = self._execute.execute_action(action_name, params)
 
             duration_ms = (time.time() - start_time) * 1000
 
@@ -99,29 +107,19 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
             return UnifiedResultEnvelopeVO.success_envelope(
                 message=f"Action {action_name} dispatched successfully",
                 tracking_id=tracking_id,
-                data=result if isinstance(result, dict) else {"result": str(result)},
+                data=result if isinstance(result, dict) else {"result": "completed"},
                 metadata=metadata,
             )
 
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            error_category = self._map_error_category(e)
-
-            logger.error(
-                "Dispatch failed: %s (action=%s, tracking_id=%s, category=%s)",
-                e,
-                action_name,
-                tracking_id,
-                error_category,
-            )
-
+        except Exception:
+            logger.exception("Dispatch failed")
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{action_name}' failed: {e}",
+                message="Action execution failed",
                 tracking_id=tracking_id,
-                error_category=error_category,
+                error_category="execution_error",
                 metadata={
                     "action_name": action_name,
-                    "duration_ms": duration_ms,
+                    "duration_ms": (time.time() - start_time) * 1000,
                 },
             )
 

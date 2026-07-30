@@ -1,55 +1,33 @@
-```
+```gitignore
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
 venv/
 .venv/
-.ENV
-.ENV.*
-.python-version
+.env
+.env.local
+.env.*
 
-# Security module specific
-modules/security/src/*.pyc
-modules/security/__pycache__/
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
 
-# Shared module specific  
-modules/shared/src/security/*.pyc
-modules/shared/__pycache__/
-
-# Build and distribution artifacts
-dist/
-build/
-*.egg-info/
+# Coverage
 .coverage
 coverage/
 htmlcov/
 
-# Logs
-*.log
-
-# Environment files
-.env
-.env.local
-.env.*
-.env.local.*
-
-# IDE and editor files
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Testing
-.pytest_cache/
-.mypy_cache/
-.coverage*
+# Build artifacts
+dist/
+build/
+*.egg-info/
 ```

@@ -10,7 +10,6 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_action_discovery_protocol import ActionDiscoveryProtocol
 from modules.shared.src.dispatcher.contract_background_submit_protocol import BackgroundSubmitProtocol
@@ -26,7 +25,14 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
+from modules.shared.src.dispatcher.taxonomy_discovery_filter_vo import DiscoveryFilterVO
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
+    DispatchError,
+    DispatchErrorCategory,
+)
+from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -43,12 +49,12 @@ class DispatcherOrchestrator(IDispatcherAggregate):
 
     def __init__(
         self,
-        catalog_registration: CatalogRegistrationProtocol | None = None,
-        action_discovery: ActionDiscoveryProtocol | None = None,
-        request_validation: RequestValidationProtocol | None = None,
-        sync_dispatch: SyncDispatchProtocol | None = None,
-        background_submit: BackgroundSubmitProtocol | None = None,
-        result_normalization: ResultNormalizationProtocol | None = None,
+        catalog_registration: CatalogRegistrationProtocol,
+        action_discovery: ActionDiscoveryProtocol,
+        request_validation: RequestValidationProtocol,
+        sync_dispatch: SyncDispatchProtocol,
+        background_submit: BackgroundSubmitProtocol,
+        result_normalization: ResultNormalizationProtocol,
     ) -> None:
         self._catalog_reg = catalog_registration
         self._discovery = action_discovery
@@ -59,7 +65,7 @@ class DispatcherOrchestrator(IDispatcherAggregate):
 
     # ─── Block 2: Protocol Method Implementation (Aggregate Facade) ──
 
-    def register_action(self, metadata: Any) -> Any:
+    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
         """Register an action in the catalog.
 
         FR-DSP-001: Delegates to CatalogRegistrationProtocol.
@@ -68,12 +74,7 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             raise RuntimeError("CatalogRegistrationProtocol not configured")
         return self._catalog_reg.register_action(metadata)
 
-    def discover_actions(
-        self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
-    ) -> DiscoveryOutcomeVO:
+    def discover_actions(self, filter_criteria: DiscoveryFilterVO) -> DiscoveryOutcomeVO:
         """Discover actions from the catalog.
 
         FR-DSP-002: Delegates to ActionDiscoveryProtocol.
@@ -81,11 +82,7 @@ class DispatcherOrchestrator(IDispatcherAggregate):
         """
         if self._discovery is None:
             raise RuntimeError("ActionDiscoveryProtocol not configured")
-        return self._discovery.discover_actions(
-            name_filter=name_filter,
-            capability_filter=capability_filter,
-            detail_level=detail_level,
-        )
+        return self._discovery.discover_actions(filter_criteria)
 
     def validate_request(self, request: ActionCommandVO) -> ActionCommandVO:
         """Validate an action request against the catalog.
@@ -118,12 +115,7 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             raise RuntimeError("BackgroundSubmitProtocol not configured")
         return self._bg_submit.submit_background(request)
 
-    def normalize_result(
-        self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
-    ) -> UnifiedResultEnvelopeVO:
+    def normalize_result(self, raw_outcome: RawOutcomeVO) -> UnifiedResultEnvelopeVO:
         """Normalize any dispatcher outcome into a unified result envelope.
 
         FR-DSP-006: Delegates to ResultNormalizationProtocol.
@@ -131,18 +123,16 @@ class DispatcherOrchestrator(IDispatcherAggregate):
         """
         if self._normalization is None:
             raise RuntimeError("ResultNormalizationProtocol not configured")
-        return self._normalization.normalize_result(raw_outcome, tracking_id, is_background)
+        return self._normalization.normalize_result(raw_outcome)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def execute_action(self, action_name: str, parameters: dict[str, Any]) -> UnifiedResultEnvelopeVO:
+    def execute_action(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Execute an action through the full dispatcher pipeline.
 
         This is the main facade method — validates, dispatches, and normalizes
         in a single call for consumers who don't need intermediate results.
         """
-        request = ActionCommandVO(action_name=action_name, parameters=parameters)
-
         try:
             validated = self.validate_request(request)
 
@@ -156,20 +146,30 @@ class DispatcherOrchestrator(IDispatcherAggregate):
 
             return envelope
 
-        except ValueError as e:
-            logger.error("Action execution failed: %s", e)
-            # Duck-typed category: DispatchRequestError carries .error_category so the
-            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
+        except DispatchError as e:
+            logger.error("Dispatch rejected: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
+                message=self._safe_message(e),
                 tracking_id=request.validated_tracking_id,
-                error_category=error_category,
+                error_category=e.error_category,
             )
 
         except Exception as e:
-            logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
+            logger.exception("Unexpected dispatch failure")
+            return UnifiedResultEnvelopeVO.error_envelope(
+                message="Action execution failed unexpectedly",
+                tracking_id=request.validated_tracking_id,
+                error_category=DispatchErrorCategory.EXECUTION,
+            )
+
+    @staticmethod
+    def _safe_message(error: Exception) -> str:
+        """Return a safe, sanitized error message for external consumers.
+
+        Do not return raw exception text to consumers.
+        Keep detailed diagnostics in logs only.
+        """
+        return "Action request could not be processed"
 
     def __repr__(self) -> str:
         return (
