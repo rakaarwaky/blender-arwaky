@@ -27,7 +27,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         self,
         tool_name: str,
         payload: dict[str, Any],
-        tracking_id: str | None = None,
+        _tracking_id: str | None = None,
     ) -> dict[str, Any]:
         """Route tool call to correct aggregate.
 
@@ -66,7 +66,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         self,
         tool_name: str,
         payload: dict[str, Any],
-        strict_mode: bool = True,
+        _strict_mode: bool = True,
     ) -> list[str]:
         """Validate surface-level input shape.
 

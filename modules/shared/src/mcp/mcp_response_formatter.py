@@ -78,7 +78,7 @@ class McpResponseImpl(McpResponseProtocol):
         # In production, integrate with actual redaction patterns.
         return response
 
-    def _truncate_response(self, envelope: dict[str, Any], tool_name: str, tid: str) -> dict[str, Any]:
+    def _truncate_response(self, _envelope: dict[str, Any], tool_name: str, tid: str) -> dict[str, Any]:
         """Truncate oversized response per FR-MCP-003 strategy."""
         return {
             "tracking_id": tid,
