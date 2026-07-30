@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+
 
 def normalize_payload(payload: Any) -> dict[str, Any]:
     """Ensure payload is a dict; coerce non-dict to empty dict."""
@@ -56,7 +58,8 @@ def route_tool_call(
         action = payload.get("action", "")
         args = payload.get("args", {})
         if dispatcher:
-            return dispatcher.execute_action(action, args)
+            request = ActionCommandVO(action_name=action, parameters=args)
+            return dispatcher.execute_action(request)
         raise RuntimeError("Dispatcher aggregate not configured")
 
     if tool_name == "list_commands":

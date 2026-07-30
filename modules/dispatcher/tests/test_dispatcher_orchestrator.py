@@ -16,6 +16,8 @@ from modules.dispatcher.src.capabilities_sync_dispatch import SyncDispatchExecut
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from modules.shared.src.dispatcher.taxonomy_discovery_filter_vo import DiscoveryFilterVO
+from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 
@@ -99,7 +101,8 @@ class TestDiscoveryViaOrchestrator:
             catalog_registration=catalog,
             action_discovery=discovery,
         )
-        result = orchestrator.discover_actions(name_filter="missing")
+        filter_criteria = DiscoveryFilterVO(name_filter="missing")
+        result = orchestrator.discover_actions(filter_criteria=filter_criteria)
         assert isinstance(result, DiscoveryOutcomeVO)
 
 
@@ -171,8 +174,8 @@ class TestNormalizationViaOrchestrator:
         """FR-DSP-006: Success result creates proper envelope."""
         normalization = ResultNormalizationExecutor()
         orchestrator = DispatcherOrchestrator(result_normalization=normalization)
-        raw = {"success": True, "data": {"result": "ok"}}
-        result = orchestrator.normalize_result(raw, "track-norm")
+        raw = RawOutcomeVO(success=True, data={"result": "ok"}, tracking_id="track-norm")
+        result = orchestrator.normalize_result(raw)
         assert isinstance(result, UnifiedResultEnvelopeVO)
         assert result.success is True
 
@@ -180,8 +183,8 @@ class TestNormalizationViaOrchestrator:
         """FR-DSP-006: Error result creates proper envelope."""
         normalization = ResultNormalizationExecutor()
         orchestrator = DispatcherOrchestrator(result_normalization=normalization)
-        raw = {"success": False, "message": "fail"}
-        result = orchestrator.normalize_result(raw, "track-err")
+        raw = RawOutcomeVO(success=False, message="fail", tracking_id="track-err")
+        result = orchestrator.normalize_result(raw)
         assert isinstance(result, UnifiedResultEnvelopeVO)
         assert result.success is False
 
@@ -200,7 +203,8 @@ class TestFullPipeline:
             request_validation=validation,
             result_normalization=normalization,
         )
-        result = orchestrator.execute_action("unknown", {})
+        request = ActionCommandVO(action_name="unknown", parameters={})
+        result = orchestrator.execute_action(request)
         assert isinstance(result, UnifiedResultEnvelopeVO)
         assert result.success is False
 

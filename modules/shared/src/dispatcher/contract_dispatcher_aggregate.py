@@ -7,10 +7,12 @@ Facade for action dispatch operations: discovery, validation, dispatch, normaliz
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from .taxonomy_action_command_vo import ActionCommandVO
+from .taxonomy_action_metadata_vo import ActionMetadataVO
+from .taxonomy_discovery_filter_vo import DiscoveryFilterVO
 from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from .taxonomy_raw_outcome_vo import RawOutcomeVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 
@@ -22,15 +24,13 @@ class IDispatcherAggregate(ABC):
     """
 
     @abstractmethod
-    def register_action(self, metadata: Any) -> Any:
+    def register_action(self, metadata: ActionMetadataVO) -> ActionMetadataVO:
         ...
 
     @abstractmethod
     def discover_actions(
         self,
-        name_filter: str | None = None,
-        capability_filter: str | None = None,
-        detail_level: str = "standard",
+        filter_criteria: DiscoveryFilterVO | None = None,
     ) -> DiscoveryOutcomeVO:
         ...
 
@@ -49,16 +49,13 @@ class IDispatcherAggregate(ABC):
     @abstractmethod
     def normalize_result(
         self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
+        raw_outcome: RawOutcomeVO,
     ) -> UnifiedResultEnvelopeVO:
         ...
 
     @abstractmethod
     def execute_action(
         self,
-        action_name: str,
-        parameters: dict[str, Any],
+        request: ActionCommandVO,
     ) -> UnifiedResultEnvelopeVO:
         ...

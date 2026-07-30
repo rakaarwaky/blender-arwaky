@@ -18,13 +18,17 @@ from .contract_result_normalization_protocol import ResultNormalizationProtocol
 from .contract_sync_dispatch_protocol import SyncDispatchProtocol
 from .taxonomy_action_command_vo import ActionCommandVO
 from .taxonomy_action_metadata_vo import ActionMetadataVO
+from .taxonomy_discovery_filter_vo import DiscoveryFilterVO
 from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from .taxonomy_raw_outcome_vo import RawOutcomeVO
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 __all__ = [
     "ActionMetadataVO",
     "ActionCommandVO",
+    "DiscoveryFilterVO",
     "DiscoveryOutcomeVO",
+    "RawOutcomeVO",
     "UnifiedResultEnvelopeVO",
     "ActionDiscoveryProtocol",
     "BackgroundSubmitProtocol",
