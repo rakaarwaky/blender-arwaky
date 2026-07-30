@@ -13,6 +13,7 @@ and SceneQueueExecutor (sync queue-based, SceneQueueProtocol).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import queue
 import threading
@@ -235,6 +236,9 @@ class SceneQueueExecutor(SceneQueueProtocol):
             raise ChannelConflictError(f"Queue depth limit {self._max_depth} reached") from None
         acquired = self._execution_lock.acquire(timeout=self._wait_timeout_seconds)
         if not acquired:
+            # P1: Remove enqueued operation on timeout to prevent stale queue entries
+            with contextlib.suppress(Exception):
+                self._queue.get_nowait()
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
         self._processing = True
         try:
@@ -243,6 +247,20 @@ class SceneQueueExecutor(SceneQueueProtocol):
             self._processing = False
             self._execution_lock.release()
 
+    def fail_pending(self, _error: Exception) -> int:
+        """P1: Fail and remove all pending operations in the queue.
+
+        Returns the number of operations cancelled.
+        """
+        cancelled = 0
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+                cancelled += 1
+            except Exception:
+                break
+        logger.info("Failed %d pending operations in scene queue", cancelled)
+        return cancelled
     def get_queue_status(self) -> QueueStatusVO:
         return QueueStatusVO(
             current_depth=self._queue.qsize(),
