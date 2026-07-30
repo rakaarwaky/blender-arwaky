@@ -11,9 +11,7 @@ import subprocess
 import sys
 import time
 
-from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
-
-_taxonomy_types = (CliResultVo,)
+from modules.shared.src.cli.taxonomy_cli_vo import BlenderProcessVo
 
 
 def find_blender() -> str:
@@ -33,7 +31,6 @@ def find_blender() -> str:
         if os.path.exists(path):
             return path
 
-    # Use shutil.which for safe full-path resolution
     found = shutil.which("blender")
     if found and os.path.exists(found):
         return found
@@ -46,8 +43,8 @@ def launch_blender(
     mode: str = "headless",
     port: int = 9876,
     addon_path: str | None = None,
-) -> int:
-    """Launch Blender with addon and return PID."""
+) -> BlenderProcessVo:
+    """Launch Blender with addon and return BlenderProcessVo (Taxonomy VO)."""
     blender_exe = find_blender()
 
     pathlib.Path(filepath)
@@ -90,7 +87,7 @@ def launch_blender(
             process.kill()
         raise RuntimeError(f"Blender addon not ready on port {port} after 30s") from e
 
-    return process.pid
+    return BlenderProcessVo(pid=process.pid, port=port, filepath=filepath, is_running=True)
 
 
 def _wait_for_addon(port: int, timeout: int = 30) -> None:

@@ -1,4 +1,4 @@
-"""CLI value objects — result envelope and error structures."""
+"""CLI value objects — result envelope, process info, and error structures."""
 
 from __future__ import annotations
 
@@ -13,6 +13,16 @@ class CliErrorVo:
     ref: str
     message: str = "Operation failed"
     detail: str | None = None
+
+
+@dataclass(frozen=True)
+class BlenderProcessVo:
+    """Blender process information Value Object (Taxonomy layer)."""
+
+    pid: int
+    port: int
+    filepath: str = ""
+    is_running: bool = True
 
 
 @dataclass(frozen=True)
