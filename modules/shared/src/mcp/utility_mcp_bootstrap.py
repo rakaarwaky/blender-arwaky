@@ -8,11 +8,8 @@ from __future__ import annotations
 import logging
 import os
 
-from modules.shared.src.common.taxonomy_core_vo import (
-    Host,
-    PortNumber,
-    ServerName,
-)
+from modules.shared.src.common.taxonomy_core_vo import ServerName
+from modules.shared.src.mcp.taxonomy_mcp_vo import McpServerBootstrapVO
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -30,13 +27,19 @@ def resolve_log_file() -> str:
     return os.path.join(log_dir, "mcp_server.log")
 
 
-def resolve_transport_config(server_name: ServerName | None = None) -> tuple[str, Host, PortNumber]:
-    """Resolve transport configuration (transport, host, port)."""
+def resolve_bootstrap_config(server_name: ServerName | None = None) -> McpServerBootstrapVO:
+    """Resolve transport configuration into a McpServerBootstrapVO (Value Object)."""
     _ = server_name
     transport = os.environ.get("ARWAKY_MCP_TRANSPORT", "stdio")
-    host = Host(os.environ.get("ARWAKY_MCP_HOST", "127.0.0.1"))
-    port = PortNumber(int(os.environ.get("ARWAKY_MCP_PORT", "8080")))
-    return (transport, host, port)
+    host = os.environ.get("ARWAKY_MCP_HOST", "127.0.0.1")
+    port = int(os.environ.get("ARWAKY_MCP_PORT", "8080"))
+    log_file = resolve_log_file()
+    return McpServerBootstrapVO(
+        transport=transport,
+        host=host,
+        port=port,
+        log_file=log_file,
+    )
 
 
 def record_startup() -> None:

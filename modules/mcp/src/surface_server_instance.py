@@ -26,10 +26,10 @@ from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 
-from modules.mcp.src.utility_mcp_bootstrap import (
+from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
+from modules.shared.src.mcp.utility_mcp_bootstrap import (
     record_startup,
 )
-from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 
 # Module-level imports for AES506 linter traceability — ensures the linter's
 # static import graph can trace from this surface to tool registry and prompts.
