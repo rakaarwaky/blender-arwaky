@@ -16,6 +16,7 @@ from typing import Any
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
     ResultNormalizationProtocol,
 )
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchErrorCategory
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -102,7 +103,7 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             # Envelope construction failure — fall back to safe error
             logger.error("Envelope construction failed: %s", e)
             return UnifiedResultEnvelopeVO.safe_error_envelope(
-                f"Normalization failed: {e}",
+                "Envelope construction failed",
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────

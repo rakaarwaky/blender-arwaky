@@ -26,6 +26,7 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchErrorCategory
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -158,18 +159,18 @@ class DispatcherOrchestrator(IDispatcherAggregate):
 
         except ValueError as e:
             logger.error("Action execution failed: %s", e)
-            # Duck-typed category: DispatchRequestError carries .error_category so the
-            # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
+            error_category = getattr(e, "error_category", DispatchErrorCategory.VALIDATION)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
+                message="Action request could not be processed",
                 tracking_id=request.validated_tracking_id,
                 error_category=error_category,
             )
 
         except Exception as e:
             logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
+            return UnifiedResultEnvelopeVO.safe_error_envelope(
+                "Action execution failed unexpectedly",
+            )
 
     def __repr__(self) -> str:
         return (
