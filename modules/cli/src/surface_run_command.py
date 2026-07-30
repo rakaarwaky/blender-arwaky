@@ -1,54 +1,35 @@
-"""CLI run command — Execute any action on active Blender via socket."""
+"""CLI run command — Execute any action on active Blender via Dispatcher.
+
+FR-CLI-001: Routes all actions through Dispatcher → Gateway transport.
+P0: Removes direct socket client and registry usage per issue #91.
+P1: Normalizes results into Dispatcher result envelope.
+"""
+
+from __future__ import annotations
 
 import json
 from typing import Any
 
-from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_registry import Registry
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 
 
-def _flatten_schemas() -> dict[str, dict[str, Any]]:
-    """Flatten domain-grouped schemas into action_name → schema lookup."""
-    flat: dict[str, dict[str, Any]] = {}
-    for domain_actions in DISPATCHER_ACTION_SCHEMAS.values():
-        flat.update(domain_actions)
-    return flat
+def handle(args: Any, dispatcher: IDispatcherAggregate) -> dict[str, Any]:
+    """Handle run command: execute action via Dispatcher → Gateway → Blender.
 
-
-_ALL_ACTIONS = _flatten_schemas()
-
-
-def _get_action_schema(action: str) -> dict[str, Any] | None:
-    return _ALL_ACTIONS.get(action)
-
-
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
-    return {"success": False, "error": message, "category": category, "ref": ref}
-
-
-def handle(args: Any) -> dict[str, Any]:
-    """Handle run command: execute any action by name on active Blender."""
+    P0: Replaces direct socket client usage with Dispatcher routing.
+    P1: Returns normalized result envelope instead of raw transport payload.
+    """
     action = args.action
     params = args.params if isinstance(args.params, dict) else json.loads(args.params)
 
-    schema = _get_action_schema(action)
-    if schema is None:
-        all_names = "\n".join(sorted(_ALL_ACTIONS.keys()))
-        return _mask_error("validation_error", "cli-400", f"Unknown action: {action}. Available: {all_names}")
-
-    registry = Registry()
-    error = registry.assert_active(args.filepath)
-    if error:
-        return _mask_error("state", "cli-409", error)
-
-    port = registry.get_port()
-    try:
-        with BlenderSocketClient(port=port) as client:
-            result = client.send_command(action, params)
-            return result
-    except ConnectionError:
-        return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
-    except Exception:
-        return _mask_error("unexpected", "cli-500")
+    request = ActionCommandVO(action_name=action, parameters=params)
+    result = dispatcher.execute_action(request)
+    # Render from normalized envelope
+    return {
+        "success": result.success,
+        "message": result.message,
+        "data": result.data,
+        "warnings": result.warnings,
+        "error_category": result.error_category if not result.success else None,
+    }

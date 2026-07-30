@@ -5,6 +5,9 @@ FR-CLI-001: Parse and Route Commands — argparse-based command parsing with sub
 FR-CLI-002: Render Terminal Output — structured text output with JSON fallback support
 FR-CLI-003: Display Errors — categorized, actionable errors with masked details
 
+P0: Accepts injected IDispatcherAggregate for proper integration flow.
+P0: Removes direct process/socket utility imports.
+
 Usage:
   blender-arwaky init --filepath <path> [--mode gui|headless]
   blender-arwaky run --filepath <path> --action <action> [--params '<json>']
@@ -14,11 +17,15 @@ Usage:
   blender-arwaky status
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
 import sys
 from typing import Any
+
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +56,16 @@ def _exit_code(result: dict[str, Any]) -> int:
     return ERROR_CATEGORIES.get(category, EXIT_UNEXPECTED)
 
 
-def main() -> int:
-    """Main CLI entry point."""
+def main(
+    argv: list[str] | None = None,
+    *,
+    dispatcher: IDispatcherAggregate | None = None,
+) -> int:
+    """Main CLI entry point.
+
+    P0: Accepts optional dispatcher injection for testing and composition.
+    P0: Routes all commands through Dispatcher aggregate.
+    """
     parser = argparse.ArgumentParser(
         prog="blender-arwaky",
         description="BlenderArwaky CLI — Blender lifecycle management",
@@ -97,11 +112,41 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
         return EXIT_VALIDATION
+
+    # Validate dispatcher is available — auto-wire if not provided
+    if dispatcher is None:
+        try:
+            from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
+            from modules.launcher.src.root_launcher_container import LauncherConfigVO, LauncherContainer
+
+            launcher_config = LauncherConfigVO()
+            launcher_container = LauncherContainer(config=launcher_config)
+            launcher_container.wire()
+
+            dispatcher_container = DispatcherContainer(
+                launcher_action_router=launcher_container.action_router,
+            )
+            dispatcher_container.wire()
+
+            dispatcher = dispatcher_container.agent
+        except Exception:
+            logger.exception("Failed to auto-wire dispatcher and launcher")
+            result = {
+                "success": False,
+                "error": "Dispatcher not configured",
+                "category": "configuration_error",
+                "ref": "cli-500",
+            }
+            if args.json or not sys.stdout.isatty():
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+            return EXIT_UNEXPECTED
 
     # Import command handlers
     from . import (
@@ -117,31 +162,41 @@ def main() -> int:
 
     try:
         if args.command == "init":
-            result = surface_init_command.handle(args)
+            result = surface_init_command.handle(args, dispatcher)
 
         elif args.command == "run":
             try:
                 args.params = json.loads(args.params)
             except json.JSONDecodeError as e:
                 logger.debug("Invalid JSON params: %s", e)
-                result = {"success": False, "error": "Invalid JSON parameters", "category": "validation_error", "ref": "cli-400"}
+                result = {
+                    "success": False,
+                    "error": "Invalid JSON parameters",
+                    "category": "validation_error",
+                    "ref": "cli-400",
+                }
             else:
-                result = surface_run_command.handle(args)
+                result = surface_run_command.handle(args, dispatcher)
 
         elif args.command == "screenshot":
-            result = surface_screenshot_command.handle(args)
+            result = surface_screenshot_command.handle(args, dispatcher)
 
         elif args.command == "render":
-            result = surface_render_command.handle(args)
+            result = surface_render_command.handle(args, dispatcher)
 
         elif args.command == "close":
-            result = surface_close_command.handle(args)
+            result = surface_close_command.handle(args, dispatcher)
 
         elif args.command == "status":
-            result = surface_status_command.handle(args)
+            result = surface_status_command.handle(args, dispatcher)
 
         else:
-            result = {"success": False, "error": f"Unknown command: {args.command}", "category": "validation_error", "ref": "cli-400"}
+            result = {
+                "success": False,
+                "error": f"Unknown command: {args.command}",
+                "category": "validation_error",
+                "ref": "cli-400",
+            }
 
     except Exception:
         logger.exception("Unexpected CLI error")

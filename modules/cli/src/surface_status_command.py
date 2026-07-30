@@ -1,23 +1,29 @@
-"""CLI status command — Show active Blender status."""
+"""CLI status command — Show active Blender status.
+
+FR-CLI-001: Routes to Dispatcher action get_runtime_status.
+P0: Removes direct PID check and registry usage per issue #91.
+"""
+
+from __future__ import annotations
 
 from typing import Any
 
-from .utility_cli_process import is_running
-from .utility_cli_registry import Registry
+from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 
 
-def handle(_args: Any) -> dict[str, Any]:
-    """Handle status command: show active Blender instance status."""
-    registry = Registry()
+def handle(_args: Any, dispatcher: IDispatcherAggregate) -> dict[str, Any]:
+    """Handle status command: get true runtime status via Launcher.
 
-    if not registry.is_active():
-        return {"success": True, "active": False, "message": "No Blender instance is active"}
-
+    P0: Replaces local registry and PID check with Launcher liveness verification.
+    """
+    request = ActionCommandVO(action_name="get_runtime_status", parameters={})
+    result = dispatcher.execute_action(request)
+    # Render from normalized envelope
     return {
-        "success": True,
-        "active": True,
-        "running": registry.get_pid() is not None and is_running(registry.get_pid()),
-        "filepath": registry.get_active(),
-        "pid": registry.get_pid(),
-        "port": registry.get_port(),
+        "success": result.success,
+        "message": result.message,
+        "data": result.data,
+        "warnings": result.warnings,
+        "error_category": result.error_category if not result.success else None,
     }
