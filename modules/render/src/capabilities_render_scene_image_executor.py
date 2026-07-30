@@ -143,7 +143,7 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
                 message=Prompt("Scene render completed"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Scene render failed")
 
             failed_event = SceneRenderFailedEvent(
@@ -151,7 +151,7 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
                 success=SuccessFlag(False),
                 error_category=RenderErrorCategory.RENDER_OUTPUT,
                 phase="execution",
-                message=Prompt(str(exc)),
+                message=Prompt("Scene render failed"),
             )
 
             if self._event_emitter is not None:
@@ -164,7 +164,7 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
 
             return self._failure(
                 normalized,
-                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Scene render failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Scene render failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -243,7 +243,12 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: RenderSceneVO, message: Prompt) -> RenderSceneVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderSceneImageExecutor()"
