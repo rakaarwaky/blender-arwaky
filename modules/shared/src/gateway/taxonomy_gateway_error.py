@@ -94,10 +94,9 @@ class CommandTimeoutError(ServerError):
 # ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
 
 
-class TooManyPendingOperationsError(ServerError):
+class PendingOpsLimitError(ServerError):
     """Raised when the serialized execution queue has reached maximum depth.
 
-    Renamed from QueueFullError in v2.0.0.
     Error code: 'too_many_pending_operations'
     """
 
