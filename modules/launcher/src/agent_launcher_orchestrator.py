@@ -12,6 +12,9 @@ protocols. Implements LauncherOperateAggregate.
 Orchestration only — no business logic; depends on individual capability
 protocols. Wires the shared RuntimeStatusProtocol into the launcher and
 shutdown capabilities so status is consistent across operations.
+
+P0: Updated locate_and_register() to accept only optional override (config injected internally).
+P0: Updated launch() and shutdown() to accept request VOs.
 """
 
 from __future__ import annotations
@@ -28,8 +31,8 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
@@ -37,14 +40,18 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
+    ShutdownRequestVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherOrchestrator(ILauncherOperateAggregate):
-    """Orchestrates launcher operations through 5 individual capability protocols."""
+    """Orchestrates launcher operations through 5 individual capability protocols.
+
+    P0: locate_and_register() accepts only optional override — config is injected.
+    P0: launch() and shutdown() accept request VOs instead of primitive parameters.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
@@ -64,27 +71,38 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         self._config = config
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
-        """Delegate executable location/registration to the capabilities layer."""
-        logger.info("Orchestrating locate_and_register")
-        return self._locate.locate_and_register(config, override)
+    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
+        """Delegate executable location/registration to the capabilities layer.
 
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Delegate launch to the capabilities layer, persist state, and mark launch time."""
-        logger.info("Orchestrating launch (mode=%s)", mode.value)
-        result = self._launch.launch(mode, readiness_timeout_seconds)
+        P0: Config is injected internally; caller passes only optional override.
+        """
+        logger.info("Orchestrating locate_and_register")
+        config = self._config
+        if config is not None:
+            return self._locate.locate_and_register(config, override)
+        # Fallback: no config available — still allow registration via override
+        return self._locate.locate_and_register(LauncherConfigVO(), override if override is not None else None)
+
+    def launch(self, request: LaunchRequestVO) -> LaunchOutcomeVO:
+        """Delegate launch to the capabilities layer, persist state, and mark launch time.
+
+        P0: Accepts LaunchRequestVO instead of primitive parameters.
+        """
+        logger.info("Orchestrating launch (mode=%s)", request.mode.value)
+        result = self._launch.launch(request)
         if result.success and result.process_id is not None:
             # Mark launch time so uptime can be calculated by status checker
             self._status.mark_launched(time.time())
             self._persist_state_after_launch(result)
         return result
 
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Delegate shutdown to the capabilities layer and update persisted state."""
-        logger.info("Orchestrating shutdown (force=%s)", force)
-        result = self._shutdown.shutdown(force, allow_escalation)
+    def shutdown(self, request: ShutdownRequestVO) -> ShutdownOutcomeVO:
+        """Delegate shutdown to the capabilities layer and update persisted state.
+
+        P0: Accepts ShutdownRequestVO instead of primitive parameters.
+        """
+        logger.info("Orchestrating shutdown (force=%s)", request.force_requested)
+        result = self._shutdown.shutdown(request)
         if result.success:
             self._persist_state_after_shutdown(result)
         return result

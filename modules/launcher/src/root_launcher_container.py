@@ -189,6 +189,9 @@ class LauncherContainer:
             event_sink=_event_sink,  # P0 (Finding #5): Wire event sink for lifecycle events
         )
 
+        # P0: Config-driven probe interval (P2: use config for readiness probe interval)
+        probe_interval = self._config.readiness_probe_interval_seconds if self._config else 0.5
+
         self._orchestrator = LauncherOrchestrator(
             locate_register_cap=locate_cap,
             launch_cap=launch_cap,
