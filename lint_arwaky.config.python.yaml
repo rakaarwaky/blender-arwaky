@@ -348,9 +348,11 @@ architecture:
           "# fmt: off",
           "# ruff: noqa",
           "# pylint: disable",
+          "# nosec",
           "Any",
           "except:",
           "pass",
+
         ]
       exceptions: []
 
