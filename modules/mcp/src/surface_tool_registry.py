@@ -39,7 +39,7 @@ class ToolRegistrySurface:
         from .surface_scene_tools import SceneToolsSurface
         SceneToolsSurface.register_scene_tools(mcp)
 
-        # Asset aggregate reachability (AES505) — wire IAssetAggregate into surface layer
-        from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
-        _ = IAssetAggregate
+        # Asset tools — search/download via IAssetAggregate (AES505 fix)
+        from .surface_asset_tools import AssetToolsSurface
 
+        AssetToolsSurface.register_asset_tools(mcp)
