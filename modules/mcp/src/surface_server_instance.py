@@ -26,10 +26,19 @@ from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 
-from modules.mcp.src.capabilities_mcp_bootstrap import (
+from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
+from modules.shared.src.mcp.utility_mcp_bootstrap import (
     record_startup,
 )
-from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
+
+# Module-level imports for AES506 linter traceability — ensures the linter's
+# static import graph can trace from this surface to tool registry and prompts.
+# These are imported inside get_mcp_instance() at runtime but must be at module
+# level for the static import graph resolver to detect them.
+from .surface_prompt_register import PromptRegistrationModule
+from .surface_tool_registry import ToolRegistrySurface
+
+_surface_references = (PromptRegistrationModule, ToolRegistrySurface)
 
 logger = logging.getLogger("BlenderMCPServer")
 

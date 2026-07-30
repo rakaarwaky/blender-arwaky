@@ -32,7 +32,7 @@ from .taxonomy_mcp_constant import (
     TOOL_READ_SKILL,
 )
 from .taxonomy_mcp_event import McpEvent, McpEventKind
-from .taxonomy_mcp_vo import McpResponse, McpServerConfig, McpToolDef
+from .taxonomy_mcp_vo import McpResponse, McpServerBootstrapVO, McpServerConfig, McpToolDef
 from .utility_response_formatter import envelope_with_tracking, mask_secrets, truncate_oversized
 from .utility_routing_proxy import normalize_payload, route_tool_call, validate_execute_command_input
 
@@ -48,7 +48,9 @@ __all__ = [
     "McpEvent",
     "McpToolDef",
     "McpServerConfig",
+    "McpServerBootstrapVO",
     "McpResponse",
+
     "McpResponseProtocol",
     "McpRoutingProtocol",
     "McpSchemaProtocol",

@@ -7,6 +7,7 @@ from . import (
     surface_list_commands,
     surface_prompt_register,
     surface_read_skill,
+    surface_scene_tools,
     surface_server_instance,
     surface_server_start,
     surface_tool_registry,
@@ -41,4 +42,5 @@ __all__ = [
     "surface_server_instance",
     "surface_server_start",
     "surface_tool_registry",
+    "surface_scene_tools",
 ]
