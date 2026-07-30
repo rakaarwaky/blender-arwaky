@@ -50,12 +50,3 @@ class ConnectionMaintenanceProtocol(ABC):
         Pass None to transition to closed/disconnected state.
         """
         ...
-
-    @abstractmethod
-    def set_active_operation(self, active: bool) -> None:
-        """Signal whether a long-running operation is currently active.
-
-        P1: Used by orchestrator to manage heartbeat/reconnect behavior during
-        active operations. When True, heartbeats should not trigger reconnect.
-        """
-        ...

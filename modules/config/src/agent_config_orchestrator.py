@@ -144,12 +144,9 @@ class ConfigOrchestrator(IConfigAggregate):
 
     def _record_event(self, event: object) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
-        # Normalize to JSON-safe dict (resolves dataclass fields, tuples, NewTypes)
-        raw = asdict(event)
-        payload: dict[str, object] = json.loads(json.dumps(raw, default=str))
-
+        payload = asdict(event)
         # Apply redaction to prevent secret leakage in event logs
-        redacted_payload = self._redaction_rules.redact_dict(payload)
+        redacted_payload = self._redaction_rules.redact_dict(payload) if isinstance(payload, dict) else payload
         self._event_buffer.append(redacted_payload)
         logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 

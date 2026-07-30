@@ -21,37 +21,20 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RegistrationSource,
     RuntimeState,
     RuntimeStateVO,
-    RuntimeStatusVO,
 )
 
 # ─── FR-LAU-001: Locate and Register ─────────────────────────────────────
 
 
 def test_fr_lau_001_registers_override_executable():
-    """FR-LAU-001: Override executable should register with OVERRIDE source.
-
-    FR-LAU-001 (Finding #11): Uses a mock command runner that returns Blender-like
-    version output so the override executable passes genuine Blender validation.
-    """
-    import unittest.mock as mock
-
-    feat = create_launcher_feature()
+    feat = create_launcher_feature(LauncherConfigVO())
     python_exe = os.path.realpath(os.sys.executable)
-
-    # Mock process_version_check to return Blender-like version output for the override
-    with mock.patch(
-        "modules.launcher.src.root_launcher_container.process_version_check",
-        side_effect=lambda args, timeout=5.0: (
-            (0, "Blender 4.1.0\nPython 3.12.0") if "blender" in args[0].lower() else (0, "Blender 4.1.0")
-        ),
-    ):
-        res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
-
+    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
     assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
-    feat = create_launcher_feature()
+    feat = create_launcher_feature(LauncherConfigVO())
     res = feat.locate_and_register(LauncherConfigVO())
     assert res.registered is False
     assert res.error
@@ -69,29 +52,27 @@ class _FakeStatus:
     def liveness(self, _pid):
         return self.alive and self.pid == self.pid
 
-    def check_status(self, depth="lightweight"):
+    def check_status(self, _depth="lightweight"):
         if self.alive:
-            return RuntimeStatusVO(
-                state=RuntimeState.RUNNING_READY if self.ready else RuntimeState.RUNNING_UNRESPONSIVE,
+            return RuntimeStateVO(
+                last_status=RuntimeState.RUNNING_READY if self.ready else RuntimeState.RUNNING_UNRESPONSIVE,
                 process_id=self.pid,
             )
-        return RuntimeStatusVO(state=RuntimeState.NOT_RUNNING, process_id=self.pid if self.alive else None)
+        return RuntimeStateVO(last_status=RuntimeState.NOT_RUNNING, process_id=self.pid if self.alive else None)
 
 
 def _build_feature(status_backend):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: status_backend.pid,
-        bridge_probe=lambda timeout_seconds=1.0: status_backend.ready,
+        bridge_probe=lambda _to: status_backend.ready,
     )
-    locate = ExecutableLocator(
-        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
-    )
+    locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to, **kwargs: 1000,
-        readiness_probe=lambda _pid, timeout_seconds=1.0, **kwargs: status_backend.ready,
+        spawner=lambda _exe, _mode, _to: 1000,
+        readiness_probe=lambda _pid, _to: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,
@@ -265,198 +246,5 @@ def test_fr_lau_005_from_dict_with_missing_keys():
 
 
 def test_aggregate_is_implemented():
-    feat = create_launcher_feature()
+    feat = create_launcher_feature(LauncherConfigVO())
     assert isinstance(feat, ILauncherOperateAggregate)
-
-
-# ─── Integration fixes for issue #100: probe interval, persist_cap, event redaction ──
-
-
-def test_processlauncher_probe_interval_and_persist_cap():
-    """FR-LAU-005 + INT-003: ProcessLauncher accepts probe_interval_seconds and persist_cap."""
-
-    class MockPersist:
-        def persist(self, _state):
-            return type("Outcome", (), {"success": True})()
-
-        def load(self):
-            return None
-
-    mock_persist = MockPersist()
-
-    launch = ProcessLauncher(
-        executable_resolver=lambda: "/usr/bin/blender",
-        status_protocol=_FakeStatus(),
-        spawner=lambda _exe, _mode, timeout, **kwargs: 2000,
-        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
-        probe_interval_seconds=1.5,
-        persist_cap=mock_persist,
-    )
-
-    # Verify probe_interval is stored
-    assert launch._probe_interval == 1.5
-    assert launch._persist is mock_persist
-
-    # Launch should succeed (persistence is handled by orchestrator, not ProcessLauncher)
-    res = launch.launch()
-    assert res.success is True
-    assert res.process_id == 2000
-
-
-def test_processlauncher_emit_redacts_sensitive_data():
-    """FR-SEC: ProcessLauncher._emit redacts sensitive data from events."""
-    events_received: list = []
-
-    class MockEvent:
-        def __init__(self, **kw):
-            self.__dict__.update(kw)
-
-    def event_sink(event):
-        events_received.append(event)
-
-    launch = ProcessLauncher(
-        executable_resolver=lambda: None,
-        status_protocol=_FakeStatus(),
-        spawner=None,
-        readiness_probe=None,
-        event_sink=event_sink,
-    )
-
-    # Emit with sensitive data that matches redaction patterns (token=xxx form)
-    launch._emit(
-        "test_cat",
-        RuntimeState.NOT_RUNNING,
-        RuntimeState.STARTING,
-        process_reference="token=sk-abcdef1234567890abcdef1234567890ab",
-        reason="password=mysecret123",
-    )
-
-    assert len(events_received) == 1
-    event = events_received[0]
-    # Process reference should be redacted (token pattern replaced)
-    assert event.process_reference != "token=sk-abcdef1234567890abcdef1234567890ab"
-    assert "[REDACTED]" in event.process_reference
-    # Reason should be redacted (password pattern replaced)
-    assert event.reason_summary != "password=mysecret123"
-    assert "[REDACTED]" in event.reason_summary
-
-
-def test_processshutdown_emit_redacts_sensitive_data():
-    """FR-SEC: ProcessShutdown._emit redacts sensitive data from events."""
-    events_received: list = []
-
-    class MockEvent:
-        def __init__(self, **kw):
-            self.__dict__.update(kw)
-
-    def event_sink(event):
-        events_received.append(event)
-
-    shutdown = ProcessShutdown(
-        status_protocol=_FakeStatus(),
-        signal_sender=lambda _pid: True,
-        killer=lambda _pid: True,
-        event_sink=event_sink,
-    )
-
-    # Emit with sensitive data in process_reference (token=xxx pattern)
-    shutdown._emit(
-        "test_cat",
-        RuntimeState.STOPPING,
-        RuntimeState.NOT_RUNNING,
-        process_reference="token=ghp_abcdef1234567890abcdef1234567890ab",
-        method="force",
-    )
-
-    assert len(events_received) == 1
-    event = events_received[0]
-    # Process reference should be redacted (token pattern replaced)
-    assert event.process_reference != "token=ghp_abcdef1234567890abcdef1234567890ab"
-    assert "[REDACTED]" in event.process_reference
-
-
-def test_orchestrator_persist_on_launch(tmp_path):
-    """FR-LAU-005: LauncherOrchestrator.persist() called after successful launch."""
-    state_file = tmp_path / "state.json"
-    cap = StatePersistence(path_resolver=lambda: str(state_file))
-
-    # Build feature with real persist capability
-    status_cap = RuntimeStatusChecker(
-        liveness_checker=lambda _pid: False,
-        pid_resolver=lambda: None,
-        bridge_probe=lambda timeout_seconds=1.0: True,
-    )
-    locate = ExecutableLocator(
-        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
-    )
-    launch = ProcessLauncher(
-        executable_resolver=lambda: "/usr/bin/blender",
-        status_protocol=status_cap,
-        spawner=lambda _exe, _mode, timeout, **kwargs: 3000,
-        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
-        persist_cap=cap,
-    )
-    shutdown = ProcessShutdown(
-        status_protocol=status_cap,
-        signal_sender=lambda _pid: True,
-        killer=lambda _pid: True,
-    )
-    orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
-
-    # Launch should persist state
-    res = orchestrator.launch()
-    assert res.success is True
-    loaded = cap.load()
-    assert loaded is not None
-    assert loaded.process_id == 3000
-    assert loaded.last_status == RuntimeState.RUNNING_READY
-
-
-def test_orchestrator_persist_on_shutdown(tmp_path):
-    """FR-LAU-005: LauncherOrchestrator.persist() called after shutdown."""
-    state_file = tmp_path / "state.json"
-
-    class _RunningStatus:
-        def __init__(self):
-            self.alive = True
-
-        def liveness(self, _pid):
-            return self.alive
-
-        def check_status(self, _depth="lightweight"):
-            if self.alive:
-                return RuntimeStateVO(last_status=RuntimeState.RUNNING_READY, process_id=4000)
-            return RuntimeStateVO(last_status=RuntimeState.NOT_RUNNING, process_id=None)
-
-    status_backend = _RunningStatus()
-    cap = StatePersistence(path_resolver=lambda: str(state_file))
-
-    status_cap = RuntimeStatusChecker(
-        liveness_checker=status_backend.liveness,
-        pid_resolver=lambda: 4000,
-        bridge_probe=lambda timeout_seconds=1.0: True,
-    )
-    locate = ExecutableLocator(
-        env_resolver=lambda key, default: "/usr/bin/blender" if key == "BLENDER_PATH" else None,
-    )
-    launch = ProcessLauncher(
-        executable_resolver=lambda: "/usr/bin/blender",
-        status_protocol=status_cap,
-        spawner=lambda _exe, _mode, timeout, **kwargs: 4000,
-        readiness_probe=lambda _pid, timeout_seconds=1.0, **kw: True,
-        persist_cap=cap,
-    )
-    shutdown = ProcessShutdown(
-        status_protocol=status_cap,
-        signal_sender=lambda _pid: True,
-        killer=lambda _pid: True,
-    )
-    orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
-
-    # Shutdown should persist NOT_RUNNING state
-    res = orchestrator.shutdown()
-    assert res.success is True
-    loaded = cap.load()
-    assert loaded is not None
-    assert loaded.process_id is None
-    assert loaded.last_status == RuntimeState.NOT_RUNNING

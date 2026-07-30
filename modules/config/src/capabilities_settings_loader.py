@@ -40,7 +40,6 @@ from modules.shared.src.config.taxonomy_config_error import (
     ConfigLoadError,
     ConfigParseError,
     ConfigPathError,
-    ConfigTypeError,
     ConfigValidationError,
 )
 from modules.shared.src.config.taxonomy_config_event import (
@@ -172,7 +171,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
                 return self._cached
-            except (ConfigLoadError, ConfigParseError, ConfigValidationError, ConfigPathError, ConfigTypeError):
+            except (ConfigLoadError, ConfigParseError, ConfigValidationError):
                 if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
                     return self._cached
                 raise

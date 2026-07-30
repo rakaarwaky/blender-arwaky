@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigPath, Timestamp, Timestamp
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
@@ -62,7 +62,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
-            timestamp=Timestamp(time.time()),
+            timestamp=time.time(),
         )
 
 # ─── Block 3: Resolution Strategy ─────────────────────────
@@ -70,11 +70,8 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     def _resolve_uncached(self) -> WorkspacePath:
         # 1. Explicit override
         if self._explicit_override:
-            try:
-                candidate = Path(self._explicit_override).resolve()
-            except OSError:
-                candidate = None
-            if candidate and candidate.is_dir():
+            candidate = Path(self._explicit_override).resolve()
+            if candidate.is_dir():
                 return WorkspacePath(path=str(candidate), strategy="explicit_override")
             logger.warning(
                 "Explicit workspace override is not a directory: %s",
@@ -93,11 +90,8 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
 
         # 3. Settings file parent (NEW)
         if self._config_path:
-            try:
-                candidate = Path(str(self._config_path)).resolve().parent
-            except OSError:
-                candidate = None
-            if candidate and candidate.is_dir():
+            candidate = Path(str(self._config_path)).resolve().parent
+            if candidate.is_dir():
                 return WorkspacePath(path=str(candidate), strategy="settings_file_location")
             logger.warning(
                 "Settings file parent is not a directory: %s",
