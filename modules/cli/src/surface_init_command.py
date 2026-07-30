@@ -20,9 +20,10 @@ def handle(args: object) -> dict[str, object]:
 
     filepath = os.path.abspath(args.filepath)
     try:
-        proc_info = launch_blender(filepath, mode=args.mode, port=args.port)
-        registry.set_active(filepath, proc_info.pid, args.port)
-        return {"success": True, "message": "Blender session started", "filepath": filepath, "pid": proc_info.pid, "port": args.port, "mode": args.mode}
+        pid = launch_blender(filepath, mode=args.mode, port=args.port)
+        registry.set_active(filepath, pid, args.port)
+        return {"success": True, "message": "Blender session started", "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
+
 
     except Exception:
         return _mask_error("unexpected", "cli-500")
