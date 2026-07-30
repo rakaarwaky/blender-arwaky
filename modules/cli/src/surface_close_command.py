@@ -27,8 +27,9 @@ def handle(args: object) -> dict[str, object]:
     except Exception:
         save_failed = True
 
-    if pid and is_running(pid):
+    if pid and is_running(pid).success:
         kill_blender(pid)
+
 
     registry.clear()
 

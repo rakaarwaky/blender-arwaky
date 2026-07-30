@@ -15,5 +15,5 @@ class CliProcessCapability(ICliProcessProtocol):
 
     async def is_process_running(self, pid: int) -> CliResultVo:
         """Check if process is running."""
-        running = is_running(pid)
-        return CliResultVo(success=True, message=str(running))
+        return is_running(pid)
+

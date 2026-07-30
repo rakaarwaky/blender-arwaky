@@ -15,7 +15,8 @@ def handle(_args: object) -> dict[str, object]:
     return {
         "success": True,
         "active": True,
-        "running": registry.get_pid() is not None and is_running(registry.get_pid()),
+        "running": registry.get_pid() is not None and is_running(registry.get_pid()).success,
+
         "filepath": registry.get_active(),
         "pid": registry.get_pid(),
         "port": registry.get_port(),

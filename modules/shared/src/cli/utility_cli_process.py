@@ -11,14 +11,14 @@ import subprocess
 import sys
 import time
 
-from modules.shared.src.cli.taxonomy_cli_vo import BlenderProcessVo
+from modules.shared.src.cli.taxonomy_cli_vo import BlenderProcessVo, CliResultVo
 
 
-def find_blender() -> str:
-    """Find Blender executable path."""
+def find_blender() -> CliResultVo:
+    """Find Blender executable path returning CliResultVo VO."""
     env_path = os.environ.get("BLENDER_EXECUTABLE")
     if env_path and os.path.exists(env_path):
-        return env_path
+        return CliResultVo(success=True, message=env_path, data={"executable_path": env_path})
 
     common_paths = [
         "/usr/bin/blender",
@@ -29,13 +29,18 @@ def find_blender() -> str:
 
     for path in common_paths:
         if os.path.exists(path):
-            return path
+            return CliResultVo(success=True, message=path, data={"executable_path": path})
 
     found = shutil.which("blender")
     if found and os.path.exists(found):
-        return found
+        return CliResultVo(success=True, message=found, data={"executable_path": found})
 
-    raise FileNotFoundError("Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.")
+    return CliResultVo(
+        success=False,
+        error="Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.",
+        category="not_found",
+        ref="cli-404",
+    )
 
 
 def launch_blender(
@@ -43,10 +48,13 @@ def launch_blender(
     mode: str = "headless",
     port: int = 9876,
     addon_path: str | None = None,
-) -> BlenderProcessVo:
-    """Launch Blender with addon and return BlenderProcessVo (Taxonomy VO)."""
-    blender_exe = find_blender()
+) -> CliResultVo:
+    """Launch Blender with addon returning CliResultVo VO."""
+    blender_res = find_blender()
+    if not blender_res.success or not blender_res.message:
+        return blender_res
 
+    blender_exe = blender_res.message
     pathlib.Path(filepath)
     cmd = [blender_exe]
     if mode == "headless":
@@ -78,16 +86,31 @@ def launch_blender(
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
         )
     except OSError as e:
-        raise RuntimeError(f"Failed to launch Blender process: {e}") from e
+        return CliResultVo(
+            success=False,
+            error=f"Failed to launch Blender process: {e}",
+            category="launch_failed",
+            ref="cli-500",
+        )
 
     try:
         _wait_for_addon(port, timeout=30)
     except TimeoutError as e:
         with contextlib.suppress(Exception):
             process.kill()
-        raise RuntimeError(f"Blender addon not ready on port {port} after 30s") from e
+        return CliResultVo(
+            success=False,
+            error=f"Blender addon not ready on port {port} after 30s: {e}",
+            category="timeout",
+            ref="cli-504",
+        )
 
-    return BlenderProcessVo(pid=process.pid, port=port, filepath=filepath, is_running=True)
+    proc_vo = BlenderProcessVo(pid=process.pid, port=port, filepath=filepath, is_running=True)
+    return CliResultVo(
+        success=True,
+        message="Blender session started",
+        data={"process": proc_vo, "pid": process.pid, "port": port},
+    )
 
 
 def _wait_for_addon(port: int, timeout: int = 30) -> None:
@@ -107,8 +130,8 @@ def _wait_for_addon(port: int, timeout: int = 30) -> None:
     raise TimeoutError(f"Blender addon not ready on port {port} after {timeout}s")
 
 
-def kill_blender(pid: int) -> bool:
-    """Kill a Blender process by PID."""
+def kill_blender(pid: int) -> CliResultVo:
+    """Kill a Blender process by PID returning CliResultVo VO."""
     try:
         os.kill(pid, signal.SIGTERM)
         time.sleep(0.5)
@@ -116,16 +139,21 @@ def kill_blender(pid: int) -> bool:
             os.kill(pid, 0)
             os.kill(pid, signal.SIGKILL)
         except OSError:
-            ...  # Process already terminated between SIGTERM and SIGKILL
-        return True
-    except OSError:
-        return False
+            ...  # Process already terminated
+        return CliResultVo(success=True, message=f"Process {pid} terminated")
+    except OSError as e:
+        return CliResultVo(
+            success=False,
+            error=f"Failed to kill process {pid}: {e}",
+            category="process_error",
+            ref="cli-400",
+        )
 
 
-def is_running(pid: int) -> bool:
-    """Check if a process is running."""
+def is_running(pid: int) -> CliResultVo:
+    """Check if a process is running returning CliResultVo VO."""
     try:
         os.kill(pid, 0)
-        return True
+        return CliResultVo(success=True, message="Process is running", data={"is_running": True})
     except OSError:
-        return False
+        return CliResultVo(success=False, message="Process is not running", data={"is_running": False})
