@@ -1,4 +1,4 @@
-"""CLI process helpers — launch, find, kill, check Blender process."""
+"""CLI process helpers — launch, find, kill, check Blender process securely."""
 
 from __future__ import annotations
 
@@ -7,18 +7,25 @@ import os
 import pathlib
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
 
 from modules.shared.src.cli.taxonomy_cli_vo import BlenderProcessVo, CliResultVo
 
+ALLOWED_MODES = {"headless", "gui"}
+MIN_PORT = 1024
+MAX_PORT = 65535
+
 
 def find_blender() -> CliResultVo:
-    """Find Blender executable path returning CliResultVo VO."""
+    """Find and validate Blender executable path returning CliResultVo VO."""
     env_path = os.environ.get("BLENDER_EXECUTABLE")
-    if env_path and os.path.exists(env_path):
-        return CliResultVo(success=True, message=env_path, data={"executable_path": env_path})
+    if env_path:
+        resolved_env = pathlib.Path(env_path).resolve()
+        if resolved_env.is_file() and os.access(resolved_env, os.X_OK):
+            return CliResultVo(success=True, message=str(resolved_env), data={"executable_path": str(resolved_env)})
 
     common_paths = [
         "/usr/bin/blender",
@@ -27,17 +34,20 @@ def find_blender() -> CliResultVo:
         "C:\\Program Files\\Blender Foundation\\Blender\\blender.exe",
     ]
 
-    for path in common_paths:
-        if os.path.exists(path):
-            return CliResultVo(success=True, message=path, data={"executable_path": path})
+    for path_str in common_paths:
+        candidate = pathlib.Path(path_str)
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return CliResultVo(success=True, message=str(candidate), data={"executable_path": str(candidate)})
 
     found = shutil.which("blender")
-    if found and os.path.exists(found):
-        return CliResultVo(success=True, message=found, data={"executable_path": found})
+    if found:
+        resolved_found = pathlib.Path(found).resolve()
+        if resolved_found.is_file():
+            return CliResultVo(success=True, message=str(resolved_found), data={"executable_path": str(resolved_found)})
 
     return CliResultVo(
         success=False,
-        error="Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.",
+        error="Blender executable not found. Set BLENDER_EXECUTABLE env var or install Blender.",
         category="not_found",
         ref="cli-404",
     )
@@ -49,33 +59,55 @@ def launch_blender(
     port: int = 9876,
     addon_path: str | None = None,
 ) -> CliResultVo:
-    """Launch Blender with addon returning CliResultVo VO."""
+    """Launch Blender securely with validated inputs returning CliResultVo VO."""
+    if mode not in ALLOWED_MODES:
+        return CliResultVo(
+            success=False,
+            error=f"Invalid mode '{mode}'. Must be one of {ALLOWED_MODES}",
+            category="validation_error",
+            ref="cli-400",
+        )
+
+    if not (MIN_PORT <= port <= MAX_PORT):
+        return CliResultVo(
+            success=False,
+            error=f"Port {port} out of valid range [{MIN_PORT}, {MAX_PORT}]",
+            category="validation_error",
+            ref="cli-400",
+        )
+
     blender_res = find_blender()
     if not blender_res.success or not blender_res.message:
         return blender_res
 
     blender_exe = blender_res.message
-    pathlib.Path(filepath)
-    cmd = [blender_exe]
+    resolved_filepath = str(pathlib.Path(filepath).resolve())
+
+    cmd: list[str] = [blender_exe]
     if mode == "headless":
         cmd.append("--background")
-    cmd.append(filepath)
+    cmd.append(resolved_filepath)
 
-    if not os.path.exists(filepath):
-        pre_save_script = f"import bpy\nbpy.ops.wm.save_as_mainfile(filepath=r'{filepath}')"
+    if not os.path.exists(resolved_filepath):
+        pre_save_script = f"import bpy\nbpy.ops.wm.save_as_mainfile(filepath=r'{resolved_filepath}')"
         cmd.extend(["--python-expr", pre_save_script])
 
     if addon_path is None:
-        project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        addon_path = os.path.join(project_root, "blender_mcp_addon")
+        project_root = pathlib.Path(__file__).resolve().parents[4]
+        addon_path_obj = project_root / "blender_mcp_addon"
+    else:
+        addon_path_obj = pathlib.Path(addon_path).resolve()
 
-    if os.path.exists(addon_path):
+    if addon_path_obj.exists():
+        addon_path_str = str(addon_path_obj)
         cmd.extend(
             [
                 "--python-expr",
-                f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
+                f"import sys\nsys.path.insert(0, r'{addon_path_str}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
             ]
         )
+
+    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
 
     try:
         process = subprocess.Popen(
@@ -83,7 +115,7 @@ def launch_blender(
             stdout=subprocess.DEVNULL if mode == "headless" else None,
             stderr=subprocess.DEVNULL if mode == "headless" else None,
             shell=False,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
+            creationflags=creation_flags,
         )
     except OSError as e:
         return CliResultVo(
@@ -105,7 +137,7 @@ def launch_blender(
             ref="cli-504",
         )
 
-    proc_vo = BlenderProcessVo(pid=process.pid, port=port, filepath=filepath, is_running=True)
+    proc_vo = BlenderProcessVo(pid=process.pid, port=port, filepath=resolved_filepath, is_running=True)
     return CliResultVo(
         success=True,
         message="Blender session started",
@@ -115,23 +147,21 @@ def launch_blender(
 
 def _wait_for_addon(port: int, timeout: int = 30) -> None:
     """Wait for Blender addon to be ready on the port."""
-    import socket
-
     start = time.time()
     while time.time() - start < timeout:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            sock.connect(("localhost", port))
-            sock.close()
-            return
+            with socket.create_connection(("127.0.0.1", port), timeout=1.0):
+                return
         except (TimeoutError, ConnectionRefusedError, OSError):
             time.sleep(0.5)
     raise TimeoutError(f"Blender addon not ready on port {port} after {timeout}s")
 
 
 def kill_blender(pid: int) -> CliResultVo:
-    """Kill a Blender process by PID returning CliResultVo VO."""
+    """Kill a Blender process safely by PID returning CliResultVo VO."""
+    if pid <= 0:
+        return CliResultVo(success=False, error="Invalid PID", category="validation_error", ref="cli-400")
+
     try:
         os.kill(pid, signal.SIGTERM)
         time.sleep(0.5)
@@ -139,7 +169,7 @@ def kill_blender(pid: int) -> CliResultVo:
             os.kill(pid, 0)
             os.kill(pid, signal.SIGKILL)
         except OSError:
-            ...  # Process already terminated
+            ...
         return CliResultVo(success=True, message=f"Process {pid} terminated")
     except OSError as e:
         return CliResultVo(
@@ -152,6 +182,9 @@ def kill_blender(pid: int) -> CliResultVo:
 
 def is_running(pid: int) -> CliResultVo:
     """Check if a process is running returning CliResultVo VO."""
+    if pid <= 0:
+        return CliResultVo(success=False, message="Invalid PID", data={"is_running": False})
+
     try:
         os.kill(pid, 0)
         return CliResultVo(success=True, message="Process is running", data={"is_running": True})
