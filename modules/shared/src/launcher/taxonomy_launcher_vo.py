@@ -12,12 +12,12 @@ from dataclasses import field as dc_field
 from enum import Enum
 from typing import NewType
 
-TimeoutSeconds = NewType("TimeoutSeconds", float)
+from modules.shared.src.common.taxonomy_core_vo import FilePath, Host, PortNumber
 
+TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 # ============================================================
 # Shared Taxonomy Enums (replaces primitive str types)
-# Must appear before dataclasses that reference them.
 # ============================================================
 
 
@@ -51,26 +51,8 @@ class LaunchMethod(str, Enum):
 
 
 # ============================================================
-# FRD Error Categories (P0: Machine-readable error taxonomy)
-# ============================================================
-
-
-class LauncherErrorCode(str, Enum):
-    """FRD error categories mapped to machine-readable codes."""
-
-    BLENDER_NOT_RUNNING = "blender_not_running"
-    STATE_ERROR = "state_error"
-    CONFIGURATION_ERROR = "configuration_error"
-    TIMEOUT_ERROR = "timeout_error"
-    LAUNCH_ERROR = "launch_error"
-    VALIDATION_ERROR = "validation_error"
-    TERMINATION_ERROR = "termination_error"
-
-
-# ============================================================
 # Registration Source / Discovery
 # ============================================================
-
 
 class RegistrationSource(str, Enum):
     """How the Blender executable path was discovered."""
@@ -95,7 +77,6 @@ class VersionCompatibility(str, Enum):
 # Runtime State Classification (FR-LAU-004)
 # ============================================================
 
-
 class RuntimeState(str, Enum):
     """Classified runtime state."""
 
@@ -108,67 +89,8 @@ class RuntimeState(str, Enum):
 
 
 # ============================================================
-# FR-LAU-002 / P0: Shared Bridge Endpoint VO
-# ============================================================
-
-
-@dataclass(frozen=True)
-class BridgeEndpointVO:
-    """Shared bridge endpoint — single source for Gateway connection config.
-
-    P0: Eliminates str | None bridge_endpoint across Launcher/Gateway.
-    """
-
-    host: str = "localhost"
-    port: int = 9876
-    protocol_version: str = "2.0.0"
-
-
-# ============================================================
-# FR-LAU-002 / P0: Launch Request VO
-# ============================================================
-
-
-@dataclass(frozen=True)
-class LaunchRequestVO:
-    """FR-LAU-002 launch input with bridge endpoint settings."""
-
-    mode: LaunchMode = LaunchMode.INTERFACE
-    readiness_timeout: TimeoutSeconds | None = None
-    bridge_endpoint: BridgeEndpointVO | None = None
-
-
-# ============================================================
-# FR-LAU-003 / P0: Shutdown Request VO
-# ============================================================
-
-
-@dataclass(frozen=True)
-class ShutdownRequestVO:
-    """FR-LAU-003 shutdown input with explicit force/escalation semantics."""
-
-    force_requested: bool = False
-    escalation_confirmed: bool = True
-
-
-# ============================================================
-# FR-LAU-005 / P1: Load Outcome VO
-# ============================================================
-
-
-@dataclass(frozen=True)
-class LoadOutcomeVO:
-    """FR-LAU-005 load result with warnings and corruption flag."""
-
-    state: RuntimeStateVO | None = None
-    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
-    corrupted: bool = False
-
-
-# ============================================================
 # FR-LAU-001: Locate and Register
 # ============================================================
-
 
 @dataclass(frozen=True)
 class ExecutableReferenceVO:
@@ -181,52 +103,39 @@ class ExecutableReferenceVO:
 
 @dataclass(frozen=True)
 class RegistrationOutcomeVO:
-    """Unified registration result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified registration result — input and output in one VO."""
 
     executable: ExecutableReferenceVO | None = None
     source: RegistrationSource = RegistrationSource.SYSTEM_PATH
     registered: bool = False
     warning: str | None = None
     error: str | None = None
-    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # FR-LAU-002: Launch
 # ============================================================
 
-
 @dataclass(frozen=True)
 class LaunchOutcomeVO:
-    """Unified launch result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified launch result — input and output in one VO."""
 
     success: bool = False
     process_id: int | None = None
     ready: bool = False
-    bridge_endpoint: BridgeEndpointVO | None = None
+    bridge_endpoint: str | None = None
     duration_ms: float = 0.0
     launch_method: LaunchMethod = LaunchMethod.SPAWN
     error: str | None = None
-    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # FR-LAU-003: Shut Down
 # ============================================================
 
-
 @dataclass(frozen=True)
 class ShutdownOutcomeVO:
-    """Unified shutdown result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified shutdown result — input and output in one VO."""
 
     success: bool = False
     termination_method: TerminationMethod = TerminationMethod.NONE
@@ -234,20 +143,15 @@ class ShutdownOutcomeVO:
     final_state: RuntimeState = RuntimeState.NOT_RUNNING
     escalated: bool = False
     error: str | None = None
-    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # FR-LAU-004: Runtime Status
 # ============================================================
 
-
 @dataclass(frozen=True)
 class RuntimeStatusVO:
-    """Unified runtime status — input and output in one VO.
-
-    P1: Added diagnostics metadata fields for operational observability.
-    """
+    """Unified runtime status — input and output in one VO."""
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
     process_id: int | None = None
@@ -255,29 +159,22 @@ class RuntimeStatusVO:
     stale: bool = False
     uptime_seconds: float | None = None
     depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT
-    # P1: Diagnostics metadata
-    diagnostics: dict[str, str] = dc_field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class StatusCheckOutcomeVO:
-    """Unified runtime status check result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified runtime status check result — input and output in one VO."""
 
     state: RuntimeState = RuntimeState.NOT_RUNNING
     process_id: int | None = None
-    bridge_endpoint: BridgeEndpointVO | None = None
+    bridge_endpoint: str | None = None
     duration_ms: float = 0.0
     error: str | None = None
-    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # FR-LAU-005: Persist Runtime State
 # ============================================================
-
 
 @dataclass(frozen=True)
 class RuntimeStateVO:
@@ -286,40 +183,55 @@ class RuntimeStateVO:
     executable_path: str = ""
     process_id: int | None = None
     launch_timestamp: float = 0.0
-    bridge_endpoint: BridgeEndpointVO | None = None
+    bridge_endpoint: str | None = None
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
+
+    def contains_secret(self) -> bool:
+        from dataclasses import fields
+
+        from .taxonomy_launcher_constant import SECRET_KEYS
+
+        field_names = {f.name for f in fields(self)}
+        for key in SECRET_KEYS:
+            if key in field_names:
+                return True
+        return False
 
 
 @dataclass(frozen=True)
 class PersistenceOutcomeVO:
-    """Unified persistence result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified persistence result — input and output in one VO."""
 
     success: bool = False
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
     reconciled: bool = False
-    error_code: LauncherErrorCode | None = None
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 (Finding #14): Load result with corruption differentiation.
+
+    Differentiates between corrupt/unreadable content and missing/empty state file.
+    Returns the loaded state when available, plus warnings for corruption events.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 @dataclass(frozen=True)
 class StatePersistenceOutcomeVO:
-    """Unified state persistence result — input and output in one VO.
-
-    P1: Added error_code field for machine-readable error taxonomy.
-    """
+    """Unified state persistence result — input and output in one VO."""
 
     success: bool = False
     duration_ms: float = 0.0
     error: str | None = None
-    error_code: LauncherErrorCode | None = None
 
 
 # ============================================================
 # Launcher Configuration
 # ============================================================
-
 
 @dataclass(frozen=True)
 class LauncherConfigVO:
@@ -335,5 +247,25 @@ class LauncherConfigVO:
     state_persistence_location: str | None = None
     default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True
-    bridge_endpoint: str | None = None
-    addon_path: str | None = None
+
+
+# ============================================================
+# FR-LAU-002: Launch Request (shared integration contract)
+# ============================================================
+
+@dataclass(frozen=True)
+class BridgeEndpointVO:
+    """Bridge endpoint settings for Blender addon communication."""
+
+    host: Host = Host("localhost")
+    port: PortNumber = PortNumber(9876)
+
+
+@dataclass(frozen=True)
+class LaunchRequestVO:
+    """Unified launch request — input and output in one frozen VO."""
+
+    filepath: FilePath | None = None
+    mode: LaunchMode = LaunchMode.INTERFACE
+    bridge_endpoint: BridgeEndpointVO | None = None
+    readiness_timeout_seconds: TimeoutSeconds | None = None

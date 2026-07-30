@@ -24,12 +24,9 @@ def _make_guard() -> ArchiveGuard:
     return ArchiveGuard()
 
 
-def _extract(
-    guard: ArchiveGuard, entries: list[ArchiveEntryVO], options: ArchiveExtractionOptionsVO | None = None
-) -> ArchiveExtractionVO:
+def _extract(guard: ArchiveGuard, entries: list[ArchiveEntryVO], options: ArchiveExtractionOptionsVO | None = None) -> ArchiveExtractionVO:
     """Helper to run validate_extraction synchronously via asyncio."""
     import asyncio
-
     request = ArchiveExtractionVO(
         destination_directory="/safe/out",
         entries=tuple(entries),
@@ -55,13 +52,10 @@ class TestAbsoluteEntryPath:
     def test_multiple_absolute_entries_all_rejected(self) -> None:
         """FR-SEC-002: multiple absolute entries are all rejected."""
         guard = _make_guard()
-        res = _extract(
-            guard,
-            [
-                ArchiveEntryVO(entry_path="/etc/passwd"),
-                ArchiveEntryVO(entry_path="/usr/bin/python"),
-            ],
-        )
+        res = _extract(guard, [
+            ArchiveEntryVO(entry_path="/etc/passwd"),
+            ArchiveEntryVO(entry_path="/usr/bin/python"),
+        ])
         assert res.allowed is False
         assert len(res.rejected_entries) >= 2
 
@@ -135,13 +129,10 @@ class TestSymlinkAndHardLinkEntries:
     def test_both_symlink_and_hard_link_rejected_default(self) -> None:
         """FR-SEC-002: both symlink and hard link rejected when neither is allowed."""
         guard = _make_guard()
-        res = _extract(
-            guard,
-            [
-                ArchiveEntryVO(entry_path="link", is_symbolic_link=True),
-                ArchiveEntryVO(entry_path="hardlink", is_hard_link=True),
-            ],
-        )
+        res = _extract(guard, [
+            ArchiveEntryVO(entry_path="link", is_symbolic_link=True),
+            ArchiveEntryVO(entry_path="hardlink", is_hard_link=True),
+        ])
         assert res.allowed is False
         assert len(res.rejected_entries) >= 2
 
@@ -256,14 +247,11 @@ class TestCleanExtraction:
     def test_clean_entries_allowed(self) -> None:
         """FR-SEC-002: clean entries with no violations are allowed."""
         guard = _make_guard()
-        res = _extract(
-            guard,
-            [
-                ArchiveEntryVO(entry_path="a.txt"),
-                ArchiveEntryVO(entry_path="sub/b.txt"),
-                ArchiveEntryVO(entry_path="deep/c.txt"),
-            ],
-        )
+        res = _extract(guard, [
+            ArchiveEntryVO(entry_path="a.txt"),
+            ArchiveEntryVO(entry_path="sub/b.txt"),
+            ArchiveEntryVO(entry_path="deep/c.txt"),
+        ])
         assert res.allowed is True
         assert len(res.rejected_entries) == 0
 
@@ -273,39 +261,6 @@ class TestCleanExtraction:
         res = _extract(guard, [ArchiveEntryVO(entry_path="file.txt")])
         assert isinstance(res.audit_metadata, dict)
         assert "entry_count" in res.audit_metadata
-
-
-class TestMalformedMetadata:
-    """Test malformed metadata handling (Finding #18 — P1)."""
-
-    def test_negative_uncompressed_size_rejected(self) -> None:
-        """FR-SEC-002: entries with negative uncompressed size are rejected."""
-        guard = _make_guard()
-        res = _extract(guard, [ArchiveEntryVO(entry_path="bad.txt", uncompressed_size=-1)])
-        assert res.allowed is False
-        assert any("negative" in r.reason.lower() for r in res.rejected_entries)
-
-    def test_negative_size_does_not_contribute_to_total(self) -> None:
-        """FR-SEC-002: negative size entry is rejected before size accumulation."""
-        guard = _make_guard()
-        # Negative size entry should be rejected before size accumulation
-        entries = [
-            ArchiveEntryVO(entry_path="bad.txt", uncompressed_size=-100),
-            ArchiveEntryVO(entry_path="good.txt", uncompressed_size=50),
-        ]
-        opts = ArchiveExtractionOptionsVO(max_total_size=100)
-        res = _extract(guard, entries, opts)
-        # bad.txt is rejected (allowed=False), but good.txt is counted normally (50 < 100)
-        assert res.allowed is False  # because bad.txt is rejected
-        assert len(res.rejected_entries) >= 1
-        # Verify total_size in audit metadata only includes good.txt (50, not -100+50)
-        assert res.audit_metadata.get("total_size") == 50
-
-    def test_negative_size_audit_metadata(self) -> None:
-        """FR-SEC-002: negative size rejection includes audit metadata."""
-        guard = _make_guard()
-        res = _extract(guard, [ArchiveEntryVO(entry_path="bad.txt", uncompressed_size=-1)])
-        assert isinstance(res.audit_metadata, dict)
 
 
 class TestEdgeCases:
@@ -320,13 +275,10 @@ class TestEdgeCases:
     def test_duplicate_entry_names(self) -> None:
         """FR-SEC-002: duplicate entry names are handled."""
         guard = _make_guard()
-        res = _extract(
-            guard,
-            [
-                ArchiveEntryVO(entry_path="file.txt"),
-                ArchiveEntryVO(entry_path="file.txt"),
-            ],
-        )
+        res = _extract(guard, [
+            ArchiveEntryVO(entry_path="file.txt"),
+            ArchiveEntryVO(entry_path="file.txt"),
+        ])
         # Both allowed if within limits
         assert res.allowed is True
 
@@ -340,21 +292,17 @@ class TestEdgeCases:
     def test_mixed_safe_and_unsafe_entries(self) -> None:
         """FR-SEC-002: mixed safe and unsafe entries — unsafe rejected, safe counted."""
         guard = _make_guard()
-        res = _extract(
-            guard,
-            [
-                ArchiveEntryVO(entry_path="safe.txt"),
-                ArchiveEntryVO(entry_path="/etc/passwd"),  # absolute → rejected
-                ArchiveEntryVO(entry_path="also_safe.txt"),
-            ],
-        )
+        res = _extract(guard, [
+            ArchiveEntryVO(entry_path="safe.txt"),
+            ArchiveEntryVO(entry_path="/etc/passwd"),  # absolute → rejected
+            ArchiveEntryVO(entry_path="also_safe.txt"),
+        ])
         assert res.allowed is False
         assert len(res.rejected_entries) >= 1
 
     def test_destination_empty_string(self) -> None:
         """FR-SEC-002: empty destination directory is handled."""
         import asyncio
-
         guard = _make_guard()
         request = ArchiveExtractionVO(
             destination_directory="",

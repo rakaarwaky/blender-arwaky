@@ -12,9 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
-    DEFAULT_BACKGROUND_CAPACITY,
-)
+from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import SyncDispatchProtocol
 from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
 
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
@@ -32,26 +30,21 @@ class DispatcherContainer:
     """Dependency injection container for the dispatcher feature module.
 
     Wires the six dispatcher capabilities to the aggregate orchestrator.
+    Optionally wires launcher action routing via SyncDispatchExecutor.
     """
 
     def __init__(
         self,
         job_lifecycle: IJobLifecycle | None = None,
-        action_executor: object | None = None,
+        launcher_action_router: object | None = None,
     ) -> None:
         self._job_lifecycle = job_lifecycle
-        self._action_executor = action_executor
+        self._launcher_router = launcher_action_router
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
-        self._execute_action: object | None = None
 
-    def wire(self, execute_action: object | None = None) -> None:
-        """Wire the six dispatcher capabilities to the orchestrator.
-
-        FR-DSP-004: SyncDispatchExecutor requires a non-null action executor.
-        Pass an execute_action callable (e.g., Gateway's code execution executor)
-        to enable synchronous dispatch routing.
-        """
+    def wire(self) -> None:
+        """Wire the six dispatcher capabilities to the orchestrator."""
         if self._wired:
             return
 
@@ -64,21 +57,18 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-
-        # FR-DSP-004: Wire SyncDispatchExecutor with provided action executor
-        execute_action = execute_action or self._execute_action
-        sync_dispatch: SyncDispatchExecutor | None = None
-        if execute_action is not None:
-            sync_dispatch = SyncDispatchExecutor(execute_action=execute_action)
-
-        background_submit: BackgroundSubmitExecutor | None = None
-        if self._job_lifecycle:
-            background_submit = BackgroundSubmitExecutor(
+        background_submit = (
+            BackgroundSubmitExecutor(
                 job_tracker=self._job_lifecycle,
-                background_capacity=DEFAULT_BACKGROUND_CAPACITY,
             )
-
+            if self._job_lifecycle
+            else None
+        )
         result_normalization = ResultNormalizationExecutor()
+
+        sync_dispatch: SyncDispatchProtocol | None = None
+        if self._launcher_router is not None:
+            sync_dispatch = SyncDispatchExecutor(self._launcher_router)
 
         self._orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog_registration,
@@ -92,10 +82,6 @@ class DispatcherContainer:
         self._wired = True
         logger.info("Dispatcher feature module wired successfully")
 
-    def set_execute_action(self, executor: object) -> None:
-        """Register an action executor for sync dispatch routing."""
-        self._execute_action = executor
-
     @property
     def agent(self) -> DispatcherOrchestrator:
         """Return the assembled dispatcher orchestrator facade.
@@ -107,16 +93,8 @@ class DispatcherContainer:
         return self._orchestrator
 
 
-def create_dispatcher_feature(
-    job_lifecycle: IJobLifecycle | None = None,
-    execute_action: object | None = None,
-) -> DispatcherOrchestrator:
-    """Factory function to create and wire the dispatcher feature module.
-
-    Args:
-        job_lifecycle: Optional job lifecycle tracker for background submission.
-        execute_action: Optional action executor for sync dispatch routing.
-    """
+def create_dispatcher_feature(job_lifecycle: IJobLifecycle | None = None) -> DispatcherOrchestrator:
+    """Factory function to create and wire the dispatcher feature module."""
     container = DispatcherContainer(job_lifecycle=job_lifecycle)
-    container.wire(execute_action=execute_action)
+    container.wire()
     return container.agent

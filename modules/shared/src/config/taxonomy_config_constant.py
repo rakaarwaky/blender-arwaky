@@ -30,7 +30,7 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 # ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
-WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"  # replaces both legacy+product root lookup
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"      # replaces both legacy+product root lookup
 STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 
@@ -63,45 +63,6 @@ PROJECT_MARKERS: tuple[str, ...] = (
 DEFAULT_SETTINGS: dict[str, Any] = {
     "blender": {"executable_path": "blender", "host": "localhost", "port": 9876},
     "server": {"transport": "stdio", "log_dir": "log"},
-    # Launcher config defaults (P0: FRD/PRD dependency alignment)
-    "launcher": {
-        "executable_path": None,
-        "search_locations": [],
-        "supported_version_range": "",
-        "launch_timeout_seconds": 30.0,
-        "shutdown_timeout_seconds": 10.0,
-        "force_termination_enabled": True,
-        "readiness_probe_interval_seconds": 0.5,
-        "state_persistence_location": None,
-        "default_launch_mode": "interface",
-        "stale_reconciliation_enabled": True,
-        "bridge_endpoint": None,
-        "addon_path": None,
-    },
-}
-
-# ─── Launcher Config Schema (FR-CFG-001, Q3) ────────────────
-# 10 launcher config keys required by FRD/PRD dependencies.
-
-LAUNCHER_CONFIG_SCHEMA: dict[str, Any] = {
-    "launcher": {
-        "type": "dict",
-        "required": False,
-        "children": {
-            "executable_path": {"type": "str", "required": False},
-            "search_locations": {"type": "list", "required": False},
-            "supported_version_range": {"type": "str", "required": False},
-            "launch_timeout_seconds": {"type": "float", "required": False},
-            "shutdown_timeout_seconds": {"type": "float", "required": False},
-            "force_termination_enabled": {"type": "bool", "required": False},
-            "readiness_probe_interval_seconds": {"type": "float", "required": False},
-            "state_persistence_location": {"type": "str", "required": False},
-            "default_launch_mode": {"type": "str", "required": False},
-            "stale_reconciliation_enabled": {"type": "bool", "required": False},
-            "bridge_endpoint": {"type": "str", "required": False},
-            "addon_path": {"type": "str", "required": False},
-        },
-    },
 }
 
 # ─── Settings Schema (FR-CFG-001, Q3) ───────────────────────
@@ -125,8 +86,6 @@ SETTINGS_SCHEMA: dict[str, Any] = {
             "log_dir": {"type": "str", "required": False},
         },
     },
-    # Merge launcher config schema (P0: FRD/PRD dependency alignment)
-    **LAUNCHER_CONFIG_SCHEMA["launcher"]["children"],  # type: ignore[dict-item]
 }
 
 # ─── Limits (FR-CFG-001) ─────────────────────────────────────

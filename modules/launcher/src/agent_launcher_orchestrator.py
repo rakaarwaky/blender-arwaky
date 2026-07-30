@@ -12,15 +12,11 @@ protocols. Implements LauncherOperateAggregate.
 Orchestration only — no business logic; depends on individual capability
 protocols. Wires the shared RuntimeStatusProtocol into the launcher and
 shutdown capabilities so status is consistent across operations.
-
-P0: Updated locate_and_register() to accept only optional override (config injected internally).
-P0: Updated launch() and shutdown() to accept request VOs.
 """
 
 from __future__ import annotations
 
 import logging
-import time
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
@@ -36,22 +32,16 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
-    RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    ShutdownRequestVO,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class LauncherOrchestrator(ILauncherOperateAggregate):
-    """Orchestrates launcher operations through 5 individual capability protocols.
-
-    P0: locate_and_register() accepts only optional override — config is injected.
-    P0: launch() and shutdown() accept request VOs instead of primitive parameters.
-    """
+    """Orchestrates launcher operations through 5 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
@@ -61,51 +51,29 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         shutdown_cap: ShutdownProtocol,
         status_cap: RuntimeStatusProtocol,
         persist_cap: PersistStateProtocol,
-        config: LauncherConfigVO | None = None,
     ) -> None:
         self._locate = locate_register_cap
         self._launch = launch_cap
         self._shutdown = shutdown_cap
         self._status = status_cap
         self._persist = persist_cap
-        self._config = config
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, override: FilePath | None = None) -> RegistrationOutcomeVO:
-        """Delegate executable location/registration to the capabilities layer.
-
-        P0: Config is injected internally; caller passes only optional override.
-        """
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
+        """Delegate executable location/registration to the capabilities layer."""
         logger.info("Orchestrating locate_and_register")
-        config = self._config
-        if config is not None:
-            return self._locate.locate_and_register(config, override)
-        # Fallback: no config available — still allow registration via override
-        return self._locate.locate_and_register(LauncherConfigVO(), override if override is not None else None)
+        return self._locate.locate_and_register(config, override)
 
-    def launch(self, request: LaunchRequestVO) -> LaunchOutcomeVO:
-        """Delegate launch to the capabilities layer, persist state, and mark launch time.
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """Delegate launch to the capabilities layer."""
+        req = request or LaunchRequestVO()
+        logger.info("Orchestrating launch (mode=%s)", req.mode.value)
+        return self._launch.launch(request)
 
-        P0: Accepts LaunchRequestVO instead of primitive parameters.
-        """
-        logger.info("Orchestrating launch (mode=%s)", request.mode.value)
-        result = self._launch.launch(request)
-        if result.success and result.process_id is not None:
-            # Mark launch time so uptime can be calculated by status checker
-            self._status.mark_launched(time.time())
-            self._persist_state_after_launch(result)
-        return result
-
-    def shutdown(self, request: ShutdownRequestVO) -> ShutdownOutcomeVO:
-        """Delegate shutdown to the capabilities layer and update persisted state.
-
-        P0: Accepts ShutdownRequestVO instead of primitive parameters.
-        """
-        logger.info("Orchestrating shutdown (force=%s)", request.force_requested)
-        result = self._shutdown.shutdown(request)
-        if result.success:
-            self._persist_state_after_shutdown(result)
-        return result
+    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
+        """Delegate shutdown to the capabilities layer."""
+        logger.info("Orchestrating shutdown (force=%s)", force)
+        return self._shutdown.shutdown(force, allow_escalation)
 
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Delegate status check to the capabilities layer."""
@@ -120,34 +88,3 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
     def status(self) -> RuntimeStatusProtocol:
         """Expose the status capability for health composition consumers."""
         return self._status
-
-    # ─── Persistence helpers (Critical #7: orchestrator coordination) ─────
-    def _persist_state_after_launch(self, outcome: LaunchOutcomeVO) -> None:
-        """Persist runtime state after a successful launch."""
-        try:
-            self._persist.persist(
-                RuntimeStateVO(
-                    executable_path=self._config.executable_path if self._config else "",
-                    process_id=outcome.process_id,
-                    launch_timestamp=time.time(),
-                    bridge_endpoint=outcome.bridge_endpoint,
-                    last_status=RuntimeState.RUNNING_READY,
-                )
-            )
-        except Exception as exc:
-            logger.warning("Failed to persist state after launch: %s", exc)
-
-    def _persist_state_after_shutdown(self, outcome: ShutdownOutcomeVO) -> None:
-        """Persist runtime state after a successful shutdown."""
-        try:
-            self._persist.persist(
-                RuntimeStateVO(
-                    executable_path="",
-                    process_id=None,
-                    launch_timestamp=0.0,
-                    bridge_endpoint=None,
-                    last_status=RuntimeState.NOT_RUNNING,
-                )
-            )
-        except Exception as exc:
-            logger.warning("Failed to persist state after shutdown: %s", exc)

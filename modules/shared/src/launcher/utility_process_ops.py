@@ -1,28 +1,30 @@
 """Launcher utility: stateless OS process operations.
 
 Provides pure functions for process liveness, signal sending, kill, spawn,
-and readiness probing. No state, no side effects beyond OS calls.
+bridge readiness probing, and launch with bridge arguments. No state, no
+side effects beyond OS calls.
 
 Dependencies: Only taxonomy (for type annotations).
 """
 
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import signal
+import socket
 import subprocess
 import time
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-def process_alive(process_id: int) -> bool:
+def process_alive(process_id: int | None) -> bool:
     """Check if a process is alive using os.kill(pid, 0).
 
     Returns False for invalid PIDs (<=0 or None).
-    EPERM means process exists but caller lacks permission to signal it —
-    treated as alive since the process is running (Finding #6 — P1 fix).
+    EPERM is logged but treated as alive (permission denied ≠ dead).
     """
     if process_id is None or process_id <= 0:
         return False
@@ -30,13 +32,9 @@ def process_alive(process_id: int) -> bool:
         os.kill(process_id, 0)
         return True
     except OSError as e:
-        import errno as _errno
-
-        if e.errno == _errno.ESRCH:
+        if e.errno == errno.ESRCH:
             return False
-        # EPERM (or other errors like EACCES): process exists but caller lacks permission
-        # The process is alive even though we can't signal it (Finding #6 — P1 fix)
-        logger.debug("os.kill(pid=%d) returned %s: %s", process_id, e.errno, e)
+        logger.warning("os.kill(pid=%d) returned EPERM: %s", process_id, e)
         return True
 
 
@@ -75,29 +73,32 @@ def process_kill(process_id: int) -> bool:
 def process_spawn(
     executable: str,
     mode: str,
-    bridge_endpoint: str | None = None,
-    addon_path: str | None = None,
+    bridge_host: str = "localhost",
+    bridge_port: int = 9876,
+    protocol_version: str = "2.0.0",
 ) -> int:
-    """Spawn a Blender process with the given mode and optional integration args.
+    """Spawn a Blender process with the given mode and activate the bridge.
 
-    FR-INT-002: Passes bridge endpoint and addon path as CLI arguments so the
-    Gateway can connect to the running Blender instance.
+    FR-LAU-002 / P1: Passes bridge endpoint + protocol information to enable
+    the integration component (addon/bridge) to start listening.
 
     Returns the process PID. Mode 'headless' adds --background --python-exit-code 1.
-    Uses a new process session (start_new_session=True) for orphan child cleanup support.
     """
     args = [executable]
-
-    # FR-INT-002: Pass bridge endpoint and addon path for Gateway integration
-    if bridge_endpoint:
-        args += ["--bridge-endpoint", bridge_endpoint]
-    if addon_path:
-        args += ["--python-additional", addon_path]
-
     if mode == "headless":
         args += ["--background", "--python-exit-code", "1"]
 
-    proc = subprocess.Popen(args, start_new_session=True)
+    # Activate the integration component and pass bridge settings
+    args += [
+        "--python",
+        "bridge_startup_script.py",
+        "--",
+        f"--bridge-host={bridge_host}",
+        f"--bridge-port={bridge_port}",
+        f"--protocol-version={protocol_version}",
+    ]
+
+    proc = subprocess.Popen(args)
     return proc.pid
 
 
@@ -107,45 +108,44 @@ def process_version_check(args: list[str], timeout: float = 5.0) -> tuple[int, s
     return proc.returncode, proc.stdout
 
 
-def process_probe_readiness(process_id: int, timeout_seconds: float, interval_seconds: float = 0.5) -> bool:
-    """Poll process liveness until timeout. Returns True while alive.
+def process_probe_readiness(
+    process_id: int,
+    bridge_host: str = "localhost",
+    bridge_port: int = 9876,
+    timeout_seconds: float = 30.0,
+) -> bool:
+    """Poll process liveness AND bridge readiness until timeout.
 
-    Checks at configurable interval (default 0.5s, per LauncherConfigVO.readiness_probe_interval_seconds);
-    returns False if process dies before timeout.
+    FR-LAU-004 / P1: Full-depth readiness requires BOTH process liveness
+    AND bridge responsiveness (TCP connect + bridge status/ping).
+
+    Returns True only when both checks pass; returns False if process dies
+    or bridge does not respond within timeout.
     """
     deadline = time.monotonic() + timeout_seconds
+
     while time.monotonic() < deadline:
+        # Check process liveness first
         if not process_alive(process_id):
             return False
-        time.sleep(interval_seconds)
-    return True
 
-
-def process_probe_bridge_readiness(process_id: int, timeout_seconds: float, bridge_endpoint: str | None = None) -> bool:
-    """Poll process liveness AND bridge endpoint responsiveness.
-
-    Returns True only when the process is alive AND the bridge health
-    endpoint is reachable. Checks every 0.2 seconds.
-    """
-    if not bridge_endpoint:
-        return process_probe_readiness(process_id, timeout_seconds)
-    deadline = time.monotonic() + timeout_seconds
-    while time.monotonic() < deadline:
-        if not process_alive(process_id):
-            return False
-        if _bridge_health_check(bridge_endpoint):
+        # Check bridge responsiveness (TCP connect)
+        if bridge_is_responsive(bridge_host, bridge_port, timeout_seconds=0.5):
             return True
+
         time.sleep(0.2)
+
     return False
 
 
-def _bridge_health_check(bridge_endpoint: str) -> bool:
-    """Lightweight HTTP health check against the bridge endpoint."""
-    import urllib.request
+def bridge_is_responsive(host: str, port: int, timeout_seconds: float = 0.5) -> bool:
+    """Check if a bridge is responsive via TCP connect.
 
+    P1: Used by process_probe_readiness to verify bridge component is active.
+    Returns True if a TCP connection can be established within timeout.
+    """
     try:
-        req = urllib.request.Request(bridge_endpoint + "/health", method="GET")
-        with urllib.request.urlopen(req, timeout=1) as resp:
-            return resp.status == 200
-    except Exception:
+        with socket.create_connection((host, port), timeout=timeout_seconds):
+            return True
+    except OSError:
         return False

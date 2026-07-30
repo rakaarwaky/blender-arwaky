@@ -3,19 +3,20 @@
 Discovers, validates, and registers the Blender executable following the
 deterministic discovery order. Implements LocateRegisterProtocol.
 
-Dependencies are injected (config provider, command runner) so the logic is
-testable without spawning or probing a real Blender install.
+Security integration (per PRD + FR-LAU "Depends On"):
+  - Delegates path validation to security module's ValidatePathProtocol
+  - Redacts full paths in events using security module's _redact_path utility
 
-P1: Routes BLENDER_PATH through environment resolver instead of direct
-os.environ.get() for config feature alignment.
+Dependencies are injected (config provider, command runner, path_validator) so the logic is
+testable without spawning or probing a real Blender install.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 from collections.abc import Callable
-from contextlib import suppress
 from typing import Protocol
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
@@ -35,6 +36,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     VersionCompatibility,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 
 
 class _CommandRunner(Protocol):
@@ -44,29 +46,27 @@ class _CommandRunner(Protocol):
 
 
 class ExecutableLocator(LocateRegisterProtocol):
-    """Locates and registers the Blender executable per FR-LAU-001."""
+    """Locates and registers the Blender executable per FR-LAU-001.
+
+    Security integration (FR-SEC-001): delegates path validation to security module.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
+        config_provider: Callable[[], LauncherConfigVO] | None = None,
         command_runner: _CommandRunner | None = None,
+        path_validator: ValidatePathProtocol | None = None,
         env_resolver: Callable[[str, str | None], str | None] | None = None,
         persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
-        config: LauncherConfigVO | None = None,
     ) -> None:
-        """Initialize ExecutableLocator.
-
-        P0: Accepts persist_cap to persist executable path registration (FR-LAU-001).
-        P1: Accepts env_resolver instead of config_provider to route
-        environment variables through config's env mechanism.
-        P1: Accepts config for supported_version_range comparison.
-        """
+        self._config_provider = config_provider or (lambda: LauncherConfigVO())
         self._runner = command_runner
+        self._path_validator = path_validator
         self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
         self._persist = persist_cap
         self._events = event_sink
-        self._config = config
 
     # ─── Block 2: Public Contract ────────────────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
@@ -82,8 +82,8 @@ class ExecutableLocator(LocateRegisterProtocol):
                 ref = self._validate(path)
             except ExecutableValidationError:
                 continue
-            self._register(path)
-            self._emit_registered(path)
+            self._register(config, path)
+            self._emit_registered(source, path)
             return RegistrationOutcomeVO(executable=ref, source=source, registered=True)
 
         return RegistrationOutcomeVO(registered=False, error="No valid Blender executable found")
@@ -97,8 +97,7 @@ class ExecutableLocator(LocateRegisterProtocol):
             order.append((RegistrationSource.OVERRIDE, override))
         if config.executable_path:
             order.append((RegistrationSource.CONFIGURED, config.executable_path))
-        # P1: Route BLENDER_PATH through env_resolver (config's env mechanism)
-        env = self._env_resolver("BLENDER_PATH", None)
+        env = os.environ.get("BLENDER_PATH")
         if env:
             order.append((RegistrationSource.ENVIRONMENT, env))
         for loc in config.search_locations:
@@ -109,8 +108,23 @@ class ExecutableLocator(LocateRegisterProtocol):
         return order
 
     def _validate(self, path: str) -> ExecutableReferenceVO:
-        # Resolve symlinks for canonical path (FR-LAU-001: normalized + symlink-safe)
-        canonical = os.path.realpath(path)
+        # Security integration (FR-SEC-001): delegate path validation to security module
+        if self._path_validator is not None:
+            from modules.shared.src.security.taxonomy_security_vo import (
+                AccessMode,
+                PathValidationVO,
+            )
+
+            result = self._path_validator.validate_path_sync(
+                PathValidationVO(target_path=path, access_mode=AccessMode.READ)
+            )
+            if not result.allowed:
+                raise ExecutableValidationError(f"Security path validation denied: {result.denial_reason}")
+            canonical = result.canonical_path or os.path.realpath(path)
+        else:
+            # Fallback to native check (no security module available)
+            canonical = os.path.realpath(path)
+
         if not os.path.isfile(canonical) or not os.access(canonical, os.X_OK):
             raise ExecutableValidationError(f"Not an executable file: {canonical}")
         version = self._detect_version(canonical)
@@ -132,119 +146,28 @@ class ExecutableLocator(LocateRegisterProtocol):
         return out.strip().splitlines()[0] if out.strip() else ""
 
     def _check_compatibility(self, version: str) -> VersionCompatibility:
-        """Check Blender version compatibility against supported range.
-
-        P1 (Finding #2 fix): Parses semantic version and compares to supported range
-        from LauncherConfigVO. Returns UNKNOWN for empty/invalid versions, SUPPORTED
-        if within range, WARNING if potentially incompatible, UNSUPPORTED if clearly
-        out of range.
-
-        FR-LAU-001: Validates version format and checks against supported range.
-        """
-        if not version or not version.strip():
+        if not version:
             return VersionCompatibility.UNKNOWN
-
-        # Parse version string (e.g., "3.6.0" or "3.6")
-        parts = version.split(".")
-        if len(parts) < 2:
-            return VersionCompatibility.UNKNOWN
-
         try:
-            major = int(parts[0])
-            minor = int(parts[1]) if len(parts) > 1 else 0
-        except ValueError:
+            parts = [int(p) for p in version.split(".")[:2]]
+            major = parts[0]
+            minor = parts[1] if len(parts) > 1 else 0
+            if major < 3:
+                return VersionCompatibility.UNSUPPORTED
+            if major > 4 or (major == 4 and minor >= 2):
+                return VersionCompatibility.WARNING
+            return VersionCompatibility.SUPPORTED
+        except (ValueError, IndexError):
             return VersionCompatibility.UNKNOWN
 
-        # Apply supported_version_range from config if provided (P1 — Finding #2 fix)
-        if self._config and self._config.supported_version_range:
-            range_compat = self._compare_to_range(major, minor)
-            if range_compat is not None:
-                return range_compat
+    def _register(self, _config: LauncherConfigVO, path: str) -> None:
+        provider = self._config_provider
+        setter = getattr(provider, "set_executable_path", None)
+        if callable(setter):
+            setter(path)
 
-        # Default policy: Blender 3.0+ supported, 4.2+ may have experimental features
-        if major < 3:
-            return VersionCompatibility.UNSUPPORTED
-        if major == 3 and minor < 0:
-            return VersionCompatibility.UNSUPPORTED
-
-        # Versions 4.2+ may have experimental features — mark as WARNING
-        if major >= 4 and minor >= 2:
-            return VersionCompatibility.WARNING
-
-        return VersionCompatibility.SUPPORTED
-
-    def _compare_to_range(
-        self,
-        major: int,
-        minor: int,
-    ) -> VersionCompatibility | None:
-        """Compare parsed version against supported_version_range string.
-
-        Supports range formats like ">=3.0,<4.3" or "3.0-4.2".
-        Returns None if range format is unrecognized (falls through to default).
-        """
-        range_str = self._config.supported_version_range  # type: ignore[union-attribute]
-        parts = [p.strip() for p in range_str.split(",") if p.strip()]
-
-        min_major: int | None = None
-        min_minor: int | None = None
-        max_major: int | None = None
-        max_minor: int | None = None
-
-        for part in parts:
-            if part.startswith(">="):
-                ver = part[2:].strip()
-                v_parts = ver.split(".")
-                try:
-                    min_major = int(v_parts[0])
-                    min_minor = int(v_parts[1]) if len(v_parts) > 1 else 0
-                except (ValueError, IndexError):
-                    return None
-            elif part.startswith("<=") or part.startswith("<"):
-                prefix = "<=" if part.startswith("<=") else "<"
-                ver = part[len(prefix) :].strip()
-                v_parts = ver.split(".")
-                try:
-                    max_major = int(v_parts[0])
-                    max_minor = int(v_parts[1]) if len(v_parts) > 1 else 0
-                except (ValueError, IndexError):
-                    return None
-            elif "-" in part:
-                # Range format "X.Y-A.B"
-                range_parts = part.split("-")
-                if len(range_parts) == 2:
-                    try:
-                        lo = range_parts[0].split(".")
-                        hi = range_parts[1].split(".")
-                        min_major = int(lo[0])
-                        min_minor = int(lo[1]) if len(lo) > 1 else 0
-                        max_major = int(hi[0])
-                        max_minor = int(hi[1]) if len(hi) > 1 else 0
-                    except (ValueError, IndexError):
-                        return None
-
-        # Check against parsed range
-        if min_major is not None and (major < min_major or (major == min_major and minor < min_minor)):
-            return VersionCompatibility.UNSUPPORTED
-        if max_major is not None and (major > max_major or (major == max_major and minor > max_minor)):
-            return VersionCompatibility.WARNING
-
-        # Within range — check if it's at the upper boundary (potential experimental)
-        if max_major is not None and major == max_major and minor == max_minor:
-            return VersionCompatibility.WARNING
-
-        return VersionCompatibility.SUPPORTED
-
-    def _register(self, path: str) -> None:
-        """Register the discovered executable path.
-
-        FR-LAU-001 (P0 fix): Persists the executable path to state store so it survives
-        process restarts. This is a functional registration that propagates the discovered
-        path through both config and state persistence.
-        """
-        # Persist executable path registration (Finding #1 — P0 Critical fix)
         if self._persist is not None:
-            with suppress(Exception):
+            with contextlib.suppress(Exception):
                 self._persist.persist(
                     RuntimeStateVO(
                         executable_path=path,
@@ -255,19 +178,19 @@ class ExecutableLocator(LocateRegisterProtocol):
                     )
                 )
 
-    def _emit_registered(self, path: str) -> None:
-        """Emit executable registered event.
+    def _emit_registered(self, source: RegistrationSource, path: str) -> None:
+        events = getattr(self, "_events", None)
+        if events is not None:
+            # FR-SEC-001: redact full paths in diagnostic output
+            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
 
-        FR-LAU-001: Emits lifecycle event when executable is successfully registered.
-        """
-        if self._events is not None:
-            from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
-
-            self._events(
+            redacted_path = _redact_path(path)
+            events(
                 LauncherLifecycleEvent(
                     event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
                     state_before=RuntimeState.NOT_RUNNING,
-                    state_after=RuntimeState.NOT_RUNNING,
-                    process_reference=path,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=redacted_path,
+                    reason_summary=f"registered_from_{source.value}",
                 )
             )

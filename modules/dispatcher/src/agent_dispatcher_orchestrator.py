@@ -130,26 +130,35 @@ class DispatcherOrchestrator(IDispatcherAggregate):
     def execute_action(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Execute an action through the full dispatcher pipeline.
 
-        Respects the caller's execution_mode. Falls back to metadata flags
-        only when execution_mode is not explicitly set.
+        This is the main facade method — validates, dispatches, and normalizes
+        in a single call for consumers who don't need intermediate results.
+        Takes an ActionCommandVO instead of separate action_name/parameters.
+
+        FR-DSP-004/005: Respects caller's execution_mode from ActionCommandVO.
+        When caller explicitly requests 'background', routes to submit_background.
+        When caller explicitly requests 'sync', routes to dispatch_sync.
+        When no mode specified, uses capability flags (bg_eligible / long_running)
+        to auto-route — background eligible or long-running actions go to
+        submit_background, everything else goes to dispatch_sync.
         """
         try:
             validated = self.validate_request(request)
 
-            # Respect caller's explicit execution mode choice
-            mode = validated.execution_mode
-            if mode == "background":
+            # FR-DSP-004/005: Respect caller's explicit execution_mode
+            exec_mode = request.execution_mode
+            if exec_mode == "background":
                 return self.submit_background(validated)
-            if mode == "sync":
+
+            if exec_mode == "sync":
                 return self.dispatch_sync(validated)
 
-            # Fallback: infer from metadata when mode is unset
-            bg_eligible = validated.resolved_metadata.get(
-                "background_eligibility_flag", False
-            )
+            # No explicit mode — auto-route based on capability flags
+            bg_eligible = validated.resolved_metadata.get("background_eligibility_flag", False)
             long_running = validated.resolved_metadata.get("long_running_flag", False)
+
             if bg_eligible or long_running:
                 return self.submit_background(validated)
+
             return self.dispatch_sync(validated)
 
         except DispatchError as e:

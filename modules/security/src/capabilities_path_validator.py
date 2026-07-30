@@ -11,7 +11,6 @@ from typing import Protocol
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
-    AccessMode,
     PathValidationVO,
     SecurityPolicyVO,
 )
@@ -19,6 +18,9 @@ from modules.shared.src.security.utility_security_path import (
     is_within_allowed_dirs,
     normalize_path,
     resolve_path,
+)  # fmt: skip
+from modules.shared.src.security.utility_security_path import (
+    redact_path as _redact_path,
 )
 
 
@@ -33,13 +35,6 @@ class _OsPathResolver:
 
     def resolve(self, path: str) -> str:
         return resolve_path(path)
-
-
-def _redact_path(path: str) -> str:
-    parts = path.replace("\\", "/").split("/")
-    if len(parts) <= 2:
-        return "***"
-    return "/" + "/".join(["***"] + list(parts[-2:]))
 
 
 class PathValidator(ValidatePathProtocol):
@@ -125,32 +120,6 @@ class PathValidator(ValidatePathProtocol):
                 audit_metadata={"rule": "unauthorized_access", "path": _redact_path(resolved)},
             )
 
-        # FR-SEC-001: OS-level permission check — verify actual filesystem permissions
-        if os.path.exists(resolved) or os.path.isdir(os.path.dirname(resolved)):
-            if request.access_mode in (AccessMode.WRITE, AccessMode.CREATE, AccessMode.DELETE, AccessMode.EXTRACT):
-                check_dir = resolved if os.path.isdir(resolved) else os.path.dirname(resolved)
-                if check_dir and not os.access(check_dir, os.W_OK):
-                    return PathValidationVO(
-                        target_path=request.target_path,
-                        access_mode=request.access_mode,
-                        base_directory=request.base_directory,
-                        operation_context=request.operation_context,
-                        allowed=False,
-                        denial_reason="Insufficient write permission",
-                        audit_metadata={"rule": "permission_denied", "path": _redact_path(resolved)},
-                    )
-            elif request.access_mode == AccessMode.READ:
-                if os.path.exists(resolved) and not os.access(resolved, os.R_OK):
-                    return PathValidationVO(
-                        target_path=request.target_path,
-                        access_mode=request.access_mode,
-                        base_directory=request.base_directory,
-                        operation_context=request.operation_context,
-                        allowed=False,
-                        denial_reason="Insufficient read permission",
-                        audit_metadata={"rule": "permission_denied", "path": _redact_path(resolved)},
-                    )
-
         return PathValidationVO(
             target_path=request.target_path,
             access_mode=request.access_mode,
@@ -162,5 +131,14 @@ class PathValidator(ValidatePathProtocol):
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def validate_path_sync(self, request: PathValidationVO) -> PathValidationVO:
+        """Synchronous wrapper for async validate_path (for use in sync contexts)."""
+        import asyncio
+
+        try:
+            return asyncio.get_event_loop().run_until_complete(self.validate_path(request))
+        except RuntimeError:
+            return asyncio.run(self.validate_path(request))
+
     def __repr__(self) -> str:
         return "PathValidator()"

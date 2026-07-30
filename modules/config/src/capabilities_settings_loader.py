@@ -37,11 +37,9 @@ from modules.shared.src.config.taxonomy_config_constant import (
     SETTINGS_SCHEMA,
 )
 from modules.shared.src.config.taxonomy_config_error import (
-    ConfigError,
     ConfigLoadError,
     ConfigParseError,
     ConfigPathError,
-    ConfigTypeError,
     ConfigValidationError,
 )
 from modules.shared.src.config.taxonomy_config_event import (
@@ -118,7 +116,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self._cached_data: SettingsData | None = None
         self._last_metadata: ConfigMetadata = ConfigMetadata()
 
-    # ─── Block 2: Protocol Method Implementation ──────────────
+# ─── Block 2: Protocol Method Implementation ──────────────
 
     def load_settings(
         self,
@@ -173,7 +171,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
                 return self._cached
-            except (ConfigLoadError, ConfigParseError, ConfigValidationError, ConfigPathError, ConfigTypeError):
+            except (ConfigLoadError, ConfigParseError, ConfigValidationError):
                 if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
                     return self._cached
                 raise
@@ -219,9 +217,11 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             timestamp=Timestamp(time.time()),
         )
 
-    # ─── Block 3: Core Build ───────────────────────────────────
+# ─── Block 3: Core Build ───────────────────────────────────
 
-    def _build_core(self, path: ConfigPath | None) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
+    def _build_core(
+        self, path: ConfigPath | None
+    ) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
         """Build merged settings + raw file data + metadata.
 
         Returns (merged, filedata, metadata). ``filedata`` is what gets cached
@@ -240,12 +240,16 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             parse_warnings.append(ParseWarning(f"{resolved} is a directory; using defaults"))
         elif not p.is_file():
             # Missing file: never fatal (Q6).
-            parse_warnings.append(ParseWarning(f"settings file not found: {resolved}; using defaults"))
+            parse_warnings.append(
+                ParseWarning(f"settings file not found: {resolved}; using defaults")
+            )
         else:
             # Size limit (strict-mode gated)
             if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
-                    raise ConfigLoadError(f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes")
+                    raise ConfigLoadError(
+                        f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes"
+                    )
                 parse_warnings.append(ParseWarning(f"settings file too large: {resolved}; skipped"))
             else:
                 try:
@@ -253,23 +257,31 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 except (ConfigParseError, ConfigLoadError, ConfigValidationError):
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise
-                    parse_warnings.append(ParseWarning(f"failed to parse {resolved}; using defaults"))
+                    parse_warnings.append(
+                        ParseWarning(f"failed to parse {resolved}; using defaults")
+                    )
                     file_data = {}
                 except (UnicodeDecodeError, OSError) as exc:
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(ParseWarning(f"failed to load {resolved}; using defaults"))
+                    parse_warnings.append(
+                        ParseWarning(f"failed to load {resolved}; using defaults")
+                    )
                     file_data = {}
-                except ConfigError as exc:
-                    # ConfigError not already caught by specific handlers above — handle gracefully in permissive mode
+                except Exception as exc:
+                    # Catch-all for unexpected errors — re-raise in strict mode
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(ParseWarning(f"unexpected error loading {resolved}; using defaults"))
+                    parse_warnings.append(
+                        ParseWarning(f"unexpected error loading {resolved}; using defaults")
+                    )
                     file_data = {}
 
         # Merge precedence: defaults < file < env
         merged = deep_merge_dicts(dict(self._defaults), file_data)
-        merged, env_count = apply_env_overrides(merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS)
+        merged, env_count = apply_env_overrides(
+            merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS
+        )
 
         # Schema (strict-mode gated)
         validation_warnings: list[ValidationWarning] = []

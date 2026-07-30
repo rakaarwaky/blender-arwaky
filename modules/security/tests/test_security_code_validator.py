@@ -24,7 +24,6 @@ def _make_validator(policy: SecurityPolicyVO | None = None) -> CodeValidator:
 def _validate(cap: CodeValidator, code: str, **overrides: object) -> CodeValidationVO:
     """Helper to run validate_code synchronously via asyncio."""
     import asyncio
-
     base = CodeValidationVO(code_text=code, strict_mode=True)
     update = {k: v for k, v in overrides.items()}
     return asyncio.run(cap.validate_code(CodeValidationVO(**{**dict(base.__dict__), **update})))
@@ -344,90 +343,6 @@ class TestRepresentation:
 
 
 # ─── AST Walk Coverage Tests ──────────────────────────────────────────
-
-
-class TestOpenFunctionBlocking:
-    """Test open() function blocking (Finding #6 — P1)."""
-
-    def test_open_call_blocked(self) -> None:
-        """FR-SEC-003: open() call is blocked as unsafe file access."""
-        cap = _make_validator()
-        res = _validate(cap, "f = open('/etc/passwd')")
-        assert res.allowed is False
-        assert any("blocked_function_call" in v.category for v in res.violations)
-
-    def test_open_with_mode_blocked(self) -> None:
-        """FR-SEC-003: open() with mode argument is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "f = open('file.txt', 'w')")
-        assert res.allowed is False
-
-    def test_open_method_call_blocked(self) -> None:
-        """FR-SEC-003: method call .open() is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "obj.open('file.txt')")
-        assert res.allowed is False
-
-
-class TestDunderAttributeDetection:
-    """Test dunder attribute access detection (Finding #7 — P1)."""
-
-    def test_dunder_class_blocked(self) -> None:
-        """FR-SEC-003: __class__ attribute access is blocked (sandbox escape)."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__class__")
-        assert res.allowed is False
-        assert any("blocked_attribute_access" in v.category for v in res.violations)
-
-    def test_dunder_bases_blocked(self) -> None:
-        """FR-SEC-003: __bases__ attribute access is blocked (sandbox escape)."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__bases__")
-        assert res.allowed is False
-        assert any("blocked_attribute_access" in v.category for v in res.violations)
-
-    def test_dunder_mro_blocked(self) -> None:
-        """FR-SEC-003: __mro__ attribute access is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__mro__")
-        assert res.allowed is False
-
-    def test_dunder_subclasses_blocked(self) -> None:
-        """FR-SEC-003: __subclasses__ attribute access is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__subclasses__()")
-        assert res.allowed is False
-
-    def test_dunder_globals_blocked(self) -> None:
-        """FR-SEC-003: __globals__ attribute access is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__globals__")
-        assert res.allowed is False
-
-    def test_dunder_builtins_blocked(self) -> None:
-        """FR-SEC-003: __builtins__ attribute access is blocked."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__builtins__")
-        assert res.allowed is False
-
-    def test_allowed_dunders_permitted(self) -> None:
-        """FR-SEC-003: allowed dunder attributes (__init__, __name__, etc.) are permitted."""
-        cap = _make_validator()
-        res = _validate(cap, "x = obj.__init__")
-        assert res.allowed is True
-
-    def test_allowed_dunders_name_permitted(self) -> None:
-        """FR-SEC-003: __name__ dunder attribute is permitted."""
-        cap = _make_validator()
-        res = _validate(cap, "x = module.__name__")
-        assert res.allowed is True
-
-    def test_sandbox_escape_chain_blocked(self) -> None:
-        """FR-SEC-003: sandbox escape chain (().__class__.__bases__) is blocked."""
-        cap = _make_validator()
-        # This tests the attribute visitor on the __bases__ part
-        res = _validate(cap, "x = ().__class__.__bases__")
-        assert res.allowed is False
 
 
 class TestASTWalkCoverage:

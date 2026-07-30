@@ -2,15 +2,13 @@
 
 Capability implements this protocol. The Agent layer depends on it.
 FR-LAU-002: Launch Application.
-
-P0: Updated to accept LaunchRequestVO instead of primitive parameters.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_launcher_vo import LaunchOutcomeVO, LaunchRequestVO
+from .taxonomy_launcher_vo import LaunchRequestVO, LaunchOutcomeVO
 
 
 class LaunchProtocol(ABC):
@@ -18,8 +16,5 @@ class LaunchProtocol(ABC):
 
     @abstractmethod
     def launch(self, request: LaunchRequestVO) -> LaunchOutcomeVO:
-        """Start Blender with the integration component active and confirm readiness.
-
-        P0: Accepts LaunchRequestVO instead of primitive parameters.
-        """
+        """Start Blender with the integration component active and confirm readiness."""
         ...

@@ -1,238 +1,142 @@
+"""Unit tests for the import-safe CLI module utilities.
+
+These tests cover the stdlib-only, dependency-free helpers in
+``modules/cli/src`` (registry state, socket framing, process helpers).
+They establish a pytest baseline for the CLI module without depending on
+the (currently absent) ``modules.shared`` contract/dependency layer that
+the FRD-aligned capability/agent/container code requires.
+
+NOTE: The legacy monolith files (``surface_cli_main``/``surface_cli_commands``
+and their broken intra-module imports) are intentionally NOT exercised here;
+they violate the CLI FRD scope and are tracked as findings in the review
+plan/report.
+"""
+
+import importlib.util as _importlib_util
+import os
+import struct
+import sys
 from unittest import mock
 
-from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
-from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LaunchOutcomeVO,
-    RuntimeState,
-    RuntimeStatusVO,
-    ShutdownOutcomeVO,
+import pytest
+
+_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
+
+
+def _load_module(name: str, path: str) -> object:
+    """Load a module from a file path, registering it in sys.modules."""
+    spec = _importlib_util.spec_from_file_location(name, path)
+    mod = _importlib_util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+bm_mod = _load_module(
+    "cli.utility_cli_process",
+    os.path.join(_ROOT, "cli", "src", "utility_cli_process.py"),
 )
 
+registry_mod = _load_module(
+    "cli.utility_cli_registry",
+    os.path.join(_ROOT, "cli", "src", "utility_cli_registry.py"),
+)
 
-class FakeArgs:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-
-class TestInitCommand:
-    def test_launch_success(self):
-        from modules.cli.src.surface_init_command import handle
-
-        launcher = mock.Mock()
-        launcher.launch.return_value = LaunchOutcomeVO(success=True, process_id=1234, bridge_endpoint="localhost:9876")
-        args = FakeArgs(mode="headless", filepath="/tmp/test.blend", port=9876, timeout=30)
-        result = handle(args, launcher=launcher)
-        assert result.success is True
-        assert result.data["pid"] == 1234
-        launcher.launch.assert_called_once()
-
-    def test_launch_failure(self):
-        from modules.cli.src.surface_init_command import handle
-
-        launcher = mock.Mock()
-        launcher.launch.return_value = LaunchOutcomeVO(success=False, error="Blender executable not found")
-        args = FakeArgs(mode="headless", filepath="/tmp/test.blend", port=9876, timeout=30)
-        result = handle(args, launcher=launcher)
-        assert result.success is False
-        assert "not found" in (result.error or "").lower()
-
-    def test_no_launcher(self):
-        from modules.cli.src.surface_init_command import handle
-
-        args = FakeArgs(mode="headless", filepath="/tmp/test.blend", port=9876, timeout=30)
-        result = handle(args, launcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+_spec = _importlib_util.spec_from_file_location(
+    "utility_socket_client",
+    os.path.join(_ROOT, "shared", "src", "gateway", "utility_socket_client.py"),
+)
+socket_mod = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(socket_mod)
 
 
-class TestCloseCommand:
-    def test_shutdown_success(self):
-        from modules.cli.src.surface_close_command import handle
+# ── Registry ────────────────────────────────────────────────────────────────
+def test_registry_roundtrip(tmp_path):
+    registry_mod.Registry.reset()
+    path = str(tmp_path / "registry.json")
+    reg = registry_mod.Registry(path)
+    assert reg.is_active() is False
 
-        launcher = mock.Mock()
-        launcher.shutdown.return_value = ShutdownOutcomeVO(success=True)
-        result = handle(FakeArgs(filepath="/tmp/test.blend"), launcher=launcher)
-        assert result.success is True
-        assert "closed" in (result.message or "").lower()
-        launcher.shutdown.assert_called_once_with(force=False, allow_escalation=True)
+    reg.set_active("/tmp/scene.blend", 1234, 9876)
+    assert reg.is_active() is True
+    assert reg.get_active() == "/tmp/scene.blend"
+    assert reg.get_pid() == 1234
+    assert reg.get_port() == 9876
 
-    def test_shutdown_failure(self):
-        from modules.cli.src.surface_close_command import handle
+    # A fresh instance must reload persisted state from disk.
+    reg2 = registry_mod.Registry(path)
+    assert reg2.get_active() == "/tmp/scene.blend"
+    assert reg2.get_pid() == 1234
+    assert reg2.get_port() == 9876
 
-        launcher = mock.Mock()
-        launcher.shutdown.return_value = ShutdownOutcomeVO(success=False, error="Process not found")
-        result = handle(FakeArgs(filepath="/tmp/test.blend"), launcher=launcher)
-        assert result.success is False
-
-    def test_no_launcher(self):
-        from modules.cli.src.surface_close_command import handle
-
-        result = handle(FakeArgs(filepath="/tmp/test.blend"), launcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+    reg.clear()
+    assert reg.is_active() is False
+    registry_mod.Registry.reset()
 
 
-class TestStatusCommand:
-    def test_status_running(self):
-        from modules.cli.src.surface_status_command import handle
+def test_registry_assert_active(tmp_path):
+    registry_mod.Registry.reset()
+    reg = registry_mod.Registry(str(tmp_path / "r.json"))
 
-        launcher = mock.Mock()
-        launcher.check_status.return_value = RuntimeStatusVO(state=RuntimeState.RUNNING_READY, process_id=1234, ready=True, stale=False)
-        result = handle(FakeArgs(), launcher=launcher)
-        assert result.success is True
-        assert result.data["state"] == "running_ready"
-        assert result.data["pid"] == 1234
-
-    def test_status_not_running(self):
-        from modules.cli.src.surface_status_command import handle
-
-        launcher = mock.Mock()
-        launcher.check_status.return_value = RuntimeStatusVO(state=RuntimeState.NOT_RUNNING)
-        result = handle(FakeArgs(), launcher=launcher)
-        assert result.success is True
-        assert result.data["state"] == "not_running"
-
-    def test_no_launcher(self):
-        from modules.cli.src.surface_status_command import handle
-
-        result = handle(FakeArgs(), launcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+    # No active instance -> error returned for an arbitrary entity.
+    assert reg.assert_active("/tmp/x.blend") != ""
+    # Matching active instance -> empty (no error).
+    reg.set_active("/tmp/x.blend", 1, 2)
+    assert reg.assert_active("/tmp/x.blend") == ""
+    # Non-matching entity -> error.
+    assert reg.assert_active("/tmp/other.blend") != ""
+    registry_mod.Registry.reset()
 
 
-class TestRunCommand:
-    def test_run_success(self):
-        from modules.cli.src.surface_run_command import handle
-
-        dispatcher = mock.Mock()
-        dispatcher.execute_action.return_value = UnifiedResultEnvelopeVO(success=True, message="Action executed", tracking_id="tid-1")
-        args = FakeArgs(action="get_scene_info", params={}, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=dispatcher)
-        assert result.success is True
-        dispatcher.execute_action.assert_called_once()
-        request = dispatcher.execute_action.call_args[0][0]
-        assert isinstance(request, ActionCommandVO)
-        assert request.action_name == "get_scene_info"
-
-    def test_run_unknown_action(self):
-        from modules.cli.src.surface_run_command import handle
-
-        args = FakeArgs(action="nonexistent_action", params={}, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=mock.Mock())
-        assert result.success is False
-        assert result.category == "validation_error"
-
-    def test_run_missing_required_param(self):
-        from modules.cli.src.surface_run_command import handle
-
-        args = FakeArgs(action="delete_object", params={}, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=mock.Mock())
-        assert result.success is False
-        assert result.category == "validation_error"
-        assert "missing" in (result.error or "").lower()
-
-    def test_no_dispatcher(self):
-        from modules.cli.src.surface_run_command import handle
-
-        args = FakeArgs(action="get_scene_info", params={}, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+def test_registry_assert_no_active(tmp_path):
+    registry_mod.Registry.reset()
+    reg = registry_mod.Registry(str(tmp_path / "r.json"))
+    assert reg.assert_no_active() == ""
+    reg.set_active("/tmp/x.blend", 1, 2)
+    assert reg.assert_no_active() != ""
+    registry_mod.Registry.reset()
 
 
-class TestScreenshotCommand:
-    def test_screenshot_success(self):
-        from modules.cli.src.surface_screenshot_command import handle
+# ── Socket framing ───────────────────────────────────────────────────────────
+def test_socket_receive_response_framed():
+    client = socket_mod.BlenderSocketClient(port=9876)
+    payload = b'{"type": "ok", "result": {"x": 1}}'
+    header = struct.pack("!I", len(payload))
+    fake = mock.Mock()
+    fake.recv = mock.Mock(side_effect=[header, payload])
+    client._sock = fake
 
-        dispatcher = mock.Mock()
-        dispatcher.execute_action.return_value = UnifiedResultEnvelopeVO(success=True, message="Screenshot saved", tracking_id="tid-2")
-        args = FakeArgs(output="/tmp/screenshot.png", max_size=800, view_angle="PERSPECTIVE", shading="MATERIAL", no_overlays=False, focus_object=None)
-        result = handle(args, dispatcher=dispatcher)
-        assert result.success is True
-        assert result.data["filepath"] == "/tmp/screenshot.png"
-
-    def test_screenshot_failure(self):
-        from modules.cli.src.surface_screenshot_command import handle
-
-        dispatcher = mock.Mock()
-        dispatcher.execute_action.return_value = UnifiedResultEnvelopeVO(success=False, message="Blender not responding", tracking_id="tid-2", error_category="connection_error")
-        args = FakeArgs(output="/tmp/screenshot.png", max_size=800, view_angle="PERSPECTIVE", shading="MATERIAL", no_overlays=False, focus_object=None)
-        result = handle(args, dispatcher=dispatcher)
-        assert result.success is False
-
-    def test_no_dispatcher(self):
-        from modules.cli.src.surface_screenshot_command import handle
-
-        args = FakeArgs(output="/tmp/screenshot.png", max_size=800, view_angle="PERSPECTIVE", shading="MATERIAL", no_overlays=False)
-        result = handle(args, dispatcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+    out = client._receive_response()
+    assert out == {"type": "ok", "result": {"x": 1}}
 
 
-class TestRenderCommand:
-    def test_render_success(self):
-        from modules.cli.src.surface_render_command import handle
+def test_socket_receive_oversize_rejected():
+    client = socket_mod.BlenderSocketClient(port=9876)
+    big_header = struct.pack("!I", socket_mod.MAX_MESSAGE_SIZE + 1)
+    fake = mock.Mock()
+    fake.recv = mock.Mock(return_value=big_header)
+    client._sock = fake
 
-        dispatcher = mock.Mock()
-        dispatcher.execute_action.return_value = UnifiedResultEnvelopeVO(success=True, message="Render started", tracking_id="tid-3")
-        args = FakeArgs(output="/tmp/render.png", resolution_x=1920, resolution_y=1080, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=dispatcher)
-        assert result.success is True
-        assert result.data["filepath"] == "/tmp/render.png"
-
-    def test_render_failure(self):
-        from modules.cli.src.surface_render_command import handle
-
-        dispatcher = mock.Mock()
-        dispatcher.execute_action.return_value = UnifiedResultEnvelopeVO(success=False, message="Render engine not available", tracking_id="tid-3", error_category="execution_error")
-        args = FakeArgs(output="/tmp/render.png", resolution_x=1920, resolution_y=1080, filepath="/tmp/test.blend")
-        result = handle(args, dispatcher=dispatcher)
-        assert result.success is False
-
-    def test_no_dispatcher(self):
-        from modules.cli.src.surface_render_command import handle
-
-        args = FakeArgs(output="/tmp/render.png", resolution_x=1920, resolution_y=1080)
-        result = handle(args, dispatcher=None)
-        assert result.success is False
-        assert result.category == "configuration_error"
+    with pytest.raises(ValueError):
+        client._receive_response()
 
 
-class TestMainEntry:
-    def test_unknown_command_suggestion(self):
-        from modules.cli.src.root_cli_main_entry import main
+def test_socket_send_command_requires_connection():
+    client = socket_mod.BlenderSocketClient(port=9876)
+    with pytest.raises(ConnectionError):
+        client.send_command("ping", {})
 
-        exit_code = main(["int"], launcher=mock.Mock(), dispatcher=mock.Mock())
-        assert exit_code == 2
 
-    def test_help_exit_code(self):
-        from modules.cli.src.root_cli_main_entry import main
+# ── Process helpers ────────────────────────────────────────────────────────
+def test_is_running_false_for_absent_pid():
+    assert bm_mod.is_running(999999) is False
 
-        exit_code = main([], launcher=mock.Mock(), dispatcher=mock.Mock())
-        assert exit_code == 2
 
-    def test_init_via_main_success(self):
-        from modules.cli.src.root_cli_main_entry import main
+def test_kill_blender_false_for_absent_pid():
+    assert bm_mod.kill_blender(999999) is False
 
-        launcher = mock.Mock()
-        launcher.launch.return_value = LaunchOutcomeVO(success=True, process_id=1234)
-        exit_code = main(["init", "--filepath", "/tmp/test.blend", "--mode", "headless"], launcher=launcher)
-        assert exit_code == 0
 
-    def test_init_via_main_failure(self):
-        from modules.cli.src.root_cli_main_entry import main
-
-        launcher = mock.Mock()
-        launcher.launch.return_value = LaunchOutcomeVO(success=False, error="timeout")
-        exit_code = main(["init", "--filepath", "/tmp/test.blend", "--mode", "headless"], launcher=launcher)
-        assert exit_code != 0
-
-    def test_exit_code_mapping(self):
-        from modules.cli.src.root_cli_main_entry import _exit_code
-
-        assert _exit_code({"success": True}) == 0
-        assert _exit_code({"success": False, "category": "validation_error"}) == 2
-        assert _exit_code({"success": False, "category": "connection"}) == 3
-        assert _exit_code({"success": False, "category": "unexpected"}) == 4
+def test_find_blender_raises_when_missing(monkeypatch):
+    monkeypatch.delenv("BLENDER_EXECUTABLE", raising=False)
+    with pytest.raises(FileNotFoundError):
+        bm_mod.find_blender()
