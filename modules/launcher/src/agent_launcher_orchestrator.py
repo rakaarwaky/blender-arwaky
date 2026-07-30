@@ -27,15 +27,14 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -65,10 +64,11 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
-        logger.info("Orchestrating launch (mode=%s)", mode.value)
-        return self._launch.launch(mode, readiness_timeout_seconds)
+        req = request or LaunchRequestVO()
+        logger.info("Orchestrating launch (mode=%s)", req.mode.value)
+        return self._launch.launch(request)
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Delegate shutdown to the capabilities layer."""

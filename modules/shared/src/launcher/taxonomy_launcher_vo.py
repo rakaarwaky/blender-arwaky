@@ -12,6 +12,8 @@ from dataclasses import field as dc_field
 from enum import Enum
 from typing import NewType
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath, Host, PortNumber
+
 TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 # ============================================================
@@ -245,3 +247,25 @@ class LauncherConfigVO:
     state_persistence_location: str | None = None
     default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True
+
+
+# ============================================================
+# FR-LAU-002: Launch Request (shared integration contract)
+# ============================================================
+
+@dataclass(frozen=True)
+class BridgeEndpointVO:
+    """Bridge endpoint settings for Blender addon communication."""
+
+    host: Host = Host("localhost")
+    port: PortNumber = PortNumber(9876)
+
+
+@dataclass(frozen=True)
+class LaunchRequestVO:
+    """Unified launch request — input and output in one frozen VO."""
+
+    filepath: FilePath | None = None
+    mode: LaunchMode = LaunchMode.INTERFACE
+    bridge_endpoint: BridgeEndpointVO | None = None
+    readiness_timeout_seconds: TimeoutSeconds | None = None
