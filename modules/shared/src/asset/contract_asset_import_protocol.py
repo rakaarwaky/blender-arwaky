@@ -36,9 +36,10 @@ class AssetImportProtocol(ABC):
         file_path: FilePath,
         asset_type: AssetType,
         target_collection: AssetCollectionName | None = None,
-        scale_normalization: ScaleNormalization = ScaleNormalization(False),
-        duplicate_policy: DuplicatePolicy = DuplicatePolicy("rename"),
+        scale_normalization: ScaleNormalization | None = None,
+        duplicate_policy: DuplicatePolicy | None = None,
         format_hint: AssetFormatHint | None = None,
+
     ) -> dict[str, object]:
         """Import a locally available asset file into Blender.
 
