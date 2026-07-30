@@ -1,18 +1,17 @@
 """CLI screenshot command — Capture viewport screenshot."""
 
 import os
-from typing import Any
 
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
 
 from .utility_cli_registry import Registry
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(args: object) -> dict[str, object]:
     """Handle screenshot command: capture viewport screenshot."""
     registry = Registry()
     error = registry.assert_active(args.filepath)

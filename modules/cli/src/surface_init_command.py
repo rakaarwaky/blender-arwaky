@@ -1,17 +1,16 @@
 """CLI init command — Start Blender with a file."""
 
 import os
-from typing import Any
 
 from .utility_cli_process import launch_blender
 from .utility_cli_registry import Registry
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(args: object) -> dict[str, object]:
     """Handle init command: start Blender with the given file."""
     registry = Registry()
 

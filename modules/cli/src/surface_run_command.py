@@ -1,7 +1,6 @@
 """CLI run command — Execute any action on active Blender via socket."""
 
 import json
-from typing import Any
 
 from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
@@ -9,9 +8,9 @@ from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
 from .utility_cli_registry import Registry
 
 
-def _flatten_schemas() -> dict[str, dict[str, Any]]:
+def _flatten_schemas() -> dict[str, dict[str, object]]:
     """Flatten domain-grouped schemas into action_name → schema lookup."""
-    flat: dict[str, dict[str, Any]] = {}
+    flat: dict[str, dict[str, object]] = {}
     for domain_actions in DISPATCHER_ACTION_SCHEMAS.values():
         flat.update(domain_actions)
     return flat
@@ -20,15 +19,15 @@ def _flatten_schemas() -> dict[str, dict[str, Any]]:
 _ALL_ACTIONS = _flatten_schemas()
 
 
-def _get_action_schema(action: str) -> dict[str, Any] | None:
+def _get_action_schema(action: str) -> dict[str, object] | None:
     return _ALL_ACTIONS.get(action)
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(args: object) -> dict[str, object]:
     """Handle run command: execute any action by name on active Blender."""
     action = args.action
     params = args.params if isinstance(args.params, dict) else json.loads(args.params)

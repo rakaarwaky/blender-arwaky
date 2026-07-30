@@ -31,11 +31,11 @@ def find_blender() -> str:
             return path
 
     try:
-        result = subprocess.run(["which", "blender"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["which", "blender"], capture_output=True, text=True, timeout=5, shell=False)
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+        ...  # 'which' not available or timed out — fall through to raise below
 
     raise FileNotFoundError("Blender not found. Set BLENDER_EXECUTABLE env var or install Blender.")
 
@@ -73,6 +73,7 @@ def launch_blender(
             cmd,
             stdout=subprocess.DEVNULL if mode == "headless" else None,
             stderr=subprocess.DEVNULL if mode == "headless" else None,
+            shell=False,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
         )
     except OSError as e:
@@ -114,7 +115,7 @@ def kill_blender(pid: int) -> bool:
             os.kill(pid, 0)
             os.kill(pid, signal.SIGKILL)
         except OSError:
-            pass
+            ...  # Process already terminated between SIGTERM and SIGKILL
         return True
     except OSError:
         return False
