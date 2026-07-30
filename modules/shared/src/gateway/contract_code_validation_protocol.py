@@ -14,14 +14,9 @@ from modules.shared.src.security.taxonomy_security_vo import CodeValidationVO
 
 
 class CodeValidationProtocol(ABC):
-    """Protocol interface for validating untrusted code before execution.
-
-    Gateway-local abstraction that decouples code execution capability
-    from the security feature's contract layer. The root container wires
-    a security validator implementation behind this protocol.
-    """
+    """Synchronous gateway-local abstraction for security code validation."""
 
     @abstractmethod
-    async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
-        """Validate untrusted code using static analysis and blocked construct policy."""
+    def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
+        """Validate untrusted code before execution."""
         ...
