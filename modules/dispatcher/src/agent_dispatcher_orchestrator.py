@@ -27,6 +27,7 @@ from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchErrorCategory
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -160,16 +161,29 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             logger.error("Action execution failed: %s", e)
             # Duck-typed category: DispatchRequestError carries .error_category so the
             # correct FRD category (not_found/unsupported/confirmation/timeout) is preserved.
-            error_category = getattr(e, "error_category", "validation_error")
+            error_category = getattr(e, "error_category", DispatchErrorCategory.VALIDATION)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=str(e),
+                message=self._safe_message(e),
                 tracking_id=request.validated_tracking_id,
                 error_category=error_category,
             )
 
         except Exception as e:
             logger.error("Unexpected dispatch failure: %s", e)
-            return UnifiedResultEnvelopeVO.safe_error_envelope(str(e))
+            return UnifiedResultEnvelopeVO.error_envelope(
+                message="Action execution failed unexpectedly",
+                tracking_id=request.validated_tracking_id,
+                error_category=DispatchErrorCategory.EXECUTION,
+            )
+
+    @staticmethod
+    def _safe_message(_error: object) -> str:
+        """Return a generic safe message for envelopes — exception details stay in logs.
+
+        FR-DSP-006: Exception messages must not leak sensitive information
+        (paths, secrets, stack traces) into result envelopes.
+        """
+        return "Action request could not be processed"
 
     def __repr__(self) -> str:
         return (

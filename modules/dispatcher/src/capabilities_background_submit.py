@@ -15,6 +15,7 @@ from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchErrorCategory
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -86,9 +87,9 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         except Exception as e:
             logger.error("Job creation failed: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Job creation failed: {e}",
+                message="Background job submission failed",
                 tracking_id=tracking_id,
-                error_category="execution_error",
+                error_category=DispatchErrorCategory.EXECUTION,
             )
 
         # Build success envelope with task reference

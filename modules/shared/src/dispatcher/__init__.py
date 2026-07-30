@@ -19,11 +19,14 @@ from .contract_sync_dispatch_protocol import SyncDispatchProtocol
 from .taxonomy_action_command_vo import ActionCommandVO
 from .taxonomy_action_metadata_vo import ActionMetadataVO
 from .taxonomy_discovery_outcome_vo import DiscoveryOutcomeVO
+from .taxonomy_dispatch_error import DispatchError, DispatchErrorCategory
 from .taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 __all__ = [
     "ActionMetadataVO",
     "ActionCommandVO",
+    "DispatchError",
+    "DispatchErrorCategory",
     "DiscoveryOutcomeVO",
     "UnifiedResultEnvelopeVO",
     "ActionDiscoveryProtocol",
