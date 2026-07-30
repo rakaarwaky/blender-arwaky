@@ -17,11 +17,12 @@ from modules.launcher.src.capabilities_runtime_status import RuntimeStatusChecke
 from modules.launcher.src.capabilities_state_persistence import StatePersistence
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    LauncherConfigVO,
+    LaunchRequestVO,
     RegistrationSource,
     RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
+    ShutdownRequestVO,
 )
 
 # ─── FR-LAU-001: Locate and Register ─────────────────────────────────────
@@ -30,13 +31,13 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 def test_fr_lau_001_registers_override_executable():
     feat = create_launcher_feature()
     python_exe = os.path.realpath(os.sys.executable)
-    res = feat.locate_and_register(LauncherConfigVO(), override=python_exe)
+    res = feat.locate_and_register(override=python_exe)
     assert res.source == RegistrationSource.OVERRIDE
 
 
 def test_fr_lau_001_no_candidate_returns_error():
     feat = create_launcher_feature()
-    res = feat.locate_and_register(LauncherConfigVO())
+    res = feat.locate_and_register()
     assert res.registered is False
     assert res.error
 
@@ -90,7 +91,7 @@ def test_fr_lau_002_launch_idempotent_when_running():
     backend = _FakeStatus()
     backend.alive = True
     feat = _build_feature(backend)
-    res = feat.launch()
+    res = feat.launch(LaunchRequestVO())
     assert res.success is True
     assert res.launch_method == "idempotent"
 
@@ -99,7 +100,7 @@ def test_fr_lau_002_launch_spawns_when_not_running():
     backend = _FakeStatus()
     backend.alive = False
     feat = _build_feature(backend)
-    res = feat.launch()
+    res = feat.launch(LaunchRequestVO())
     assert res.success is True
     assert res.process_id == 1000
     assert res.ready is True
@@ -110,7 +111,7 @@ def test_fr_lau_003_shutdown_absent_is_idempotent():
     backend = _FakeStatus()
     backend.alive = False
     feat = _build_feature(backend)
-    res = feat.shutdown()
+    res = feat.shutdown(ShutdownRequestVO())
     assert res.success is True
     assert res.termination_method == "none"
 
@@ -119,7 +120,7 @@ def test_fr_lau_003_shutdown_graceful_then_force():
     backend = _FakeStatus()
     backend.alive = True
     feat = _build_feature(backend)
-    res = feat.shutdown()
+    res = feat.shutdown(ShutdownRequestVO())
     assert res.success is True
     assert res.escalated is True
     assert res.termination_method == "force"
@@ -283,7 +284,7 @@ def test_processlauncher_probe_interval_and_persist_cap(tmp_path):
     assert launch._persist is mock_persist
 
     # Launch should succeed (persistence is handled by orchestrator, not ProcessLauncher)
-    res = launch.launch()
+    res = launch.launch(LaunchRequestVO())
     assert res.success is True
     assert res.process_id == 2000
 
@@ -389,7 +390,7 @@ def test_orchestrator_persist_on_launch(tmp_path):
     orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
 
     # Launch should persist state
-    res = orchestrator.launch()
+    res = orchestrator.launch(LaunchRequestVO())
     assert res.success is True
     loaded = cap.load()
     assert loaded is not None
@@ -439,7 +440,7 @@ def test_orchestrator_persist_on_shutdown(tmp_path):
     orchestrator = LauncherOrchestrator(locate, launch, shutdown, status_cap, cap)
 
     # Shutdown should persist NOT_RUNNING state
-    res = orchestrator.shutdown()
+    res = orchestrator.shutdown(ShutdownRequestVO())
     assert res.success is True
     loaded = cap.load()
     assert loaded is not None

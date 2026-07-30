@@ -4,6 +4,7 @@ Spawns Blender, enforces idempotency, waits for readiness, and emits a
 lifecycle event. Activates the integration addon and passes bridge settings
 so the integration component is ready on startup. Implements LaunchProtocol.
 
+P0: Updated to accept LaunchRequestVO instead of primitive parameters.
 The actual spawn and readiness probe are injected (DI boundaries) so the
 logic is testable without launching a real Blender process.
 """
@@ -25,11 +26,10 @@ from modules.shared.src.launcher.taxonomy_launcher_constant import (
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LaunchMethod,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     ProbeDepth,
     RuntimeState,
-    TimeoutSeconds,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
 
@@ -54,7 +54,10 @@ class _ReadinessProbe(Protocol):
 
 
 class ProcessLauncher(LaunchProtocol):
-    """Launches Blender with the integration component active and confirms readiness."""
+    """Launches Blender with the integration component active and confirms readiness.
+
+    P0: Accepts LaunchRequestVO in launch() method.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
@@ -81,12 +84,17 @@ class ProcessLauncher(LaunchProtocol):
         self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Start Blender and confirm readiness within the configured timeout."""
+    def launch(self, request: LaunchRequestVO) -> LaunchOutcomeVO:
+        """Start Blender and confirm readiness within the configured timeout.
+
+        P0: Accepts LaunchRequestVO instead of primitive parameters.
+        Extracts mode, timeout, and bridge_endpoint from the request VO.
+        """
         with self._lock:
-            timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
+            mode = request.mode
+            timeout = request.readiness_timeout if request.readiness_timeout is not None else 30.0
+            # Use request's bridge_endpoint if provided, otherwise fall back to configured
+            bridge_ep = request.bridge_endpoint or self._bridge_endpoint
 
             current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if current.state in (RuntimeState.RUNNING_READY, RuntimeState.RUNNING_UNRESPONSIVE, RuntimeState.STARTING):
@@ -110,7 +118,7 @@ class ProcessLauncher(LaunchProtocol):
                     executable,
                     mode.value,
                     timeout,
-                    bridge_endpoint=self._bridge_endpoint,
+                    bridge_endpoint=bridge_ep,
                     addon_path=self._addon_path,
                 )
             except Exception as exc:
@@ -147,7 +155,12 @@ class ProcessLauncher(LaunchProtocol):
             )
 
             return LaunchOutcomeVO(
-                success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms
+                success=True,
+                process_id=pid,
+                ready=True,
+                launch_method=LaunchMethod.SPAWN,
+                duration_ms=duration_ms,
+                bridge_endpoint=(request.bridge_endpoint if request.bridge_endpoint else None),
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────

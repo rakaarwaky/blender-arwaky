@@ -4,6 +4,7 @@ Graceful shutdown first, escalating to force termination when allowed.
 Idempotent for absent processes; reports termination method. Implements
 ShutdownProtocol.
 
+P0: Updated to accept ShutdownRequestVO instead of primitive parameters.
 Signal sender and killer are injected DI boundaries.
 
 P0: Integrates PersistStateProtocol for internal state persistence after termination.
@@ -30,6 +31,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeState,
     RuntimeStateVO,
     ShutdownOutcomeVO,
+    ShutdownRequestVO,
     TerminationMethod,
 )
 from modules.shared.src.security.utility_security_redactor import redact_sensitive
@@ -50,7 +52,10 @@ class _ProcessKiller(Protocol):
 
 
 class ProcessShutdown(ShutdownProtocol):
-    """Graceful-then-force shutdown of the Blender process."""
+    """Graceful-then-force shutdown of the Blender process.
+
+    P0: Accepts ShutdownRequestVO in shutdown() method.
+    """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
@@ -73,9 +78,16 @@ class ProcessShutdown(ShutdownProtocol):
         self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Stop Blender gracefully, escalating to force when allowed."""
+    def shutdown(self, request: ShutdownRequestVO) -> ShutdownOutcomeVO:
+        """Stop Blender gracefully, escalating to force when allowed.
+
+        P0: Accepts ShutdownRequestVO instead of primitive parameters.
+        Extracts force_requested and escalation_confirmed from the request VO.
+        """
         with self._lock:
+            force = request.force_requested
+            allow_escalation = request.escalation_confirmed
+
             current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
             if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
