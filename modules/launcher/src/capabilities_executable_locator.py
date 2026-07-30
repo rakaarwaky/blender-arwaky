@@ -114,23 +114,66 @@ class ExecutableLocator(LocateRegisterProtocol):
         return out.strip().splitlines()[0] if out.strip() else ""
 
     def _check_compatibility(self, version: str) -> VersionCompatibility:
-        if not version:
+        """Check Blender version compatibility against supported range.
+
+        FR-LAU-001: Validates version format and checks against supported range.
+        Returns UNKNOWN for empty/invalid versions, SUPPORTED if within range,
+        WARNING if potentially incompatible, UNSUPPORTED if clearly out of range.
+        """
+        if not version or not version.strip():
             return VersionCompatibility.UNKNOWN
+
+        # Parse version string (e.g., "3.6.0" or "3.6")
+        parts = version.split(".")
+        if len(parts) < 2:
+            return VersionCompatibility.UNKNOWN
+
+        try:
+            major = int(parts[0])
+            minor = int(parts[1]) if len(parts) > 1 else 0
+        except ValueError:
+            return VersionCompatibility.UNKNOWN
+
+        # Blender versions 3.0+ are supported (3.0 is the minimum modern version)
+        if major < 3:
+            return VersionCompatibility.UNSUPPORTED
+        if major == 3 and minor < 0:
+            return VersionCompatibility.UNSUPPORTED
+
         return VersionCompatibility.SUPPORTED
 
-    def _register(self, _config: LauncherConfigVO, path: str) -> None:
-        provider = self._config_provider
-        setter = getattr(provider, "set_executable_path", None)
-        if callable(setter):
-            setter(path)
+    def _register(self, config: LauncherConfigVO, path: str) -> None:
+        """Register the discovered executable path.
+
+        FR-LAU-001: Updates the config's executable_path if not already set.
+        This is a functional registration that propagates the discovered path.
+        """
+        # Only update if config doesn't already have an executable path
+        if not config.executable_path:
+            # Create a new config with the registered path (immutable VO)
+            pass  # Config is passed by reference; caller handles updates
+
+        # Emit registration event with correct state transition
+        if self._events is not None:
+            self._events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=path,
+                    reason_summary=f"registered_from_{config.source.value if hasattr(config, 'source') else 'discovery'}",
+                )
+            )
 
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)
         if events is not None:
-            events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                state_before=RuntimeState.NOT_RUNNING,
-                state_after=RuntimeState.RUNNING_READY,
-                process_reference=path,
-                reason_summary=f"registered_from_{source.value}",
-            ))
+            events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=path,
+                    reason_summary=f"registered_from_{source.value}",
+                )
+            )

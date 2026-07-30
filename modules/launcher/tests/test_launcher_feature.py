@@ -65,14 +65,14 @@ def _build_feature(status_backend):
     status_cap = RuntimeStatusChecker(
         liveness_checker=status_backend.liveness,
         pid_resolver=lambda: status_backend.pid,
-        bridge_probe=lambda _to: status_backend.ready,
+        bridge_probe=lambda **kwargs: status_backend.ready,
     )
     locate = ExecutableLocator(config_provider=lambda: LauncherConfigVO(executable_path="/usr/bin/blender"))
     launch = ProcessLauncher(
         executable_resolver=lambda: "/usr/bin/blender",
         status_protocol=status_cap,
-        spawner=lambda _exe, _mode, _to: 1000,
-        readiness_probe=lambda _pid, _to: status_backend.ready,
+        spawner=lambda _exe, _mode, _to, **kwargs: 1000,
+        readiness_probe=lambda _pid, _to, **kwargs: status_backend.ready,
     )
     shutdown = ProcessShutdown(
         status_protocol=status_cap,

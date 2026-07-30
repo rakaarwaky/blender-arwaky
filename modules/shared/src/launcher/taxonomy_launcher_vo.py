@@ -221,3 +221,5 @@ class LauncherConfigVO:
     state_persistence_location: str | None = None
     default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True
+    bridge_endpoint: str | None = None
+    addon_path: str | None = None

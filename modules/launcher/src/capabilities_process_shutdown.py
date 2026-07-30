@@ -9,6 +9,7 @@ Signal sender and killer are injected DI boundaries.
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -59,77 +60,88 @@ class ProcessShutdown(ShutdownProtocol):
         self._timeout = timeout_seconds
         self._force_enabled = force_enabled
         self._events = event_sink
+        self._lock = threading.Lock()
 
     # ─── Block 2: Public Contract ────────────────────────────
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
         """Stop Blender gracefully, escalating to force when allowed."""
-        current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
+        with self._lock:
+            current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
-        if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
+            if current.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
+                self._emit(
+                    LAUNCHER_EVENT_APPLICATION_STOPPED,
+                    current.state,
+                    RuntimeState.NOT_RUNNING,
+                    method=TerminationMethod.NONE.value,
+                )
+                return ShutdownOutcomeVO(
+                    success=True, termination_method=TerminationMethod.NONE, final_state=RuntimeState.NOT_RUNNING
+                )
+
+            if current.process_id is None:
+                return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
+
+            start = time.monotonic()
+            method = TerminationMethod.GRACEFUL
+            escalated = False
+
+            if self._signal is not None and not force:
+                self._signal(current.process_id)
+
+            if not self._wait_exit(current.process_id):
+                if (force or allow_escalation) and self._force_enabled and self._kill is not None:
+                    self._kill(current.process_id)
+                    escalated = True
+                    method = TerminationMethod.FORCE
+                    self._emit(
+                        LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
+                        RuntimeState.STOPPING,
+                        RuntimeState.NOT_RUNNING,
+                        process_reference=str(current.process_id),
+                    )
+                    # Post-kill verification: confirm process is dead after SIGKILL
+                    self._wait_exit(current.process_id, verify_after_timeout=True)
+                else:
+                    duration_ms = (time.monotonic() - start) * 1000.0
+                    return ShutdownOutcomeVO(
+                        success=False,
+                        termination_method=TerminationMethod.GRACEFUL,
+                        duration_ms=duration_ms,
+                        error="Graceful shutdown exceeded timeout; escalation disallowed",
+                    )
+
+            duration_ms = (time.monotonic() - start) * 1000.0
             self._emit(
                 LAUNCHER_EVENT_APPLICATION_STOPPED,
-                current.state,
+                RuntimeState.STOPPING,
                 RuntimeState.NOT_RUNNING,
-                method=TerminationMethod.NONE.value,
+                process_reference=str(current.process_id),
+                method=method.value,
             )
             return ShutdownOutcomeVO(
-                success=True, termination_method=TerminationMethod.NONE, final_state=RuntimeState.NOT_RUNNING
+                success=True,
+                termination_method=method,
+                duration_ms=duration_ms,
+                final_state=RuntimeState.NOT_RUNNING,
+                escalated=escalated,
             )
 
-        if current.process_id is None:
-            return ShutdownOutcomeVO(success=False, error="Process id unknown for running instance")
-
-        start = time.monotonic()
-        method = TerminationMethod.GRACEFUL
-        escalated = False
-
-        if self._signal is not None and not force:
-            self._signal(current.process_id)
-
-        if not self._wait_exit(current.process_id):
-            if (force or allow_escalation) and self._force_enabled and self._kill is not None:
-                self._kill(current.process_id)
-                escalated = True
-                method = TerminationMethod.FORCE
-                self._emit(
-                    LAUNCHER_EVENT_SHUTDOWN_ESCALATION,
-                    RuntimeState.STOPPING,
-                    RuntimeState.NOT_RUNNING,
-                    process_reference=str(current.process_id),
-                )
-            else:
-                duration_ms = (time.monotonic() - start) * 1000.0
-                return ShutdownOutcomeVO(
-                    success=False,
-                    termination_method=TerminationMethod.GRACEFUL,
-                    duration_ms=duration_ms,
-                    error="Graceful shutdown exceeded timeout; escalation disallowed",
-                )
-
-        duration_ms = (time.monotonic() - start) * 1000.0
-        self._emit(
-            LAUNCHER_EVENT_APPLICATION_STOPPED,
-            RuntimeState.STOPPING,
-            RuntimeState.NOT_RUNNING,
-            process_reference=str(current.process_id),
-            method=method.value,
-        )
-        return ShutdownOutcomeVO(
-            success=True,
-            termination_method=method,
-            duration_ms=duration_ms,
-            final_state=RuntimeState.NOT_RUNNING,
-            escalated=escalated,
-        )
-
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _wait_exit(self, _process_id: int) -> bool:
+    def _wait_exit(self, process_id: int, verify_after_timeout: bool = False) -> bool:
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
             st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
                 return True
             time.sleep(0.05)
+
+        # Post-kill verification: after timeout/escalation, verify process is actually dead
+        if verify_after_timeout:
+            st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
+            if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
+                return True
+
         return False
 
     def _emit(

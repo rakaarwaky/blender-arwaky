@@ -28,6 +28,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 from modules.shared.src.launcher.utility_process_ops import (
     process_alive,
     process_kill,
+    process_probe_bridge_readiness,
     process_probe_readiness,
     process_signal_term,
     process_spawn,
@@ -64,7 +65,7 @@ class LauncherContainer:
         status_cap: RuntimeStatusProtocol = RuntimeStatusChecker(
             liveness_checker=process_alive,
             pid_resolver=lambda: self._resolve_persisted_pid(persist_cap),
-            bridge_probe=None,
+            bridge_probe=process_probe_bridge_readiness if self._config.bridge_endpoint else None,
             persisted_state_resolver=persist_cap.load,
             stale_reconciliation_enabled=self._config.stale_reconciliation_enabled,
         )
@@ -76,8 +77,12 @@ class LauncherContainer:
         launch_cap: LaunchProtocol = ProcessLauncher(
             executable_resolver=lambda: self._config.executable_path,
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
-            readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
+            spawner=lambda executable, mode, timeout, bridge_endpoint=None, addon_path=None: process_spawn(
+                executable, mode, timeout, bridge_endpoint=bridge_endpoint, addon_path=addon_path
+            ),
+            readiness_probe=process_probe_bridge_readiness,
+            bridge_endpoint=self._config.bridge_endpoint,
+            addon_path=self._config.addon_path,
         )
         shutdown_cap: ShutdownProtocol = ProcessShutdown(
             status_protocol=status_cap,
