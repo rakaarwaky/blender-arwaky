@@ -43,3 +43,6 @@ class ToolRegistrySurface:
 
         from modules.scene.src.surface_scene_command import SceneCommand  # noqa: F401
         AssetSearchSurface.register_asset_search(mcp)
+
+        # Render aggregate reachability (AES505) — wire IRenderAggregate into surface layer
+        from modules.shared.src.render.contract_render_aggregate import IRenderAggregate  # noqa: F401
