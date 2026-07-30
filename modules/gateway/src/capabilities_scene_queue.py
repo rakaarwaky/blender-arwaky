@@ -16,7 +16,6 @@ import asyncio
 import logging
 import queue
 import threading
-import time
 from dataclasses import dataclass
 
 from modules.shared.src.gateway.contract_event_protocol import (
