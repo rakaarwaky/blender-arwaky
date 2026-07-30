@@ -10,7 +10,6 @@ import json
 import os
 import threading
 from dataclasses import dataclass
-from typing import Optional
 
 REGISTRY_FILE = "registry.json"
 DEFAULT_PORT = 9876
@@ -28,10 +27,10 @@ class RegistryState:
 class Registry:
     """Thread-safe singleton managing registry.json."""
 
-    _instance: Optional["Registry"] = None
+    _instance: Registry | None = None
     _lock = threading.Lock()
 
-    def __new__(cls, registry_path: str = REGISTRY_FILE) -> "Registry":
+    def __new__(cls, registry_path: str = REGISTRY_FILE) -> Registry:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
