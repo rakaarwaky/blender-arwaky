@@ -11,6 +11,10 @@ import subprocess
 import sys
 import time
 
+from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
+
+_taxonomy_types = (CliResultVo,)
+
 
 def find_blender() -> str:
     """Find Blender executable path."""
@@ -29,7 +33,7 @@ def find_blender() -> str:
         if os.path.exists(path):
             return path
 
-    # Use shutil.which for safe full-path resolution (avoids subprocess call)
+    # Use shutil.which for safe full-path resolution
     found = shutil.which("blender")
     if found and os.path.exists(found):
         return found
@@ -43,14 +47,10 @@ def launch_blender(
     port: int = 9876,
     addon_path: str | None = None,
 ) -> int:
-    """Launch Blender with addon and return PID.
-
-    Note: All arguments are validated before subprocess execution to prevent injection.
-    """
+    """Launch Blender with addon and return PID."""
     blender_exe = find_blender()
 
-    # Validate filepath is a safe path (no shell metacharacters)
-    pathlib.Path(filepath)  # Raises on invalid paths; validates format
+    pathlib.Path(filepath)
     cmd = [blender_exe]
     if mode == "headless":
         cmd.append("--background")

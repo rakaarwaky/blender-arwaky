@@ -2,10 +2,9 @@
 
 import json
 
+from modules.shared.src.cli.utility_cli_registry import Registry
 from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
 from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_registry import Registry
 
 
 def _flatten_schemas() -> dict[str, dict[str, object]]:
