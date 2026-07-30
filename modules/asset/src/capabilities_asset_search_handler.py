@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
@@ -42,10 +41,10 @@ class AssetSearchHandler(AssetSearchProtocol):
         self,
         query: SearchQuery,
         providers: list[str] | None = None,
-        asset_type_filter: Any = None,
-        limit: Any = None,
-        page_token: Any = None,
-    ) -> dict[str, Any]:
+        asset_type_filter: str | None = None,
+        limit: int | None = None,
+        page_token: str | None = None,
+    ) -> dict[str, object]:
         """Search across all enabled providers with unified response.
 
         FR-AST-001: Each enabled provider queried independently.
@@ -80,7 +79,7 @@ class AssetSearchHandler(AssetSearchProtocol):
 
         logger.debug("Search query=%s providers=%s", query, target)
 
-        async def search_one(name: str) -> tuple[str, list[Any], str | None]:
+        async def search_one(name: str) -> tuple[str, list[dict[str, object]], str | None]:
             try:
                 # FR-AST-001: empty query returns curated/default results
                 effective_query = query if str(query).strip() else SearchQuery("curated")
@@ -90,7 +89,7 @@ class AssetSearchHandler(AssetSearchProtocol):
                     vo = await sketchfab_search(self._connection, effective_query)
                 else:
                     return name, [], "unknown provider"
-                normalized = [
+                normalized: list[dict[str, object]] = [
                     {
                         "id": str(a.id),
                         "name": str(a.name),
@@ -109,7 +108,7 @@ class AssetSearchHandler(AssetSearchProtocol):
         tasks = [search_one(str(p)) for p in target]
         results = await asyncio.gather(*tasks)
 
-        assets: list[Any] = []
+        assets: list[dict[str, object]] = []
         provider_status: dict[str, str] = {}
         warnings: list[str] = []
         errors: list[str] = []
@@ -129,8 +128,8 @@ class AssetSearchHandler(AssetSearchProtocol):
         all_failed = all(status == "error" for status in provider_status.values()) and len(provider_status) > 0
 
         # FR-AST-001: deduplicate assets when equivalence is safely determinable
-        seen: dict[str, Any] = {}
-        deduped: list[Any] = []
+        seen: dict[str, object] = {}
+        deduped: list[dict[str, object]] = []
         for a in assets:
             key = f"{a.get('provider', '')}:{a.get('id', '')}"
             if key not in seen:

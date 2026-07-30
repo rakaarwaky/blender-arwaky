@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_provider_protocol import (
     AssetProviderProtocol,
@@ -41,12 +40,12 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
             cache_ttl_seconds: Cache freshness window in seconds.
         """
         self.cache_ttl_seconds = cache_ttl_seconds
-        self._metadata_cache: dict[str, dict[str, Any]] = {}
-        self._provider_capabilities: dict[str, dict[str, Any]] = {}
+        self._metadata_cache: dict[str, dict[str, object]] = {}
+        self._provider_capabilities: dict[str, dict[str, object]] = {}
 
     async def normalize_metadata(
         self,
-        raw_provider_data: dict[str, Any],
+        raw_provider_data: dict[str, object],
         provider_name: ProviderName,
         asset_id: AssetId,
     ) -> ProviderMetadataVO:
@@ -107,7 +106,7 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
     async def get_provider_capabilities(
         self,
         provider_name: ProviderName,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Get normalized provider capability metadata.
 
         FR-AST-005: Describes supported asset types, pagination behavior,
@@ -136,21 +135,21 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
         self._provider_capabilities[provider_name] = capabilities
         return capabilities
 
-    def _extract_name(self, data: dict[str, Any]) -> str:
+    def _extract_name(self, data: dict[str, object]) -> str:
         """Extract asset name from raw provider data."""
         for key in ("name", "title", "asset_name", "filename"):
             if key in data and data[key]:
                 return str(data[key])
         return ""
 
-    def _extract_type(self, data: dict[str, Any]) -> str:
+    def _extract_type(self, data: dict[str, object]) -> str:
         """Extract asset type from raw provider data."""
         for key in ("type", "asset_type", "category"):
             if key in data and data[key]:
                 return str(data[key]).lower()
         return "model"  # Default type
 
-    def _extract_categories(self, data: dict[str, Any]) -> list[str]:
+    def _extract_categories(self, data: dict[str, object]) -> list[str]:
         """Extract categories from raw provider data."""
         for key in ("categories", "tags", "keywords", "labels"):
             if key in data and data[key]:
@@ -161,14 +160,14 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
                     return [str(i) for i in items]
         return []
 
-    def _extract_thumbnail(self, data: dict[str, Any]) -> str | None:
+    def _extract_thumbnail(self, data: dict[str, object]) -> str | None:
         """Extract thumbnail URL from raw provider data."""
         for key in ("thumbnail_url", "preview_url", "image_url", "poster_url"):
             if key in data and data[key]:
                 url = str(data[key])
                 # Reject unsafe protocols
                 url_lower = url.lower()
-                if any(proto in url_lower for proto in ("file://", "javascript:", "data:")):
+                if "file://" in url_lower or "javascript:" in url_lower or "data:" in url_lower:
                     return None
                 # Never embed credentials or signed URLs
                 if "token=" in url or "signature=" in url or "X-Amz-" in url:
@@ -180,7 +179,7 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
                 return url
         return None
 
-    def _extract_license(self, data: dict[str, Any]) -> str | None:
+    def _extract_license(self, data: dict[str, object]) -> str | None:
         """Extract license summary from raw provider data."""
         for key in ("license", "license_summary", "license_type", "copyright"):
             if key in data and data[key]:
@@ -189,21 +188,21 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
                 return val[:100] if len(val) > 100 else val
         return None
 
-    def _extract_download_availability(self, data: dict[str, Any]) -> bool:
+    def _extract_download_availability(self, data: dict[str, object]) -> bool:
         """Extract download availability flag."""
         for key in ("download_available", "is_downloadable", "has_download"):
             if key in data and data[key]:
                 return bool(data[key])
         return True  # Default to available
 
-    def _extract_attribution(self, data: dict[str, Any]) -> str | None:
+    def _extract_attribution(self, data: dict[str, object]) -> str | None:
         """Extract attribution requirements."""
         for key in ("attribution", "credit", "author", "artist"):
             if key in data and data[key]:
                 return str(data[key])
         return None
 
-    def _extract_extra_fields(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _extract_extra_fields(self, data: dict[str, object]) -> dict[str, object]:
         """Extract provider-specific extra fields without breaking common shape."""
         reserved_keys = {
             "name",

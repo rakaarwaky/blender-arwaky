@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.asset.taxonomy_asset_constant import (
@@ -40,8 +39,8 @@ class AssetImportCapability(AssetImportProtocol):
     def __init__(
         self,
         gateway_client: GatewayClientProtocol | None = None,
-        config_getter: Any | None = None,
-        event_publisher: Any | None = None,
+        config_getter: object | None = None,
+        event_publisher: object | None = None,
     ) -> None:
         """Initialize with dependencies.
 
@@ -62,7 +61,7 @@ class AssetImportCapability(AssetImportProtocol):
         scale_normalization: bool = False,
         duplicate_policy: str = DEFAULT_DUPLICATE_POLICY,
         format_hint: AssetFormatHint | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Import a locally available asset file into Blender.
 
         FR-AST-004: File must exist locally before import. Import command
@@ -142,7 +141,9 @@ class AssetImportCapability(AssetImportProtocol):
             if self.event_publisher is not None:
                 try:
                     if hasattr(self.event_publisher, "publish"):
-                        self.event_publisher.publish("asset_imported", file_path=str(file_path), asset_type=str(asset_type))
+                        self.event_publisher.publish(
+                            "asset_imported", file_path=str(file_path), asset_type=str(asset_type)
+                        )
                     elif callable(self.event_publisher):
                         self.event_publisher("asset_imported", file_path=str(file_path), asset_type=str(asset_type))
                 except Exception as ep_err:
@@ -161,9 +162,7 @@ class AssetImportCapability(AssetImportProtocol):
                 "error_summary": f"Blender import failed: {e}",
             }
 
-    def _is_supported_format(
-        self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None
-    ) -> bool:
+    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None) -> bool:
         """Check if file format is supported for import.
 
         Validates both the file extension and the actual content
@@ -205,7 +204,7 @@ class AssetImportCapability(AssetImportProtocol):
         scale_normalization: bool,
         duplicate_policy: str,
         format_hint: AssetFormatHint | None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Build import command for gateway transport."""
         command = {
             "type": "import",
@@ -226,4 +225,3 @@ class AssetImportCapability(AssetImportProtocol):
             command["format_hint"] = format_hint
 
         return command
-

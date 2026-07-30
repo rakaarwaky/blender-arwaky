@@ -11,9 +11,7 @@ import contextlib
 import hashlib
 import logging
 import os
-import time
 from pathlib import Path
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -80,7 +78,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         max_size: MaxSize | None = None,
         background: bool = False,
         expected_checksum: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Download asset file from provider into local cache.
 
         FR-AST-002: Cache location from configuration; paths validated
@@ -245,8 +243,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
     def _get_unique_cache_path(self, cache_key: str) -> str:
-        """Get unique cache path with timestamp suffix."""
-        hash_value = hashlib.sha256(f"{cache_key}:{time.time()}".encode()).hexdigest()[:16]
+        """Get unique cache path with random suffix."""
+        hash_value = hashlib.sha256(f"{cache_key}:{os.urandom(8).hex()}".encode()).hexdigest()[:16]
         return str(Path(self._cache_dir) / f"{hash_value}.cache")
 
     async def _get_download_lock(self, cache_key: str) -> asyncio.Lock:
@@ -259,7 +257,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """Verify cached artifact integrity.
 
         Checks file existence, non-zero size, and optional checksum match.
-        Returns False on any failure without raising.
+        Returns False on a failure without raising.
         """
         try:
             exists = os.path.exists(file_path)
@@ -326,9 +324,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         # Default to stale when freshness cannot be determined
         return True
 
-    async def _submit_background_download(
-        self, provider: ProviderName, asset_id: AssetId, cache_path: str
-    ) -> str:
+    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
         """Submit download as background job via job scheduler.
 
         Returns a task reference string that callers can poll for
@@ -337,12 +333,9 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """
         if self.job_scheduler is None:
             raise ValidationError(
-                "Background downloads require job feature wiring "
-                "(FR-AST-002): set job_scheduler in __init__"
+                "Background downloads require job feature wiring (FR-AST-002): set job_scheduler in __init__"
             )
-        task_ref = await self.job_scheduler.submit_download(
-            provider, asset_id, cache_path
-        )
+        task_ref = await self.job_scheduler.submit_download(provider, asset_id, cache_path)
         return task_ref
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
@@ -366,6 +359,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         except Exception:
             # Clean up temp file on failure — no partial cache side-effect.
             import pathlib
+
             pathlib.Path(tmp_path).unlink(missing_ok=True)
             raise
         return cache_path

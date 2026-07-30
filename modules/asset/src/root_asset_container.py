@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
 
@@ -46,7 +46,7 @@ class AssetContainer:
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
-    def _get_config_value(self, key: str, default: Any) -> Any:
+    def _get_config_value(self, key: str, default: object) -> object:
         """Read a config key from config_getter, falling back to default."""
         if self._config_getter is None:
             return default
