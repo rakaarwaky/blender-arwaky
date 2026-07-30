@@ -70,9 +70,6 @@ class MockMaintenance(ConnectionMaintenanceProtocol):
     def set_state(self, state: ConnectionState) -> None:
         self._state = state
 
-    def set_active_operation(self, active: bool) -> None:
-        pass
-
 
 class MockTransport(TransportProtocol):
     """Mock transport for testing."""
@@ -96,9 +93,6 @@ class MockSceneQueue(SceneQueueProtocol):
         from modules.shared.src.gateway.taxonomy_gateway_vo import QueueStatusVO
 
         return QueueStatusVO(current_depth=0, is_busy=False, max_depth=50)
-
-    def fail_pending(self, error: Exception) -> int:
-        return 0
 
 
 class MockCodeExecutor(CodeExecutionProtocol):
@@ -245,7 +239,6 @@ def test_gateway_disconnect_idempotent():
 
 def test_gateway_failed_connection_reports_state():
     """Test that failed connection state is reported correctly."""
-
     class FailedConnection(ConnectionProtocol):
         def establish_connection(self):
             return ConnectionOutcomeVO(state=ConnectionState.FAILED, error="connection refused")
@@ -263,7 +256,6 @@ def test_gateway_failed_connection_reports_state():
 
 def test_gateway_transport_request_error():
     """Test that transport request with error status is handled."""
-
     class ErrorTransport(TransportProtocol):
         def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
             return TransportOutcomeVO(tracking_id=request.tracking_id, status="error", error="timeout")
@@ -279,14 +271,15 @@ def test_gateway_transport_request_error():
 
 def test_gateway_code_execution_with_output():
     """Test that code execution captures output."""
-
     class OutputExecutor(CodeExecutionProtocol):
         def execute_code(self, _request: CodeExecutionVO) -> object:
             from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
 
             return CodeExecutionOutcomeVO(status="success", output="42")
 
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), OutputExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), MockSceneQueue(), OutputExecutor()
+    )
     request = CodeExecutionVO(tracking_id=str(uuid.uuid4()), code="1 + 41")
     result = feat.execute_code(request)
     assert result.output == "42"
@@ -294,7 +287,6 @@ def test_gateway_code_execution_with_output():
 
 def test_gateway_multiple_queue_operations():
     """Test that multiple operations can be enqueued."""
-
     class TrackingQueue(SceneQueueProtocol):
         def __init__(self):
             self.enqueued_count = 0
@@ -310,11 +302,10 @@ def test_gateway_multiple_queue_operations():
 
             return QueueStatusVO(current_depth=self.enqueued_count, is_busy=False, max_depth=50)
 
-        def fail_pending(self, error: Exception) -> int:
-            return 0
-
     queue = TrackingQueue()
-    feat = GatewayOrchestrator(MockConnection(), MockMaintenance(), MockTransport(), queue, MockCodeExecutor())
+    feat = GatewayOrchestrator(
+        MockConnection(), MockMaintenance(), MockTransport(), queue, MockCodeExecutor()
+    )
     # Enqueue multiple operations
     for _ in range(5):
         result = feat.enqueue_scene_operation(SceneOperationVO(is_mutation=True, payload=b"test"))

@@ -3,11 +3,16 @@
 Persists runtime state with atomic (temp + rename) writes and corruption-safe
 reads that fall back to empty state. Implements PersistStateProtocol.
 
+Security integration (per PRD + FR-SEC-001):
+  - Delegates path validation to security module's ValidatePathProtocol
+  - Validates persistence file path before writing
+
 The store path and I/O are injected DI boundaries; no secrets are persisted.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
@@ -15,33 +20,30 @@ import threading
 from collections.abc import Callable
 
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
-from modules.shared.src.launcher.taxonomy_launcher_constant import (
-    LAUNCHER_EVENT_CORRUPT_STATE_DETECTED,
-)
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     PersistenceOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
 )
+from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
+from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
 
 _SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
 
 
 class StatePersistence(PersistStateProtocol):
-    """Corruption-safe runtime state persistence with concurrent access safety.
-
-    P1 (Finding #7 fix): Emits warning event on corrupt/unreadable state load.
-    Returns empty state with warning instead of silent None.
-    """
+    """Corruption-safe runtime state persistence with concurrent access safety."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
     def __init__(
         self,
         path_resolver: Callable[[], str | None],
+        path_validator: ValidatePathProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._resolve_path = path_resolver
+        self._path_validator = path_validator
         self._lock = threading.Lock()
         self._events = event_sink
 
@@ -52,17 +54,13 @@ class StatePersistence(PersistStateProtocol):
             return self._persist_impl(state)
 
     def load(self) -> RuntimeStateVO | None:
-        """Load persisted state; return None on missing/corrupt content.
-
-        P1 (Finding #7 fix): Emits warning event on corrupt/unreadable state.
-        Falls back to empty state with warning instead of silent None.
-        """
+        """Load persisted state; return None on missing/corrupt content."""
         with self._lock:
             return self._load_impl()
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _persist_impl(self, state: RuntimeStateVO) -> PersistenceOutcomeVO:
-        """Atomic write with secret detection (FR-LAU-005)."""
+        """Atomic write with security path validation and secret detection (FR-LAU-005)."""
         warnings: list[str] = []
         if self._contains_secret(state):
             warnings.append("state contained secret-like field; not persisted")
@@ -70,6 +68,15 @@ class StatePersistence(PersistStateProtocol):
         path = self._resolve_path()
         if not path:
             return PersistenceOutcomeVO(success=False, warnings=tuple(warnings + ["no persistence location"]))
+
+        # FR-SEC-001: validate persistence file path through security module
+        if self._path_validator is not None:
+            result = self._path_validator.validate_path_sync(
+                PathValidationVO(target_path=path, access_mode=AccessMode.WRITE)
+            )
+            if not result.allowed:
+                warnings.append(f"path validation denied: {result.denial_reason}")
+                return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
         payload = self._to_dict(state)
         try:
@@ -80,11 +87,7 @@ class StatePersistence(PersistStateProtocol):
             return PersistenceOutcomeVO(success=False, warnings=tuple(warnings))
 
     def _load_impl(self) -> RuntimeStateVO | None:
-        """Load persisted state with corruption fallback (FR-LAU-005).
-
-        P1 (Finding #7 fix): Emits warning event on corrupt/unreadable state.
-        Falls back to empty state with warning instead of silent None.
-        """
+        """Load persisted state with corruption fallback (FR-LAU-005)."""
         path = self._resolve_path()
         if not path or not os.path.exists(path):
             return None
@@ -92,36 +95,35 @@ class StatePersistence(PersistStateProtocol):
             with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
             if not isinstance(data, dict):
-                self._emit_corrupt_warning("state_data_not_dict")
+                self._emit_corrupt_state(path, "state_data_not_dict")
                 return None
             return self._from_dict(data)
         except (OSError, json.JSONDecodeError, ValueError) as exc:
-            self._emit_corrupt_warning(f"load_error: {exc}")
+            self._emit_corrupt_state(path, f"load_error: {exc}")
             return None
 
-    def _emit_corrupt_warning(self, reason: str) -> None:
-        """Emit corrupt state warning event (P1 — Finding #7 fix)."""
-        if self._events is not None:
-            try:
-                self._events(
+    def _emit_corrupt_state(self, path: str, reason: str) -> None:
+        events = getattr(self, "_events", None)
+        if events is not None:
+            from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_CORRUPT_STATE_DETECTED
+            from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
+
+            with contextlib.suppress(Exception):
+                events(
                     LauncherLifecycleEvent(
                         event_category=LAUNCHER_EVENT_CORRUPT_STATE_DETECTED,
                         state_before=RuntimeState.NOT_RUNNING,
                         state_after=RuntimeState.NOT_RUNNING,
-                        reason_summary=f"corrupt_state: {reason}",
+                        process_reference=path,
+                        reason_summary=reason,
                     )
                 )
-            except Exception:
-                pass  # Event emission failure is non-blocking
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
         data = self._to_dict(state)
-        for key in _SECRET_KEYS:
-            if key in data:
-                return True
-        return False
+        return bool([key for key in _SECRET_KEYS if key in data])
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {

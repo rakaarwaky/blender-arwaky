@@ -161,31 +161,6 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 
 Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in target feature, not CLI.
 
-### Deferred Commands
-
-The following Commands are defined in the FRD mapping above but have not yet been implemented as dedicated CLI subcommands. They are covered by the `run --action` universal fallback:
-
-| CLI Subcommand | Action Name | Owning Feature | Implementation Status |
-|----------------|-------------|----------------|----------------------|
-| `register` | `register_executable` | Launcher | Deferred — use `run --action register_executable --params {...}` |
-| `scene-info` | `get_scene_info` | Scene | Deferred — use `run --action get_scene_info --params {...}` |
-| `scene-cleanup` | `cleanup_scene` | Scene | Deferred — use `run --action cleanup_scene --params {...}` |
-| `set-env` | `setup_environment` | Scene | Deferred — use `run --action setup_environment --params {...}` |
-| `object-info` | `get_object_info` | Object | Deferred — use `run --action get_object_info --params {...}` |
-| `create` | `create_primitive` | Object | Deferred — use `run --action create_primitive --params {...}` |
-| `set-transform` | `set_object_transform` | Object | Deferred — use `run --action set_object_transform --params {...}` |
-| `delete` | `delete_object` | Object | Deferred — use `run --action delete_object --params {...}` |
-| `set-material` | `set_material` | Object | Deferred — use `run --action set_material --params {...}` |
-| `apply-modifier` | `apply_modifier` | Object | Deferred — use `run --action apply_modifier --params {...}` |
-| `import` | `import_glb` | Asset | Deferred — use `run --action import_glb --params {...}` |
-| `export` | `export_model` | Asset | Deferred — use `run --action export_model --params {...}` |
-| `place-asset` | `place_asset` | Asset | Deferred — use `run --action place_asset --params {...}` |
-| `task-status` | `get_task_status` | Job | Deferred — use `run --action get_task_status --params {...}` |
-| `cancel-task` | `cancel_task` | Job | Deferred — use `run --action cancel_task --params {...}` |
-| `config` | `get_config` | Config | Deferred — use `run --action get_config --params {...}` |
-| `set-config` | `set_config` | Config | Deferred — use `run --action set_config --params {...}` |
-| `run-code` | `execute_blender_code` | MCP | Deferred — use `run --action execute_blender_code --params {...}` |
-
 ## Error Categories
 
 - **Owned**: validation error (surface-level arg problems), configuration error (settings unavailable)

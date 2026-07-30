@@ -1,14 +1,23 @@
+"""CLI status command — Show active Blender status."""
+
 from typing import Any
 
-from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
-from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from .utility_cli_process import is_running
+from .utility_cli_registry import Registry
 
 
-def handle(_args: Any, launcher: ILauncherOperateAggregate | None = None) -> CliResultVo:
-    if launcher is None:
-        return CliResultVo(success=False, error="Launcher aggregate not available", category="configuration_error", ref="cli-500")
-    try:
-        status = launcher.check_status()
-        return CliResultVo(success=True, data={"state": status.state.value, "pid": status.process_id, "ready": status.ready, "stale": status.stale})
-    except Exception as exc:
-        return CliResultVo(success=False, error=str(exc), category="unexpected", ref="cli-status")
+def handle(_args: Any) -> dict[str, Any]:
+    """Handle status command: show active Blender instance status."""
+    registry = Registry()
+
+    if not registry.is_active():
+        return {"success": True, "active": False, "message": "No Blender instance is active"}
+
+    return {
+        "success": True,
+        "active": True,
+        "running": registry.get_pid() is not None and is_running(registry.get_pid()),
+        "filepath": registry.get_active(),
+        "pid": registry.get_pid(),
+        "port": registry.get_port(),
+    }
