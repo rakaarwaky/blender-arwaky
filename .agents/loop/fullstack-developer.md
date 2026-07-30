@@ -21,6 +21,7 @@ Before starting, read:
 
 - Use `gh` CLI to list open issues: `gh issue list --state open`
 - Pick the **oldest open issue by timestamp** (or the one with the highest priority label).
+- Make sure that issue has no PR work  already before
 - Work on only **1 issue per session**.
 - If no open issues exist → **STOP**. Do not create any file, branch, or worktree.
 
@@ -40,6 +41,8 @@ Before starting, read:
 
   ```bash
   echo ".worktree/" >> "$(git rev-parse --git-common-dir)/info/exclude"
+  ```
+
 ```
 
 - Fetch the latest `develop` branch:
@@ -47,7 +50,8 @@ Before starting, read:
   ```bash
   git fetch origin develop
   git worktree prune
-  ```
+```
+
 - Determine the branch name and worktree path based on the issue type and number:
 
   - `feat/<issue-number>-<short-description>` for new features
