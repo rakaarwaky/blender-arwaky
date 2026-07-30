@@ -37,6 +37,9 @@ class ToolRegistrySurface:
         from .surface_scene_tools import SceneToolsSurface
         SceneToolsSurface.register_scene_tools(mcp)
 
+        # Scene surface reachability (AES506) — register for entry point graph
         # Asset search tool (AES506) — registered for MCP reachability
         from modules.asset.src.surface_asset_search_command import AssetSearchSurface
+
+        from modules.scene.src.surface_scene_command import SceneCommand  # noqa: F401
         AssetSearchSurface.register_asset_search(mcp)
