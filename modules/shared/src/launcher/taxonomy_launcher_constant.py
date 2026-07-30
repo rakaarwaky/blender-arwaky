@@ -38,6 +38,7 @@ LAUNCHER_EVENT_SHUTDOWN_ESCALATION: str = "shutdown_escalation"
 LAUNCHER_EVENT_STATUS_CHECKED: str = "runtime_status_checked"
 LAUNCHER_EVENT_STALE_STATE_DETECTED: str = "stale_state_detected"
 LAUNCHER_EVENT_EXECUTABLE_REGISTERED: str = "executable_registered"
+LAUNCHER_EVENT_CORRUPT_STATE_DETECTED: str = "corrupt_state_detected"
 
 # ─── Source Feature Name ────────────────────────────────────
 # REMOVED: LAUNCHER_SOURCE_FEATURE is never imported by any consumer.

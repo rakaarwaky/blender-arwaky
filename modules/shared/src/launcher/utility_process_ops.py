@@ -21,7 +21,8 @@ def process_alive(process_id: int) -> bool:
     """Check if a process is alive using os.kill(pid, 0).
 
     Returns False for invalid PIDs (<=0 or None).
-    EPERM is logged but treated as alive (permission denied ≠ dead).
+    EPERM means process exists but caller lacks permission to signal it —
+    treated as alive since the process is running (Finding #6 — P1 fix).
     """
     if process_id is None or process_id <= 0:
         return False
@@ -29,10 +30,14 @@ def process_alive(process_id: int) -> bool:
         os.kill(process_id, 0)
         return True
     except OSError as e:
-        if e.errno == os.errno.ESRCH:
+        import errno as _errno
+
+        if e.errno == _errno.ESRCH:
             return False
-        logger.warning("os.kill(pid=%d) returned EPERM: %s", process_id, e)
-        return False
+        # EPERM (or other errors like EACCES): process exists but caller lacks permission
+        # The process is alive even though we can't signal it (Finding #6 — P1 fix)
+        logger.debug("os.kill(pid=%d) returned %s: %s", process_id, e.errno, e)
+        return True
 
 
 def process_signal_term(process_id: int) -> bool:
