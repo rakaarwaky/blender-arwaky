@@ -26,7 +26,7 @@ from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 
-from modules.mcp.src.capabilities_mcp_bootstrap import (
+from modules.mcp.src.utility_mcp_bootstrap import (
     record_startup,
 )
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName

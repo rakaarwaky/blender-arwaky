@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 
+from modules.mcp.src.capabilities_mcp_bootstrap import ServerBootstrapManager
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
@@ -37,6 +38,8 @@ class McpContainer:
             return
 
         logger.info("Wiring MCP surface module")
+        _ = ServerBootstrapManager
+
 
         # Create protocol implementations (delegating to owning features)
         self._routing = McpRoutingImpl()

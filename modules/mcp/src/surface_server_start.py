@@ -10,7 +10,10 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
-from modules.mcp.src.capabilities_mcp_bootstrap import ServerBootstrapManager
+from modules.mcp.src.utility_mcp_bootstrap import (
+    resolve_log_file,
+    resolve_transport_config,
+)
 
 from .surface_server_instance import ServerInstanceSurface
 
@@ -23,8 +26,8 @@ class ServerStartSurface:
 
     @staticmethod
     def _setup_logging() -> None:
-        """Set up logging with config via capability layer."""
-        log_file = ServerBootstrapManager.resolve_log_file()
+        """Set up logging with config via utility layer."""
+        log_file = resolve_log_file()
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -40,13 +43,15 @@ class ServerStartSurface:
         # NOTE: Tools and prompts are already registered inside
         # get_mcp_instance() — do NOT re-register here.
 
-        transport, host, port_str = ServerBootstrapManager.resolve_transport_config()
+        transport, host, port = resolve_transport_config()
 
         if transport == "sse":
-            mcp.settings.host = host
-            mcp.settings.port = int(port_str) if port_str.isdigit() else 8000
+            mcp.settings.host = str(host)
+            mcp.settings.port = int(port)
+
             mcp.settings.log_level = "INFO"
-            logger.info(f"Starting BlenderArwaky SSE server on {host}:{port_str}")
+            logger.info(f"Starting BlenderArwaky SSE server on {host}:{port}")
             mcp.run(transport="sse")
+
         else:
             mcp.run()
