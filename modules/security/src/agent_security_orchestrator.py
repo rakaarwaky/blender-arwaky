@@ -90,7 +90,7 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
         return result
 
     async def validate_code(self, request: CodeValidationVO) -> CodeValidationVO:
-        """Delegate code validation and emit audit on denial/violations."""
+        """Delegate code validation and emit audit on denial/violations/override."""
         result = await self._validate_code.validate_code(request)
 
         if not result.allowed or result.violations:
@@ -102,6 +102,18 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
                     target_metadata=result.audit_metadata,
                     severity=AuditSeverity.WARNING,
                     redacted_reason="Code validation denied",
+                )
+            )
+        elif result.audit_metadata.get("rule") == "validation_disabled_override":
+            # FR-SEC-005: policy override must produce audit event
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.POLICY_OVERRIDE,
+                    operation_type="validate_code",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Code validation disabled by policy",
                 )
             )
 

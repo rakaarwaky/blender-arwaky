@@ -11,6 +11,7 @@ from typing import Protocol
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
+    AccessMode,
     PathValidationVO,
     SecurityPolicyVO,
 )
@@ -123,6 +124,32 @@ class PathValidator(ValidatePathProtocol):
                 denial_reason="Path outside allowed directories",
                 audit_metadata={"rule": "unauthorized_access", "path": _redact_path(resolved)},
             )
+
+        # FR-SEC-001: OS-level permission check — verify actual filesystem permissions
+        if os.path.exists(resolved) or os.path.isdir(os.path.dirname(resolved)):
+            if request.access_mode in (AccessMode.WRITE, AccessMode.CREATE, AccessMode.DELETE, AccessMode.EXTRACT):
+                check_dir = resolved if os.path.isdir(resolved) else os.path.dirname(resolved)
+                if check_dir and not os.access(check_dir, os.W_OK):
+                    return PathValidationVO(
+                        target_path=request.target_path,
+                        access_mode=request.access_mode,
+                        base_directory=request.base_directory,
+                        operation_context=request.operation_context,
+                        allowed=False,
+                        denial_reason="Insufficient write permission",
+                        audit_metadata={"rule": "permission_denied", "path": _redact_path(resolved)},
+                    )
+            elif request.access_mode == AccessMode.READ:
+                if os.path.exists(resolved) and not os.access(resolved, os.R_OK):
+                    return PathValidationVO(
+                        target_path=request.target_path,
+                        access_mode=request.access_mode,
+                        base_directory=request.base_directory,
+                        operation_context=request.operation_context,
+                        allowed=False,
+                        denial_reason="Insufficient read permission",
+                        audit_metadata={"rule": "permission_denied", "path": _redact_path(resolved)},
+                    )
 
         return PathValidationVO(
             target_path=request.target_path,
