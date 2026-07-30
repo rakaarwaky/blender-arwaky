@@ -70,7 +70,7 @@ def old_to_new_module(old_rel):
     return old_stem, new_stem
 
 def update_file_imports(filepath, changes):
-    with open(filepath, 'r') as f:
+    with open(filepath) as f:
         content = f.read()
     original = content
     for old_stem, new_stem in changes:
@@ -95,7 +95,7 @@ def update_file_imports(filepath, changes):
 def main():
     # Step 1: Build import changes mapping
     import_changes = {}
-    for old_rel, new_rel in RENAME_MAP.items():
+    for old_rel, _new_rel in RENAME_MAP.items():
         old_stem, new_stem = old_to_new_module(old_rel)
         import_changes[old_stem] = new_stem
 
@@ -113,7 +113,7 @@ def main():
     # Step 3: Update all imports in the project (modules/ and blender_mcp_addon/)
     all_stems = list(import_changes.keys())
     updated = 0
-    for root, dirs, files in os.walk(PROJECT):
+    for root, _dirs, files in os.walk(PROJECT):
         parts = root.split(os.sep)
         if '.git' in parts or '__pycache__' in parts or '.venv' in parts or '__init__' in parts:
             continue

@@ -12,38 +12,28 @@ Run via pytest from repo root.
 
 from __future__ import annotations
 
-import json
 import errno
 import os
-import tempfile
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from modules.launcher.src.capabilities_executable_locator import ExecutableLocator
 from modules.launcher.src.capabilities_runtime_status import RuntimeStatusChecker
 from modules.launcher.src.capabilities_state_persistence import StatePersistence
 from modules.shared.src.launcher.taxonomy_launcher_constant import (
     LAUNCHER_EVENT_CORRUPT_STATE_DETECTED,
-    LAUNCHER_EVENT_STATUS_CHECKED,
 )
-from modules.shared.src.launcher.taxonomy_launcher_error import ExecutableValidationError
-from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
     ProbeDepth,
-    RegistrationOutcomeVO,
     RuntimeState,
     RuntimeStateVO,
-    RuntimeStatusVO,
     VersionCompatibility,
 )
 
 # Import from shared module (injected via conftest shim)
 from modules.shared.src.launcher.utility_process_ops import process_alive
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,8 +50,8 @@ def _make_locators(
 ) -> ExecutableLocator:
     """Create an ExecutableLocator with injected dependencies."""
     return ExecutableLocator(
-        command_runner=lambda args, timeout=5.0: (0, "Blender 3.6.0"),
-        env_resolver=lambda key, default: None,
+        command_runner=lambda _args, _timeout=5.0: (0, "Blender 3.6.0"),
+        env_resolver=lambda _key, _default: None,
         persist_cap=persist_cap,
     )
 
@@ -86,7 +76,7 @@ class TestExecutableRegistrationPersistence:
         assert loaded is not None
         assert loaded.executable_path == "/usr/bin/python3"
 
-    def test_register_skipped_when_no_persist_cap(self, tmp_path: Path) -> None:
+    def test_register_skipped_when_no_persist_cap(self, _tmp_path: Path) -> None:
         """P0 (Finding #1): Registration works even without persist capability."""
         locator = _make_locators(persist_cap=None)
         config = LauncherConfigVO(executable_path="/usr/bin/blender")
@@ -94,12 +84,12 @@ class TestExecutableRegistrationPersistence:
         result = locator.locate_and_register(config, override="/usr/bin/python3")
         assert result.registered is True
 
-    def test_register_failure_is_non_blocking(self, tmp_path: Path) -> None:
+    def test_register_failure_is_non_blocking(self, _tmp_path: Path) -> None:
         """P0 (Finding #1): Registration persistence failure doesn't block registration."""
 
         # Persist cap that always fails
         class FailingPersist:
-            def persist(self, state):
+            def persist(self, _state):
                 raise OSError("Cannot write")
 
             def load(self):
@@ -118,7 +108,7 @@ class TestExecutableRegistrationPersistence:
 class TestPIDReuseGuard:
     """Test P0 fix for PID reuse detection (Finding #3)."""
 
-    def test_pid_reuse_detected_via_proc_stat(self, tmp_path: Path) -> None:
+    def test_pid_reuse_detected_via_proc_stat(self, _tmp_path: Path) -> None:
         """P0 (Finding #3): PID reuse detected by comparing /proc/{pid}/stat start time."""
         events_received: list[dict] = []
 
@@ -126,7 +116,7 @@ class TestPIDReuseGuard:
             events_received.append({"category": event.event_category})
 
         # Mock liveness checker — process is alive
-        def mock_liveness(pid):
+        def mock_liveness(_pid):
             return True
 
         # Mock PID resolver — always returns same PID
@@ -158,20 +148,19 @@ class TestPIDReuseGuard:
             "38 0 0 0 100 50 0 0 0 0 0 0 0 0 22 0 0"  # utime=100, stime=50 → start_ticks=150
         )
 
-        with patch("os.path.exists", return_value=True):
-            with patch("builtins.open") as mock_open:
-                mock_file = MagicMock()
-                mock_file.read.return_value = proc_stat_content
-                mock_open.return_value.__enter__.return_value = mock_file
-                mock_open.return_value.__exit__.return_value = None
+        with patch("os.path.exists", return_value=True), patch("builtins.open") as mock_open:
+            mock_file = MagicMock()
+            mock_file.read.return_value = proc_stat_content
+            mock_open.return_value.__enter__.return_value = mock_file
+            mock_open.return_value.__exit__.return_value = None
 
-                result = status_checker.check_status(depth=ProbeDepth.LIGHTWEIGHT)
+            result = status_checker.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         # Should detect PID reuse and return STALE
         assert result.state == RuntimeState.STALE
         assert result.stale is True
 
-    def test_pid_reuse_skipped_when_no_start_time(self, tmp_path: Path) -> None:
+    def test_pid_reuse_skipped_when_no_start_time(self, _tmp_path: Path) -> None:
         """P0 (Finding #3): PID reuse check skipped when _process_start_time is None."""
         events_received: list[dict] = []
 
@@ -193,7 +182,7 @@ class TestPIDReuseGuard:
         # Should return RUNNING_READY (no PID reuse check when no start time)
         assert result.state == RuntimeState.RUNNING_READY
 
-    def test_pid_reuse_fallback_on_proc_error(self, tmp_path: Path) -> None:
+    def test_pid_reuse_fallback_on_proc_error(self, _tmp_path: Path) -> None:
         """P0 (Finding #3): PID reuse check falls back gracefully on /proc errors."""
         events_received: list[dict] = []
 
@@ -212,8 +201,7 @@ class TestPIDReuseGuard:
         status_checker.mark_launched(time.time())
 
         # Mock /proc access to raise OSError (permission denied)
-        with patch("os.path.exists", return_value=True):
-            with patch("builtins.open", side_effect=OSError("Permission denied")):
+        with patch("os.path.exists", return_value=True), patch("builtins.open", side_effect=OSError("Permission denied")):
                 result = status_checker.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         # Should fall back to RUNNING_READY (not crash)
@@ -325,14 +313,14 @@ class TestProcessAliveEPERM:
     def test_eperm_treated_as_alive(self) -> None:
         """P1 (Finding #6): EPERM means process exists but caller lacks permission — treated as alive."""
 
-        class MockOSErrNoPermission(OSError):
+        class MockOSErrNoPermissionError(OSError):
             errno = errno.EPERM
 
         original_kill = os.kill
 
         def mock_kill(pid, sig):
             if pid == 99996:
-                raise MockOSErrNoPermission("Permission denied")
+                raise MockOSErrNoPermissionError("Permission denied")
             return original_kill(pid, sig)
 
         with patch("os.kill", side_effect=mock_kill):
@@ -343,11 +331,11 @@ class TestProcessAliveEPERM:
     def test_esrch_treated_as_dead(self) -> None:
         """P1 (Finding #6): ESRCH means process doesn't exist — treated as dead."""
 
-        class MockOSErrNoSuchProcess(OSError):
+        class MockOSErrNoSuchProcessError(OSError):
             errno = errno.ESRCH
 
-        def mock_kill(pid, sig):
-            raise MockOSErrNoSuchProcess("No such process")
+        def mock_kill(_pid, _sig):
+            raise MockOSErrNoSuchProcessError("No such process")
 
         with patch("os.kill", side_effect=mock_kill):
             result = process_alive(99995)
