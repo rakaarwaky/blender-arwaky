@@ -12,6 +12,8 @@ Tool list:
   5. read_skill_context — Static documentation reader
   6. inspect_scene    — Scene state inspection
   7. cleanup_scene    — Scene object cleanup
+  8. search_assets    — Multi-provider asset search
+  9. download_asset   — Download asset to local cache
 """
 
 
@@ -37,13 +39,12 @@ class ToolRegistrySurface:
         from .surface_scene_tools import SceneToolsSurface
         SceneToolsSurface.register_scene_tools(mcp)
 
-        # Scene surface reachability (AES506) — register for entry point graph
-        # Asset search tool (AES506) — registered for MCP reachability
-        from modules.asset.src.surface_asset_search_command import AssetSearchSurface
+        # Asset tools — search/download via IAssetAggregate (AES505 fix)
+        from .surface_asset_tools import AssetToolsSurface
+        AssetToolsSurface.register_asset_tools(mcp)
 
         from modules.scene.src.surface_scene_command import SceneCommand
         _ = SceneCommand
-        AssetSearchSurface.register_asset_search(mcp)
 
         # Render aggregate reachability (AES505) — wire IRenderAggregate into surface layer
         from modules.shared.src.render.contract_render_aggregate import IRenderAggregate
@@ -51,4 +52,3 @@ class ToolRegistrySurface:
         # Telemetry aggregate reachability (AES505) — wire ITelemetryAggregate into surface layer
         from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
         _ = ITelemetryAggregate
-

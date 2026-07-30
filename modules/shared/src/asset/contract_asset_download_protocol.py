@@ -41,6 +41,7 @@ class AssetDownloadProtocol(ABC):
         resolution: ResolutionPreference | None = None,
         overwrite_policy: DuplicatePolicy | None = None,
         max_size: MaxSize | None = None,
+
         background: bool = False,
     ) -> dict[str, object]:
         """Download asset file from provider into local cache.

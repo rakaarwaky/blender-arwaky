@@ -35,7 +35,8 @@ class AssetExtractProtocol(ABC):
         """Extract downloaded archive under security policy supervision.
 
         FR-AST-003: Extraction destination validated through security
-        policy before any entry is written. Rejected entries reported
+        policy before entry writing. Rejected entries reported
+
         without exposing unsafe target paths in raw form. Partial
         extraction cleaned up on failure. Nested archives follow same
         security supervision.

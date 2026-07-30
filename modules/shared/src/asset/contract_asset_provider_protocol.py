@@ -49,7 +49,7 @@ class AssetProviderProtocol(ABC):
         Returns:
             Dict with normalized metadata including name, provider, type,
             categories, thumbnail_url, license_summary, download_available,
-            and any preserved provider-specific extra fields.
+            and preserved provider-specific extra fields.
         """
         ...
 

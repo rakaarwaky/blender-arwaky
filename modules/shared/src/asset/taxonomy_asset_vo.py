@@ -230,7 +230,8 @@ class ArchiveEntryVO:
 class ArchiveExtractionOptionsVO:
     """Options for archive extraction validation.
 
-    FR-AST-003: Passed to security supervisor via ArchiveExtractionVO.
+    FR-AST-003: Provided to security supervisor via ArchiveExtractionVO.
+
     Fields match security taxonomy to ensure protocol compatibility.
     """
 

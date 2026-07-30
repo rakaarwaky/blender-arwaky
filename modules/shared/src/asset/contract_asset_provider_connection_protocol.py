@@ -7,17 +7,24 @@ for dependency inversion and AES 405 compliance.
 
 from __future__ import annotations
 
-from typing import Protocol
+from abc import ABC, abstractmethod
+
+from modules.shared.src.common.taxonomy_core_vo import ProviderName
 
 
-class IAssetProviderConnection(Protocol):
+class IAssetProviderConnection(ABC):
     """Minimal protocol for asset provider communication (FR-AST-001).
 
     Providers communicate via a gateway transport that can send commands
-    and receive results. This protocol replaces the primitive `object`
-    type annotation used in AssetSearchHandler with a proper interface.
+    and receive results.
     """
 
-    async def send_command(self, action: str, payload: dict[str, object]) -> dict[str, object]:
+    @abstractmethod
+    async def send_command(
+        self,
+        action: str,
+        payload: dict[str, object],
+        provider: ProviderName | None = None,
+    ) -> dict[str, object]:
         """Send a command through the gateway and return the result."""
-        ...  # pragma: no cover
+        ...

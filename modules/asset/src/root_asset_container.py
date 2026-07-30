@@ -10,7 +10,9 @@ import logging
 import threading
 from typing import TYPE_CHECKING
 
-from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.shared.src.asset.contract_asset_provider_connection_protocol import (
+    IAssetProviderConnection,
+)
 
 if TYPE_CHECKING:
     from .agent_asset_orchestrator import AssetOrchestrator
@@ -74,6 +76,8 @@ class AssetContainer:
             from .capabilities_asset_import import AssetImportCapability
             from .capabilities_asset_provider import AssetProviderMetadataCapability
             from .capabilities_asset_search_handler import AssetSearchHandler
+
+
 
             # CE02: Read FRD config keys (wired per capability's own config_getter)
             overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
