@@ -1,7 +1,7 @@
 """Stateless helpers for safely building generated Python code.
 
 Extracted from duplicated _safe_str(), _tuple_str(), and _validate_scale()
-across multiple Object capability executors (AES305 fix).
+across all object capability executors (AES305 duplication fix).
 
 Utility layer: stateless standalone functions, depends only on taxonomy/stdlib.
 """
@@ -19,45 +19,14 @@ def quote_string(value: str) -> str:
 
 
 def tuple_str(coords: CoordinateList) -> str:
-    """Format a 3-element sequence of floats for generated Python code.
-
-    Returns a string like "(1.0, 2.0, 3.0)" suitable for embedding in
-    generated Blender Python.
-
-    Args:
-        coords: A sequence of 3 numeric values.
-
-    Returns:
-        Formatted tuple string.
-    """
+    """Format a 3-element sequence of floats for embedding in generated Python code."""
     return f"({coords[0]}, {coords[1]}, {coords[2]})"
-
-
-def validate_finite_vector(vector: CoordinateList, field_name: str) -> None:
-    """Validate that all vector components are finite numeric values.
-
-    Args:
-        vector: Sequence of values to validate.
-        field_name: Name of the field for error messages.
-
-    Raises:
-        ValueError: If any component is not numeric or not finite.
-    """
-    for index, value in enumerate(vector):
-        if not isinstance(value, (int, float)):
-            raise ValueError(f"{field_name}[{index}] is not numeric: {value}")
-        if not math.isfinite(float(value)):
-            raise ValueError(f"{field_name}[{index}] is not finite: {value}")
 
 
 def validate_scale(scale: ScaleVector) -> None:
     """Validate scale values are finite and non-zero.
 
-    Args:
-        scale: Scale vector to validate.
-
-    Raises:
-        ValueError: If any component is not numeric, not finite, or zero.
+    FR-OBJ-003: Scale values must be finite and non-zero.
     """
     for index, value in enumerate(scale):
         if not isinstance(value, (int, float)):

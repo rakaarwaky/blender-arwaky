@@ -14,12 +14,11 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    CoordinateList,
     ObjectName,
     Prompt,
-    ScaleVector,
     SuccessFlag,
 )
+from modules.shared.src.common.utility_code_builder import quote_string, tuple_str, validate_scale
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.taxonomy_object_error import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import PlaceAssetVO
@@ -54,7 +53,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
 
         # Validate scale (non-zero unless explicitly allowed)
         if request.scale is not None:
-            PlaceAssetExecutor._validate_scale(request.scale)
+            validate_scale(request.scale)
 
         # Generate and execute placement code
         code = self._generate_placement_code(resolved_name, request)
@@ -85,7 +84,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
         if request.object_name:
             code = (
                 "import bpy\n"
-                f"obj = bpy.data.objects.get({PlaceAssetExecutor._safe_str(str(request.object_name))})\n"
+                f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})\n"
                 "if obj is None:\n"
                 '    raise ValueError("Object not found in scene.")\n'
                 "result = [obj.name]\n"
@@ -109,7 +108,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
                 # Fallback: try to find by name pattern
                 fallback_code = (
                     "import bpy\n"
-                    f"matches = [obj.name for obj in bpy.data.objects if {PlaceAssetExecutor._safe_str(str(request.object_name))} in obj.name]\n"
+                    f"matches = [obj.name for obj in bpy.data.objects if {quote_string(str(request.object_name))} in obj.name]\n"
                     "result = matches\n"
                 )
                 try:
@@ -131,18 +130,6 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
             except Exception:
                 raise ObjectNotFoundError(str(request.asset_id)) from None
 
-    @staticmethod
-    def _validate_scale(scale: ScaleVector) -> None:
-        """Validate scale values are finite and non-zero unless explicitly allowed.
-
-        FR-OBJ-001: Scale values must be finite and non-zero.
-        """
-        for i, val in enumerate(scale):
-            if not isinstance(val, (int, float)):
-                raise ValueError(f"Scale component {i} is not numeric: {val}")
-            if val == 0:
-                raise ValueError(f"Scale component {i} is zero — non-zero scale is required")
-
     def _generate_placement_code(self, object_name: str, request: PlaceAssetVO) -> str:
         """Generate Blender Python code for asset placement.
 
@@ -150,30 +137,20 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
         """
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({PlaceAssetExecutor._safe_str(object_name)})",
+            f"obj = bpy.data.objects.get({quote_string(object_name)})",
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
         ]
 
         if request.location is not None:
-            lines.append(f"obj.location = {PlaceAssetExecutor._tuple_str(request.location)}")
+            lines.append(f"obj.location = {tuple_str(request.location)}")
 
         if request.rotation is not None:
-            lines.append(f"obj.rotation_euler = {PlaceAssetExecutor._tuple_str(request.rotation)}")
+            lines.append(f"obj.rotation_euler = {tuple_str(request.rotation)}")
 
         if request.scale is not None:
-            lines.append(f"obj.scale = {PlaceAssetExecutor._tuple_str(request.scale)}")
+            lines.append(f"obj.scale = {tuple_str(request.scale)}")
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
-
-    @staticmethod
-    def _tuple_str(coords: CoordinateList) -> str:
-        """Format a 3-element sequence of floats for embedding in generated Python code."""
-        return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
     def __repr__(self) -> str:
         return "PlaceAssetExecutor()"

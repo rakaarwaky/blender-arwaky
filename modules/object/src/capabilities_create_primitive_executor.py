@@ -14,7 +14,6 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    CoordinateList,
     ObjectName,
     Prompt,
     SuccessFlag,
@@ -109,6 +108,28 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
 
         try:
             resolved = await self._executor.execute_blender_code(Prompt(check_code))
+            if isinstance(resolved, str) and resolved:
+                return resolved
+            return base_name
+        except Exception:
+            return f"Primitive_{id(request)}"
+
+        base_name = str(request.name)
+        # Generate code to check existence and find first available suffix
+        check_code = (
+            "import bpy\n"
+            f"base = {quote_string(base_name)}\n"
+            "existing = set(bpy.data.objects.keys())\n"
+            "candidate = base\n"
+            "suffix = 1\n"
+            "while candidate in existing:\n"
+            "    candidate = f'{base}.{suffix:03d}'\n"
+            "    suffix += 1\n"
+            "result = candidate\n"
+        )
+
+        try:
+            resolved = await self._executor.execute_blender_code(Prompt(check_code))
             # Handle non-string responses (e.g. False, None from test mocks)
             if isinstance(resolved, str) and resolved:
                 return resolved
@@ -147,16 +168,6 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         )
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
-
-    @staticmethod
-    def _tuple_str(coords: CoordinateList) -> str:
-        """Format a 3-element sequence of floats for embedding in generated Python code."""
-        return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
     @staticmethod
     def _resolve_primitive_op(primitive_type: str) -> str | None:

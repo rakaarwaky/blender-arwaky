@@ -13,7 +13,7 @@ from ..common.taxonomy_domain_error import DomainError
 class ObjectAmbiguityError(DomainError):
     """Raised when an object reference resolves to multiple matching objects."""
 
-    def __init__(self, reference: str, matches: list[str]) -> None:
+    def __init__(self, reference: ObjectName, matches: list[ObjectName]) -> None:
         super().__init__(ErrorString(f"Ambiguous object reference '{reference}': {len(matches)} matches"))
         self.reference = reference
         self.matches = matches
@@ -22,7 +22,7 @@ class ObjectAmbiguityError(DomainError):
 class ObjectNotFoundError(DomainError):
     """Raised when a requested object does not exist in the scene."""
 
-    def __init__(self, reference: str) -> None:
+    def __init__(self, reference: ObjectName) -> None:
         super().__init__(ErrorString(f"Object '{reference}' not found in scene"))
         self.reference = reference
 
@@ -38,7 +38,7 @@ class TransformLockError(DomainError):
 class MaterialAssignmentError(DomainError):
     """Raised when material assignment is incompatible with the object type."""
 
-    def __init__(self, object_name: str, reason: str) -> None:
+    def __init__(self, object_name: ObjectName, reason: str) -> None:
         super().__init__(ErrorString(f"Cannot assign material to '{object_name}': {reason}"))
         self.object_name = object_name
         self.reason = reason
@@ -56,7 +56,7 @@ class ModifierActionConfirmationError(DomainError):
 class DeletionProtectionError(DomainError):
     """Raised when attempting to delete a protected object without confirmation."""
 
-    def __init__(self, object_name: str, protected_category: str) -> None:
+    def __init__(self, object_name: ObjectName, protected_category: str) -> None:
         super().__init__(ErrorString(f"Cannot delete protected object '{object_name}' (category: {protected_category})"))
         self.object_name = object_name
         self.protected_category = protected_category

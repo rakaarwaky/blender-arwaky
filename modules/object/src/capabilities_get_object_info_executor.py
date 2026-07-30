@@ -85,9 +85,10 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         Collects comprehensive data. Avoids cyclic references.
         Includes mesh statistics for mesh objects.
         """
+        object_ref = quote_string(str(request.object_name))
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})",
+            f"obj = bpy.data.objects.get({object_ref})",
             'if obj is None:',
             '    raise ValueError("Object not found in scene.")',
             'info = {',
@@ -95,7 +96,6 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
             "    'type': obj.type,",
         ]
 
-        # Add transform data
         lines.append(
             "    'location': [obj.location.x, obj.location.y, obj.location.z],"
         )
@@ -105,33 +105,21 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         lines.append(
             "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],"
         )
-
-        # Add parent information
         lines.append(
             "    'parent_name': obj.parent.name if obj.parent else None,"
         )
-
-        # Add collection membership (avoid cyclic references)
         lines.append(
             "    'collection_names': [col.name for col in obj.users_collection],"
         )
-
-        # Add material references — guard for non-mesh objects
         lines.append(
             "    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],"
         )
-
-        # Add modifier summaries
         lines.append(
             "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],"
         )
-
-        # Add visibility state
         lines.append(
             "    'visibility': obj.visible_get(),"
         )
-
-        # Add mesh statistics (only for mesh objects)
         lines.extend([
             "    'mesh_statistics': None,",
             "}",
