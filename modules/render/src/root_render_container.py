@@ -30,10 +30,12 @@ class RenderContainer:
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
         job_capacity: IJobCapacity | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
         self._job_capacity = job_capacity
+        self._event_emitter = event_emitter
         self._lock = threading.Lock()
         self._orchestrator: RenderOrchestrator | None = None
 
@@ -63,18 +65,22 @@ class RenderContainer:
             viewport_capture = RenderViewportCaptureExecutor(
                 self._code_executor,
                 self._security_validator,
+                self._event_emitter,
             )
             scene_image = RenderSceneImageExecutor(
                 self._code_executor,
                 self._security_validator,
                 self._job_capacity,
+                self._event_emitter,
             )
             camera_config = RenderCameraConfigExecutor(
                 self._code_executor,
+                self._event_emitter,
             )
             hdri_config = RenderHdriConfigExecutor(
                 self._code_executor,
                 self._security_validator,
+                self._event_emitter,
             )
 
             self._orchestrator = RenderOrchestrator(
@@ -99,10 +105,12 @@ def create_render_container(
     code_executor: ICodeExecutionProtocol,
     security_validator: ValidatePathProtocol | None = None,
     job_capacity: IJobCapacity | None = None,
+    event_emitter: object | None = None,
 ) -> RenderContainer:
     """Factory for RenderContainer."""
     return RenderContainer(
         code_executor=code_executor,
         security_validator=security_validator,
         job_capacity=job_capacity,
+        event_emitter=event_emitter,
     )
