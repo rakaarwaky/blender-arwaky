@@ -11,7 +11,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Any
+from typing import Any, Protocol
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
@@ -22,17 +22,37 @@ from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import Un
 logger = logging.getLogger("BlenderMCPServer")
 
 
+class ActionExecutorProtocol(Protocol):
+    """Protocol for executing feature actions.
+
+    Defines the interface required by SyncDispatchExecutor to run
+    the owning feature's action implementation.
+    """
+
+    def execute_action(self, action_name: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Execute an action and return the result dict."""
+        ...
+
+
 class SyncDispatchExecutor(SyncDispatchProtocol):
     """Concrete implementation for synchronous action dispatch.
 
     FR-DSP-004: Routes to owning feature, enforces timeout, maps errors.
     Returns standardized envelope; does not retry non-idempotent actions.
     Implements context manager protocol for proper ThreadPoolExecutor cleanup.
+
+    Raises ValueError at construction if execute_action is None —
+    this prevents fake-success responses (FR-DSP-004 routing integrity).
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, execute_action: Any = None) -> None:
+    def __init__(self, execute_action: ActionExecutorProtocol) -> None:
+        if execute_action is None:
+            raise ValueError(
+                "SyncDispatchExecutor requires a non-null action executor. "
+                "Ensure the owning feature executor is wired in the container."
+            )
         self._execute = execute_action
         self._pool = ThreadPoolExecutor(max_workers=1)
 
@@ -50,8 +70,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
         """Route a validated action to its owning feature and return normalized result.
 
         FR-DSP-004: Enforces timeout, propagates tracking ID, maps domain errors.
-        Non-idempotent actions are NOT retried automatically.
-        Returns standardized envelope; does not retry non-idempotent actions.
+        Never synthesises fake success — requires a wired executor at construction.
         """
         start_time = time.time()
         tracking_id = request.validated_tracking_id or request.tracking_id or ""
@@ -73,18 +92,15 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
                 owning_feature = request.resolved_metadata.get("owning_feature_ref", "unknown")
                 raise RuntimeError(f"Owning feature {owning_feature} is degraded")
 
-            if self._execute is not None:
-                if applied_timeout and applied_timeout > 0:
-                    # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
-                    future = self._pool.submit(self._execute.execute_action, action_name, params)
-                    try:
-                        result = future.result(timeout=applied_timeout)
-                    except FuturesTimeoutError:
-                        raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
-                else:
-                    result = self._execute.execute_action(action_name, params)
+            if applied_timeout and applied_timeout > 0:
+                # Enforce the action timeout (FR-DSP-004) on the owning-feature call.
+                future = self._pool.submit(self._execute.execute_action, action_name, params)
+                try:
+                    result = future.result(timeout=applied_timeout)
+                except FuturesTimeoutError:
+                    raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
             else:
-                result = {"status": "dispatched", "action": action_name}
+                result = self._execute.execute_action(action_name, params)
 
             duration_ms = (time.time() - start_time) * 1000
 
