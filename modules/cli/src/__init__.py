@@ -28,12 +28,19 @@ __all__ = [
     "status_handle",
 ]
 
-# Command handlers — imported from cmd_* modules for module-level access
-from . import cmd_close, cmd_init, cmd_render, cmd_run, cmd_screenshot, cmd_status
+# Command handlers — imported from surface_*_command modules for module-level access
+from . import (
+    surface_close_command,
+    surface_init_command,
+    surface_render_command,
+    surface_run_command,
+    surface_screenshot_command,
+    surface_status_command,
+)
 
-close_handle = cmd_close.handle
-init_handle = cmd_init.handle
-render_handle = cmd_render.handle
-run_handle = cmd_run.handle
-screenshot_handle = cmd_screenshot.handle
-status_handle = cmd_status.handle
+close_handle = surface_close_command.handle
+init_handle = surface_init_command.handle
+render_handle = surface_render_command.handle
+run_handle = surface_run_command.handle
+screenshot_handle = surface_screenshot_command.handle
+status_handle = surface_status_command.handle

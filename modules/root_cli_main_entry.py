@@ -26,6 +26,15 @@ import sys
 
 from modules.shared.src.dispatcher.contract_dispatcher_aggregate import IDispatcherAggregate
 
+from modules.cli.src import (
+    surface_close_command,
+    surface_init_command,
+    surface_render_command,
+    surface_run_command,
+    surface_screenshot_command,
+    surface_status_command,
+)
+
 logger = logging.getLogger(__name__)
 
 # FRD-mapped exit codes per outcome class
@@ -150,11 +159,8 @@ def main(
     result: dict[str, object] = {}
 
     try:
-        # Lazy imports — commands loaded only when dispatched (AES506 compliant)
-        from modules.cli.src import cmd_close, cmd_init, cmd_render, cmd_run, cmd_screenshot, cmd_status
-
         if args.command == "init":
-            result = cmd_init.handle(args, dispatcher)
+            result = surface_init_command.handle(args, dispatcher)
 
         elif args.command == "run":
             try:
@@ -168,19 +174,19 @@ def main(
                     "ref": "cli-400",
                 }
             else:
-                result = cmd_run.handle(args, dispatcher)
+                result = surface_run_command.handle(args, dispatcher)
 
         elif args.command == "screenshot":
-            result = cmd_screenshot.handle(args, dispatcher)
+            result = surface_screenshot_command.handle(args, dispatcher)
 
         elif args.command == "render":
-            result = cmd_render.handle(args, dispatcher)
+            result = surface_render_command.handle(args, dispatcher)
 
         elif args.command == "close":
-            result = cmd_close.handle(args, dispatcher)
+            result = surface_close_command.handle(args, dispatcher)
 
         elif args.command == "status":
-            result = cmd_status.handle(args, dispatcher)
+            result = surface_status_command.handle(args, dispatcher)
 
         else:
             result = {
