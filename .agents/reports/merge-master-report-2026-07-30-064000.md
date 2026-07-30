@@ -22,10 +22,23 @@
   - Updated `GatewayOrchestrator` to delegate directly to `SceneQueueExecutor`
   - Removed unused imports and exports
 
+- **PR #65**: "refactor(dispatcher): make catalog_registration, action_discovery, request_validation mandatory" (from `fix/41-dispatcher-mandatory-deps` to `develop`)
+  - Squash merged with conflict resolution
+  - Changed 3 constructor dependencies from optional to mandatory in `DispatcherOrchestrator`
+  - Resolved 10 merge conflicts across 4 files (orchestrator, contract, test file, taxonomy VOs)
+  - Applied import sorting fixes and added required constructor args to 4 failing tests
+
+- **PR #66**: "refactor(gateway): align ConnectionState, unify IGatewayAggregate interface" (from `fix/42-gateway-refactor` to `develop`)
+  - Squash merged (clean merge)
+  - Aligned `GatewayOrchestrator` with new `IGatewayAggregate` interface
+  - Updated `ConnectionState` enum values
+
 ## Issues Closed
 - Issue #36: CRITICAL: Dispatcher contracts use Any and primitive types instead of taxonomy VOs (Closed via PR #62)
 - Issue #38: CRITICAL: Gateway utility file contains stateful class and imports contract (Closed via PR #63)
-- Issue #37: CRITICAL: Dispatcher exception messages leak sensitive information into result envelopes (Closed — no clean merge available, both PRs stale)
+- Issue #37: CRITICAL: Dispatcher exception messages leak sensitive information into result envelopes (Still open — both PRs #61/#64 have merge conflicts)
+- Issue #41: DISPATCHER: Make catalog_registration, action_discovery, request_validation mandatory deps (Closed via PR #65)
+- Issue #42: GATEWAY: Align ConnectionState and IGatewayAggregate interface (Closed via PR #66)
 
 ## Issues Skipped/Already Handled
 - **PR #61** (`fix/37-sanitize-exception-messages`): **CLOSED** — has merge conflicts in `capabilities_background_submit.py` (based on outdated code pre-PR#60)
@@ -33,11 +46,11 @@
 - Issues #39, #40, #42, #45–#46, #48–#49: Still open from previous cycles; no new PRs to cross-reference or close
 
 ## Notes & Conflicts
-- **Import fix applied**: Fixed broken imports in `capabilities_code_execution.py` and `capabilities_transport_executor.py` that pointed to `modules.shared.src.gateway.utility.*` (old path) instead of `modules.shared.src.gateway.*` (new path after refactoring commit 30c61ba)
+- **Import fixes applied**: Fixed broken imports in `agent_dispatcher_orchestrator.py`, `capabilities_transport_executor.py` (moved `from dataclasses import replace` to stdlib block)
 - Both PRs #61 and #64 address issue #37 but are based on outdated code (pre-PR#60 merge). They have merge conflicts in `capabilities_background_submit.py` which was significantly refactored by PR#60 to use `IJobLifecycle`
 - Authors of PRs #61 and #64 need to rebase their branches on current `develop` and resubmit
 - All local issue documents in `.agents/issues/` preserved per policy (directory empty — no local files to preserve)
-- Total open issues now: 9 (issues #39, #40, #42, #45–#46, #48–#49)
+- Total open issues now: 7 (issues #39, #40, #45–#46, #48–#49)
 
 ## Verification
 - **Dispatcher tests**: 59 passed ✅
