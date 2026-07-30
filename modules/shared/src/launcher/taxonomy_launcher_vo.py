@@ -192,7 +192,12 @@ class RuntimeStateVO:
         from .taxonomy_launcher_constant import SECRET_KEYS
 
         field_names = {f.name for f in fields(self)}
-        return any(key in field_names for key in SECRET_KEYS)
+        return not field_names.isdisjoint(SECRET_KEYS)
+
+
+
+
+
 
 
 @dataclass(frozen=True)
