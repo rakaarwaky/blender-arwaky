@@ -166,7 +166,7 @@ class ExecutableLocator(LocateRegisterProtocol):
         This is a functional registration that propagates the discovered path.
         """
 
-    def _emit_registered(self, source: RegistrationSource, _path: str) -> None:
+    def _emit_registered(self, _source: RegistrationSource, _path: str) -> None:
         """Emit executable registered event.
 
         FR-LAU-001: Emits lifecycle event when executable is successfully registered.
@@ -177,6 +177,6 @@ class ExecutableLocator(LocateRegisterProtocol):
                     event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
                     state_before=RuntimeState.NOT_RUNNING,
                     state_after=RuntimeState.RUNNING_READY,
-                    source=source,
+                    source=_source,
                 )
             )

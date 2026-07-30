@@ -47,7 +47,6 @@ from .capabilities_process_launcher import ProcessLauncher
 from .capabilities_process_shutdown import ProcessShutdown
 from .capabilities_runtime_status import RuntimeStatusChecker
 from .capabilities_state_persistence import StatePersistence
-from .surface_launcher_config_builder import LauncherConfigBuilder
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -109,16 +108,9 @@ class LauncherContainer:
 
         logger.info("Wiring launcher feature module")
 
-        # P0: Build LauncherConfigVO from IConfigAggregate (composition root)
-        if self._config_aggregate is not None:
-            builder = LauncherConfigBuilder(self._config_aggregate)
-            self._config = builder.build()
-            # P0: Derive state_path via workspace resolution
-            self._state_path = builder.resolve_state_path()
-        else:
-            # Fallback: use legacy raw config parameter (backward compat)
+        # Initialize config fallback
+        if self._config is None:
             self._config = LauncherConfigVO()
-            self._state_path = None
 
         # Wire redaction rules into event-emitting capabilities
         _redaction_rules = self._redaction_rules
