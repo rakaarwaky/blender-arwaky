@@ -70,12 +70,12 @@ class MockSecurityValidator(ValidatePathProtocol):
                 allowed=False,
                 denial_reason="Path denied by security policy",
             )
-        from pathlib import Path as P
+        from pathlib import Path as _Path
         return PathValidationVO(
             target_path=request.target_path,
             access_mode=request.access_mode,
             allowed=True,
-            canonical_path=str(P(request.target_path).resolve()),
+            canonical_path=str(_Path(request.target_path).resolve()),
         )
 
 

@@ -33,8 +33,8 @@ def _make_mock_execute():
 
 def _make_orchestrator(
     catalog: dict | None = None,
-    with_discovery: bool = False,
-    with_validation: bool = False,
+    _with_discovery: bool = False,
+    _with_validation: bool = False,
     with_dispatch: bool = False,
     with_normalization: bool = False,
 ) -> DispatcherOrchestrator:

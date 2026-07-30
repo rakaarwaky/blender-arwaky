@@ -39,7 +39,7 @@ class AssetDownloadProtocol(ABC):
         asset_type: AssetType,
         cache_dir: FilePath,
         resolution: ResolutionPreference | None = None,
-        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
+        overwrite_policy: DuplicatePolicy | None = None,
         max_size: MaxSize | None = None,
         background: bool = False,
     ) -> dict[str, object]:
