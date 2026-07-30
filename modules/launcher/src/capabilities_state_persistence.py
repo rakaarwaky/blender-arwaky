@@ -21,9 +21,6 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
 )
 
-_SECRET_KEYS = ("secret", "token", "password", "credential", "auth")
-
-
 class StatePersistence(PersistStateProtocol):
     """Corruption-safe runtime state persistence with concurrent access safety."""
 
@@ -79,8 +76,7 @@ class StatePersistence(PersistStateProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
-        data = self._to_dict(state)
-        return bool([key for key in _SECRET_KEYS if key in data])
+        return state.contains_secret()
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {

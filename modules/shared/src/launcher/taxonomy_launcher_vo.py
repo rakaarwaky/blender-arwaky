@@ -184,6 +184,18 @@ class RuntimeStateVO:
     bridge_endpoint: str | None = None
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
 
+    def contains_secret(self) -> bool:
+        """Check if any field name matches a secret-like key."""
+        from dataclasses import fields
+
+        from .taxonomy_launcher_constant import SECRET_KEYS
+
+        field_names = {f.name for f in fields(self)}
+        for key in SECRET_KEYS:
+            if key in field_names:
+                return True
+        return False
+
 
 @dataclass(frozen=True)
 class PersistenceOutcomeVO:
