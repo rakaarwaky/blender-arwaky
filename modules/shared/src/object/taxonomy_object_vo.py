@@ -129,16 +129,21 @@ class CreatePrimitiveVO:
 class SetMaterialVO:
     """Set material — input and output in one VO.
 
-    Input: object_name, material_name.
+    Input: object_name, material_name, base_color, metallic, roughness, alpha.
     Output: success, slot_index, message.
+    FR-OBJ-004: PBR properties applied via Principled BSDF node.
     """
 
     # Input
     object_name: ObjectName
     material_name: MaterialName
+    base_color: tuple[float, float, float, float] | None = None
+    metallic: float | None = None
+    roughness: float | None = None
+    alpha: float | None = None
+    slot_index: int | None = None
     # Output
     success: SuccessFlag = field(default=SuccessFlag(False))
-    slot_index: int | None = None
     message: str = ""
 
 

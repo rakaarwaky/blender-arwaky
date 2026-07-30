@@ -14,13 +14,13 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    CoordinateList,
     ObjectName,
     Prompt,
     SuccessFlag,
 )
+from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
-from modules.shared.src.object.taxonomy_object_error_vo import InvalidPrimitiveTypeError
+from modules.shared.src.object.taxonomy_object_error import InvalidPrimitiveTypeError
 from modules.shared.src.object.taxonomy_object_vo import CreatePrimitiveVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -104,42 +104,29 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
     async def _resolve_name(self, request: CreatePrimitiveVO) -> str:
         """Resolve object name with naming policy.
 
-        FR-OBJ-002: Naming policy may be one of:
-        - reject duplicate name
-        - automatically generate unique suffix
-        - overwrite existing object when explicitly allowed
+        FR-OBJ-002: Uses repr() to safely escape user-provided names
+        in generated Blender code (P0 code-injection fix).
+        Uses iterative candidate check for correct uniqueness resolution.
         """
         if request.name:
-            # Batch-check all potential names in a single Blender code execution
             base_name = str(request.name)
-            # Build set comprehension string for generated code:
-            # existing = {'MySphere' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}
+            safe_name = quote_string(base_name)
+            # Check base name first, then iteratively find first unused candidate
             check_code = (
                 "import bpy\n"
-                f"existing = {{('{base_name}' + '.' + str(i)) in bpy.data.objects.keys() for i in range(1, 100)}}\n"
-                "result = existing\n"
+                f"existing = set(bpy.data.objects.keys())\n"
+                f"base = {safe_name}\n"
+                "candidate = base\n"
+                "suffix = 1\n"
+                "while candidate in existing:\n"
+                "    candidate = f'{base}.{suffix:03d}'\n"
+                "    suffix += 1\n"
+                "result = candidate\n"
             )
             try:
-                existing_set = await self._executor.execute_blender_code(Prompt(check_code))
-                # Find first non-existing name — handle dict, set, or bool responses
-                if isinstance(existing_set, dict):
-                    # Dict mapping suffix → exists (from batch check)
-                    for suffix in range(1, 100):
-                        if not existing_set.get(suffix, False):
-                            unique_name = f"{base_name}.{suffix}"
-                            logger.info("Generated unique name: %s", unique_name)
-                            return unique_name
-                elif isinstance(existing_set, (set, bool)):
-                    # Set of booleans or simple boolean response — name doesn't exist
-                    # Fall through to use base_name directly
-                    pass
-                else:
-                    # Unknown response type — assume name is available
-                    pass
-                # Name is available (either batch check returned empty set or response was simple False)
-                return base_name
+                resolved = await self._executor.execute_blender_code(Prompt(check_code))
+                return str(resolved)
             except Exception:
-                # If check fails, use auto-generated name
                 return f"Primitive_{id(request)}"
 
         return f"Primitive_{id(request)}"
@@ -154,33 +141,24 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
 
         # Add size/parameter adjustments for specific primitives
         if request.scale is not None:
-            lines.append(f"bpy.context.active_object.scale = {CreatePrimitiveExecutor._tuple_str(request.scale)}")
+            lines.append(f"bpy.context.active_object.scale = ({request.scale[0]}, {request.scale[1]}, {request.scale[2]})")
 
         if request.location is not None:
-            lines.append(f"bpy.context.active_object.location = {CreatePrimitiveExecutor._tuple_str(request.location)}")
+            lines.append(f"bpy.context.active_object.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})")
 
         rotation = getattr(request, "rotation", None)
         if rotation is not None:
-            lines.append(f"bpy.context.active_object.rotation_euler = {CreatePrimitiveExecutor._tuple_str(rotation)}")
+            lines.append(f"bpy.context.active_object.rotation_euler = ({rotation[0]}, {rotation[1]}, {rotation[2]})")
 
-        # Set object name
-        lines.append(
-            f"created_obj = bpy.context.active_object\n"
-            f"if created_obj:\n"
-            f"    created_obj.name = {CreatePrimitiveExecutor._safe_str(resolved_name)}\n"
-        )
+        # Set object name with safe quoting
+        safe_name = quote_string(resolved_name)
+        lines.extend([
+            "created_obj = bpy.context.active_object",
+            "if created_obj:",
+            f"    created_obj.name = {safe_name}",
+        ])
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
-
-    @staticmethod
-    def _tuple_str(coords: CoordinateList) -> str:
-        """Format a 3-element sequence of floats for embedding in generated Python code."""
-        return f"({coords[0]}, {coords[1]}, {coords[2]})"
 
     @staticmethod
     def _resolve_primitive_op(primitive_type: str) -> str | None:
