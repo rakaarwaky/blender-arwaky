@@ -12,7 +12,6 @@ from typing import Any
 from modules.shared.src.gateway.taxonomy_gateway_error import ValidationError
 from modules.shared.src.gateway.taxonomy_gateway_vo import ServerCommandSpec
 
-
 _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
     "ping": ServerCommandSpec(
         name="ping",

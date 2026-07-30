@@ -6,7 +6,7 @@ AES401: Error fields use taxonomy-typed values instead of primitives.
 
 from __future__ import annotations
 
-from ..common.taxonomy_core_vo import ErrorString
+from ..common.taxonomy_core_vo import ErrorString, ObjectName
 from ..common.taxonomy_domain_error import DomainError
 
 

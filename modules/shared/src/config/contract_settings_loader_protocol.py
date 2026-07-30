@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_event import (
