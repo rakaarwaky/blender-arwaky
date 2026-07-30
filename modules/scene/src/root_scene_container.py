@@ -14,8 +14,6 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 from modules.shared.src.scene.contract_scene_aggregate import ISceneAggregate
 
 
-
-
 class SceneContainer:
     """Dependency injection container for scene feature."""
 
