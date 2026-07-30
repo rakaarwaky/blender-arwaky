@@ -24,6 +24,7 @@ from modules.shared.src.launcher.contract_locate_register_protocol import Locate
 from modules.shared.src.launcher.contract_persist_state_protocol import PersistStateProtocol
 from modules.shared.src.launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
     LaunchMode,
@@ -34,6 +35,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
+    TimeoutSeconds,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -58,12 +60,12 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         self._persist = persist_cap
 
     # ─── Block 2: Aggregate Implementation ───────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Delegate executable location/registration to the capabilities layer."""
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: float | None = None) -> LaunchOutcomeVO:
+    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
         logger.info("Orchestrating launch (mode=%s)", mode.value)
         return self._launch.launch(mode, readiness_timeout_seconds)

@@ -126,7 +126,7 @@ class ProcessShutdown(ShutdownProtocol):
     def _wait_exit(self, _process_id: int) -> bool:
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
-            st = self._status.check_status(depth="lightweight")
+            st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
                 return True
             time.sleep(0.05)

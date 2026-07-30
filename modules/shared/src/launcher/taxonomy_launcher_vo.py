@@ -10,6 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from enum import Enum
+from typing import NewType
+
+from modules.shared.src.common.taxonomy_core_vo import DurationMs
+
+TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 # ============================================================
 # Shared Taxonomy Enums (replaces primitive str types)
