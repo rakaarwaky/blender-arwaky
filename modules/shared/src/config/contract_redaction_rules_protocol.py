@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from ..common.taxonomy_core_vo import ConfigPath
 from .taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
@@ -20,7 +21,7 @@ class IRedactionRulesProtocol(ABC):
         ...
 
     @abstractmethod
-    def redact_value(self, key: str, value: SettingsValue) -> SettingsValue:
+    def redact_value(self, key: ConfigPath, value: SettingsValue) -> SettingsValue:
         """Redact a value if its key matches a sensitive pattern."""
         ...
 

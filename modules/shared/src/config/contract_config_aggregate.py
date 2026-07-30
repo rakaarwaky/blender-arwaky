@@ -59,27 +59,27 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
-    def has(self, path: ConfigPath) -> bool:
+    def has(self, path: ConfigPath) -> SettingsValue:
         """Check if a dot-separated path exists in the current snapshot."""
         ...
 
     @abstractmethod
-    def get_string(self, path: ConfigPath, default: str = "") -> str:
+    def get_string(self, path: ConfigPath, default: SettingsValue = None) -> SettingsValue:
         """Retrieve string value."""
         ...
 
     @abstractmethod
-    def get_int(self, path: ConfigPath, default: int = 0) -> int:
+    def get_int(self, path: ConfigPath, default: SettingsValue = None) -> SettingsValue:
         """Retrieve integer value."""
         ...
 
     @abstractmethod
-    def get_bool(self, path: ConfigPath, default: bool = False) -> bool:
+    def get_bool(self, path: ConfigPath, default: SettingsValue = None) -> SettingsValue:
         """Retrieve boolean value."""
         ...
 
     @abstractmethod
-    def get_float(self, path: ConfigPath, default: float = 0.0) -> float:
+    def get_float(self, path: ConfigPath, default: SettingsValue = None) -> SettingsValue:
         """Retrieve float value."""
         ...
 
@@ -100,7 +100,7 @@ class IConfigAggregate(ABC):
     # ─── Events (T-09) ─────────────────────────────────────────
 
     @abstractmethod
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
+    def recent_events(self, limit: SettingsValue = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return recent config domain events, oldest → newest."""
         ...
 
