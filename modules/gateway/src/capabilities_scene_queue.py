@@ -13,6 +13,7 @@ and SceneQueueExecutor (sync queue-based, SceneQueueProtocol).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import queue
 import threading
@@ -27,8 +28,8 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     ChannelConflictError,
-    PendingOpsLimitError,
     OperationWaitTimeoutError,
+    PendingOpsLimitError,
     TimeoutError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
@@ -236,10 +237,8 @@ class SceneQueueExecutor(SceneQueueProtocol):
         acquired = self._execution_lock.acquire(timeout=self._wait_timeout_seconds)
         if not acquired:
             # P1: Remove enqueued operation on timeout to prevent stale queue entries
-            try:
+            with contextlib.suppress(Exception):
                 self._queue.get_nowait()
-            except Exception:
-                pass
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
         self._processing = True
         try:
@@ -248,7 +247,7 @@ class SceneQueueExecutor(SceneQueueProtocol):
             self._processing = False
             self._execution_lock.release()
 
-    def fail_pending(self, error: Exception) -> int:
+    def fail_pending(self, _error: Exception) -> int:
         """P1: Fail and remove all pending operations in the queue.
 
         Returns the number of operations cancelled.

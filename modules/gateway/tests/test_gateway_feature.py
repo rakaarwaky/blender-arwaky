@@ -97,7 +97,7 @@ class MockSceneQueue(SceneQueueProtocol):
 
         return QueueStatusVO(current_depth=0, is_busy=False, max_depth=50)
 
-    def fail_pending(self, error: Exception) -> int:
+    def fail_pending(self, _error: Exception) -> int:
         return 0
 
 
@@ -310,7 +310,7 @@ def test_gateway_multiple_queue_operations():
 
             return QueueStatusVO(current_depth=self.enqueued_count, is_busy=False, max_depth=50)
 
-        def fail_pending(self, error: Exception) -> int:
+        def fail_pending(self, _error: Exception) -> int:
             return 0
 
     queue = TrackingQueue()

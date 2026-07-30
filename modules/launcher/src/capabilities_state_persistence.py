@@ -80,10 +80,7 @@ class StatePersistence(PersistStateProtocol):
     def _contains_secret(self, state: RuntimeStateVO) -> bool:
         """Check if state contains secret-like field names."""
         data = self._to_dict(state)
-        for key in _SECRET_KEYS:
-            if key in data:
-                return True
-        return False
+        return any(key in data for key in _SECRET_KEYS)
 
     def _to_dict(self, state: RuntimeStateVO) -> dict:
         return {
