@@ -84,7 +84,6 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         policy: JobPolicy,
         clock: Callable[[], Timestamp],
         event_publisher: IJobEventPublisher,
-        id_generator: Callable[[], JobId] | None = None,
     ) -> None:
         self._policy = policy
         self._clock = clock
@@ -96,7 +95,6 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
-        now = self._now()
         operation = sanitize_operation_type(str(command.operation_type))
         if not str(operation).strip():
             raise ValidationError(ErrorString("operation_type is required"))
