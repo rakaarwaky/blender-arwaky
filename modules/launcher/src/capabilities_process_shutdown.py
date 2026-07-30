@@ -122,8 +122,16 @@ class ProcessShutdown(ShutdownProtocol):
                         RuntimeState.NOT_RUNNING,
                         process_reference=str(current.process_id),
                     )
-                    # Post-kill verification: confirm process is dead after SIGKILL
-                    self._wait_exit(current.process_id, verify_after_timeout=True)
+                    # Post-kill verification: confirm process is dead after SIGKILL (P0 — Finding #5 fix)
+                    post_kill_dead = self._verify_process_dead(current.process_id)
+                    if not post_kill_dead:
+                        duration_ms = (time.monotonic() - start) * 1000.0
+                        return ShutdownOutcomeVO(
+                            success=False,
+                            termination_method=method,
+                            duration_ms=duration_ms,
+                            error="Process remains alive after force termination",
+                        )
                 else:
                     duration_ms = (time.monotonic() - start) * 1000.0
                     return ShutdownOutcomeVO(
@@ -166,21 +174,27 @@ class ProcessShutdown(ShutdownProtocol):
             )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
-    def _wait_exit(self, process_id: int, verify_after_timeout: bool = False) -> bool:
+    def _wait_exit(self, process_id: int) -> bool:
+        """Wait for process to exit within timeout period.
+
+        Returns True if the process has exited (state is NOT_RUNNING or STALE).
+        """
         deadline = time.monotonic() + self._timeout
         while time.monotonic() < deadline:
             st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
             if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
                 return True
             time.sleep(0.05)
-
-        # Post-kill verification: after timeout/escalation, verify process is actually dead
-        if verify_after_timeout:
-            st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
-            if st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
-                return True
-
         return False
+
+    def _verify_process_dead(self, process_id: int) -> bool:
+        """Verify process is actually dead after force termination (P0 — Finding #5 fix).
+
+        Performs a direct liveness check against the OS. Returns True if the
+        process is confirmed dead, False if it remains alive.
+        """
+        st = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
+        return st.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE)
 
     def _emit(
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", method: str = ""

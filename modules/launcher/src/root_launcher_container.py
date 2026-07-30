@@ -119,7 +119,15 @@ class LauncherContainer:
         else:
             # Fallback: use legacy raw config parameter (backward compat)
             self._config = LauncherConfigVO()
-            self._state_path = None
+            # P0 (Finding #9 fix): Fall back to default state path if not in config
+            self._state_path = self._config.state_persistence_location or self._default_state_path()
+
+        # P1 (Finding #6 fix): Add platform-standard search locations when config is empty
+        if not self._config.search_locations:
+            self._config = LauncherConfigVO(
+                **{k: v for k, v in vars(self._config).items() if k != "search_locations"},
+                search_locations=self._default_search_locations(),
+            )
 
         # Wire redaction rules into event-emitting capabilities
         redaction_rules = self._redaction_rules
@@ -206,6 +214,42 @@ class LauncherContainer:
     def _resolve_persisted_pid(self, persist_cap: PersistStateProtocol) -> int | None:
         state = persist_cap.load()
         return state.process_id if state is not None else None
+
+    # ─── Block 4: Default Resolution Helpers ────────────────
+    def _default_state_path(self) -> str:
+        """Return default state persistence path when not configured.
+
+        P0 (Finding #9 fix): Falls back to user home directory when
+        LauncherConfigVO.state_persistence_location is not set.
+        """
+        import pathlib
+
+        home = pathlib.Path.home()
+        return str(home / ".local" / "share" / "blender_arwaky" / "state.json")
+
+    def _default_search_locations(self) -> tuple[str, ...]:
+        """Return platform-standard Blender search locations.
+
+        P1 (Finding #6 fix): Provides default discovery paths when config
+        does not specify search_locations.
+        """
+        import sys
+
+        locations: list[str] = []
+        # Common Linux/macOS paths
+        for base in ("/usr/bin", "/usr/local/bin", "/opt"):
+            path = os.path.join(base, "blender")
+            if os.path.exists(path):
+                locations.append(path)
+
+        # macOS common paths
+        if sys.platform == "darwin":
+            for base in ("/Applications", "/Applications/Utilities"):
+                blender_app = os.path.join(base, "Blender.app", "Contents", "MacOS", "Blender")
+                if os.path.exists(blender_app):
+                    locations.append(blender_app)
+
+        return tuple(locations) if locations else ()
 
     @property
     def agent(self) -> ILauncherOperateAggregate:

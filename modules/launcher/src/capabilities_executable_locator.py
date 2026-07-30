@@ -52,17 +52,20 @@ class ExecutableLocator(LocateRegisterProtocol):
         env_resolver: Callable[[str, str | None], str | None] | None = None,
         persist_cap: PersistStateProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
+        config: LauncherConfigVO | None = None,
     ) -> None:
         """Initialize ExecutableLocator.
 
         P0: Accepts persist_cap to persist executable path registration (FR-LAU-001).
         P1: Accepts env_resolver instead of config_provider to route
         environment variables through config's env mechanism.
+        P1: Accepts config for supported_version_range comparison.
         """
         self._runner = command_runner
         self._env_resolver = env_resolver or (lambda key, default: os.environ.get(key, default))
         self._persist = persist_cap
         self._events = event_sink
+        self._config = config
 
     # ─── Block 2: Public Contract ────────────────────────────
     def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
@@ -130,9 +133,10 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _check_compatibility(self, version: str) -> VersionCompatibility:
         """Check Blender version compatibility against supported range.
 
-        P1 (Finding #2 fix): Parses semantic version and compares to supported range.
-        Returns UNKNOWN for empty/invalid versions, SUPPORTED if within range,
-        WARNING if potentially incompatible, UNSUPPORTED if clearly out of range.
+        P1 (Finding #2 fix): Parses semantic version and compares to supported range
+        from LauncherConfigVO. Returns UNKNOWN for empty/invalid versions, SUPPORTED
+        if within range, WARNING if potentially incompatible, UNSUPPORTED if clearly
+        out of range.
 
         FR-LAU-001: Validates version format and checks against supported range.
         """
@@ -150,7 +154,13 @@ class ExecutableLocator(LocateRegisterProtocol):
         except ValueError:
             return VersionCompatibility.UNKNOWN
 
-        # Blender versions 3.0+ are supported (3.0 is the minimum modern version)
+        # Apply supported_version_range from config if provided (P1 — Finding #2 fix)
+        if self._config and self._config.supported_version_range:
+            range_compat = self._compare_to_range(major, minor, version)
+            if range_compat is not None:
+                return range_compat
+
+        # Default policy: Blender 3.0+ supported, 4.2+ may have experimental features
         if major < 3:
             return VersionCompatibility.UNSUPPORTED
         if major == 3 and minor < 0:
@@ -158,6 +168,71 @@ class ExecutableLocator(LocateRegisterProtocol):
 
         # Versions 4.2+ may have experimental features — mark as WARNING
         if major >= 4 and minor >= 2:
+            return VersionCompatibility.WARNING
+
+        return VersionCompatibility.SUPPORTED
+
+    def _compare_to_range(
+        self,
+        major: int,
+        minor: int,
+        version: str,
+    ) -> VersionCompatibility | None:
+        """Compare parsed version against supported_version_range string.
+
+        Supports range formats like ">=3.0,<4.3" or "3.0-4.2".
+        Returns None if range format is unrecognized (falls through to default).
+        """
+        range_str = self._config.supported_version_range  # type: ignore[union-attribute]
+        parts = [p.strip() for p in range_str.split(",") if p.strip()]
+
+        min_major: int | None = None
+        min_minor: int | None = None
+        max_major: int | None = None
+        max_minor: int | None = None
+
+        for part in parts:
+            if part.startswith(">="):
+                ver = part[2:].strip()
+                v_parts = ver.split(".")
+                try:
+                    min_major = int(v_parts[0])
+                    min_minor = int(v_parts[1]) if len(v_parts) > 1 else 0
+                except (ValueError, IndexError):
+                    return None
+            elif part.startswith("<=") or part.startswith("<"):
+                prefix = "<=" if part.startswith("<=") else "<"
+                ver = part[len(prefix) :].strip()
+                v_parts = ver.split(".")
+                try:
+                    max_major = int(v_parts[0])
+                    max_minor = int(v_parts[1]) if len(v_parts) > 1 else 0
+                except (ValueError, IndexError):
+                    return None
+            elif "-" in part:
+                # Range format "X.Y-A.B"
+                range_parts = part.split("-")
+                if len(range_parts) == 2:
+                    try:
+                        lo = range_parts[0].split(".")
+                        hi = range_parts[1].split(".")
+                        min_major = int(lo[0])
+                        min_minor = int(lo[1]) if len(lo) > 1 else 0
+                        max_major = int(hi[0])
+                        max_minor = int(hi[1]) if len(hi) > 1 else 0
+                    except (ValueError, IndexError):
+                        return None
+
+        # Check against parsed range
+        if min_major is not None:
+            if major < min_major or (major == min_major and minor < min_minor):
+                return VersionCompatibility.UNSUPPORTED
+        if max_major is not None:
+            if major > max_major or (major == max_major and minor > max_minor):
+                return VersionCompatibility.WARNING
+
+        # Within range — check if it's at the upper boundary (potential experimental)
+        if max_major is not None and major == max_major and minor == max_minor:
             return VersionCompatibility.WARNING
 
         return VersionCompatibility.SUPPORTED
