@@ -8,7 +8,6 @@ MANIFEST.in
 README.md
 SKILL.md
 TEST.md
-bandit.yaml
 config.example.yaml
 mcp.json.example
 mypy.ini
@@ -22,6 +21,7 @@ blender_arwaky.egg-info/requires.txt
 blender_arwaky.egg-info/top_level.txt
 blender_mcp_addon/__init__.py
 blender_mcp_addon/blender_manifest.toml
+blender_mcp_addon/config.py
 blender_mcp_addon/operators.py
 blender_mcp_addon/polyhaven.py
 blender_mcp_addon/properties.py
@@ -95,16 +95,15 @@ modules/gateway/src/capabilities_connection_manager.py
 modules/gateway/src/capabilities_scene_queue.py
 modules/gateway/src/capabilities_transport_executor.py
 modules/gateway/src/root_gateway_container.py
-modules/gateway/src/utility_scene_coordinator.py
 modules/job/src/__init__.py
 modules/job/src/agent_job_orchestrator.py
 modules/job/src/capabilities_job_checker.py
 modules/job/src/capabilities_job_evaluator.py
+modules/job/src/capabilities_job_event_publisher.py
 modules/job/src/capabilities_job_monitor.py
 modules/job/src/capabilities_job_repository.py
 modules/job/src/capabilities_job_resolver.py
 modules/job/src/root_job_container.py
-modules/job/src/utility_job_event_emitter.py
 modules/launcher/src/__init__.py
 modules/launcher/src/agent_launcher_orchestrator.py
 modules/launcher/src/capabilities_executable_locator.py
@@ -188,6 +187,7 @@ modules/shared/src/common/taxonomy_command_catalog_constant.py
 modules/shared/src/common/taxonomy_core_vo.py
 modules/shared/src/common/taxonomy_domain_error.py
 modules/shared/src/common/taxonomy_vector3d_vo.py
+modules/shared/src/common/utility_code_builder.py
 modules/shared/src/config/__init__.py
 modules/shared/src/config/contract_config_aggregate.py
 modules/shared/src/config/contract_config_protocol.py
@@ -219,7 +219,9 @@ modules/shared/src/dispatcher/contract_result_normalization_protocol.py
 modules/shared/src/dispatcher/contract_sync_dispatch_protocol.py
 modules/shared/src/dispatcher/taxonomy_action_command_vo.py
 modules/shared/src/dispatcher/taxonomy_action_metadata_vo.py
+modules/shared/src/dispatcher/taxonomy_discovery_filter_vo.py
 modules/shared/src/dispatcher/taxonomy_discovery_outcome_vo.py
+modules/shared/src/dispatcher/taxonomy_raw_outcome_vo.py
 modules/shared/src/dispatcher/taxonomy_unified_result_envelope_vo.py
 modules/shared/src/gateway/__init__.py
 modules/shared/src/gateway/contract_code_execution_protocol.py
@@ -288,7 +290,7 @@ modules/shared/src/object/contract_set_material_protocol.py
 modules/shared/src/object/contract_set_transform_protocol.py
 modules/shared/src/object/taxonomy_blender_object_entity.py
 modules/shared/src/object/taxonomy_object_constant.py
-modules/shared/src/object/taxonomy_object_error_vo.py
+modules/shared/src/object/taxonomy_object_error.py
 modules/shared/src/object/taxonomy_object_event_vo.py
 modules/shared/src/object/taxonomy_object_policy_vo.py
 modules/shared/src/object/taxonomy_object_vo.py
@@ -337,8 +339,8 @@ modules/shared/src/telemetry/taxonomy_telemetry_event.py
 modules/telemetry/__init__.py
 modules/telemetry/src/__init__.py
 modules/telemetry/src/agent_telemetry_orchestrator.py
-modules/telemetry/src/capabilities_telemetry_classification.py
-modules/telemetry/src/capabilities_telemetry_enrichment.py
+modules/telemetry/src/capabilities_telemetry_classifier.py
+modules/telemetry/src/capabilities_telemetry_enricher.py
 modules/telemetry/src/capabilities_telemetry_recorder.py
-modules/telemetry/src/capabilities_telemetry_session_management.py
+modules/telemetry/src/capabilities_telemetry_session_manager.py
 modules/telemetry/src/root_telemetry_container.py

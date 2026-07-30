@@ -1,3 +1,5 @@
+nth
+
 # Module: config (v1.7.0)
 
 This document contains the source code for module `config` along with related and imported definitions from the `shared` module.
@@ -67,8 +69,10 @@ This document contains the source code for module `config` along with related an
 - [modules/shared/src/config/taxonomy_config_event.py](<modules/shared/src/config/taxonomy_config_event.py>)
 - [modules/shared/src/config/taxonomy_config_vo.py](<modules/shared/src/config/taxonomy_config_vo.py>)
 - [modules/shared/src/config/utility_config_helpers.py](<modules/shared/src/config/utility_config_helpers.py>)
+- [PRD.md](<PRD.md>)
 - [pyproject.toml](<pyproject.toml>)
 - [README.md](<README.md>)
+- [RULES_AES.md](<RULES_AES.md>)
 
 ---
 
@@ -7687,7 +7691,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._snapshot: SettingsSnapshot | None = None
         self._event_buffer: deque[EventPayload] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
-# ─── Block 2: Aggregate Method Implementation ─────────────
+    # ─── Block 2: Aggregate Method Implementation ─────────────
 
     def load(
         self,
@@ -7712,6 +7716,10 @@ class ConfigOrchestrator(IConfigAggregate):
         """Return cached snapshot, lazy-loading if needed (now safe — loader locked)."""
         if self._snapshot is None:
             self._snapshot = self._loader.load_settings()
+            self._record_event(self._loader.emit_loaded_event())
+            validation_ev = self._loader.emit_validation_warning_event()
+            if validation_ev is not None:
+                self._record_event(validation_ev)
         return self._snapshot
 
     def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
@@ -7750,6 +7758,8 @@ class ConfigOrchestrator(IConfigAggregate):
 
     def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return the most recent config domain events, oldest → newest."""
+        if limit <= 0:
+            return ()
         items = list(self._event_buffer)
         return tuple(items[-limit:])
 
@@ -7761,7 +7771,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-# ─── Block 3: Event Recording ─────────────────────────────
+    # ─── Block 3: Event Recording ─────────────────────────────
 
     def _record_event(self, event: object) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
@@ -7771,7 +7781,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._event_buffer.append(redacted_payload)
         logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 
-# ─── Dunder ────────────────────────────────────────────────
+    # ─── Dunder ────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"
@@ -7823,7 +7833,7 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
             full_redact=True,
         )
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_redaction_rule(self) -> RedactionRule:
         """Return the authoritative redaction rule."""
@@ -7844,15 +7854,12 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
             elif isinstance(value, dict):
                 result[key] = self.redact_dict(value)
             elif isinstance(value, list):
-                result[key] = [
-                    self.redact_dict(item) if isinstance(item, dict) else item
-                    for item in value
-                ]
+                result[key] = [self.redact_dict(item) if isinstance(item, dict) else item for item in value]
             else:
                 result[key] = value
         return result
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "RedactionRulesCapability()"
@@ -7981,7 +7988,7 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         self._cached_data: SettingsData | None = None
         self._last_metadata: ConfigMetadata = ConfigMetadata()
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def load_settings(
         self,
@@ -8001,12 +8008,15 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._last_metadata = metadata
 
             # Runtime overrides are caller-scoped — never cached (A5).
+            # FR-CFG-001 precedence: runtime overrides > environment > file > built-in defaults
+            # Therefore overrides must be applied to the fully merged snapshot, not raw file data.
             if overrides is not None and self._strict_mode_enabled:
+                base = self._cached.to_dict() if self._cached is not None else {}
                 structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
-                final = deep_merge_dicts(self._cached_data, structured)
+                final = deep_merge_dicts(base, structured)
                 return SettingsSnapshot(_data=final)
 
             if overrides is not None and not self._strict_mode_enabled:
@@ -8079,11 +8089,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             timestamp=Timestamp(time.time()),
         )
 
-# ─── Block 3: Core Build ───────────────────────────────────
+    # ─── Block 3: Core Build ───────────────────────────────────
 
-    def _build_core(
-        self, path: ConfigPath | None
-    ) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
+    def _build_core(self, path: ConfigPath | None) -> tuple[SettingsData, SettingsData, ConfigMetadata]:
         """Build merged settings + raw file data + metadata.
 
         Returns (merged, filedata, metadata). ``filedata`` is what gets cached
@@ -8102,16 +8110,12 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             parse_warnings.append(ParseWarning(f"{resolved} is a directory; using defaults"))
         elif not p.is_file():
             # Missing file: never fatal (Q6).
-            parse_warnings.append(
-                ParseWarning(f"settings file not found: {resolved}; using defaults")
-            )
+            parse_warnings.append(ParseWarning(f"settings file not found: {resolved}; using defaults"))
         else:
             # Size limit (strict-mode gated)
             if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
-                    raise ConfigLoadError(
-                        f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes"
-                    )
+                    raise ConfigLoadError(f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes")
                 parse_warnings.append(ParseWarning(f"settings file too large: {resolved}; skipped"))
             else:
                 try:
@@ -8119,31 +8123,23 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 except (ConfigParseError, ConfigLoadError, ConfigValidationError):
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise
-                    parse_warnings.append(
-                        ParseWarning(f"failed to parse {resolved}; using defaults")
-                    )
+                    parse_warnings.append(ParseWarning(f"failed to parse {resolved}; using defaults"))
                     file_data = {}
                 except (UnicodeDecodeError, OSError) as exc:
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(
-                        ParseWarning(f"failed to load {resolved}; using defaults")
-                    )
+                    parse_warnings.append(ParseWarning(f"failed to load {resolved}; using defaults"))
                     file_data = {}
                 except Exception as exc:
                     # Catch-all for unexpected errors — re-raise in strict mode
                     if self._policy_mode == POLICY_MODE_STRICT:
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(
-                        ParseWarning(f"unexpected error loading {resolved}; using defaults")
-                    )
+                    parse_warnings.append(ParseWarning(f"unexpected error loading {resolved}; using defaults"))
                     file_data = {}
 
         # Merge precedence: defaults < file < env
         merged = deep_merge_dicts(dict(self._defaults), file_data)
-        merged, env_count = apply_env_overrides(
-            merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS
-        )
+        merged, env_count = apply_env_overrides(merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS)
 
         # Schema (strict-mode gated)
         validation_warnings: list[ValidationWarning] = []
@@ -8200,7 +8196,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
     def __init__(self, metadata_supplier: _IMetadataSource | None = None) -> None:
         self._metadata_supplier = metadata_supplier
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_metadata(self) -> ConfigMetadata:
         """Return current settings metadata (reflects latest load/reload)."""
@@ -8212,7 +8208,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
         """Serialize metadata for diagnostics output (secrets excluded)."""
         return metadata.to_dict()
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "SettingsMetadataCapability()"
@@ -8253,7 +8249,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         self._policy_mode = policy_mode
         self._escape_enabled = escape_enabled
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_value(
         self,
@@ -8286,7 +8282,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         """Retrieve float value. Returns default on type mismatch. Int coerced."""
         return self._typed(snapshot, path, float, default, coerce_int=True)
 
-# ─── Block 3: Typed Helper ─────────────────────────────────
+    # ─── Block 3: Typed Helper ─────────────────────────────────
 
     def _typed(
         self,
@@ -8306,19 +8302,16 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
             if isinstance(raw, int) and not (exclude_bool and isinstance(raw, bool)):
                 return raw
         elif expected is float:
-            if isinstance(raw, bool):
-                pass  # falls through to strict-mode check below
-            elif isinstance(raw, int):
-                return float(raw) if coerce_int else default
-            elif isinstance(raw, float):
-                return raw
+            if not isinstance(raw, bool):
+                if isinstance(raw, int):
+                    return float(raw) if coerce_int else default
+                if isinstance(raw, float):
+                    return raw
         elif isinstance(raw, expected):
             return raw
 
         if self._policy_mode == POLICY_MODE_STRICT:
-            raise ConfigTypeError(
-                ErrorString(f"{path}: expected {expected.__name__}, got {type(raw).__name__}")
-            )
+            raise ConfigTypeError(ErrorString(f"{path}: expected {expected.__name__}, got {type(raw).__name__}"))
         return default
 
     def __repr__(self) -> str:
@@ -8341,6 +8334,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
@@ -8377,7 +8371,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         self._lock = threading.Lock()
         self._cached: WorkspacePath | None = None
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def resolve(self) -> WorkspacePath:
         """Resolve workspace using deterministic strategy order (cached)."""
@@ -8393,9 +8387,10 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
+            timestamp=time.time(),
         )
 
-# ─── Block 3: Resolution Strategy ─────────────────────────
+    # ─── Block 3: Resolution Strategy ─────────────────────────
 
     def _resolve_uncached(self) -> WorkspacePath:
         # 1. Explicit override
@@ -8510,8 +8505,7 @@ class ConfigContainer:
     ) -> None:
         # Flag read once at construction (None → resolve via env truthiness).
         if strict_mode_enabled is None:
-            v2 = parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, ""))
-            strict_mode_enabled = v2 is True
+            strict_mode_enabled = bool(parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, "")))
         else:
             strict_mode_enabled = bool(strict_mode_enabled)
 
@@ -9022,12 +9016,18 @@ Implemented by Agent layer (ConfigOrchestrator).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
-from .taxonomy_config_vo import RedactionRule, SettingsSnapshot, WorkspacePath
+from .taxonomy_config_vo import (
+    EventPayload,
+    RedactionRule,
+    SettingsData,
+    SettingsOverrides,
+    SettingsSnapshot,
+    SettingsValue,
+    WorkspacePath,
+)
 
 
 class IConfigAggregate(ABC):
@@ -9042,7 +9042,7 @@ class IConfigAggregate(ABC):
     def load(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: SettingsOverrides | None = None,
     ) -> SettingsSnapshot:
         """Load settings and return immutable snapshot."""
         ...
@@ -9060,7 +9060,7 @@ class IConfigAggregate(ABC):
     # ─── Retrieval (FR-CFG-002) ────────────────────────────────
 
     @abstractmethod
-    def get(self, path: ConfigPath = "", default: Any = None) -> Any:
+    def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path from current snapshot."""
         ...
 
@@ -9106,7 +9106,7 @@ class IConfigAggregate(ABC):
     # ─── Events (T-09) ─────────────────────────────────────────
 
     @abstractmethod
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[dict[str, Any], ...]:
+    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
         """Return recent config domain events, oldest → newest."""
         ...
 
@@ -9118,7 +9118,7 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact sensitive values in a dictionary."""
         ...
 ```
@@ -9137,9 +9137,8 @@ patterns and redaction rules used by consuming features for masking.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from .taxonomy_config_vo import RedactionRule
+from .taxonomy_config_vo import RedactionRule, SettingsData, SettingsValue
 
 
 class IRedactionRulesProtocol(ABC):
@@ -9151,12 +9150,12 @@ class IRedactionRulesProtocol(ABC):
         ...
 
     @abstractmethod
-    def redact_value(self, key: str, value: Any) -> Any:
+    def redact_value(self, key: str, value: SettingsValue) -> SettingsValue:
         """Redact a value if its key matches a sensitive pattern."""
         ...
 
     @abstractmethod
-    def redact_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+    def redact_dict(self, data: SettingsData) -> SettingsData:
         """Recursively redact all sensitive values in a dictionary."""
         ...
 ```
@@ -9239,9 +9238,10 @@ about how settings were loaded, merged, and validated.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Protocol
+from typing import Protocol
 
 from ..common.taxonomy_core_vo import ConfigMetadata
+from .taxonomy_config_vo import SettingsData
 
 
 class _IMetadataSource(Protocol):
@@ -9263,7 +9263,7 @@ class ISettingsMetadataProtocol(ABC):
         ...
 
     @abstractmethod
-    def to_safe_dict(self, metadata: ConfigMetadata) -> dict[str, Any]:
+    def to_safe_dict(self, metadata: ConfigMetadata) -> SettingsData:
         """Serialize metadata for diagnostics. Secrets excluded, safe for MCP/CLI output."""
         ...
 ```
@@ -9282,10 +9282,9 @@ settings value retrieval with safe copy semantics.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigPath
-from .taxonomy_config_vo import SettingsSnapshot
+from .taxonomy_config_vo import SettingsSnapshot, SettingsValue
 
 
 class ISettingsRetrieverProtocol(ABC):
@@ -9296,8 +9295,8 @@ class ISettingsRetrieverProtocol(ABC):
         self,
         snapshot: SettingsSnapshot,
         path: ConfigPath,
-        default: Any = None,
-    ) -> Any:
+        default: SettingsValue = None,
+    ) -> SettingsValue:
         """Retrieve a value by dot-separated path. Returns deep copy to prevent mutation."""
         ...
 
@@ -9307,30 +9306,22 @@ class ISettingsRetrieverProtocol(ABC):
         ...
 
     @abstractmethod
-    def get_string(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: str = ""
-    ) -> str:
+    def get_string(self, snapshot: SettingsSnapshot, path: ConfigPath, default: str = "") -> str:
         """Retrieve a string value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_int(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: int = 0
-    ) -> int:
+    def get_int(self, snapshot: SettingsSnapshot, path: ConfigPath, default: int = 0) -> int:
         """Retrieve an integer value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_bool(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: bool = False
-    ) -> bool:
+    def get_bool(self, snapshot: SettingsSnapshot, path: ConfigPath, default: bool = False) -> bool:
         """Retrieve a boolean value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_float(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: float = 0.0
-    ) -> float:
+    def get_float(self, snapshot: SettingsSnapshot, path: ConfigPath, default: float = 0.0) -> float:
         """Retrieve a float value. Returns default on type mismatch."""
         ...
 ```
@@ -9405,7 +9396,7 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 # ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
-WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"      # replaces both legacy+product root lookup
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"  # replaces both legacy+product root lookup
 STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 
@@ -9840,8 +9831,13 @@ def search_project_root(markers: tuple[str, ...]) -> Path | None:
     """Search upward from cwd for recognized project markers.
 
     Returns first parent containing any marker, or None.
+    Returns None if cwd cannot be resolved.
     """
-    current = Path.cwd().resolve()
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        return None
+
     for parent in [current, *current.parents]:
         for marker in markers:
             candidate = parent / marker
@@ -9942,7 +9938,7 @@ def apply_env_overrides(
             continue
         if not key.startswith(prefix):
             continue
-        remainder = key[len(prefix):]
+        remainder = key[len(prefix) :]
         if not remainder:
             continue
         remainder = remainder.lower()
@@ -9978,12 +9974,20 @@ def validate_settings_schema(
                 errors.append(f"{path}: expected dict, got {type(node).__name__}")
                 return
             children = node_schema.get("children", {})
+
+            # Detect missing required children.
+            for child_key, child_schema in children.items():
+                if child_key not in node and child_schema.get("required", False):
+                    errors.append(f"{path}.{child_key}: missing required value")
+
+            # Validate present children and warn unknown children.
             for child_key, child_node in node.items():
                 child_schema = children.get(child_key)
                 if child_schema is None:
                     warnings.append(f"{path}.{child_key}: unknown key")
                     continue
                 walk(child_node, child_schema, f"{path}.{child_key}")
+
             return
 
         if node_type == "int":
@@ -10014,12 +10018,19 @@ def validate_settings_schema(
         # "any" or unknown: no type check
         return
 
-    for key, value in data.items():
-        key_schema = schema.get(key)
-        if key_schema is None:
-            warnings.append(f"{key}: unknown key")
+    # Detect missing required top-level keys and validate present keys.
+    for key, key_schema in schema.items():
+        if key not in data:
+            if key_schema.get("required", False):
+                errors.append(f"{key}: missing required value")
             continue
-        walk(value, key_schema, key)
+
+        walk(data[key], key_schema, key)
+
+    # Warn unknown top-level keys.
+    for key in data:
+        if key not in schema:
+            warnings.append(f"{key}: unknown key")
 
     return tuple(errors), tuple(warnings)
 
@@ -10056,6 +10067,175 @@ def parse_settings_path(path: str, escape_enabled: bool) -> tuple[str, ...]:
     segments.append(current)
     return tuple(segments)
 ```
+
+---
+
+## File: PRD.md
+
+````markdown
+# PRD — blender-arwaky
+
+**Version:** 1.0.0
+**Date:** 2026-07-29
+
+---
+
+## Problem Statement
+
+Blender artists and pipeline engineers lack a unified, programmable interface to control Blender remotely — for headless rendering, asset management, scene automation, and CI/CD integration. Existing solutions are either proprietary, Blender-version-locked, or require writing raw Python that bypasses safety guards. **blender-arwaky** solves this by providing an MCP (Model Context Protocol) server and CLI that expose every Blender capability through a secure, layered, AI-agent-friendly interface — from launching Blender and importing assets to rendering scenes and tracking background jobs — without ever exposing users to raw Blender Python API complexity or security risks.
+
+---
+
+## Goals & Success Metrics
+
+
+| Goal                            | Success Metric                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Remote Blender control**      | All core Blender operations (scene, object, render, asset, camera) executable via CLI and MCP without opening Blender GUI        |
+| **Safety by default**           | Path traversal, code injection, and secret leakage prevented at architecture level — zero CVEs from delegated security layer    |
+| **Background job tracking**     | Long-running renders and downloads report progress, support cancellation, and auto-cleanup without blocking the caller           |
+| **Observability built-in**      | Health, metrics, audit, and structured logging available out of the box — no separate monitoring stack required                 |
+| **AI-agent ready**              | Every capability accessible through MCP with identical semantics as CLI; no business logic in surface layers                     |
+| **Deterministic configuration** | Settings resolved from file → env → defaults with strict schema validation; all features derive workspace root from one source |
+
+---
+
+## Feature Overview
+
+**blender-arwaky** consists of 14 interconnected feature modules:
+
+
+| Module          | Summary                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Config**      | Reads and validates settings from file, environment, and defaults. Provides immutable snapshot, workspace root, and redaction rules to all modules.                                      |
+| **Security**    | Path validation, archive extraction safety, untrusted code validation, sensitive value redaction, and audit events. All other modules delegate security decisions here.                  |
+| **Launcher**    | Finds, launches, and terminates the Blender process. Single authority for process lifecycle.                                                                                             |
+| **Gateway**     | Transport layer to Blender (socket/pipe). Manages connection, heartbeat, reconnection, operation queue, and raw Python code execution.                                                   |
+| **Dispatcher**  | Action catalog + routing. CLI and MCP never call domain modules directly — they submit requests to dispatcher, which validates, routes, and returns results in a standardized envelope. |
+| **Object**      | Technical operations on 3D objects: create primitives, transform, material, modifier, delete, and inspect. One object per request.                                                       |
+| **Scene**       | Scene state inspection and bulk cleanup. Determines preservation policy (cameras, lights, protected) and delegates deletion execution to Object.                                         |
+| **Render**      | Viewport screenshot, scene render, camera configuration (lens, framing, depth of field), and HDRI lighting. Long renders → Background Job.                                              |
+| **Asset**       | Searches, downloads, extracts, and imports external assets (including HDRI) into Blender. Delegates path/archive security to Security module.                                            |
+| **Job**         | Tracks background task lifecycle: create, progress, cancel, cleanup, capacity. Single authority for task records.                                                                        |
+| **Diagnostics** | Observability: health composition, operational metrics, audit events, structured logging, and diagnostics snapshot. No other module computes its own health.                             |
+| **CLI**         | Terminal interface. Parses input, routes to owning feature aggregate, renders results. Zero business logic.                                                                              |
+| **MCP**         | Model Context Protocol interface. Every capability available in CLI is also available through MCP with identical semantics.                                                              |
+| **Telemetry**   | Anonymous usage analytics (opt-in). Separate stream from diagnostics — never shares data, storage, or purpose.                                                                          |
+
+---
+
+## End-to-End Data Flow Diagram
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryBorderColor': '#000000', 'primaryTextColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'clusterBkg': '#ffffff', 'clusterBorder': '#000000', 'nodeBorder': '#000000', 'nodeTextColor': '#000000', 'edgeLabelBackground': '#ffffff', 'edgeLabelColor': '#000000'}}}%%
+flowchart TB
+    subgraph INNER["Inner Layer — Core Backbone"]
+        Dispatcher[Dispatcher]
+        Gateway[Gateway]
+        Config[Config]
+        Diagnostics[Diagnostics]
+        Security[Security]
+    end
+
+    subgraph OUTER["Outer Layer — Feature Modules"]
+        Launcher[Launcher]
+        Asset[Asset]
+        Object[Object]
+        Scene[Scene]
+        Render[Render]
+        Job[Job]
+        Telemetry[Telemetry]
+    end
+
+    subgraph EXTERNAL["External — Outside System Boundary"]
+        CLI[CLI Terminal]
+        MCP[MCP Server]
+        Blender[Blender Process]
+        FS[Filesystem]
+        Providers[Asset Providers]
+    end
+
+    CLI -->|command| Dispatcher
+    MCP -->|request| Dispatcher
+    Dispatcher -->|validate + route| Gateway
+    Dispatcher -->|background| Job
+    Dispatcher -->|health/metrics| Diagnostics
+    Gateway -->|transport| Blender
+    Launcher -->|spawn/stop| Blender
+    Gateway -->|liveness| Launcher
+
+    Config -->|settings| Gateway
+    Config -->|settings| Asset
+    Config -->|settings| Security
+    Config -->|settings| Job
+    Config -->|settings| Diagnostics
+    Config -->|workspace root| Launcher
+    Config -->|workspace root| Render
+
+    Security -->|path validation| Asset
+    Security -->|code validation| Gateway
+    Security -->|path validation| Render
+    Security -->|path validation| Launcher
+    Security -->|redaction rules| Diagnostics
+    Security -->|redaction rules| CLI
+    Security -->|redaction rules| MCP
+
+    Asset -->|download + extract| FS
+    Asset -->|search| Providers
+    Asset -->|import via| Gateway
+    Asset -->|large download| Job
+
+    Render -->|render via| Gateway
+    Render -->|background render| Job
+    Render -->|HDRI file| Asset
+
+    Object -->|command via| Gateway
+    Scene -->|command via| Gateway
+    Scene -->|delete via| Object
+
+    Diagnostics -->|health probe| Launcher
+    Diagnostics -->|health probe| Gateway
+    Diagnostics -->|health probe| Config
+    Diagnostics -->|health probe| Job
+    Diagnostics -->|audit events| Security
+    Diagnostics -->|structured logs| FS
+    Diagnostics -->|snapshot| CLI
+    Diagnostics -->|snapshot| MCP
+
+    Config -->|consent + settings| Telemetry
+    Security -->|redaction patterns| Telemetry
+    Telemetry -->|lifecycle logs| Diagnostics
+```
+
+---
+
+## User Personas
+
+- **Blender Artist / TD**: Needs to automate renders, import assets, and clean up scenes without leaving their editor or CI pipeline.
+- **AI Agent Orchestrator**: An LLM or agent framework that controls Blender through MCP — needs predictable, safe, and well-documented capabilities.
+- **Pipeline Engineer**: Integrates Blender into a larger studio pipeline — needs headless operation, job tracking, and structured output (JSON).
+
+---
+
+## Non-functional Requirements
+
+
+| Area              | Requirement                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Security**      | All path/code/archive validation delegated to central Security feature. Redaction at ingestion for all outputs. Opt-in telemetry only.        |
+| **Performance**   | Health probes bounded by timeout (one slow subsystem never stalls composition). Metrics pull-based at configured interval.                    |
+| **Reliability**   | Gateway reconnects with backoff. Audit/log sink failure → fallback buffer, never blocks originating op. Background jobs survive disconnects. |
+| **Portability**   | Cross-platform path handling. Blender version compatibility range configurable.                                                               |
+| **Observability** | Structured logging, metrics, audit, and health snapshot available by default. No feature maintains private log format.                        |
+
+---
+
+## Open Questions / Risks
+
+- **Blender addon dependency**: Gateway requires a Blender-side bridge addon — version compatibility must be maintained across Blender releases.
+- **MCP protocol stability**: MCP is evolving — the server layer may need adaptation as the protocol specification changes.
+- **Headless rendering limitations**: Some Blender features (viewport preview, certain modifiers) may not be available in headless mode.
+````
 
 ---
 
@@ -10355,3 +10535,404 @@ uv run pytest -m integration  # Integration tests
 
 ---
 
+## File: RULES_AES.md
+
+```markdown
+# AES (Agentic Engineering System) Rules — v3.0
+
+See [ARCHITECTURE.md](../../ARCHITECTURE.md) for the full 7-layer specification.
+
+---
+
+## Summary
+
+
+| Code   | Name                | Severity | Group  | Description                                                                                |
+| -------- | --------------------- | ---------- | -------- | -------------------------------------------------------------------------------------------- |
+| AES101 | Naming Convention   | HIGH     | Naming | Filename must follow`prefix_concept_suffix` pattern — lowercase, underscore, min 3 words. |
+| AES102 | Suffix Prefix Rules | HIGH     | Naming | Suffix must match layer definition — allowed, forbidden, mandatory strict.                |
+
+
+| Code   | Name             | Severity | Group  | Description                                                                                    |
+| -------- | ------------------ | ---------- | -------- | ------------------------------------------------------------------------------------------------ |
+| AES201 | Forbidden Import | CRITICAL | Import | Cross-layer imports must comply with allowed/mandatory/forbidden rules.                        |
+| AES202 | Mandatory Import | HIGH     | Import | File is missing required imports defined by config.                                            |
+| AES203 | Unused Import    | MEDIUM   | Import | Symbol is imported but never used in file scope.                                               |
+| AES204 | Dummy Import     | HIGH     | Import | Import string matches a forbidden dummy pattern; symbol used only in dummy functions or stubs. |
+| AES205 | Circular Import  | CRITICAL | Import | Circular dependency between layers — must be unidirectional bottom-up.                        |
+
+
+| Code   | Name                 | Severity      | Group   | Description                                                                        |
+| -------- | ---------------------- | --------------- | --------- | ------------------------------------------------------------------------------------ |
+| AES301 | File Maximum Limit   | HIGH          | Quality | File exceeds maximum allowed line count (default: 1000).                           |
+| AES302 | File Minimum Limit   | HIGH          | Quality | File is below minimum required line count (default: 5).                            |
+| AES303 | Mandatory Definition | HIGH / MEDIUM | Quality | File missing struct/enum/trait/class definition, or definition is empty.           |
+| AES304 | Bypass Comment       | CRITICAL      | Quality | Forbidden bypass pattern detected (`#[allow]`, `unwrap()`, `panic!`, `noqa`, etc). |
+| AES305 | Duplication Code     | MEDIUM        | Quality | Duplicate code blocks detected across files.                                       |
+
+
+| Code   | Name              | Severity | Group | Description                                                                                     |
+| -------- | ------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------- |
+| AES401 | Taxonomy Role     | HIGH     | Role  | Constant file contains non-constant declarations; primitives used in entity/error/event.        |
+| AES402 | Contract Role     | HIGH     | Role  | Contract trait/method uses primitive types instead of taxonomy VO or constant types.            |
+| AES403 | Capabilities Role | HIGH     | Role  | Capability exceeds max 3 type declarations or has no protocol implementation.                   |
+| AES404 | Utility Role      | MEDIUM   | Role  | Utility violates stateless function rules, contains trait impls                                 |
+| AES405 | Agent Role        | MEDIUM   | Role  | Orchestrator contains too many types, or has no aggregate implementor or uses`Any` annotations. |
+| AES406 | Surface Role      | HIGH     | Role  | Passive surface contains active domain logic; file exceeds 15 functions.                        |
+
+
+| Code   | Name                | Severity | Group  | Description                                                                                                                                       |
+| -------- | --------------------- | ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AES501 | Taxonomy Orphan     | LOW      | Orphan | Taxonomy file has no inbound imports from any contract file.                                                                                      |
+| AES502 | Contract Orphan     | MEDIUM   | Orphan | Contract protocol not implemented by capabilities or not called by agent; aggregate not called by surface.                                        |
+| AES503 | Capabilities Orphan | MEDIUM   | Orphan | Capability not wired in any container AND unreachable in import graph.                                                                            |
+| AES504 | Utility Orphan      | MEDIUM   | Orphan | Utility file not imported or consumed by any capability, agent, or surface layer.                                                                 |
+| AES505 | Agent Orphan        | HIGH     | Orphan | Agent orchestrator not called by any surface file or entry point.                                                                                 |
+| AES506 | Surface Orphan      | HIGH     | Orphan | Smart surface not imported by entry/router; utility surface not imported by smart surface; passive surface not imported by smart/utility surface. |
+
+---
+
+## Group 1: Naming
+
+### AES101 — Naming Convention
+
+**Severity:** HIGH
+
+Filename must follow pattern: `prefix_concept_suffix` or `prefix_concept1_concept2_suffix`
+
+- All **lowercase**
+- Separator: **underscore** (`_`)
+- Minimum **3 words** (prefix + suffix)
+- Maximum: Unlimited
+- Examples: `capabilities_user_checker.rs`, `utility_path_resolver.rs`, `capabilities_db_adapter.py`
+
+**Exceptions:** `main.rs`, `lib.rs`, `mod.rs`, `root_cli_main_entry.rs`, `root_mcp_main_entry.rs`, `root_tui_main_entry.rs`, `root_composition_container.rs`, `__init__.py`, `index.ts`, `index.js`, barrel/entry files.
+
+---
+
+### AES102 — Suffix/Prefix Rules
+
+**Severity:** HIGH
+
+Suffix must match the layer definition. Three sub-checks:
+
+1. **Forbidden suffix** — suffix must not be in the `forbidden_suffix` list
+2. **Strict suffix policy** — suffix must be in the `allowed_suffix` list
+3. **Flexible suffix policy** — suffix can be anything except `forbidden` ones
+
+#### Suffix Policy per Layer
+
+
+| Layer          | Policy   | Allowed Suffixes                                                                                                         | Forbidden Suffixes                                                                                     |
+| ---------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `root`         | strict   | `_entry`, `_container`                                                                                                   | N/A                                                                                                    |
+| `taxonomy`     | strict   | `_vo`, `_entity`, `_error`, `_event`, `_constant`                                                                        | N/A                                                                                                    |
+| `contract`     | strict   | `_protocol`, `_aggregate`                                                                                                | N/A                                                                                                    |
+| `utility`      | flexible | based on config                                                                                                          | `_vo`, `_entity`, `_error`, `_event`, `_constant`, `_protocol`, `_aggregate`                           |
+| `capabilities` | flexible | based on config                                                                                                          | `_vo`, `_entity`, `_error`, `_event`, `_constant`, `_constants`, `_protocol`, `_aggregate`, `_utility` |
+| `agent`        | strict   | `_orchestrator`                                                                                                          | N/A                                                                                                    |
+| `surfaces`     | strict   | `_command`, `_controller`, `_page`, `_view`, `_component`, `_router`, `_layout`, `_hook`, `_store`, `_action`, `_screen` | N/A                                                                                                    |
+
+---
+
+## Group 2: Layer & Import Boundary
+
+### AES201 — Forbidden Import
+
+**Severity:** CRITICAL
+
+A single rule with **12 sub-conditions** — each has `allowed`, `mandatory`, and `forbidden` fields. Layers are identified by **filename prefix** (`taxonomy_`, `utility_`, `contract_`, `capabilities_`, `agent_`, `surface_`, `root_`), not directory path.
+
+
+| #  | Scope                                                           | Allowed Imports                                            | Mandatory Imports             | Forbidden Imports                                                |
+| ---- | ----------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------ |
+| 1  | `taxonomy(vo)`                                                  | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
+| 2  | `taxonomy(entity,error,event)`                                  | taxonomy                                                   | taxonomy(vo|constant)    | agent*, surface*, contract*, utility*, capabilities*, root       |
+| 3  | `taxonomy(constant)`                                            | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
+| 4  | `utility`                                                       | taxonomy                                                   | None                          | agent*, surface*, contract*, capabilities*, root                 |
+| 5  | `contract(protocol)`                                            | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, contract(aggregate), root       |
+| 6  | `contract(aggregate)`                                           | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, root                            |
+| 7  | `capabilities`                                                  | taxonomy, contract(protocol), utility                      | taxonomy, contract(protocol)  | surface*, agent*, capabilities*, root                            |
+| 8  | `agent(orchestrator)`                                           | taxonomy, contract(aggregate), contract(protocol), utility | taxonomy, contract(aggregate) | surface*, capabilities*, root                                    |
+| 9  | `surfaces(command|controller|page)`                   | taxonomy, contract(aggregate), utility                     | None                          | agent*, capabilities*, contract(protocol), root                  |
+| 10 | `surfaces(hook|store|action|screen|router)` | taxonomy                                                   | None                          | agent*, capabilities*, contract(protocol), smart surfaces*, root |
+| 11 | `surfaces(component|view|layout)`                     | taxonomy                                                   | None                          | agent*, contract*, capabilities*, all surface*, root             |
+| 12 | `root`                                                          | taxonomy, contract, capabilities, agent, surface           | None                          | None                                                             |
+
+---
+
+### AES202 — Mandatory Import
+
+**Severity:** HIGH
+
+File is missing required imports defined by the configuration. Each layer has specific mandatory import expectations to ensure dependencies are properly structured.
+
+**FIX:** Add the required import statement to the file.
+
+---
+
+### AES203 — Unused Import
+
+**Severity:** MEDIUM
+
+Symbol is imported but never used in file scope. Detected via AST analysis across Rust, Python, and JavaScript.
+
+**FIX:** Remove the unused import or use the symbol.
+
+---
+
+### AES204 — Dummy Import
+
+**Severity:** HIGH
+
+Import statement matches a forbidden dummy pattern. Used to detect fake/redundant imports that exist only to satisfy the linter but serve no real purpose. Includes four sub-checks:
+
+1. **Dummy imports** — imported symbols only used inside `_use_mandatory_imports` dummy functions (dead code to silence import warnings)
+2. **Dummy functions** — `_use_mandatory_imports` function ranges flagged as dead code
+3. **Dummy trait impls** — trait implementations with empty/todo bodies that violate contract abstraction
+4. **Surface logic bypass** — surface-layer code calling domain logic directly (`lint_path(`, `compute_score(`, `has_critical(`, `walk_rs_files(`) — `Severity: MEDIUM`
+
+**FIX:** Use imported symbols in real logic, remove `_use_mandatory_imports` functions, implement contract methods with real behavior.
+
+---
+
+### AES205 — Circular Import
+
+**Severity:** CRITICAL
+
+Circular dependency detected between layers. Layer dependencies must be unidirectional (bottom-up).
+Allowed direction: `taxonomy → contract / utility → capabilities → agent → surface → root`.
+Any back-edge or cross-layer cycle is a violation.
+
+---
+
+## Group 3: File & Content Quality
+
+### AES301 — File Maximum Limit
+
+**Severity:** HIGH
+
+File exceeds maximum allowed line count (default: 1000).
+
+**FIX:** Split into smaller files.
+
+---
+
+### AES302 — File Minimum Limit
+
+**Severity:** HIGH
+
+File is below minimum required line count (default: 5).
+
+**FIX:** Merge into a related module or add more documentation.
+
+---
+
+### AES303 — Mandatory Definition
+
+**Severity:** HIGH (sub-check 1) / MEDIUM (sub-check 2)
+
+File must have at least one struct/enum/trait/class definition, and definitions must not be empty.
+
+Two sub-checks:
+
+1. **Missing definition** (`Severity: HIGH`) — file has no struct/enum/trait/class at all
+2. **Empty / dead definition** (`Severity: MEDIUM`) — `struct Foo;`, `impl X for Y {}`, `class Foo: pass`, `class Foo {}`
+
+
+| Checker                  | Method                               | Path                                                     |
+| -------------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| `ArchClassChecker`       | `check_mandatory_class_definition()` | `code-analysis/capabilities_class_checker.rs`            |
+| `DeadInheritanceChecker` | `check_dead_inheritance()`           | `code-analysis/capabilities_dead_inheritance_checker.rs` |
+
+**Exceptions:** `__init__.py`, `mod.rs`, `lib.rs`, `*_constant.rs`, `*_constant.py`.
+
+---
+
+### AES304 — Bypass Comment
+
+**Severity:** CRITICAL
+
+Forbidden bypass patterns detected:
+
+- `#[allow(...)]`
+- `unwrap()` / `expect()`
+- `panic!`
+- `todo`
+- `unimplemented`
+- `unreachable`
+- `noqa`
+- `type: ignore`
+- `eslint-disable`
+- `ts-ignore`
+- `ts-expect-error`
+- `FIXME`
+- `HACK`
+- `XXX`
+- `raise NotImplementedError` (Python)
+- `assert False` (Python)
+- `throw new Error(...)` (JS/TS)
+
+**FIX:** Use proper error handling.
+
+---
+
+### AES305 — Duplication Code
+
+**Severity:** MEDIUM
+
+Duplicate code blocks detected across files within the project scope.
+
+**FIX:** Extract duplicated logic into shared utilities.
+
+---
+
+## Group 4: Role Violations
+
+### AES401 — Taxonomy Role
+
+**Severity:** HIGH
+
+Constant purity violation or primitive usage in domain models. Two sub-checks:
+
+1. **Constant purity** — `_constant` files must only contain const  declarations
+2. **Primitive in taxonomy** — `_entity`, `_error`, `_event` files must not use direct primitive types (e.g. `String`, `i32`, `int`) in field declarations. `_vo` _constant files are allowed to use primitives directly.
+
+**FIX:** Replace primitives with taxonomy value objects.
+
+---
+
+### AES402 — Contract Role
+
+**Severity:** HIGH
+
+Contract trait/method must use taxonomy VO/constant types, not primitive types.
+
+Checks for primitive types (`String`, `i32`, `bool`, `int`, `float`, etc.) in contract trait method signatures. Test projects are the primary target.
+
+**FIX:** Replace primitives with VO/constant from the taxonomy layer.
+
+---
+
+### AES403 — Capabilities Role
+
+**Severity:** HIGH / MEDIUM
+
+Capability routing and protocol enforcement. Two sub-checks — each with its own severity:
+
+
+| Sub-check                   | Severity   | Description                                                                    |
+| ----------------------------- | ------------ | -------------------------------------------------------------------------------- |
+| **CapabilityTooManyTypes**  | **HIGH**   | File exceeds max 3 type declarations                                          |
+| **CapabilityNoImplementor** | **MEDIUM** | No struct/class in the capability file implements a`_protocol` contract trait. |
+
+**FIX:** Ensure capability implements its protocol; split routing across multiple capabilities.
+
+---
+
+### AES404 — Utility Role
+
+**Severity:** MEDIUM
+
+Utility role boundary violation. Utility files must contain stateless standalone functions only. They must not contain stateful objects, struct/class state, trait implementations, or contract implementations. Furthermore, Utility files may only depend on Taxonomy, and must not import any other layer (`contract`, `capabilities`, `agent`, `surface`, `root`).
+
+**FIX:** Refactor Utility to stateless functions and remove non-taxonomy imports or move stateful logic into Capabilities.
+
+---
+
+### AES405 — Agent Role
+
+**Severity:** MEDIUM / HIGH
+
+Checks — each with its own severity:
+
+
+| Sub-check              | Severity   | Description                                                                       |
+| ------------------------ | ------------ | ----------------------------------------------------------------------------------- |
+| **AgentTooManyTypes**  | **HIGH**   | File exceeds max 3 type declarations (struct/enum/class/interface).               |
+| **AgentNoImplementor** | **MEDIUM** | No struct/class implements an aggregate trait.                                    |
+| **AnyType annotation** | **MEDIUM** | `: Any`, `Any<`, `Any[` patterns detected in agent code; must use concrete types. |
+
+Additional checks:
+
+- **Non-stateless execution** — state assignment outside `__init__` / constructor
+- **Direct capabilities imports** — agent must not import capabilities directly; must communicate via contract protocols/aggregates
+- **Direct capability implementation** — agent must delegate execution to capabilities via protocols
+- **Single execution goal** — orchestrator must coordinate at minimum 2 subsystems
+- **Container initialization** — complex domain logic in container module
+
+**Note:** File size limits for agent files are governed by **AES301** (max 1000 lines), same as all other layers.
+
+---
+
+### AES406 — Surface Role
+
+**Severity:** HIGH
+
+Checks:
+
+- **File > 15 functions** — surface file has too many responsibilities
+- **Active domain logic in passive surface** — passive surfaces (`_component`, `_view`, `_layout`) must not contain business logic
+- **Role boundary violation** — surface enters forbidden territory (e.g. importing capabilities or non-aggregate contracts directly)
+
+---
+
+## Group 5: Orphan Code
+
+### AES501 — Taxonomy Orphan
+
+**Severity:** LOW
+
+Taxonomy file (VO, entity, error, event, constant) has no inbound imports from any contract file. If no contract references a taxonomy type, it may be dead code.
+
+---
+
+### AES502 — Contract Orphan
+
+**Severity:** MEDIUM
+
+Contract trait not implemented by the expected layer:
+
+- `_protocol` → not implemented by any `capabilities_` & not called by any `agent_`
+- `_aggregate` → not implemented by any `agent_` & not called by any `surface_`
+
+---
+
+### AES503 — Capabilities Orphan
+
+**Severity:** MEDIUM
+
+Capability file not wired in any `_container`
+
+---
+
+### AES504 — Utility Orphan
+
+**Severity:** MEDIUM
+
+Utility file is not imported or consumed by any capability, agent, or surface layer or is only imported by other utility files.
+
+---
+
+### AES505 — Agent Orphan
+
+**Severity:** HIGH
+
+Agent orchestrator file not wired in any _container
+
+**Suffix checked:** `_orchestrator`
+
+---
+
+### AES506 — Surface Orphan
+
+**Severity:** HIGH
+
+Orphan detection per category:
+
+- **Smart** (`_command` / `_controller` / `_page` / `_entry`) — must be imported by entry
+- **Utility** (`_hook` / `_store` / `_action` / `_screen` / `_router`) — must be imported by smart surface
+- **Passive** (`_component` / `_view` / `_layout`) — must be imported by smart or utility surface
+```
+
+---

@@ -47,8 +47,10 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
     def __init__(
         self,
         code_executor: ICodeExecutionProtocol,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def configure_camera(self, request: CameraConfigVO) -> CameraConfigVO:
@@ -79,6 +81,13 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
                 depth_of_field_applied=metrics.depth_of_field_applied,
                 message=Prompt("Camera configured"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit CameraConfiguredEvent")
+
             logger.info("camera_configured event=%s", event)
 
             return replace(
@@ -91,11 +100,11 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
                 message=Prompt("Camera configured"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Camera configuration failed")
             return self._failure(
                 request,
-                Prompt(f"[{RenderErrorCategory.CAMERA_SETUP.value}] Camera configuration failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.CAMERA_SETUP.value}] Camera configuration failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -122,7 +131,12 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: CameraConfigVO, message: Prompt) -> CameraConfigVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderCameraConfigExecutor()"

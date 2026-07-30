@@ -8,20 +8,23 @@ No PII parameters — only category strings for classification.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryCategory
+from modules.shared.src.common.taxonomy_core_vo import ActionName
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    ClassificationResult,
+    FeatureArea,
+)
 
 
 class TelemetryClassificationProtocol(ABC):
-    """Async protocol for classifying telemetry events into fixed taxonomy."""
+    """Sync protocol for classifying telemetry events into fixed taxonomy."""
 
     @abstractmethod
-    async def classify_event(
+    def classify_event(
         self,
-        action_type: str,
-        feature_area: str | None = None,
-    ) -> dict[str, Any]:
+        action_type: ActionName,
+        feature_area: FeatureArea | None = None,
+    ) -> ClassificationResult:
         """Assign event to fixed taxonomy (feature area, operation type, outcome).
 
         FR-TLM-002: Feature area covers surfaces like object, scene, render.
@@ -33,19 +36,6 @@ class TelemetryClassificationProtocol(ABC):
             feature_area: Optional feature area hint.
 
         Returns:
-            Dict with categorized event including feature_area, operation_type, outcome_category.
-        """
-        ...
-
-
-class TelemetryClassificationPort(ABC):
-    """Sync facade for orchestrator consumption."""
-
-    @abstractmethod
-    def classify_event(self, raw_type: str) -> TelemetryCategory:
-        """Classify an event into a standardized category.
-
-        FR-TLM-002: Tag the event with a high-level category.
-        If unrecognized or missing category, default to ERROR (unknown).
+            ClassificationResult with categorized event.
         """
         ...

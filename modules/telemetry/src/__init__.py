@@ -9,10 +9,10 @@ Layers:
 """
 
 from .agent_telemetry_orchestrator import TelemetryOrchestrator
-from .capabilities_telemetry_classification import TelemetryEventClassifier
-from .capabilities_telemetry_enrichment import TelemetryEventEnricher
+from .capabilities_telemetry_classifier import TelemetryEventClassifier
+from .capabilities_telemetry_enricher import TelemetryEventEnricher
 from .capabilities_telemetry_recorder import TelemetryRecordingCapability
-from .capabilities_telemetry_session_management import TelemetrySessionManager
+from .capabilities_telemetry_session_manager import TelemetrySessionManager
 from .root_telemetry_container import TelemetryContainer, create_telemetry_feature
 
 __all__ = [

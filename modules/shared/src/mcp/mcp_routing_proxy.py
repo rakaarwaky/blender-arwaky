@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.mcp.contract_mcp_protocol import McpRoutingProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -37,7 +38,8 @@ class McpRoutingImpl(McpRoutingProtocol):
             action = payload.get("action", "")
             args = payload.get("args", {})
             if self._dispatcher:
-                return self._dispatcher.execute_action(action, args)
+                request = ActionCommandVO(action_name=action, parameters=args)
+                return self._dispatcher.execute_action(request)
             raise RuntimeError("Dispatcher aggregate not configured")
 
         if tool_name == "list_commands":

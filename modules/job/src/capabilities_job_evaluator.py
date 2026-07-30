@@ -6,8 +6,6 @@ Does NOT mutate state — Agent applies transition via repository.
 """
 from __future__ import annotations
 
-import logging
-
 from modules.shared.src.common.taxonomy_core_vo import JobState
 from modules.shared.src.job.contract_job_cancellation_protocol import IJobCancellation
 from modules.shared.src.job.taxonomy_job_constant import (
@@ -24,9 +22,6 @@ from modules.shared.src.job.taxonomy_job_vo import (
 )
 from modules.shared.src.job.utility_job_sanitizer import sanitize_cancellation_reason
 from modules.shared.src.job.utility_job_signaler import signal_executor
-
-logger = logging.getLogger("BlenderMCPServer")
-
 
 # ─── Block 1: Class Definition & Constructor ─────────────────────────────────
 

@@ -1,12 +1,6 @@
 # Role: Architect
 
-You are the **Architect** running  to create the architectural plan for the selected feature.
-
-## Feature Selection Priority
-
-1. Look for unprocessed features under `modules/`, `crates/`, or `packages/`
-2. Pick one feature that has an FRD.md but **no report** in `.agents/reports/done-<feature-name>-architect-*.md`
-3. If all features have done architect reports, pick the **oldest feature by timestamp** and run again
+You are the **Architect** running to analyze the architecture of a selected feature and create issue documents for necessary refactoring or fixes.
 
 ## Preparatory Reading
 
@@ -45,20 +39,20 @@ Analyze architectural anti-patterns across these dimensions:
 | **Scalability**      | Single-responsibility, modular boundaries, coupling            |
 | **Data Flow**        | Unidirectional bottom-up, no cycles                            |
 
-### 4. Create Plan
+### 4. Create Issue Documents
 
-Write a concrete, actionable plan to:
-`.agents/plans/todo-<feature-name>-architect-YYYY-MM-DD-HHmmss.md`
+Write a concrete, actionable issue document to:
+`.agents/issues/issue-<feature-name>-architect-YYYY-MM-DD-HHmmss.md`
 
-**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-29-143022`).
+**Timestamp format:** Use current date and time in `YYYY-MM-DD-HHmmss` format (e.g., `2026-07-30-143022`).
 
-Use this exact structure:
+Use this exact structure for the issue document:
 
 ```markdown
-# Review Plan: {feature-name} — Architect (Phase 1)
+# Issue: {feature-name} — Architectural Review & Refactoring
 
 ## Summary
-{One-paragraph overview and key findings.}
+{One-paragraph overview of the architectural findings and why this issue needs to be addressed.}
 
 ## Findings by Category
 
@@ -85,10 +79,10 @@ Use this exact structure:
 ## Violations
 {List specific AES violations or write "None".}
 
-## Action Items
+## Action Items (For Developer)
 - [ ] {Priority} {Action item}
 
-## Fixed Code
+## Proposed Fixes / Reference Code
 {Show corrected code blocks for each fix. Group by file.}
 ```
 
@@ -101,9 +95,11 @@ Use this exact structure:
 | 🟡**WARNING**  | Convention deviation, performance bottleneck, or maintainability concern. Fix in this cycle. |
 | 🟢**INFO**     | Suggestion, refactoring idea, or nice-to-have. Can be deferred.                              |
 
+### 5. STOP
 
+- DO NOT CREATE A REPORT, JUST CREATE ISSUE DOCUMENTS
+- DO NOT EXECUTE THE ISSUES (Leave execution to the Developer/Fullstack role)
 
-### 5. STOP 
+```
 
-- DO NOT CREATE A REPORT, JUST CREATE A PLAN
-- DO EXECUTE YOUR OWN PLAN
+```

@@ -7,29 +7,41 @@ from .contract_logging_policy_protocol import LoggingPolicyProtocol
 from .contract_metrics_collection_protocol import MetricsCollectionProtocol
 from .contract_snapshot_provision_protocol import SnapshotProvisionProtocol
 from .taxonomy_diagnostics_vo import (
+    AuditEventRequestVO,
     AuditRecordVO,
     AuditSummaryVO,
+    DiagnosticsConfigVO,
     DiagnosticsSnapshotVO,
+    HealthCompositionRequestVO,
     HealthDetailsVO,
     LatencySummaryVO,
+    LogRecordRequestVO,
     LogResultVO,
+    MetricsSampleVO,
     MetricsSnapshotVO,
+    SnapshotRequestVO,
     SubsystemHealthVO,
 )
 
 __all__ = [
+    "AuditEventRequestVO",
     "AuditEmissionProtocol",
     "AuditRecordVO",
     "AuditSummaryVO",
+    "DiagnosticsConfigVO",
     "DiagnosticsSnapshotVO",
     "HealthCompositionProtocol",
+    "HealthCompositionRequestVO",
     "HealthDetailsVO",
     "IDiagnosticsAggregate",
     "LatencySummaryVO",
+    "LogRecordRequestVO",
     "LogResultVO",
     "LoggingPolicyProtocol",
     "MetricsCollectionProtocol",
+    "MetricsSampleVO",
     "MetricsSnapshotVO",
     "SnapshotProvisionProtocol",
+    "SnapshotRequestVO",
     "SubsystemHealthVO",
 ]

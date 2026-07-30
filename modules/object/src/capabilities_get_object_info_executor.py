@@ -14,13 +14,11 @@ import logging
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
+from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
 
 logger = logging.getLogger("BlenderMCPServer")
-
-# Detail levels supported
-DETAIL_LEVELS: frozenset[str] = frozenset({"basic", "full"})
 
 
 class GetObjectInfoExecutor(GetObjectInfoProtocol):
@@ -84,72 +82,58 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     def _generate_info_code(self, request: GetObjectInfoVO) -> str:
         """Generate Blender Python code for object information retrieval.
 
-        Collects comprehensive data based on detail level. Avoids cyclic references.
-        Includes mesh statistics for mesh objects when detail level is 'full'.
+        Collects comprehensive data. Avoids cyclic references.
+        Includes mesh statistics for mesh objects.
         """
+        object_ref = quote_string(str(request.object_name))
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({GetObjectInfoExecutor._safe_str(str(request.object_name))})",
-            'if obj is None:\n    raise ValueError("Object not found in scene.")',
-            "import json\n",
-            "info = {\n",
-            "    'name': obj.name,\n",
-            "    'type': obj.type,\n",
+            f"obj = bpy.data.objects.get({object_ref})",
+            'if obj is None:',
+            '    raise ValueError("Object not found in scene.")',
+            'info = {',
+            "    'name': obj.name,",
+            "    'type': obj.type,",
         ]
 
-        # Add transform data
         lines.append(
-            "    'location': [obj.location.x, obj.location.y, obj.location.z],\n"
-            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],\n"
-            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],\n"
+            "    'location': [obj.location.x, obj.location.y, obj.location.z],"
         )
-
-        # Add parent information
         lines.append(
-            "    'parent_name': obj.parent.name if obj.parent else None,\n"
+            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],"
         )
-
-        # Add collection membership (avoid cyclic references)
         lines.append(
-            "    'collection_names': [col.name for col in obj.users_collection],\n"
+            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],"
         )
-
-        # Add material references
         lines.append(
-            "    'material_names': [mat.name for mat in obj.data.materials if mat],\n"
+            "    'parent_name': obj.parent.name if obj.parent else None,"
         )
-
-        # Add modifier summaries
         lines.append(
-            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],\n"
+            "    'collection_names': [col.name for col in obj.users_collection],"
         )
-
-        # Add visibility state
         lines.append(
-            "    'visibility': obj.visible_get(),\n"
+            "    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],"
         )
-
-        # Add mesh statistics (only for mesh objects, full detail level)
-        lines.append("    'mesh_statistics': None,\n")
         lines.append(
-            "if obj.type == 'MESH' and obj.data:\n"
-            "    mesh = obj.data\n"
-            "    info['mesh_statistics'] = {\n"
-            "        'vertex_count': len(mesh.vertices),\n"
-            "        'edge_count': len(mesh.edges),\n"
-            "        'face_count': len(mesh.polygons),\n"
-            "    }\n"
+            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],"
         )
-
-        lines.append("}\n")
-        lines.append("result = info\n")
+        lines.append(
+            "    'visibility': obj.visible_get(),"
+        )
+        lines.extend([
+            "    'mesh_statistics': None,",
+            "}",
+            "if obj.type == 'MESH' and obj.data:",
+            "    mesh = obj.data",
+            "    info['mesh_statistics'] = {",
+            "        'vertex_count': len(mesh.vertices),",
+            "        'edge_count': len(mesh.edges),",
+            "        'face_count': len(mesh.polygons),",
+            "    }",
+            "result = info",
+        ])
 
         return "\n".join(lines)
-
-    @staticmethod
-    def _safe_str(v: str) -> str:
-        """Safely embed a string into generated Python code using repr()."""
-        return repr(v)
 
     def __repr__(self) -> str:
         return "GetObjectInfoExecutor()"

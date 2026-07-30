@@ -7,6 +7,7 @@ with integrity verification, overwrite policy, and background coordination.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import logging
 import os
@@ -75,7 +76,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         asset_type: AssetType,
         cache_dir: FilePath,
         resolution: ResolutionPreference | None = None,
-        overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse"),
+        overwrite_policy: DuplicatePolicy | None = None,
         max_size: MaxSize | None = None,
         background: bool = False,
         expected_checksum: str | None = None,
@@ -105,7 +106,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """
         self._cache_dir = cache_dir
         self._max_size = max_size
-        self._overwrite_policy = overwrite_policy
+        self._overwrite_policy = overwrite_policy or DuplicatePolicy("reuse")
 
         logger.debug("Downloading %s (%s) from %s", asset_id, asset_type, provider)
 
@@ -154,10 +155,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                     else:
                         # Corrupted cache — remove and re-download
                         logger.warning("Corrupted cache entry, removing: %s", cache_key)
-                        try:
+                        with contextlib.suppress(OSError):
                             os.remove(cached_path)
-                        except OSError:
-                            pass
 
                 elif overwrite_policy == DuplicatePolicy("create_unique"):
                     cached_path = self._get_unique_cache_path(cache_key)
@@ -209,7 +208,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
                 "message": f"Provider download failed: {e}",
                 "error": str(e),
             }
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.error("File I/O error for %s: %s", asset_id, e)
             return {
                 "success": False,

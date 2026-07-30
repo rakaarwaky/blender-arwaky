@@ -5,6 +5,7 @@
 from .agent_job_orchestrator import JobOrchestrator
 from .capabilities_job_checker import JobCapacityChecker
 from .capabilities_job_evaluator import JobCancellationEvaluator
+from .capabilities_job_event_publisher import JobLoggingEventPublisher
 from .capabilities_job_monitor import JobStatusMonitor
 from .capabilities_job_repository import InMemoryJobLifecycleRepository
 from .capabilities_job_resolver import JobCleanupResolver
@@ -13,6 +14,7 @@ from .root_job_container import JobContainer, create_job_feature
 __all__ = [
     "JobCapacityChecker",
     "JobCancellationEvaluator",
+    "JobLoggingEventPublisher",
     "JobOrchestrator",
     "JobStatusMonitor",
     "JobCleanupResolver",

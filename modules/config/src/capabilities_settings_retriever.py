@@ -81,12 +81,11 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
             if isinstance(raw, int) and not (exclude_bool and isinstance(raw, bool)):
                 return raw
         elif expected is float:
-            if isinstance(raw, bool):
-                pass  # falls through to strict-mode check below
-            elif isinstance(raw, int):
-                return float(raw) if coerce_int else default
-            elif isinstance(raw, float):
-                return raw
+            if not isinstance(raw, bool):
+                if isinstance(raw, int):
+                    return float(raw) if coerce_int else default
+                if isinstance(raw, float):
+                    return raw
         elif isinstance(raw, expected):
             return raw
 

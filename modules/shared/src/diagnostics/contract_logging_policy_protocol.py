@@ -1,45 +1,28 @@
-"""Diagnostics domain contract: logging policy protocol (ABC based).
-
-Defines the protocol for enforcing one structured logging policy for
-the whole system, with redaction applied at ingestion.
-
-FR-DIA-004: Structured Logging Policy
-"""
+"""Diagnostics domain contract: logging policy protocol."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .taxonomy_diagnostics_vo import LogResultVO
+from .taxonomy_diagnostics_vo import LogRecordRequestVO, LogResultVO
 
 
 class LoggingPolicyProtocol(ABC):
-    """Protocol for enforcing structured logging policy with redaction."""
+    """Contract protocol for diagnostic logging policy.
+
+    FR-DIA-004: Diagnostic logging policy enforcing level filtering,
+    structured output formatting, secret redaction, and log rotation.
+    """
 
     @abstractmethod
     async def log_record(
         self,
-        level: str,
-        source_feature: str,
-        message: str,
-        fields: dict | None = None,
-        tracking_id: str | None = None,
+        request: LogRecordRequestVO,
     ) -> LogResultVO:
-        """Write sanitized structured log entry.
+        """Process and output a structured log record."""
+        ...
 
-        FR-DIA-004: All features log through diagnostics policy.
-        Redaction applied at ingestion before any destination write.
-        Logging must not block callers; records buffer under backpressure.
-        No raw code/tokens/credentials/passwords/paths at any level.
-
-        Args:
-            level: Log level (debug, info, warning, error).
-            source_feature: Feature emitting the log.
-            message: Log message text.
-            fields: Optional structured fields.
-            tracking_id: Optional tracking identifier.
-
-        Returns:
-            LogResultVO with logging confirmation and destination metadata.
-        """
+    @abstractmethod
+    async def set_min_level(self, level: str) -> None:
+        """Set the minimum logging severity level threshold."""
         ...

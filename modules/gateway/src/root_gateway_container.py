@@ -4,6 +4,7 @@ Wires capabilities to protocols and bootstraps the orchestrator.
 """
 
 from modules.security.src.capabilities_code_validator import CodeValidator
+from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
@@ -12,7 +13,6 @@ from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
-from .utility_scene_coordinator import SceneCoordinatorUtility
 
 
 class GatewayContainer:
@@ -25,23 +25,13 @@ class GatewayContainer:
     """
 
     def __init__(self) -> None:
-        # Create security policy (dependency of CodeExecutionExecutor)
-        self._security_policy = CodeValidator(policy=SecurityPolicyVO())
-
-        # Create transport (dependency of ConnectionExecutor + CodeExecutionExecutor)
         self._transport = TransportExecutor(max_payload_bytes=10_485_760)
-
-        # Wire ConnectionExecutor with transport + config
-        from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 
         self._connection = ConnectionExecutor(
             transport=self._transport,
             config=ConnectionConfigVO(host="localhost", port=50051),
         )
 
-        # Wire MaintenanceExecutor with retry config + real reconnect hook.
-        # reconnect_fn drives FR-GWY-002 retry: each attempt calls the
-        # ConnectionExecutor; exhaustion transitions the connection to FAILED.
         self._maintenance = MaintenanceExecutor(
             max_retries=3,
             base_backoff_seconds=1.0,
@@ -49,25 +39,21 @@ class GatewayContainer:
             reconnect_fn=self._connection.establish_connection,
         )
 
-        # Wire SceneQueueExecutor + Coordinator (delegated to keep orchestrator under AES405 limit)
         self._scene_queue = SceneQueueExecutor(max_depth=50, wait_timeout_seconds=30.0)
-        self._scene_coordinator = SceneCoordinatorUtility(self._scene_queue)
 
-        # Wire CodeExecutionExecutor with security policy + transport
         self._code_executor = CodeExecutionExecutor(
-            security_policy=self._security_policy,
+            security_policy=CodeValidator(policy=SecurityPolicyVO()),
             transport=self._transport,
             max_output_bytes=1_048_576,
             execution_timeout_seconds=30.0,
         )
 
-        # Compose orchestrator (scene coordination via coordinator class)
         self._orchestrator = GatewayOrchestrator(
-            self._connection,
-            self._maintenance,
-            self._transport,
-            self._scene_coordinator,
-            self._code_executor,
+            connection=self._connection,
+            maintenance=self._maintenance,
+            transport=self._transport,
+            scene_queue=self._scene_queue,
+            code_executor=self._code_executor,
         )
 
     def get_orchestrator(self) -> GatewayOrchestrator:

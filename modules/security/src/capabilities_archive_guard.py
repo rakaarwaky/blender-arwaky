@@ -12,25 +12,30 @@ from modules.shared.src.security.contract_extract_archive_protocol import Extrac
 from modules.shared.src.security.taxonomy_security_vo import (
     ArchiveExtractionVO,
     RejectedEntryVO,
+    SecurityPolicyVO,
 )
-from modules.shared.src.security.utility_security_path import is_within_allowed_dirs, normalize_path
+from modules.shared.src.security.utility_security_path import (
+    is_within_allowed_dirs,
+    normalize_path,
+)
 
 
 class ArchiveGuard(ExtractArchiveProtocol):
     """Validates archive extraction against safety policy."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self) -> None:
-        pass
+    def __init__(self, policy: SecurityPolicyVO | None = None) -> None:
+        self._policy = policy or SecurityPolicyVO()
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def validate_extraction(self, request: ArchiveExtractionVO) -> ArchiveExtractionVO:
         """Validate and guard archive extraction against safety policy."""
         opts = request.options
-        dest = normalize_path(request.destination_directory)
+        dest = request.destination_directory
         rejected: list[RejectedEntryVO] = []
         warnings: list[str] = []
 
+        # Check for missing destination BEFORE normalization
         if not dest:
             return ArchiveExtractionVO(
                 destination_directory=request.destination_directory,
@@ -38,18 +43,28 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 options=request.options,
                 allowed=False,
                 rejected_entries=tuple(rejected),
-                warnings=tuple(warnings),
+                warnings=tuple(["Missing destination directory"]),
                 audit_metadata={"rule": "missing_destination"},
             )
 
+        dest_normalized = normalize_path(dest)
+
         # Validate destination is within allowed directories (FR-SEC-002)
-        if not is_within_allowed_dirs(dest, []):
-            # No allowed_directories configured — allow extraction to proceed
-            # Callers should validate allowed_directories before invoking ArchiveGuard.
-            pass
+        allowed_dirs = self._policy.allowed_directories
+        if allowed_dirs and not is_within_allowed_dirs(dest_normalized, allowed_dirs):
+            return ArchiveExtractionVO(
+                destination_directory=request.destination_directory,
+                entries=request.entries,
+                options=request.options,
+                allowed=False,
+                rejected_entries=tuple(rejected),
+                warnings=tuple(["Destination outside allowed directories"]),
+                audit_metadata={"rule": "unauthorized_archive_destination"},
+            )
 
         total_size = 0
         entry_count = 0
+        max_total_size = opts.max_total_size
 
         for entry in request.entries:
             entry_count += 1
@@ -78,35 +93,29 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Path traversal in entry path"))
                 continue
 
-            entry_resolved = os.path.normpath(os.path.join(dest, entry.entry_path))
-            if not entry_resolved.startswith(dest + os.sep) and entry_resolved != dest:
+            entry_resolved = os.path.normpath(os.path.join(dest_normalized, entry.entry_path))
+            if not entry_resolved.startswith(dest_normalized + os.sep) and entry_resolved != dest_normalized:
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory"))
                 continue
 
             # Depth check: count nesting levels relative to destination (FR-SEC-002)
-            if len(entry_resolved) > len(dest):
-                relative = entry_resolved[len(dest):]
-                nesting_depth = relative.count(os.sep)
-                if nesting_depth > opts.max_depth:
-                    rejected.append(RejectedEntryVO(
-                        entry_path=entry.entry_path,
-                        reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
-                    ))
-                    continue
+            relative = os.path.relpath(entry_resolved, dest_normalized)
+            nesting_depth = 0 if relative == "." else relative.count(os.sep) + 1
+            if nesting_depth > opts.max_depth:
+                rejected.append(RejectedEntryVO(
+                    entry_path=entry.entry_path,
+                    reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
+                ))
+                continue
 
             total_size += entry.uncompressed_size
 
-        if total_size > opts.max_total_size:
-            return ArchiveExtractionVO(
-                destination_directory=request.destination_directory,
-                entries=request.entries,
-                options=request.options,
-                allowed=False,
-                safe_destination=dest,
-                rejected_entries=tuple(rejected),
-                warnings=tuple(warnings + [f"Total extracted size {total_size} exceeds limit {opts.max_total_size}"]),
-                audit_metadata={"rule": "total_size_exceeded", "total_size": total_size},
-            )
+            # Stop early if total size exceeds limit
+            if total_size > max_total_size:
+                warning_msg = "Total extracted size exceeds limit"
+                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason=warning_msg))
+                warnings.append(warning_msg)
+                break
 
         allowed = len(rejected) == 0
         return ArchiveExtractionVO(
@@ -114,7 +123,7 @@ class ArchiveGuard(ExtractArchiveProtocol):
             entries=request.entries,
             options=request.options,
             allowed=allowed,
-            safe_destination=dest,
+            safe_destination=dest_normalized,
             rejected_entries=tuple(rejected),
             warnings=tuple(warnings),
             audit_metadata={"entry_count": entry_count, "total_size": total_size},

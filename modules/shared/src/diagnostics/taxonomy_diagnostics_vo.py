@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import field as dc_field
-from typing import Any
 
 # ============================================================
 # Health Composition (FR-DIA-001)
@@ -88,7 +87,7 @@ class AuditRecordVO:
     severity: str = "info"
     source_feature: str = ""
     operation_type: str = ""
-    target_metadata: dict[str, Any] = dc_field(default_factory=dict)
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
     correlation_id: str | None = None
 
     # Output (emitted event — frozen by dataclass(frozen=True))
@@ -145,3 +144,74 @@ class LogResultVO:
     destination: str = "buffer"  # buffer / file / stream / fallback
     redacted_count: int = 0
     drop_counter: int = 0  # records dropped due to backpressure
+
+
+# ============================================================
+# Diagnostics Request / Config VOs (added for issue #49)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class HealthCompositionRequestVO:
+    """Request VO for composing system health."""
+
+    launcher_status: str = "unknown"
+    gateway_status: str = "unknown"
+    config_valid: bool = False
+    job_capacity_available: bool = True
+
+
+@dataclass(frozen=True)
+class MetricsSampleVO:
+    """Request VO carrying one metrics sample from callers or sources."""
+
+    pending_operations: int = 0
+    reconnect_count: int = 0
+    execution_latency_ms: float = 0.0
+    command_latency_ms: float = 0.0
+    failed_requests: int = 0
+    security_violations: int = 0
+    tasks_created: int = 0
+    tasks_failed: int = 0
+    tasks_completed: int = 0
+
+
+@dataclass(frozen=True)
+class AuditEventRequestVO:
+    """Request VO for emitting an audit event."""
+
+    category: str = ""
+    severity: str = "info"
+    source_feature: str = ""
+    operation_type: str = ""
+    target_metadata: dict[str, object] = dc_field(default_factory=dict)
+    correlation_id: str | None = None
+
+
+@dataclass(frozen=True)
+class LogRecordRequestVO:
+    """Request VO for writing a structured log record."""
+
+    level: str = "info"
+    source_feature: str = ""
+    message: str = ""
+    fields: dict[str, object] = dc_field(default_factory=dict)
+    tracking_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SnapshotRequestVO:
+    """Request VO for diagnostics snapshot retrieval."""
+
+    detail_level: str = "summary"
+    section_filter: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DiagnosticsConfigVO:
+    """Diagnostics configuration resolved from the config feature."""
+
+    health_probe_timeout_seconds: float = 5.0
+    freshness_tolerance_seconds: float = 10.0
+    audit_max_buffer_size: int = 1000
+    logging_max_buffer_size: int = 10000

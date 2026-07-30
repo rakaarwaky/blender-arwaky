@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.job.contract_job_lifecycle_protocol import IJobLifecycle
+
 from .agent_dispatcher_orchestrator import DispatcherOrchestrator
 from .capabilities_action_discovery import ActionDiscoveryExecutor
 from .capabilities_background_submit import BackgroundSubmitExecutor
 from .capabilities_catalog_registration import CatalogRegistrationExecutor
 from .capabilities_request_validation import RequestValidationExecutor
 from .capabilities_result_normalization import ResultNormalizationExecutor
-from .capabilities_sync_dispatch import SyncDispatchExecutor
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -29,7 +30,8 @@ class DispatcherContainer:
     Wires the six dispatcher capabilities to the aggregate orchestrator.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, job_lifecycle: IJobLifecycle | None = None) -> None:
+        self._job_lifecycle = job_lifecycle
         self._orchestrator: DispatcherOrchestrator | None = None
         self._wired: bool = False
 
@@ -47,15 +49,15 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        sync_dispatch = SyncDispatchExecutor()
-        background_submit = BackgroundSubmitExecutor()
+        background_submit = BackgroundSubmitExecutor(
+            job_tracker=self._job_lifecycle,
+        ) if self._job_lifecycle else None
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(
             catalog_registration=catalog_registration,
             action_discovery=action_discovery,
             request_validation=request_validation,
-            sync_dispatch=sync_dispatch,
             background_submit=background_submit,
             result_normalization=result_normalization,
         )
@@ -74,8 +76,8 @@ class DispatcherContainer:
         return self._orchestrator
 
 
-def create_dispatcher_feature() -> DispatcherOrchestrator:
+def create_dispatcher_feature(job_lifecycle: IJobLifecycle | None = None) -> DispatcherOrchestrator:
     """Factory function to create and wire the dispatcher feature module."""
-    container = DispatcherContainer()
+    container = DispatcherContainer(job_lifecycle=job_lifecycle)
     container.wire()
     return container.agent

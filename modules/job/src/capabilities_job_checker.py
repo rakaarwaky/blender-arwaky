@@ -15,9 +15,6 @@ from modules.shared.src.job.taxonomy_job_vo import ActiveCount, CapacityDecision
 class JobCapacityChecker(IJobCapacity):
     """Evaluates capacity decisions per FR-JOB-005."""
 
-    def __init__(self) -> None:
-        pass
-
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def evaluate(self, active_count: ActiveCount, policy: JobPolicy) -> CapacityDecision:

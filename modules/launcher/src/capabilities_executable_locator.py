@@ -14,6 +14,7 @@ import shutil
 from collections.abc import Callable
 from typing import Protocol
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_locate_register_protocol import LocateRegisterProtocol
 from modules.shared.src.launcher.taxonomy_launcher_constant import LAUNCHER_EVENT_EXECUTABLE_REGISTERED
 from modules.shared.src.launcher.taxonomy_launcher_error import (
@@ -51,7 +52,7 @@ class ExecutableLocator(LocateRegisterProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def locate_and_register(self, config: LauncherConfigVO, override: str | None = None) -> RegistrationOutcomeVO:
+    def locate_and_register(self, config: LauncherConfigVO, override: FilePath | None = None) -> RegistrationOutcomeVO:
         """Discover, validate, and register a Blender executable."""
         candidates = self._build_candidate_order(config, override)
         if not candidates:
@@ -72,7 +73,7 @@ class ExecutableLocator(LocateRegisterProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
     def _build_candidate_order(
-        self, config: LauncherConfigVO, override: str | None
+        self, config: LauncherConfigVO, override: FilePath | None
     ) -> list[tuple[RegistrationSource, str]]:
         order: list[tuple[RegistrationSource, str]] = []
         if override:

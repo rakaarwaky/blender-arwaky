@@ -7,7 +7,7 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
-from modules.shared.src.common.taxonomy_core_vo import Details, DurationMs, ErrorMessage, ErrorString, IterationCount
+from modules.shared.src.common.taxonomy_core_vo import Details, ErrorMessage, ErrorString
 
 
 class GatewayError(Exception):
@@ -94,10 +94,9 @@ class CommandTimeoutError(ServerError):
 # ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
 
 
-class TooManyPendingOperationsError(ServerError):
+class PendingOpsLimitError(ServerError):
     """Raised when the serialized execution queue has reached maximum depth.
 
-    Renamed from QueueFullError in v2.0.0.
     Error code: 'too_many_pending_operations'
     """
 

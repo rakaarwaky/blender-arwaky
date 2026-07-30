@@ -36,12 +36,12 @@ from modules.shared.src.job.taxonomy_job_constant import (
     TERMINAL_JOB_STATES,
 )
 from modules.shared.src.job.taxonomy_job_entity import JobRecord
-from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
     TaskNotFoundError,
     ValidationError,
 )
+from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_vo import (
     ActiveCount,
     CancellationReason,
@@ -58,6 +58,7 @@ from modules.shared.src.job.taxonomy_job_vo import (
 )
 from modules.shared.src.job.utility_job_sanitizer import (
     redact_metadata,
+    sanitize_cancellation_reason,
     sanitize_error,
     sanitize_error_category,
     sanitize_operation_type,
@@ -68,7 +69,6 @@ from modules.shared.src.job.utility_job_transition import (
     create_record,
     transition_record,
 )
-from modules.job.src.utility_job_event_emitter import JobEventEmitter
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -83,15 +83,15 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         self,
         policy: JobPolicy,
         clock: Callable[[], Timestamp],
+        event_publisher: IJobEventPublisher,
         id_generator: Callable[[], JobId] | None = None,
-        event_publisher: IJobEventPublisher | None = None,
     ) -> None:
         self._policy = policy
         self._clock = clock
         self._lock = threading.RLock()
         self._records: dict[str, JobRecord] = {}
         self._active_count: int = 0
-        self._event_publisher = event_publisher or JobEventEmitter()
+        self._event_publisher = event_publisher
 
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
@@ -106,7 +106,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         with self._lock:
             job_id, snapshot = create_record(
                 self._records,
-                str(command.operation_type),
+                str(operation),
                 str(command.correlation_id) if command.correlation_id else None,
                 metadata if metadata else {},
                 self._clock,
@@ -192,7 +192,8 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         return snapshot
 
     def apply_cancel(self, job_id: JobId, reason: CancellationReason | None) -> JobStatusSnapshot:
-        snapshot = self._transition(job_id, JOB_STATE_CANCELLED, cancellation_reason=reason)
+        safe_reason = sanitize_cancellation_reason(reason)
+        snapshot = self._transition(job_id, JOB_STATE_CANCELLED, cancellation_reason=safe_reason)
         self._emit(EVENT_TASK_CANCELLED, snapshot)
         return snapshot
 

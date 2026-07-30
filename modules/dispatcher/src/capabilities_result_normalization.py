@@ -16,6 +16,7 @@ from typing import Any
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
     ResultNormalizationProtocol,
 )
+from modules.shared.src.dispatcher.taxonomy_raw_outcome_vo import RawOutcomeVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -37,9 +38,7 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
 
     def normalize_result(
         self,
-        raw_outcome: dict[str, Any],
-        tracking_id: str,
-        is_background: bool = False,
+        raw_outcome: RawOutcomeVO,
     ) -> UnifiedResultEnvelopeVO:
         """Normalize any dispatch or submission outcome into a unified result envelope.
 
@@ -49,15 +48,16 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         """
         truncated = False
         try:
-            # Extract outcome fields
-            success = raw_outcome.get("success", False)
-            message = raw_outcome.get("message", "")
-            data = raw_outcome.get("data")
-            error_category = raw_outcome.get("error_category")
-            warnings = list(raw_outcome.get("warnings", []) or [])
-            metadata = dict(raw_outcome.get("metadata", {}) or {})
+            # Extract outcome fields from typed VO
+            success = raw_outcome.success
+            message = raw_outcome.message
+            tracking_id = raw_outcome.tracking_id
+            data = raw_outcome.data
+            error_category = raw_outcome.error_category
+            warnings = list(raw_outcome.warnings or [])
+            metadata = dict(raw_outcome.metadata or {})
             # Surface the execution context for consumers (FR-DSP-006 metadata summary).
-            metadata["is_background"] = is_background
+            metadata["is_background"] = raw_outcome.is_background
 
             # Process and sanitize data payload
             if data is not None:

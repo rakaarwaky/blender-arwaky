@@ -1,6 +1,6 @@
 """Root: Diagnostics feature composition container.
 
-Wires 5 capabilities (FR-DIA-001..005) + InMemoryEventBus and exposes
+Wires 5 capabilities (FR-DIA-001..005) and exposes
 the DiagnosticsOrchestrator as the feature facade.
 
 This file is the composition root for the diagnostics feature.
@@ -9,42 +9,28 @@ This file is the composition root for the diagnostics feature.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
 
 from modules.diagnostics.src.agent_diagnostics_orchestrator import DiagnosticsOrchestrator
-from modules.diagnostics.src.capabilities_audit_emission import (
-    AuditEmitter,
-    InMemoryEventBus,
-)
-from modules.diagnostics.src.capabilities_health_composition import HealthComposer
+from modules.diagnostics.src.capabilities_audit_emitter import AuditEmitter
+from modules.diagnostics.src.capabilities_health_composer import HealthComposer
 from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
-from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
-from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
+from modules.diagnostics.src.capabilities_metrics_collector import MetricsCollector
+from modules.diagnostics.src.capabilities_snapshot_provisioner import SnapshotProvisioner
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import DiagnosticsConfigVO
 
 logger = logging.getLogger("BlenderMCPServer")
-
-
-@dataclass(frozen=True)
-class DiagnosticsConfigVO:
-    """Diagnostics configuration resolved from config feature."""
-
-    health_probe_timeout_seconds: float = 5.0
-    freshness_tolerance_seconds: float = 10.0
-    audit_max_buffer_size: int = 1000
-    logging_max_buffer_size: int = 10000
 
 
 class DiagnosticsContainer:
     """Dependency injection container for the diagnostics feature module.
 
     Wires HealthComposer, MetricsCollector, AuditEmitter, LoggingPolicy,
-    SnapshotProvisioner, and InMemoryEventBus into the DiagnosticsOrchestrator.
+    SnapshotProvisioner into the DiagnosticsOrchestrator.
     """
 
     def __init__(self, config: DiagnosticsConfigVO | None = None) -> None:
         self._config = config or DiagnosticsConfigVO()
         self._orchestrator: DiagnosticsOrchestrator | None = None
-        self._event_bus: InMemoryEventBus | None = None
         self._wired: bool = False
 
     def wire(self) -> None:
@@ -54,15 +40,17 @@ class DiagnosticsContainer:
 
         logger.info("Wiring diagnostics feature module")
 
-        self._event_bus = InMemoryEventBus()
-        health_composer = HealthComposer()
+        health_composer = HealthComposer(
+            probe_timeout_seconds=self._config.health_probe_timeout_seconds,
+            freshness_tolerance_seconds=self._config.freshness_tolerance_seconds,
+        )
         metrics_collector = MetricsCollector()
         audit_emitter = AuditEmitter(max_buffer_size=self._config.audit_max_buffer_size)
         logging_policy = LoggingPolicy(max_buffer_size=self._config.logging_max_buffer_size)
         snapshot_provisioner = SnapshotProvisioner(
             health_provider=health_composer,
             metrics_provider=metrics_collector,
-            audit_provider=None,  # Will be wired by caller if needed
+            audit_provider=None,
         )
 
         self._orchestrator = DiagnosticsOrchestrator(
@@ -85,13 +73,6 @@ class DiagnosticsContainer:
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("DiagnosticsContainer not wired — call wire() first")
         return self._orchestrator
-
-    @property
-    def event_bus(self) -> InMemoryEventBus:
-        """Return the InMemoryEventBus instance."""
-        if not self._wired or self._event_bus is None:
-            raise RuntimeError("DiagnosticsContainer not wired — call wire() first")
-        return self._event_bus
 
 
 def create_diagnostics_feature(

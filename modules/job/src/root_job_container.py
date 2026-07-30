@@ -1,4 +1,3 @@
-# modules/job/src/root_job_container.py
 """Root: Job feature composition container.
 
 Wires 5 capabilities to 5 protocols, assembles the agent.
@@ -10,11 +9,13 @@ import time
 from collections.abc import Callable
 
 from modules.shared.src.common.taxonomy_core_vo import Timestamp
+from modules.shared.src.job.contract_job_aggregate import IJobAggregate
 from modules.shared.src.job.taxonomy_job_vo import JobPolicy
 
 from .agent_job_orchestrator import JobOrchestrator
 from .capabilities_job_checker import JobCapacityChecker
 from .capabilities_job_evaluator import JobCancellationEvaluator
+from .capabilities_job_event_publisher import JobLoggingEventPublisher
 from .capabilities_job_monitor import JobStatusMonitor
 from .capabilities_job_repository import InMemoryJobLifecycleRepository
 from .capabilities_job_resolver import JobCleanupResolver
@@ -23,8 +24,6 @@ logger = logging.getLogger("BlenderMCPServer")
 
 
 class JobContainer:
-    """Composition root for the job feature module."""
-
     def __init__(
         self,
         policy: JobPolicy | None = None,
@@ -42,8 +41,13 @@ class JobContainer:
         logger.info("Wiring job feature module")
 
         clock = self._clock or (lambda: Timestamp(time.time()))
+        event_publisher = JobLoggingEventPublisher()
 
-        lifecycle = InMemoryJobLifecycleRepository(policy=self._policy, clock=clock)
+        lifecycle = InMemoryJobLifecycleRepository(
+            policy=self._policy,
+            clock=clock,
+            event_publisher=event_publisher,
+        )
         monitor = JobStatusMonitor()
         cancellation = JobCancellationEvaluator()
         cleanup = JobCleanupResolver()
@@ -56,12 +60,13 @@ class JobContainer:
             cleanup=cleanup,
             capacity=capacity,
             policy=self._policy,
+            clock=clock,
         )
         self._wired = True
         logger.info("Job feature module wired: 5 capabilities composed")
 
     @property
-    def agent(self) -> JobOrchestrator:
+    def agent(self) -> IJobAggregate:
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("JobContainer not wired — call wire() first")
         return self._orchestrator
@@ -70,7 +75,7 @@ class JobContainer:
 def create_job_feature(
     policy: JobPolicy | None = None,
     clock: Callable[[], Timestamp] | None = None,
-) -> JobOrchestrator:
+) -> IJobAggregate:
     container = JobContainer(policy=policy, clock=clock)
     container.wire()
     return container.agent

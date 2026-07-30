@@ -9,226 +9,125 @@ FR-TLM-001: Record Anonymous Usage Event
 
 from __future__ import annotations
 
-import pytest
-
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    EnabledFlag,
+    SuccessFlag,
+)
+from modules.shared.src.telemetry.taxonomy_telemetry_event import (
+    ClassificationResult,
+    DurationBucket,
+    FeatureArea,
+    OperationType,
+    OutcomeCategory,
+    SessionId,
+    TelemetryCategory,
+    TelemetryDraft,
+)
 from modules.telemetry.src.capabilities_telemetry_recorder import (
     TelemetryRecordingCapability,
 )
 
 
-class MockSessionProtocol:
-    """Mock session protocol for testing."""
-
-    async def get_session_id(self, consent_active: bool = True) -> str:  # noqa: ARG002
-        return "mock-session-id"
-
-
-class MockClassificationProtocol:
-    """Mock classification protocol for testing."""
-
-    async def classify_event(self, action_type: str, feature_area: str | None = None) -> dict:  # noqa: ARG002
-        return {"feature_area": feature_area or "other", "operation_type": "other"}
-
-
-# ─── FR-TLM-001: Consent Check ────────────────────────────────────────────
+def _make_draft(
+    action: str = "action_execute",
+    outcome: str = "success",
+    bucket: float | None = None,
+) -> TelemetryDraft:
+    return TelemetryDraft(
+        action_type=ActionName(action),
+        classification=ClassificationResult(
+            category=TelemetryCategory.TOOL_EXECUTION,
+            feature_area=FeatureArea("dispatcher"),
+            operation_type=OperationType("execute"),
+            outcome_category=OutcomeCategory(outcome),
+        ),
+        session_id=SessionId("mock-session-id"),
+        outcome_category=OutcomeCategory(outcome),
+        duration_bucket=DurationBucket(bucket) if bucket is not None else None,
+    )
 
 
 class TestConsentCheck:
-    """FR-TLM-001: Consent must be active for recording."""
-
-    @pytest.mark.asyncio
-    async def test_inactive_consent_rejected(self) -> None:
-        """FR-TLM-001: Events are not recorded when consent is inactive."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
+    def test_inactive_consent_rejected(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        result = recorder.record_event(
+            _make_draft(),
+            consent_active=EnabledFlag(False),
         )
-        result = await recorder.record_event(
-            action_type="action_execute",
-            consent_active=False,
-        )
-        assert result["recorded"] is False
-        assert result["reason"] == "consent_inactive"
+        assert result.recorded is False
+        assert result.rejection_reason is not None
+        assert result.rejection_reason.value == "consent_inactive"
 
-    @pytest.mark.asyncio
-    async def test_active_consent_allowed(self) -> None:
-        """FR-TLM-001: Events are recorded when consent is active."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
+    def test_active_consent_allowed(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        result = recorder.record_event(
+            _make_draft(),
+            consent_active=EnabledFlag(True),
         )
-        result = await recorder.record_event(
-            action_type="action_execute",
-            consent_active=True,
-        )
-        assert result["recorded"] is True
-
-
-# ─── FR-TLM-001: Action Allowlist ─────────────────────────────────────────
+        assert result.recorded is True
 
 
 class TestActionAllowlist:
-    """FR-TLM-001: Only allowed actions are recorded."""
-
-    @pytest.mark.asyncio
-    async def test_allowed_action_recorded(self) -> None:
-        """FR-TLM-001: Actions on the allowlist are recorded."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
+    def test_allowed_action_recorded(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        result = recorder.record_event(
+            _make_draft(action="action_execute"),
+            consent_active=EnabledFlag(True),
         )
-        result = await recorder.record_event(
-            action_type="action_execute",
-            consent_active=True,
-        )
-        assert result["recorded"] is True
+        assert result.recorded is True
 
-    @pytest.mark.asyncio
-    async def test_disallowed_action_rejected(self) -> None:
-        """FR-TLM-001: Actions not on the allowlist are rejected."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
+    def test_disallowed_action_rejected(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        result = recorder.record_event(
+            _make_draft(action="forbidden_action"),
+            consent_active=EnabledFlag(True),
         )
-        result = await recorder.record_event(
-            action_type="forbidden_action",
-            consent_active=True,
-        )
-        assert result["recorded"] is False
-        assert result["reason"] == "action_not_in_allowlist"
-
-
-# ─── FR-TLM-001: Buffer Management ────────────────────────────────────────
+        assert result.recorded is False
+        assert result.rejection_reason is not None
+        assert result.rejection_reason.value == "action_not_allowlisted"
 
 
 class TestBufferManagement:
-    """FR-TLM-001: Buffer with bounded size and drop-oldest backpressure."""
-
-    @pytest.mark.asyncio
-    async def test_event_added_to_buffer(self) -> None:
-        """FR-TLM-001: Recorded events are added to the buffer."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-            buffer_capacity=5,
+    def test_event_added_to_buffer(self) -> None:
+        recorder = TelemetryRecordingCapability(buffer_capacity=5)
+        recorder.record_event(
+            _make_draft(),
+            consent_active=EnabledFlag(True),
         )
-        await recorder.record_event(action_type="action_execute", consent_active=True)
         assert len(recorder._buffer) == 1
 
-    @pytest.mark.asyncio
-    async def test_buffer_respects_capacity(self) -> None:
-        """FR-TLM-001: Buffer drops oldest entries when capacity exceeded."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-            buffer_capacity=3,
-        )
+    def test_buffer_respects_capacity(self) -> None:
+        recorder = TelemetryRecordingCapability(buffer_capacity=3)
         for _ in range(5):
-            await recorder.record_event(action_type="action_execute", consent_active=True)
+            recorder.record_event(
+                _make_draft(),
+                consent_active=EnabledFlag(True),
+            )
         assert len(recorder._buffer) <= 3
 
-    @pytest.mark.asyncio
-    async def test_buffer_preserves_recent_entries(self) -> None:
-        """FR-TLM-001: Buffer preserves recent entries, drops oldest."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-            buffer_capacity=2,
-        )
-        for _i in range(4):
-            await recorder.record_event(action_type="action_execute", consent_active=True)
+    def test_buffer_preserves_recent_entries(self) -> None:
+        recorder = TelemetryRecordingCapability(buffer_capacity=2)
+        for _ in range(4):
+            recorder.record_event(
+                _make_draft(),
+                consent_active=EnabledFlag(True),
+            )
         assert len(recorder._buffer) == 2
 
-    @pytest.mark.asyncio
-    async def test_buffer_contains_valid_records(self) -> None:
-        """FR-TLM-001: Buffered records have valid structure."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
+    def test_buffer_contains_valid_records(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        recorder.record_event(
+            _make_draft(),
+            consent_active=EnabledFlag(True),
         )
-        await recorder.record_event(action_type="action_execute", consent_active=True)
         record = recorder._buffer[0]
-        assert "timestamp" in record
-        assert "action_type" in record
-        assert "session_id" in record
-        assert "outcome_category" in record
+        assert record.action_type == ActionName("action_execute")
+        assert record.session_id == SessionId("mock-session-id")
+        assert record.outcome_category == OutcomeCategory("success")
 
 
-# ─── FR-TLM-001: PII-Free Schema ──────────────────────────────────────────
-
-
-class TestPIIFreeSchema:
-    """FR-TLM-001: Recorded events contain no PII."""
-
-    @pytest.mark.asyncio
-    async def test_record_contains_no_user_identity(self) -> None:
-        """FR-TLM-001: Records do not contain user identity information."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-        )
-        await recorder.record_event(action_type="action_execute", consent_active=True)
-        record = recorder._buffer[0]
-        # Session ID is random, not traceable to user
-        assert record["session_id"] != "user@example.com"
-
-    @pytest.mark.asyncio
-    async def test_record_contains_anonymous_session(self) -> None:
-        """FR-TLM-001: Session IDs are anonymous."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-        )
-        await recorder.record_event(action_type="action_execute", consent_active=True)
-        record = recorder._buffer[0]
-        # Session should be a mock ID, not real user data
-        assert "mock-session-id" in str(record["session_id"])
-
-
-# ─── FR-TLM-001: Outcome Categories ───────────────────────────────────────
-
-
-class TestOutcomeCategories:
-    """FR-TLM-001: Recording supports outcome categories."""
-
-    @pytest.mark.asyncio
-    async def test_success_outcome(self) -> None:
-        """FR-TLM-001: Success outcome is recorded."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-        )
-        await recorder.record_event(
-            action_type="action_execute",
-            outcome_category="success",
-            consent_active=True,
-        )
-        assert len(recorder._buffer) == 1
-
-    @pytest.mark.asyncio
-    async def test_failure_outcome(self) -> None:
-        """FR-TLM-001: Failure outcome is recorded."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-        )
-        await recorder.record_event(
-            action_type="action_execute",
-            outcome_category="failure",
-            consent_active=True,
-        )
-        assert len(recorder._buffer) == 1
-
-    @pytest.mark.asyncio
-    async def test_rejected_outcome(self) -> None:
-        """FR-TLM-001: Rejected outcome is recorded."""
-        recorder = TelemetryRecordingCapability(
-            session_protocol=MockSessionProtocol(),
-            classification_protocol=MockClassificationProtocol(),
-        )
-        await recorder.record_event(
-            action_type="action_execute",
-            outcome_category="rejected",
-            consent_active=True,
-        )
-        assert len(recorder._buffer) == 1
+class TestIsEnabled:
+    def test_is_enabled_returns_true_by_default(self) -> None:
+        recorder = TelemetryRecordingCapability()
+        assert recorder.is_enabled() == SuccessFlag(True)

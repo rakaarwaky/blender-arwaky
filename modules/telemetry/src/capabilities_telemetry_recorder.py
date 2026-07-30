@@ -12,112 +12,65 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    SessionId,
+    EnabledFlag,
+    PlatformName,
+    SuccessFlag,
     Timestamp,
-)
-from modules.shared.src.telemetry.contract_telemetry_classification_protocol import (
-    TelemetryClassificationProtocol,
+    VersionString,
 )
 from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
     TelemetryRecordingProtocol,
 )
-from modules.shared.src.telemetry.contract_telemetry_session_protocol import (
-    TelemetrySessionProtocol,
-)
+from modules.shared.src.telemetry.taxonomy_event_constant import ALLOWED_ACTIONS
 from modules.shared.src.telemetry.taxonomy_telemetry_event import (
-    ALLOWED_ACTIONS,
-    FEATURE_AREAS,
+    RecordingResult,
+    TelemetryDraft,
+    TelemetryRecord,
+    TelemetryRejectionReason,
 )
 
 logger = logging.getLogger("blender-arwaky.telemetry")
 
 
 class TelemetryRecordingCapability(TelemetryRecordingProtocol):
-    """Business logic for recording anonymous telemetry events.
+    def __init__(self, buffer_capacity: int = 1000) -> None:
+        self._buffer: deque[TelemetryRecord] = deque(maxlen=buffer_capacity)
+        self._enabled = EnabledFlag(True)
 
-    FR-TLM-001: Nothing recorded unless consent is active.
-    PII scrubbing applies at ingestion before buffering.
-    """
+    def is_enabled(self) -> SuccessFlag:
+        return SuccessFlag(bool(self._enabled))
 
-    def __init__(
+    def record_event(
         self,
-        session_protocol: TelemetrySessionProtocol,
-        classification_protocol: TelemetryClassificationProtocol,
-        buffer_capacity: int = 1000,
-    ) -> None:
-        """Initialize with dependent protocols.
-
-        Args:
-            session_protocol: Protocol for session ID management.
-            classification_protocol: Protocol for event classification.
-            buffer_capacity: Maximum buffered records before drop-oldest.
-        """
-        self._session_protocol = session_protocol
-        self._classification_protocol = classification_protocol
-        self._buffer_capacity = buffer_capacity
-        self._buffer: deque[dict[str, Any]] = deque(maxlen=buffer_capacity)
-
-    async def record_event(
-        self,
-        action_type: str,
-        feature_area: str | None = None,
-        outcome_category: str = "success",
-        consent_active: bool = True,
-        duration_bucket: float | None = None,
-    ) -> dict[str, Any]:
-        """Capture a single anonymous usage record.
-
-        FR-TLM-001: Nothing recorded unless consent is active.
-        PII scrubbing applies at ingestion before buffering.
-
-        Args:
-            action_type: The type of user action.
-            feature_area: Product surface area.
-            outcome_category: success, failure, or rejected.
-            consent_active: Whether telemetry consent is enabled.
-            duration_bucket: Optional coarse duration bucket.
-
-        Returns:
-            Dict with recording acknowledgment and buffered record summary.
-        """
-        # Consent check — nothing recorded if consent inactive
+        draft: TelemetryDraft,
+        consent_active: EnabledFlag,
+    ) -> RecordingResult:
         if not consent_active:
-            return {"recorded": False, "reason": "consent_inactive"}
+            return RecordingResult(
+                recorded=SuccessFlag(False),
+                rejection_reason=TelemetryRejectionReason.CONSENT_INACTIVE,
+            )
 
-        # Action allowlist check
-        if action_type not in ALLOWED_ACTIONS:
-            return {"recorded": False, "reason": "action_not_in_allowlist"}
+        if str(draft.action_type) not in ALLOWED_ACTIONS:
+            return RecordingResult(
+                recorded=SuccessFlag(False),
+                rejection_reason=TelemetryRejectionReason.ACTION_NOT_ALLOWLISTED,
+            )
 
-        # Classify event
-        classified = await self._classification_protocol.classify_event(action_type, feature_area)
+        record = TelemetryRecord(
+            action_type=draft.action_type,
+            category=draft.classification.category,
+            session_id=draft.session_id,
+            timestamp=Timestamp(time.time()),
+            feature_area=draft.classification.feature_area,
+            operation_type=draft.classification.operation_type,
+            outcome_category=draft.outcome_category,
+            version=VersionString("unknown"),
+            platform=PlatformName("unknown"),
+            duration_bucket=draft.duration_bucket,
+        )
 
-        # Get session ID (async protocol with consent check)
-        session_id = await self._session_protocol.get_session_id(consent_active=consent_active)
-
-        # Build anonymous record (PII-free)
-        record: dict[str, Any] = {
-            "timestamp": Timestamp(self._current_timestamp()),
-            "action_type": action_type,
-            "session_id": SessionId(str(session_id)),
-            "feature_area": classified.get("feature_area", feature_area or FEATURE_AREAS.get(action_type, "other")),
-            "operation_type": classified.get("operation_type", "other"),
-            "outcome_category": outcome_category,
-            "duration_bucket": duration_bucket,
-        }
-
-        # Buffer with backpressure — deque(maxlen=...) auto-trims in O(1)
         self._buffer.append(record)
-
-        return {
-            "recorded": True,
-            "session_id": str(session_id),
-            "feature_area": record["feature_area"],
-            "operation_type": record["operation_type"],
-        }
-
-    def _current_timestamp(self) -> float:
-        """Return current Unix timestamp."""
-        return time.time()
+        return RecordingResult(recorded=SuccessFlag(True))

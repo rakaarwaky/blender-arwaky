@@ -11,7 +11,6 @@ from dataclasses import replace
 
 from modules.shared.src.common.taxonomy_core_vo import (
     DurationMs,
-    FilePath,
     Prompt,
     PythonCode,
     SuccessFlag,
@@ -59,9 +58,11 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         self,
         code_executor: ICodeExecutionProtocol,
         security_validator: ValidatePathProtocol | None = None,
+        event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
         self._security_validator = security_validator
+        self._event_emitter = event_emitter
 
     # ─── Block 2: protocol methods only ───────────────────────
     async def capture_viewport(self, request: ViewportCaptureVO) -> ViewportCaptureVO:
@@ -97,6 +98,13 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
                 duration_ms=duration_ms,
                 message=Prompt("Viewport capture completed"),
             )
+
+            if self._event_emitter is not None:
+                try:
+                    await self._event_emitter.emit(event)
+                except Exception:
+                    logger.warning("Failed to emit ViewportCapturedEvent")
+
             logger.info("viewport_captured event=%s", event)
 
             return replace(
@@ -110,11 +118,11 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
                 message=Prompt("Viewport capture completed"),
             )
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Viewport capture failed")
             return self._failure(
                 request,
-                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Viewport capture failed: {exc}"),
+                Prompt(f"[{RenderErrorCategory.RENDER_OUTPUT.value}] Viewport capture failed"),
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
@@ -154,7 +162,7 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         if max_size > 0 and max_size < 64:
             return RenderError(
                 category=RenderErrorCategory.VALIDATION,
-                message=Prompt(f"max_size must be at least 64 pixels"),
+                message=Prompt("max_size must be at least 64 pixels"),
             )
 
         return None
@@ -175,7 +183,12 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: ViewportCaptureVO, message: Prompt) -> ViewportCaptureVO:
-        return replace(request, success=SuccessFlag(False), message=message)
+        return replace(
+            request,
+            success=SuccessFlag(False),
+            error_summary=str(message),
+            message=message,
+        )
 
     def __repr__(self) -> str:
         return "RenderViewportCaptureExecutor()"

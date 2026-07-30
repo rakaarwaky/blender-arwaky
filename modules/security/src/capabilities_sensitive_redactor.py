@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import re
 
+from modules.shared.src.security import taxonomy_security_constant
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-
-# ─── Taxonomy imports ─────────────────────
-from modules.shared.src.security.taxonomy_security_constant import KV_VALUE, REDACTION_SENSITIVE_PATTERNS
 from modules.shared.src.security.taxonomy_security_vo import RedactionVO
+
+KV_VALUE = taxonomy_security_constant.KV_VALUE
+REDACTION_SENSITIVE_PATTERNS = taxonomy_security_constant.REDACTION_SENSITIVE_PATTERNS
 
 
 class SensitiveRedactor(RedactSensitiveProtocol):
@@ -29,7 +30,11 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def redact(self, request: RedactionVO) -> RedactionVO:
-        """Detect and redact sensitive values from text."""
+        """Detect and redact sensitive values from text.
+
+        FR-SEC-004: preserves non-sensitive key names during key-based redaction,
+        replacing only the value portion with [REDACTED].
+        """
         try:
             text = request.text
             redacted_count = 0
@@ -41,18 +46,14 @@ class SensitiveRedactor(RedactSensitiveProtocol):
 
             all_keys = self._key_names + request.key_names
             for key in all_keys:
-                # Quoted-key aware so custom key names also match JSON/`"key": "value"` forms
-                # — FR-SEC-004 nested/structured. Value half reuses KV_VALUE so spaced
-                # quoted values are consumed whole.
-                pattern = rf'(?i)(["\']?)(?:{re.escape(key)})\1\s*[:=]\s*' + KV_VALUE
-                text, count = re.subn(pattern, "[REDACTED]", text)
+                # Case-insensitive quoted-key aware matching
+                pattern = rf'((["\']?)(?i:{re.escape(key)})\2\s*[:=]\s*)' + KV_VALUE
+                text, count = re.subn(pattern, r'\1[REDACTED]', text)
                 redacted_count += count
 
             if len(text) > 10_000:
                 text = text[:10_000] + "\n[TRUNCATED]"
 
-            # FR-SEC-004: the returned `text` carries the redacted (safe) output,
-            # never the raw secret — any consumer reading `.text` stays leak-free.
             return RedactionVO(
                 text=text,
                 sensitivity_level=request.sensitivity_level,
@@ -62,8 +63,6 @@ class SensitiveRedactor(RedactSensitiveProtocol):
                 redacted_count=redacted_count,
             )
         except Exception as exc:
-            # FR-SEC-004: on failure, prefer masking the entire payload over
-            # leaking the original secret — never echo request.text back.
             return RedactionVO(
                 text="[REDACTION_FAILED]",
                 sensitivity_level=request.sensitivity_level,

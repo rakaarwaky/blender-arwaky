@@ -19,18 +19,32 @@ def normalize_path(path: str) -> str:
     return os.path.normpath(os.path.abspath(path))
 
 
-def is_within_allowed_dirs(target: str, allowed_dirs: list[str]) -> bool:
+def resolve_path(path: str) -> str:
+    """Return the canonical resolved path, following symlinks safely."""
+    return os.path.realpath(os.path.abspath(path))
+
+
+def is_within_allowed_dirs(
+    target: str,
+    allowed_dirs: list[str] | tuple[str, ...],
+    *,
+    allow_empty: bool = False,
+) -> bool:
     """Return ``True`` when *target* resolves inside one of *allowed_dirs*.
 
-    Both *target* and each entry in *allowed_dirs* are normalized before
-    comparison. An empty *allowed_dirs* list implies no restriction
-    (returns ``True``).
+    For security enforcement, allow_empty defaults to False: an empty
+    allow-list means no directory is allowed (deny by default).
     """
     if not allowed_dirs:
-        return True
+        return allow_empty
+
     norm_target = normalize_path(target)
+
     for allowed_dir in allowed_dirs:
         norm_allowed = normalize_path(allowed_dir)
-        if norm_target.startswith(norm_allowed + os.sep) or norm_target == norm_allowed:
+        if norm_target == norm_allowed:
             return True
+        if norm_target.startswith(norm_allowed + os.sep):
+            return True
+
     return False

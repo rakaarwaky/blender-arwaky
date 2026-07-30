@@ -3,19 +3,24 @@
 Exercises all 5 capabilities individually and the DiagnosticsOrchestrator.
 """
 
+from __future__ import annotations
+
 import asyncio
 
 from modules.diagnostics.src.agent_diagnostics_orchestrator import (
     DiagnosticsOrchestrator,
 )
-from modules.diagnostics.src.capabilities_audit_emission import (
-    AuditEmitter,
-    InMemoryEventBus,
-)
-from modules.diagnostics.src.capabilities_health_composition import HealthComposer
+from modules.diagnostics.src.capabilities_audit_emitter import AuditEmitter
+from modules.diagnostics.src.capabilities_health_composer import HealthComposer
 from modules.diagnostics.src.capabilities_logging_policy import LoggingPolicy
-from modules.diagnostics.src.capabilities_metrics_collection import MetricsCollector
-from modules.diagnostics.src.capabilities_snapshot_provision import SnapshotProvisioner
+from modules.diagnostics.src.capabilities_metrics_collector import MetricsCollector
+from modules.diagnostics.src.capabilities_snapshot_provisioner import SnapshotProvisioner
+from modules.shared.src.diagnostics.taxonomy_diagnostics_vo import (
+    AuditEventRequestVO,
+    HealthCompositionRequestVO,
+    LogRecordRequestVO,
+    MetricsSampleVO,
+)
 
 
 def test_health_composer_instantiates() -> None:
@@ -43,11 +48,6 @@ def test_snapshot_provisioner_instantiates() -> None:
     assert isinstance(cap, SnapshotProvisioner)
 
 
-def test_event_bus_instantiates() -> None:
-    bus = InMemoryEventBus()
-    assert isinstance(bus, InMemoryEventBus)
-
-
 def test_orchestrator_composes_all_capabilities() -> None:
     orch = DiagnosticsOrchestrator(
         health_composer=HealthComposer(),
@@ -63,10 +63,12 @@ def test_compose_health_returns_overall_status() -> None:
     cap = HealthComposer()
     result = asyncio.run(
         cap.compose_health(
-            launcher_status="healthy",
-            gateway_status="healthy",
-            config_valid=True,
-            job_capacity_available=True,
+            request=HealthCompositionRequestVO(
+                launcher_status="healthy",
+                gateway_status="healthy",
+                config_valid=True,
+                job_capacity_available=True,
+            )
         )
     )
     assert result.overall_status == "healthy"
@@ -76,17 +78,16 @@ def test_compose_health_returns_overall_status() -> None:
 
 def test_metrics_snapshot_collects_required_counters() -> None:
     cap = MetricsCollector()
-    snap = asyncio.run(
-        cap.collect_metrics_snapshot(
-            pending_operations=2,
-            reconnect_count=1,
-            failed_requests=0,
-            security_violations=0,
-            tasks_created=5,
-            tasks_failed=1,
-            tasks_completed=4,
-        )
+    sample = MetricsSampleVO(
+        pending_operations=2,
+        reconnect_count=1,
+        failed_requests=0,
+        security_violations=0,
+        tasks_created=5,
+        tasks_failed=1,
+        tasks_completed=4,
     )
+    snap = asyncio.run(cap.collect_metrics_snapshot(sample=sample))
     assert snap.counters["tasks_created"] == 5
     assert snap.counters["tasks_failed"] == 1
     assert snap.counters["tasks_completed"] == 4
@@ -96,10 +97,12 @@ def test_emit_audit_event_appends_record() -> None:
     cap = AuditEmitter()
     out = asyncio.run(
         cap.emit_audit_event(
-            category="security_violation",
-            severity="critical",
-            source_feature="gateway",
-            operation_type="connection_lost",
+            request=AuditEventRequestVO(
+                category="security_violation",
+                severity="critical",
+                source_feature="gateway",
+                operation_type="connection_lost",
+            )
         )
     )
     assert out.emission_confirmed is True
@@ -110,10 +113,12 @@ def test_log_record_buffers_entry() -> None:
     cap = LoggingPolicy()
     out = asyncio.run(
         cap.log_record(
-            level="info",
-            source_feature="cli",
-            message="startup",
-            fields={"x": 1},
+            request=LogRecordRequestVO(
+                level="info",
+                source_feature="cli",
+                message="startup",
+                fields={"x": 1},
+            )
         )
     )
     assert out.logged is True

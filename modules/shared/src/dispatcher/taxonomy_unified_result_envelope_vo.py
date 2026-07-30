@@ -7,7 +7,6 @@ by CLI and MCP layers for all dispatcher outcomes (success, error, background su
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -24,10 +23,10 @@ class UnifiedResultEnvelopeVO:
     tracking_id: str = ""
 
     # Optional fields (set when applicable)
-    data: dict[str, Any] | None = None
+    data: dict[str, object] | None = None
     error_category: str | None = None
     warnings: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
     # Computed flags
     data_truncated: bool = False
@@ -37,9 +36,9 @@ class UnifiedResultEnvelopeVO:
         cls,
         message: str,
         tracking_id: str,
-        data: dict[str, Any] | None = None,
+        data: dict[str, object] | None = None,
         warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> UnifiedResultEnvelopeVO:
         """Create a success envelope."""
         return cls(
@@ -57,9 +56,9 @@ class UnifiedResultEnvelopeVO:
         message: str,
         tracking_id: str,
         error_category: str,
-        data: dict[str, Any] | None = None,
+        data: dict[str, object] | None = None,
         warnings: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> UnifiedResultEnvelopeVO:
         """Create an error envelope with category."""
         return cls(
