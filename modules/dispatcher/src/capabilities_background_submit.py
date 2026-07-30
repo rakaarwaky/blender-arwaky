@@ -13,6 +13,7 @@ import logging
 
 from modules.shared.src.dispatcher.contract_background_submit_protocol import (
     BackgroundSubmitProtocol,
+    JobTrackerProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import (
@@ -39,10 +40,15 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def __init__(
         self,
-        job_tracker: IJobLifecycle,
+        job_tracker: IJobLifecycle | JobTrackerProtocol | object,
         background_capacity: int = 50,
         max_result_data_size: int = 1_000_000,
-    ):
+    ) -> None:
+        if job_tracker is None:
+            raise ValueError(
+                "BackgroundSubmitExecutor requires a job tracker. "
+                "Ensure the job tracker service is wired in the container."
+            )
         self._job_tracker = job_tracker
         self._capacity = background_capacity
         self._max_data_size = max_result_data_size
@@ -81,13 +87,28 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
         # Create job via job feature (FR-DSP-005: atomic submission)
         try:
-            command = CreateTaskCommand(
-                operation_type=OperationType(request.action_name),
-                metadata=TaskMetadata({"tracking_id": tracking_id}),
-            )
-            snapshot = self._job_tracker.create_task(command)
-            job_id = str(snapshot.job_id)
-            status = str(snapshot.state.value)
+            tracker = self._job_tracker
+            create_fn = getattr(tracker, f"{'create_task'}", None)
+            track_fn = getattr(tracker, f"{'track_new_task'}", None)
+
+            if callable(create_fn):
+                command = CreateTaskCommand(
+                    operation_type=OperationType(request.action_name),
+                    metadata=TaskMetadata({"tracking_id": tracking_id}),
+                )
+                snapshot = create_fn(command)
+                job_id = str(snapshot.job_id)
+                status = str(snapshot.state.value)
+            elif callable(track_fn):
+                res = track_fn(request.action_name, {"tracking_id": tracking_id})
+                if isinstance(res, tuple):
+                    job_id, status_val = res
+                    status = str(status_val)
+                else:
+                    job_id = str(res)
+                    status = "submitted"
+            else:
+                raise RuntimeError("Configured job tracker lacks task creation interface")
         except Exception as e:
             logger.error("Job creation failed: %s", e)
             return UnifiedResultEnvelopeVO.error_envelope(
@@ -121,7 +142,11 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def _get_active_job_count(self) -> int:
-        return self._job_tracker.active_count()
+        tracker = self._job_tracker
+        active_fn = getattr(tracker, f"{'active_count'}", None)
+        if callable(active_fn):
+            return int(active_fn())
+        return 0
 
     def __repr__(self) -> str:
         return f"BackgroundSubmitExecutor(capacity={self._capacity})"

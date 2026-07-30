@@ -11,27 +11,15 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from typing import Any, Protocol
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
+    ActionExecutorProtocol,
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
-
-
-class ActionExecutorProtocol(Protocol):
-    """Protocol for executing feature actions.
-
-    Defines the interface required by SyncDispatchExecutor to run
-    the owning feature's action implementation.
-    """
-
-    def execute_action(self, action_name: str, params: dict[str, Any]) -> dict[str, Any]:
-        """Execute an action and return the result dict."""
-        ...
 
 
 class SyncDispatchExecutor(SyncDispatchProtocol):
@@ -47,7 +35,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, execute_action: ActionExecutorProtocol) -> None:
+    def __init__(self, execute_action: ActionExecutorProtocol | object) -> None:
         if execute_action is None:
             raise ValueError(
                 "SyncDispatchExecutor requires a non-null action executor. "
@@ -60,7 +48,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
         """Enter context manager."""
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         """Exit context manager — shut down the thread pool."""
         self._pool.shutdown(wait=True)
 
@@ -75,13 +63,6 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
         start_time = time.time()
         tracking_id = request.validated_tracking_id or request.tracking_id or ""
         action_name = request.action_name
-
-        # FR-DSP-004: Non-idempotent actions must not be retried automatically
-        idempotent = request.resolved_metadata.get("idempotency_flag", False)
-        if not idempotent:
-            # First dispatch is fine — retries would come from the surface layer
-            # The dispatcher itself does not retry; if this is called, it's the first attempt.
-            pass
 
         try:
             params = dict(request.parameters)
@@ -132,7 +113,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
             )
 
             return UnifiedResultEnvelopeVO.error_envelope(
-                message=f"Action '{action_name}' failed: {e}",
+                message=f"Action '{action_name}' failed",
                 tracking_id=tracking_id,
                 error_category=error_category,
                 metadata={

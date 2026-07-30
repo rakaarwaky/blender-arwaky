@@ -7,7 +7,6 @@ flags, timeouts, and usage examples. Immutable once registered.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -25,7 +24,7 @@ class ActionMetadataVO:
     action_name: str
     owning_feature_ref: str
     description: str
-    parameter_schema: dict[str, Any]
+    parameter_schema: dict[str, object]
     usage_examples: list[str]
 
     # Metadata flags and defaults

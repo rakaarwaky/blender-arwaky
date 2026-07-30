@@ -127,8 +127,6 @@ class DispatcherOrchestrator(IDispatcherAggregate):
             raise RuntimeError("ResultNormalizationProtocol not configured")
         return self._normalization.normalize_result(raw_outcome)
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
-
     def execute_action(self, request: ActionCommandVO) -> UnifiedResultEnvelopeVO:
         """Execute an action through the full dispatcher pipeline.
 
@@ -162,6 +160,8 @@ class DispatcherOrchestrator(IDispatcherAggregate):
                 tracking_id=request.validated_tracking_id,
                 error_category=DispatchErrorCategory.EXECUTION,
             )
+
+    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     @staticmethod
     def _safe_message(_error: Exception) -> str:
