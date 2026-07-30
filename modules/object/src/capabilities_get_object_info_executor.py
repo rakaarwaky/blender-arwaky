@@ -11,10 +11,8 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
-from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
 
@@ -30,7 +28,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -85,53 +83,39 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         Collects comprehensive data. Avoids cyclic references.
         Includes mesh statistics for mesh objects.
         """
-        object_ref = quote_string(str(request.object_name))
+        object_ref = repr(str(request.object_name))
         lines = [
             "import bpy",
             f"obj = bpy.data.objects.get({object_ref})",
-            'if obj is None:',
+            "if obj is None:",
             '    raise ValueError("Object not found in scene.")',
-            'info = {',
+            "info = {",
             "    'name': obj.name,",
             "    'type': obj.type,",
         ]
 
-        lines.append(
-            "    'location': [obj.location.x, obj.location.y, obj.location.z],"
+        lines.append("    'location': [obj.location.x, obj.location.y, obj.location.z],")
+        lines.append("    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],")
+        lines.append("    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],")
+        lines.append("    'parent_name': obj.parent.name if obj.parent else None,")
+        lines.append("    'collection_names': [col.name for col in obj.users_collection],")
+        lines.append("    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],")
+        lines.append("    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],")
+        lines.append("    'visibility': obj.visible_get(),")
+        lines.extend(
+            [
+                "    'mesh_statistics': None,",
+                "}",
+                "if obj.type == 'MESH' and obj.data:",
+                "    mesh = obj.data",
+                "    info['mesh_statistics'] = {",
+                "        'vertex_count': len(mesh.vertices),",
+                "        'edge_count': len(mesh.edges),",
+                "        'face_count': len(mesh.polygons),",
+                "    }",
+                "result = info",
+            ]
         )
-        lines.append(
-            "    'rotation': [obj.rotation_euler[0], obj.rotation_euler[1], obj.rotation_euler[2]],"
-        )
-        lines.append(
-            "    'scale': [obj.scale.x, obj.scale.y, obj.scale.z],"
-        )
-        lines.append(
-            "    'parent_name': obj.parent.name if obj.parent else None,"
-        )
-        lines.append(
-            "    'collection_names': [col.name for col in obj.users_collection],"
-        )
-        lines.append(
-            "    'material_names': [mat.name for mat in getattr(obj.data, 'materials', []) if mat],"
-        )
-        lines.append(
-            "    'modifier_summaries': [{'name': mod.name, 'type': mod.type} for mod in obj.modifiers],"
-        )
-        lines.append(
-            "    'visibility': obj.visible_get(),"
-        )
-        lines.extend([
-            "    'mesh_statistics': None,",
-            "}",
-            "if obj.type == 'MESH' and obj.data:",
-            "    mesh = obj.data",
-            "    info['mesh_statistics'] = {",
-            "        'vertex_count': len(mesh.vertices),",
-            "        'edge_count': len(mesh.edges),",
-            "        'face_count': len(mesh.polygons),",
-            "    }",
-            "result = info",
-        ])
 
         return "\n".join(lines)
 

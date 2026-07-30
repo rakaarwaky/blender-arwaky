@@ -10,10 +10,8 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
-from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.taxonomy_object_vo import SetMaterialVO
 
@@ -29,7 +27,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -88,8 +86,8 @@ class SetMaterialExecutor(SetMaterialProtocol):
         with optional index selection (FR-OBJ-004). Applies base_color, metallic,
         roughness, alpha to Principled BSDF node when provided.
         """
-        object_safe = quote_string(str(request.object_name))
-        material_safe = quote_string(str(request.material_name))
+        object_safe = repr(str(request.object_name))
+        material_safe = repr(str(request.material_name))
 
         lines = [
             "import bpy",
@@ -121,19 +119,23 @@ class SetMaterialExecutor(SetMaterialProtocol):
         # Handle slot creation/assignment with optional index (FR-OBJ-004)
         slot_index = getattr(request, "slot_index", None)
         if slot_index is not None:
-            lines.extend([
-                "# Assign material to specific slot index",
-                f"while len(obj.data.materials) <= {slot_index}:",
-                "    obj.data.materials.append(bpy.data.materials.new(name=\"temp\"))",
-                f"obj.data.materials[{slot_index}] = mat",
-            ])
+            lines.extend(
+                [
+                    "# Assign material to specific slot index",
+                    f"while len(obj.data.materials) <= {slot_index}:",
+                    '    obj.data.materials.append(bpy.data.materials.new(name="temp"))',
+                    f"obj.data.materials[{slot_index}] = mat",
+                ]
+            )
         else:
-            lines.extend([
-                "if len(obj.data.materials) == 0:",
-                "    obj.data.materials.append(mat)",
-                "else:",
-                "    obj.data.materials[0] = mat",
-            ])
+            lines.extend(
+                [
+                    "if len(obj.data.materials) == 0:",
+                    "    obj.data.materials.append(mat)",
+                    "else:",
+                    "    obj.data.materials[0] = mat",
+                ]
+            )
 
         return "\n".join(lines)
 

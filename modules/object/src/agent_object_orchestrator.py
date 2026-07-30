@@ -17,8 +17,6 @@ Structure:
 """
 
 import logging
-import typing as _typing
-from typing import Any
 
 from modules.shared.src.object.contract_apply_modifier_protocol import ApplyModifierProtocol
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
@@ -54,7 +52,7 @@ class ObjectOrchestrator(IObjectOperateAggregate):
         apply_modifier_cap: ApplyModifierProtocol,
         delete_object_cap: DeleteObjectProtocol,
         get_object_info_cap: GetObjectInfoProtocol,
-        import_export_cap: _typing.Any = None,
+        import_export_cap: object | None = None,
     ) -> None:
         self._place_asset = place_asset_cap
         self._create_primitive = create_primitive_cap
@@ -102,7 +100,7 @@ class ObjectOrchestrator(IObjectOperateAggregate):
         return self
 
     @property
-    def import_export_capability(self) -> Any:
+    def import_export_capability(self) -> object:
         return self._import_export_cap
 
     def __repr__(self) -> str:
