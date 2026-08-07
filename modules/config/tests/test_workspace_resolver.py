@@ -1,9 +1,10 @@
-"""T-10: WorkspaceResolverCapability — strategy order, caching, legacy regression."""
+"""T-10: WorkspaceResolverCapability — strategy order, caching, concurrency, legacy regression."""
 
 from __future__ import annotations
 
 import os
 import tempfile
+import threading
 
 import pytest
 
@@ -104,3 +105,35 @@ def test_symlinked_dir_resolves():
     # resolves without error; .resolve() normalizes the symlink to its real target
     assert ws.strategy == "explicit_override"
     assert os.path.isdir(ws.path)
+
+
+@pytest.mark.unit
+def test_concurrent_resolve_returns_consistent_result(monkeypatch):
+    """Multiple threads calling resolve() concurrently must all get the same
+    cached result.  Validates the double-checked locking in WorkspaceResolverCapability."""
+    monkeypatch.delenv("BLENDERMCP_ROOT", raising=False)
+    d = tempfile.mkdtemp()
+    r = WorkspaceResolverCapability(explicit_override=d)
+    results: list = []
+    errors: list = []
+    n_threads = 8
+
+    def worker():
+        try:
+            ws = r.resolve()
+            results.append(ws)
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Concurrent resolve raised: {errors}"
+    assert len(results) == n_threads
+    # every thread must receive the exact same WorkspacePath object (cached reference)
+    assert all(ws is results[0] for ws in results)
+    assert results[0].strategy == "explicit_override"
+    assert results[0].path == d
