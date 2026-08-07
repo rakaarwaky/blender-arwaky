@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
-from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT
+from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT, SENTINEL_MISSING
 from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
-from modules.shared.src.config.taxonomy_config_vo import _MISSING, SettingsSnapshot, SettingsValue
+from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot, SettingsValue
 from modules.shared.src.config.utility_config_helpers import parse_settings_path
 
 
@@ -73,8 +73,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         coerce_int: bool = False,
     ) -> SettingsValue:
         segments = parse_settings_path(path, self._escape_enabled)
-        raw = snapshot.get_segments(segments, _MISSING)
-        if raw is _MISSING:
+        raw = snapshot.get_segments(segments, SENTINEL_MISSING)
+        if raw is SENTINEL_MISSING:
             return default  # missing key never raises in either mode
 
         if expected is int:
