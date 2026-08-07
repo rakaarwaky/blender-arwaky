@@ -6,13 +6,12 @@ from modules.shared.src.cli.utility_cli_process import (
     kill_blender,
     launch_blender,
 )
-from modules.shared.src.cli.utility_cli_registry import Registry, RegistryState
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
+from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
 
 __all__ = [
     "BlenderSocketClient",
     "Registry",
-    "RegistryState",
     "close_handle",
     "find_blender",
     "init_handle",

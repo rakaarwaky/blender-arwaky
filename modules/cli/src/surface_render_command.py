@@ -1,8 +1,8 @@
 """CLI render command — Execute full frame render."""
 
 
-from modules.shared.src.cli.utility_cli_registry import Registry
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
+from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:

@@ -15,7 +15,8 @@ Responsibilities:
 
 AES Compliance (Handler Layer):
 - Imports from: agent, contract, taxonomy (allowed)
-- NO direct imports from capabilities or infrastructure
+- NO direct imports from root containers or infrastructure
+- McpContainer is injected by the composition root (root_mcp_main_entry)
 - Delegates all logic to AgentOrchestrator
 """
 
@@ -121,14 +122,21 @@ class ServerInstanceSurface:
             logger.info("BlenderArwaky server shut down")
 
     @staticmethod
-    def get_mcp_instance(name: ServerName | None = None) -> FastMCP:
+    def get_mcp_instance(name: ServerName | None = None, container: object | None = None) -> FastMCP:
         """Return the singleton MCP instance, creating it lazily on first call.
 
         Args:
             name: Server name displayed in MCP clients
+            container: McpContainer (or compatible DI composition object)
+                supplied by the composition root. Required when the singleton
+                has not been created yet.
 
         Returns:
             Configured FastMCP instance with lifespan and instructions
+
+        Raises:
+            RuntimeError: If container is None on first creation — the surface
+                layer must not import root composition directly (AES205).
         """
         name = name or ServerName("BlenderArwaky")
         global _mcp_instance
@@ -136,22 +144,23 @@ class ServerInstanceSurface:
             if _mcp_instance is not None:
                 return _mcp_instance
 
+            if container is None:
+                raise RuntimeError(
+                    "McpContainer is required to create the MCP server instance — "
+                    "wire it in the composition root (root_mcp_main_entry) and pass it in."
+                )
+
             _mcp_instance = FastMCP(
                 name=name,
                 instructions="Blender Arwaky Server — 3D asset search, AI generation, scene assembly via standardized tool pipelines.",
                 lifespan=ServerInstanceSurface.server_lifespan,
             )
 
-            # Wire MCP container before registering tools
-            from modules.mcp.src.root_mcp_container import create_mcp_feature
-
-            mcp_container = create_mcp_feature()
-
             # Register tools and prompts (Handler layer delegation)
             from .surface_prompt_register import PromptRegistrationModule
             from .surface_tool_registry import ToolRegistrySurface
 
-            ToolRegistrySurface.register_tools(_mcp_instance, mcp_container)
+            ToolRegistrySurface.register_tools(_mcp_instance, container)
             PromptRegistrationModule.register_prompts(_mcp_instance)
 
             return _mcp_instance

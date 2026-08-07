@@ -26,10 +26,16 @@ _surfaces = (
 
 
 def main() -> None:
-    """Entry point for the blender-mcp MCP server."""
+    """Entry point for the blender-mcp MCP server.
+
+    Composition root: wires the DI container (root layer) and injects it
+    into the surface layer before starting the server.
+    """
+    from modules.mcp.src.root_mcp_container import create_mcp_feature
     from modules.mcp.src.surface_server_start import ServerStartSurface
 
-    ServerStartSurface.main()
+    mcp_container = create_mcp_feature()
+    ServerStartSurface.main(container=mcp_container)
 
 
 if __name__ == "__main__":

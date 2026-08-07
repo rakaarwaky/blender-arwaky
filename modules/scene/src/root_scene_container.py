@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import threading
 
-from modules.scene.src.surface_scene_command import SceneCommand
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     ICodeExecutionProtocol,
 )
@@ -22,7 +21,6 @@ class SceneContainer:
         code_executor: ICodeExecutionProtocol,
         event_emitter: object | None = None,
     ) -> None:
-        _ = SceneCommand
         self._code_executor = code_executor
 
         self._event_emitter = event_emitter

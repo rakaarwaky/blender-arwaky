@@ -45,8 +45,8 @@ lint = ["blender-arwaky[lint]"]
 dev = ["blender-arwaky[dev]"]
 
 [project.scripts]
-blender-arwaky = "modules.cli.src.root_cli_main_entry:main"
-blender-mcp = "modules.root_mcp_entry:main"
+blender-arwaky = "modules.root_cli_main_entry:main"
+blender-mcp = "modules.root_mcp_main_entry:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

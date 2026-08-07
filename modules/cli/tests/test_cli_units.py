@@ -34,17 +34,17 @@ def _load_module(name: str, path: str) -> object:
 
 bm_mod = _load_module(
     "cli.utility_cli_process",
-    os.path.join(_ROOT, "cli", "src", "utility_cli_process.py"),
+    os.path.join(_ROOT, "shared", "src", "cli", "utility_cli_process.py"),
 )
 
 registry_mod = _load_module(
-    "cli.utility_cli_registry",
-    os.path.join(_ROOT, "cli", "src", "utility_cli_registry.py"),
+    "cli.capabilities_cli_registry",
+    os.path.join(_ROOT, "shared", "src", "cli", "capabilities_cli_registry.py"),
 )
 
 _spec = _importlib_util.spec_from_file_location(
-    "utility_socket_client",
-    os.path.join(_ROOT, "shared", "src", "gateway", "utility_socket_client.py"),
+    "capabilities_socket_client",
+    os.path.join(_ROOT, "shared", "src", "gateway", "capabilities_socket_client.py"),
 )
 socket_mod = _importlib_util.module_from_spec(_spec)
 _spec.loader.exec_module(socket_mod)
@@ -78,22 +78,22 @@ def test_registry_assert_active(tmp_path):
     registry_mod.Registry.reset()
     reg = registry_mod.Registry(str(tmp_path / "r.json"))
 
-    # No active instance -> error returned for an arbitrary entity.
-    assert reg.assert_active("/tmp/x.blend") != ""
-    # Matching active instance -> empty (no error).
+    # No active instance -> error (CliResultVo) returned for an arbitrary entity.
+    assert reg.assert_active("/tmp/x.blend") is not None
+    # Matching active instance -> None (no error).
     reg.set_active("/tmp/x.blend", 1, 2)
-    assert reg.assert_active("/tmp/x.blend") == ""
+    assert reg.assert_active("/tmp/x.blend") is None
     # Non-matching entity -> error.
-    assert reg.assert_active("/tmp/other.blend") != ""
+    assert reg.assert_active("/tmp/other.blend") is not None
     registry_mod.Registry.reset()
 
 
 def test_registry_assert_no_active(tmp_path):
     registry_mod.Registry.reset()
     reg = registry_mod.Registry(str(tmp_path / "r.json"))
-    assert reg.assert_no_active() == ""
+    assert reg.assert_no_active() is None
     reg.set_active("/tmp/x.blend", 1, 2)
-    assert reg.assert_no_active() != ""
+    assert reg.assert_no_active() is not None
     registry_mod.Registry.reset()
 
 
@@ -129,14 +129,15 @@ def test_socket_send_command_requires_connection():
 
 # ── Process helpers ────────────────────────────────────────────────────────
 def test_is_running_false_for_absent_pid():
-    assert bm_mod.is_running(999999) is False
+    assert bm_mod.is_running(999999).success is False
 
 
 def test_kill_blender_false_for_absent_pid():
-    assert bm_mod.kill_blender(999999) is False
+    assert bm_mod.kill_blender(999999).success is False
 
 
 def test_find_blender_raises_when_missing(monkeypatch):
     monkeypatch.delenv("BLENDER_EXECUTABLE", raising=False)
-    with pytest.raises(FileNotFoundError):
-        bm_mod.find_blender()
+    res = bm_mod.find_blender()
+    assert res.success is False
+    assert res.category == "not_found"

@@ -33,11 +33,16 @@ class ServerStartSurface:
         )
 
     @staticmethod
-    def main() -> None:
-        """Run the MCP server (stdio or SSE). Register all surfaces."""
+    def main(container: object | None = None) -> None:
+        """Run the MCP server (stdio or SSE). Register all surfaces.
+
+        Args:
+            container: DI container wired by the composition root
+                (see root_mcp_main_entry). Required on first startup.
+        """
         config = resolve_bootstrap_config()
         ServerStartSurface._setup_logging(config.log_file)
-        mcp = ServerInstanceSurface.get_mcp_instance()
+        mcp = ServerInstanceSurface.get_mcp_instance(container=container)
 
         if config.is_sse():
             mcp.settings.host = config.host
