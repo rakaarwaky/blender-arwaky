@@ -15,6 +15,7 @@ and ConnectionExecutor (sync socket-based, ConnectionProtocol).
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import socket as _socket
@@ -40,8 +41,6 @@ from modules.shared.src.gateway.taxonomy_gateway_constant import (
     CONNECTION_STATE_FAILED,
     CONNECTION_STATE_RECONNECTING,
     DEFAULT_PROTOCOL_VERSION,
-    HEARTBEAT_FAILURE_THRESHOLD,
-    HEARTBEAT_INTERVAL_SECONDS,
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     AuthenticationError,
@@ -49,7 +48,6 @@ from modules.shared.src.gateway.taxonomy_gateway_error import (
     BlenderConnectionFailure,
     ConnectionClosedError,
     ConnectionConfigError,
-    ProtocolVersionMismatchError,
     TransportParseError,
     VersionMismatchError,
 )
@@ -108,9 +106,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 details={"host": self._host},
             )
 
-        max_attempts = config.reconnect_max_attempts if hasattr(config, "reconnect_max_attempts") else 3
-        base_delay = config.reconnect_base_delay_seconds if hasattr(config, "reconnect_base_delay_seconds") else 1.0
-        max_delay = config.reconnect_max_delay_seconds if hasattr(config, "reconnect_max_delay_seconds") else 4.0
+        max_attempts = config.reconnect_max_attempts
+        base_delay = config.reconnect_base_delay_seconds
+        max_delay = config.reconnect_max_delay_seconds
 
         for attempt in range(max_attempts):
             try:
@@ -256,7 +254,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         try:
             self._reader, self._writer = await asyncio.wait_for(
                 asyncio.open_connection(self._host, self._port),
-                timeout=self._config.connection_timeout_seconds if self._config else 30.0,
+                timeout=self._config.connection_timeout_seconds,
             )
         except asyncio.TimeoutError:
             raise ConnectionConfigError(
@@ -301,10 +299,11 @@ class BlenderConnection(IBlenderConnectionProtocol):
     async def _authenticate(self, config: ConnectionConfig) -> None:
         if not config.auth_token:
             return
+        token_hash = hashlib.sha256(config.auth_token.encode("utf-8")).hexdigest()
         payload = {
             "type": "auth",
             "request_id": str(time.monotonic()),
-            "token": config.auth_token,
+            "token_hash": token_hash,
         }
         json_bytes = json.dumps(payload).encode("utf-8")
         header = struct.pack("!I", len(json_bytes))
@@ -355,8 +354,8 @@ class BlenderConnection(IBlenderConnectionProtocol):
             return 0
 
     def _start_heartbeat(self, config: ConnectionConfig) -> None:
-        interval = getattr(config, "heartbeat_interval_seconds", HEARTBEAT_INTERVAL_SECONDS) or 10
-        threshold = getattr(config, "heartbeat_failure_threshold", HEARTBEAT_FAILURE_THRESHOLD) or 3
+        interval = config.heartbeat_interval_seconds or 10
+        threshold = config.heartbeat_failure_threshold or 3
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop(interval, threshold))
         logger.debug("Heartbeat started (interval=%ds, threshold=%d)", interval, threshold)
 
@@ -469,7 +468,10 @@ class ConnectionExecutor(ConnectionProtocol):
             handshake_response = self._perform_handshake()
             self._protocol_version = handshake_response.get("protocol_version", self._config.protocol_version)
             if not self._is_protocol_compatible():
-                raise ProtocolVersionMismatchError(f"Protocol version {self._protocol_version} incompatible")
+                raise VersionMismatchError(
+                    expected=self._config.protocol_version or DEFAULT_PROTOCOL_VERSION,
+                    actual=self._protocol_version,
+                )
             self._authenticate_if_needed()
             self._socket = sock
             self._state = ConnectionState.CONNECTED
@@ -486,7 +488,7 @@ class ConnectionExecutor(ConnectionProtocol):
                 endpoint_summary=self._endpoint_summary,
                 capabilities=self._capabilities,
             )
-        except ProtocolVersionMismatchError:
+        except VersionMismatchError:
             self._safe_close_socket(sock)
             raise
         except AuthenticationError:
@@ -547,13 +549,14 @@ class ConnectionExecutor(ConnectionProtocol):
     def _authenticate_if_needed(self) -> None:
         if not self._config.auth_enabled or not self._config.auth_material:
             return
+        credential_hash = hashlib.sha256(self._config.auth_material.encode("utf-8")).hexdigest()
         auth_request = TransportMessageVO(
             tracking_id=str(uuid.uuid4()),
             operation_class="authentication",
             payload=json.dumps(
                 {
                     "type": "auth",
-                    "credential": self._config.auth_material,
+                    "credential_hash": credential_hash,
                 }
             ).encode("utf-8"),
         )

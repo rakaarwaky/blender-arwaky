@@ -439,11 +439,18 @@ class ConnectionConfig:
     host: str = "localhost"
     port: int = 9876
     timeout_seconds: float = 30.0
+    connection_timeout_seconds: float = 30.0
     retry_policy: RetryPolicy | None = None
     auth_token: str | None = None
+    require_auth_for_remote: bool = True
     protocol_version: str | None = None
     heartbeat: HeartbeatConfig | None = None
     max_payload_bytes: int = 1_048_576  # 1 MB default (binary: 1k=1024)
+    reconnect_max_attempts: int = 3
+    reconnect_base_delay_seconds: float = 1.0
+    reconnect_max_delay_seconds: float = 4.0
+    heartbeat_interval_seconds: int = 10
+    heartbeat_failure_threshold: int = 3
     allowed_directories: list[str] = dc_field(default_factory=list)
 
 

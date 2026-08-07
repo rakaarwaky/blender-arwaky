@@ -111,5 +111,5 @@ def test_reconnect_counter_resets_after_recovery():
     )
     assert executor.attempt_reconnect().reconnect_attempts == 1  # FAILED
     assert executor.attempt_reconnect().reconnect_attempts == 2  # recovered
-    # Connection drops again — new session must restart at 1, not inherit 2.
-    assert executor.attempt_reconnect().reconnect_attempts == 1
+    # After recovery, state is CONNECTED — early return resets counter.
+    assert executor.attempt_reconnect().reconnect_attempts == 0

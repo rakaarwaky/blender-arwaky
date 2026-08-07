@@ -161,8 +161,7 @@ class TransportExecutor(TransportProtocol):
             response_data = self._receive_response(timeout)
             duration_ms = (time.time() - start_time) * 1000
             response = self._parse_response(response_data, request.tracking_id)
-            response.duration_ms = duration_ms
-            response.request_size_bytes = len(frame)
+            response = replace(response, duration_ms=duration_ms, request_size_bytes=len(frame))
             logger.debug(
                 "Transport complete: tracking_id=%s, status=%s, %.1fms",
                 request.tracking_id,
@@ -203,6 +202,10 @@ class TransportExecutor(TransportProtocol):
                 raise TimeoutError("Connection closed during header read")
             header += chunk
         length = int.from_bytes(header, "big")
+        if length > self._max_payload_bytes:
+            raise PayloadLimitError(
+                f"Response length {length} exceeds max payload {self._max_payload_bytes}"
+            )
         # Use bytearray to avoid O(n²) memory copies on large payloads
         data = bytearray()
         while len(data) < length:
@@ -218,8 +221,8 @@ class TransportExecutor(TransportProtocol):
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise TransportParseError(f"Failed to parse response: {exc}") from None
         actual_tracking_id = message.get("tracking_id", "")
+        self._pending_tracking_ids.pop(actual_tracking_id, None)
         if actual_tracking_id != expected_tracking_id:
-            self._pending_tracking_ids.pop(expected_tracking_id, None)
             logger.warning(
                 "Orphan response discarded: expected=%s, got=%s",
                 expected_tracking_id,
