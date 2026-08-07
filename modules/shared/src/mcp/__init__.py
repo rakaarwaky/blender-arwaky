@@ -1,7 +1,5 @@
-"""MCP taxonomy — VOs, constants, contracts, and implementations for MCP surface type safety."""
+"""MCP domain — re-exports for contract protocols and taxonomy types."""
 
-from .capabilities_response_formatter import McpResponseImpl
-from .capabilities_routing_proxy import McpRoutingImpl
 from .contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
@@ -39,8 +37,6 @@ __all__ = [
     "McpResponseProtocol",
     "McpRoutingProtocol",
     "McpSchemaProtocol",
-    "McpResponseImpl",
-    "McpRoutingImpl",
     "envelope_with_tracking",
     "truncate_oversized",
     "mask_secrets",

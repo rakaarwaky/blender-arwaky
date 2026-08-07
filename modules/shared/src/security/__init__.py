@@ -13,7 +13,7 @@ from . import (
 from .contract_emit_audit_protocol import EmitAuditProtocol
 from .contract_extract_archive_protocol import ExtractArchiveProtocol
 from .contract_redact_sensitive_protocol import RedactSensitiveProtocol
-from .contract_security_operate_aggregate import ISecurityOperateAggregate
+from .contract_security_aggregate import ISecurityAggregate
 from .contract_validate_code_protocol import ValidateCodeProtocol
 from .contract_validate_path_protocol import ValidatePathProtocol
 
@@ -21,7 +21,7 @@ __all__ = [
     "EmitAuditProtocol",
     "ExtractArchiveProtocol",
     "RedactSensitiveProtocol",
-    "ISecurityOperateAggregate",
+    "ISecurityAggregate",
     "ValidateCodeProtocol",
     "ValidatePathProtocol",
     "taxonomy_security_constant",

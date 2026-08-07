@@ -11,7 +11,7 @@ from ..common.taxonomy_core_vo import ConfigPath
 from .taxonomy_config_vo import SettingsValue
 
 
-class ConfigGetterProtocol(ABC):
+class IConfigGetterProtocol(ABC):
     """Protocol for retrieving configuration values.
 
     Capability uses this to read cache location, settings,

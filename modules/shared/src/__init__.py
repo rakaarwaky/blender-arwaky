@@ -257,7 +257,7 @@ from .job.taxonomy_job_vo import JobStatusSnapshot
 
 # === Launcher domain exports ===
 from .launcher.contract_launch_protocol import LaunchProtocol
-from .launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from .launcher.contract_launcher_aggregate import ILauncherAggregate
 from .launcher.contract_locate_register_protocol import LocateRegisterProtocol
 from .launcher.contract_persist_state_protocol import PersistStateProtocol
 from .launcher.contract_runtime_status_protocol import RuntimeStatusProtocol
@@ -591,7 +591,7 @@ __all__ = [
     "DiscoveryOutcomeVO",
     "UnifiedResultEnvelopeVO",
     "LaunchProtocol",
-    "ILauncherOperateAggregate",
+    "ILauncherAggregate",
     "LocateRegisterProtocol",
     "PersistStateProtocol",
     "RuntimeStatusProtocol",

@@ -6,7 +6,7 @@ from .contract_job_cleanup_protocol import IJobCleanup
 from .contract_job_event_protocol import IJobEventPublisher
 from .contract_job_lifecycle_protocol import IJobLifecycle
 from .contract_job_monitor_protocol import IJobMonitor
-from .contract_job_protocol import JobSchedulerProtocol
+from .contract_job_protocol import IJobSchedulerProtocol
 from .taxonomy_job_constant import (
     JOB_STATE_CANCELLED,
     JOB_STATE_COMPLETED,
@@ -29,7 +29,7 @@ __all__ = [
     "IJobEventPublisher",
     "IJobLifecycle",
     "IJobMonitor",
-    "JobSchedulerProtocol",
+    "IJobSchedulerProtocol",
     "JOB_STATE_CANCELLED",
     "JOB_STATE_COMPLETED",
     "JOB_STATE_FAILED",

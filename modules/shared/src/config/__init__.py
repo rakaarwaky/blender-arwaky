@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # ─── Contracts (Protocols) ─────────────────────────────────────
 from .contract_config_aggregate import IConfigAggregate
-from .contract_config_protocol import ConfigGetterProtocol
+from .contract_config_protocol import IConfigGetterProtocol
 from .contract_redaction_rules_protocol import IRedactionRulesProtocol
 from .contract_settings_loader_protocol import ISettingsLoaderProtocol
 from .contract_settings_metadata_protocol import ISettingsMetadataProtocol
@@ -62,7 +62,7 @@ from .utility_config_helpers import parse_env_value, search_project_root
 
 __all__ = [
     "IConfigAggregate",
-    "ConfigGetterProtocol",
+    "IConfigGetterProtocol",
     "ISettingsLoaderProtocol",
     "ISettingsRetrieverProtocol",
     "IWorkspaceResolverProtocol",

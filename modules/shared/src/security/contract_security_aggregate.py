@@ -17,7 +17,7 @@ from .taxonomy_security_vo import (
 )
 
 
-class ISecurityOperateAggregate(ABC):
+class ISecurityAggregate(ABC):
     """Aggregate facade for all security operations.
 
     The Agent orchestrator implements this interface.

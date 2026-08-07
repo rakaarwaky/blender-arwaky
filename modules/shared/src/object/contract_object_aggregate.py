@@ -19,7 +19,7 @@ from .taxonomy_object_vo import (
 )
 
 
-class IObjectOperateAggregate(ABC):
+class IObjectAggregate(ABC):
     """Aggregate facade for object-level manipulation in Blender."""
 
     @abstractmethod

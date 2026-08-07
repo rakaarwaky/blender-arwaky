@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from ..common.taxonomy_core_vo import AssetId, ProviderName
 
 
-class JobSchedulerProtocol(ABC):
+class IJobSchedulerProtocol(ABC):
     """Protocol for submitting background download jobs.
 
     Capability uses this to delegate large download coordination
