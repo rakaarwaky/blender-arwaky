@@ -1,35 +1,32 @@
 {
   "version": "2.0",
   "pipeline": {
-    "id": "pipeline-20260807-568",
+    "id": "pipeline-20260807-209",
     "feature": "shared",
     "current_state": "ANALYZING",
-    "started_at": "2026-08-07T14:51:13+07:00",
+    "started_at": "2026-08-07T14:57:55+07:00",
     "iteration": 1,
-    "correlation_id": "corr-20260807-shared-500",
+    "correlation_id": "corr-20260807-shared-767",
     "pipeline_iteration_counter": 1,
     "rejection_loop_counter": 0,
     "parallel_nodes": {
       "business-analyst": {
-        "status": "pending",
+        "status": "running",
         "task_id": null,
         "report_file": null,
-        "started_at": null,
+        "started_at": "2026-08-07T14:58:00+07:00",
         "completed_at": null
       },
       "tech-lead": {
-        "status": "pending",
+        "status": "running",
         "task_id": null,
         "report_file": null,
-        "started_at": null,
+        "started_at": "2026-08-07T14:58:00+07:00",
         "completed_at": null
       }
     },
     "pending_merge": [],
-    "failure": {
-      "reason": "FileNotFoundError: [Errno 2] No such file or directory: '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json.tmp' -> '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json'",
-      "at": "2026-08-07T14:51:13+07:00"
-    },
+    "failure": null,
     "escalation": null
   }
 }
