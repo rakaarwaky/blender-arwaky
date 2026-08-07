@@ -1,32 +1,35 @@
 {
   "version": "2.0",
   "pipeline": {
-    "current_state": "ARCHITECT",
-    "id": "pipeline-20260807-336",
+    "id": "pipeline-20260807-568",
     "feature": "shared",
-    "started_at": "2026-08-07T08:07:55+07:00",
+    "current_state": "ANALYZING",
+    "started_at": "2026-08-07T14:51:13+07:00",
     "iteration": 1,
-    "correlation_id": "corr-20260807-shared-180",
+    "correlation_id": "corr-20260807-shared-500",
     "pipeline_iteration_counter": 1,
     "rejection_loop_counter": 0,
     "parallel_nodes": {
       "business-analyst": {
-        "status": "completed",
+        "status": "pending",
         "task_id": null,
-        "report_file": "/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/business-analyst-shared.md",
-        "started_at": "2026-08-07T08:08:25+07:00",
-        "completed_at": "2026-08-07T08:11:25+07:00"
+        "report_file": null,
+        "started_at": null,
+        "completed_at": null
       },
       "tech-lead": {
-        "status": "completed",
+        "status": "pending",
         "task_id": null,
-        "report_file": "/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/tech-lead-shared.md",
-        "started_at": "2026-08-07T08:08:25+07:00",
-        "completed_at": "2026-08-07T08:11:25+07:00"
+        "report_file": null,
+        "started_at": null,
+        "completed_at": null
       }
     },
     "pending_merge": [],
-    "failure": null,
+    "failure": {
+      "reason": "FileNotFoundError: [Errno 2] No such file or directory: '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json.tmp' -> '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json'",
+      "at": "2026-08-07T14:51:13+07:00"
+    },
     "escalation": null
   }
 }

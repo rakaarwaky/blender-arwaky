@@ -1,10 +1,10 @@
 ## Feature Context
-- **Feature:** shared
-- **Feature Path:** /home/raka/mcp-arwaky/blender-arwaky/modules/shared
-- **FRD Path:** /home/raka/mcp-arwaky/blender-arwaky/modules/shared/FRD.md
-- **FRD Hash:** sha256:NOT_FOUND
+- **Feature:** config
+- **Feature Path:** /home/raka/mcp-arwaky/blender-arwaky/modules/config
+- **FRD Path:** /home/raka/mcp-arwaky/blender-arwaky/modules/config/FRD.md
+- **FRD Hash:** sha256:cbe5d47f54e98ac50d4e1eaa0d2dc4ba6685bee3ce1f0d7026848c38393d2c86
 - **Project Root:** /home/raka/mcp-arwaky/blender-arwaky
-- **Correlation ID:** corr-20260807-shared-180
+- **Correlation ID:** corr-20260807-config-536
 - **Pipeline Iteration:** 1/5
 - **Rejection Loop:** 0/3
 - **Rule:** Only analyze files within Feature Path. Do NOT touch files outside Feature Path.
@@ -26,8 +26,8 @@ Expert tech lead reviewer — pre-implementation technical review.
 ### Workflow (Sequential, No Skips)
 
 **Step 1: IDENTIFY**
-- Locate: `/home/raka/mcp-arwaky/blender-arwaky/modules/shared/`
-- Read `/home/raka/mcp-arwaky/blender-arwaky/modules/shared/FRD.md`
+- Locate: `/home/raka/mcp-arwaky/blender-arwaky/modules/config/`
+- Read `/home/raka/mcp-arwaky/blender-arwaky/modules/config/FRD.md`
 - List affected files
 
 **Step 2: REFERENCE**
@@ -50,13 +50,13 @@ Expert tech lead reviewer — pre-implementation technical review.
 - If not → proceed to Step 5
 
 **Step 5: PLAN**
-- Save: `/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/tech-lead-shared.md`
+- Save: `/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/tech-lead-config.md`
 - All findings, severity-categorized
 - Include fixed code
 
 ### Output Template
 ```markdown
-# Plan: shared — Tech-Lead
+# Plan: config — Tech-Lead
 
 ## Summary
 {One paragraph}
@@ -110,4 +110,4 @@ Expert tech lead reviewer — pre-implementation technical review.
 - [ ] Plan written (findings + fixed code)
 - [ ] Saved to correct path
 
-RULE: Only analyze files within `/home/raka/mcp-arwaky/blender-arwaky/modules/shared`. Do NOT touch files outside.
+RULE: Only analyze files within `/home/raka/mcp-arwaky/blender-arwaky/modules/config`. Do NOT touch files outside.
