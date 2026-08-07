@@ -58,6 +58,4 @@ def test_safe_dict_no_sensitive_pattern_leakage():
     d = SettingsMetadataCapability().to_safe_dict(md)
     serialized = str(d).lower()
     for pattern in SENSITIVE_KEY_PATTERNS:
-        assert pattern.lower() not in serialized, (
-            f"Sensitive pattern '{pattern}' leaked in safe_dict output: {d}"
-        )
+        assert pattern.lower() not in serialized, f"Sensitive pattern '{pattern}' leaked in safe_dict output: {d}"

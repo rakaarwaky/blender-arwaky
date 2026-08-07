@@ -123,9 +123,7 @@ def test_event_payloads_never_contain_raw_secret_values():
     for event in events:
         serialized = str(event)
         for secret in secret_literals:
-            assert secret not in serialized, (
-                f"Raw secret '{secret}' leaked in event payload: {event}"
-            )
+            assert secret not in serialized, f"Raw secret '{secret}' leaked in event payload: {event}"
         # No event value should equal the redaction placeholder — that would
         # mean redaction happened but the raw value was also stored alongside.
         for _key, val in event.items():
