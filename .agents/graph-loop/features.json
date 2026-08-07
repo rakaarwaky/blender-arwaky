@@ -211,7 +211,7 @@
       ]
     },
     "object": {
-      "status": "LOCKED",
+      "status": "FAILED",
       "priority": 11,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/object",
       "description": "Object manipulation and properties",
@@ -219,16 +219,22 @@
       "claimed_at": "2026-08-07T23:50:27+07:00",
       "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-08T00:10:57+07:00"
+        }
+      ]
     },
     "render": {
-      "status": "PENDING",
+      "status": "LOCKED",
       "priority": 12,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/render",
       "description": "Render engine integration",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260808-412",
+      "claimed_at": "2026-08-08T00:11:28+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
     },
