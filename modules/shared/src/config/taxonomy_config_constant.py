@@ -107,7 +107,9 @@ POLICY_MODE_PERMISSIVE: str = "permissive"
 
 DEFAULT_POLICY_MODE: str = "strict"
 
-# ─── Sentinel (FR-CFG-002) ───────────────────────────────
+# ─── Sentinel (FR-CFG-002) ──────────────────────────────────
+# Used by the retriever to distinguish "key missing" from a value that
+# happens to be None.  Previously a private module-level `_MISSING` in
+# taxonomy_config_vo; promoted to a public constant for cross-module use.
 
 SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
-

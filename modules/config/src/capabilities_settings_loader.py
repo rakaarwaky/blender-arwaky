@@ -65,7 +65,9 @@ from modules.shared.src.config.utility_config_helpers import (
 
 # ─── Module-Level Constants ────────────────────────────────
 # Cached defaults and schema copies to avoid per-instantiation deepcopy overhead.
-# Only deep-copied when the caller provides custom defaults/schema.
+# Thread-safety: CPython's GIL makes dict assignment atomic. Under concurrent
+# first-access, one extra deepcopy may execute — benign since the result is
+# identical. On non-CPython interpreters, add a threading.Lock if needed.
 _DEFAULTS_CACHE: SettingsOverrides | None = None
 _SCHEMA_CACHE: SettingsSchema | None = None
 
@@ -168,39 +170,36 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         """Return metadata from the most recent successful load."""
         return self._last_metadata
 
-    def emit_loaded_event(self) -> SettingsLoadedEvent:
-        """Build a settings-loaded event from the most recent load metadata."""
-        metadata = self._last_metadata
-        return SettingsLoadedEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
+    def _build_event(self, cls: type, metadata: ConfigMetadata | None = None) -> object:
+        """Build an event dataclass from load metadata."""
+        md = metadata or self._last_metadata
+        return cls(
+            source_summary=str(md.source) if md.source is not None else "",
+            override_count=int(md.overrides),
+            warning_count=len(md.parse_warnings) + len(md.validation_warnings),
             policy_mode=self._policy_mode,
             timestamp=Timestamp(time.time()),
         )
 
+    def emit_loaded_event(self) -> SettingsLoadedEvent:
+        """Build a settings-loaded event from the most recent load metadata."""
+        return self._build_event(SettingsLoadedEvent)
+
     def emit_reload_event(self) -> SettingsReloadEvent:
         """Build a settings-reload event from the most recent load metadata."""
-        metadata = self._last_metadata
-        return SettingsReloadEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
-            policy_mode=self._policy_mode,
-            timestamp=Timestamp(time.time()),
-        )
+        return self._build_event(SettingsReloadEvent)
 
     def emit_validation_warning_event(self) -> SettingsValidationWarningEvent | None:
         """Return warning event iff permissive mode and validation warnings exist."""
         if self._policy_mode != POLICY_MODE_PERMISSIVE:
             return None
-        metadata = self._last_metadata
-        if not metadata.validation_warnings:
+        if not self._last_metadata.validation_warnings:
             return None
+        md = self._last_metadata
         return SettingsValidationWarningEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.validation_warnings),
+            source_summary=str(md.source) if md.source is not None else "",
+            override_count=int(md.overrides),
+            warning_count=len(md.validation_warnings),
             policy_mode=self._policy_mode,
             timestamp=Timestamp(time.time()),
         )
