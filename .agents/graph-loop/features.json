@@ -6,20 +6,26 @@
       "priority": 1,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/shared",
       "description": "Shared VOs, contracts, utilities \u2014 foundation layer",
-      "pipeline_id": "pipeline-20260807-336",
-      "claimed_at": "2026-08-07T08:07:55+07:00",
+      "pipeline_id": "pipeline-20260807-607",
+      "claimed_at": "2026-08-07T14:59:24+07:00",
       "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "engine error: FileNotFoundError: [Errno 2] No such file or directory: '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json.tmp' -> '/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/state.json'",
+          "failed_at": "2026-08-07T14:51:13+07:00"
+        }
+      ]
     },
     "config": {
-      "status": "PENDING",
+      "status": "LOCKED",
       "priority": 2,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/config",
       "description": "Configuration loading and workspace detection",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-730",
+      "claimed_at": "2026-08-07T15:40:45+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
     },

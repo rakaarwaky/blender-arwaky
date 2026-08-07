@@ -92,7 +92,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             except (OSError, ValueError) as exc:
                 logger.warning("Invalid BLENDERMCP_ROOT path '%s': %s", env_root, exc)
 
-        # 3. Settings file parent (NEW)
+        # 3. Settings file parent
         if self._config_path:
             candidate = Path(str(self._config_path)).resolve().parent
             if candidate.is_dir():
@@ -106,6 +106,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         marker_path = search_project_root(PROJECT_MARKERS)
         if marker_path:
             return WorkspacePath(path=str(marker_path), strategy="marker_search")
+        logger.debug("No workspace markers found in search path")
 
         # 5. Platform config
         try:
@@ -119,6 +120,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         prod_path = Path(xdg_config) / "blender-arwaky"
         if prod_path.is_dir():
             return WorkspacePath(path=str(prod_path), strategy="platform_config")
+        logger.debug("Platform config directory not found: %s", prod_path)
 
         # 6. CWD fallback
         try:

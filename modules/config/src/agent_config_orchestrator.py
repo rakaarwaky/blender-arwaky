@@ -23,6 +23,12 @@ from modules.shared.src.config.contract_settings_metadata_protocol import ISetti
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
+from modules.shared.src.config.taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
+)
 from modules.shared.src.config.taxonomy_config_vo import (
     EventPayload,
     RedactionRule,
@@ -151,7 +157,10 @@ class ConfigOrchestrator(IConfigAggregate):
 
 # ─── Block 3: Event Recording ─────────────────────────────
 
-    def _record_event(self, event: object) -> None:
+    def _record_event(
+        self,
+        event: SettingsLoadedEvent | SettingsReloadEvent | SettingsValidationWarningEvent | WorkspaceResolvedEvent,
+    ) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
         if not hasattr(event, '__dataclass_fields__'):
             logger.warning("Skipping non-dataclass event: %s", type(event).__name__)
