@@ -233,6 +233,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             )
         else:
             # Size limit (strict-mode gated)
+            # FR-CFG-001: Size limit gated by BLENDERMCP_STRICT flag.
+            # When flag is off, size limit is not enforced regardless of policy mode.
+            # When flag is on: strict → ConfigError; permissive → warning + skip.
             if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
                     raise ConfigLoadError(
