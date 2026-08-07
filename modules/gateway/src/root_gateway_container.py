@@ -4,17 +4,14 @@ Wires capabilities to protocols and bootstraps the orchestrator.
 Supports optional Launcher dependency for process-liveness integration.
 """
 
-from modules.security.src.capabilities_code_validator import CodeValidator
+from modules.shared.src.gateway.contract_code_validation_protocol import (
+    CodeValidationProtocol,
+)
 from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
 )
-from modules.shared.src.launcher.taxonomy_launcher_vo import (
-    ProbeDepth,
-    RuntimeState,
-)
-from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionExecutor
@@ -40,6 +37,7 @@ class GatewayContainer:
         self,
         launcher: ILauncherOperateAggregate | None = None,
         connection_config: ConnectionConfigVO | None = None,
+        code_validation: CodeValidationProtocol | None = None,
     ) -> None:
         self._launcher = launcher
         self._connection_config = connection_config or ConnectionConfigVO(
@@ -64,8 +62,14 @@ class GatewayContainer:
 
         self._scene_queue = SceneQueueExecutor(max_depth=50, wait_timeout_seconds=30.0)
 
+        if code_validation is None:
+            from modules.security.src.capabilities_code_validator import CodeValidator
+            from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
+
+            code_validation = CodeValidator(policy=SecurityPolicyVO())
+
         self._code_executor = CodeExecutionExecutor(
-            security_policy=CodeValidator(policy=SecurityPolicyVO()),
+            security_policy=code_validation,
             transport=self._transport,
             max_output_bytes=1_048_576,
             execution_timeout_seconds=30.0,
@@ -80,8 +84,17 @@ class GatewayContainer:
         )
 
     def _reconnect_with_runtime(self) -> None:
-        """FR-GWY-002 / P1: Reconnect consults Launcher runtime status."""
+        """FR-GWY-002 / P1: Reconnect consults Launcher runtime status.
+
+        Orchestration logic: probe launcher → launch if stale → reconnect.
+        Uses lazy imports to avoid cross-feature module-level dependency.
+        """
         if self._launcher is not None:
+            from modules.shared.src.launcher.taxonomy_launcher_vo import (
+                ProbeDepth,
+                RuntimeState,
+            )
+
             try:
                 status = self._launcher.check_status(depth=ProbeDepth.FULL)
                 if status.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
@@ -107,7 +120,12 @@ class GatewayContainer:
 def create_gateway_feature(
     launcher: ILauncherOperateAggregate | None = None,
     connection_config: ConnectionConfigVO | None = None,
+    code_validation: CodeValidationProtocol | None = None,
 ) -> IGatewayAggregate:
     """Factory function to create the gateway orchestrator."""
-    container = GatewayContainer(launcher=launcher, connection_config=connection_config)
+    container = GatewayContainer(
+        launcher=launcher,
+        connection_config=connection_config,
+        code_validation=code_validation,
+    )
     return container.get_orchestrator()

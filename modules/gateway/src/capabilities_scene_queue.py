@@ -276,7 +276,6 @@ class SceneQueueExecutor(SceneQueueProtocol):
         )
 
     def _execute_mutation(self, operation: SceneOperationVO) -> SceneOperationOutcomeVO:
-        self._queue.get()
         logger.debug("Executing mutating operation class=%s", operation.operation_class)
         return SceneOperationOutcomeVO(
             status="success",

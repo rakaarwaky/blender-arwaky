@@ -62,7 +62,10 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         logger.debug("Heartbeat sent")
 
     def attempt_reconnect(self) -> ConnectionStatusVO:
-        if self._state == ConnectionState.CONNECTED or self._reconnect_attempts >= self._max_retries:
+        if self._state == ConnectionState.CONNECTED:
+            self._reconnect_attempts = 0
+            return self.get_connection_status()
+        if self._reconnect_attempts >= self._max_retries:
             self._reconnect_attempts = 0
         self._reconnect_attempts += 1
         self._state = ConnectionState.RECONNECTING

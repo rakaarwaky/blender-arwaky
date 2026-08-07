@@ -226,3 +226,9 @@ class AdapterSurfaceError(ServerError):
 
     def __init__(self, message: str = "Adapter surface error", _details: Details | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)
+
+
+# ─── Backward-compatible aliases ────────────────────────────────
+
+ProviderError = GatewayProviderError
+ValidationError = GatewayValidationError

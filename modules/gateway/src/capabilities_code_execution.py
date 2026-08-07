@@ -18,7 +18,6 @@ import asyncio
 import logging
 import time
 import uuid
-from dataclasses import dataclass, field
 
 from modules.shared.src.gateway.contract_code_execution_protocol import (
     CodeExecutionProtocol,
@@ -54,7 +53,6 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionVO,
     ExecutionResult,
     ExecutionStatus,
-    TaskState,
     TransportMessageVO,
     TransportOutcomeVO,
 )
@@ -99,9 +97,11 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             elapsed_ms = (time.monotonic() - start) * 1000
             data = result.data if result.data is not None else ""
             truncated = False
-            if isinstance(data, str) and len(data.encode("utf-8")) > self._max_output_bytes:
-                data = data[: self._max_output_bytes] + "\n...[truncated]"
-                truncated = True
+            if isinstance(data, str):
+                encoded = data.encode("utf-8")
+                if len(encoded) > self._max_output_bytes:
+                    data = encoded[: self._max_output_bytes].decode("utf-8", errors="ignore") + "\n...[truncated]"
+                    truncated = True
             exec_result = ExecutionResult(
                 status=ExecutionStatus("success"),
                 data=data,
@@ -129,37 +129,8 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
             elapsed_ms = (time.monotonic() - start) * 1000
             raise RuntimeError(f"Code execution failed: {e}") from e
 
-    async def execute_task(self, _task_id: str, _code: str, _request_id: str | None = None) -> ExecutionResult:
-        raise RuntimeError("Task lifecycle management belongs to the Job feature")
-
-    async def create_task(self, _request_id: str | None = None) -> str:
-        raise RuntimeError("Task lifecycle management belongs to the Job feature")
-
-    async def get_task(self, _task_id: str) -> object:
-        raise RuntimeError("Task lifecycle management belongs to the Job feature")
-
-    async def poll_task_result(self, _task_id: str, _request_id: str | None = None) -> object:
-        raise RuntimeError("Task lifecycle management belongs to the Job feature")
-
-    async def cancel_async_task(self, _task_id: str, _request_id: str | None = None) -> object:
-        raise RuntimeError("Task lifecycle management belongs to the Job feature")
-
-    def cleanup_expired(self) -> int:
-        return 0
-
     def __repr__(self) -> str:
         return f"CodeExecutionAdapter(timeout={self._default_timeout_ms}ms)"
-
-
-@dataclass
-class TaskEntry:
-    task_id: str
-    state: TaskState
-    result: ExecutionResult | None = None
-    request_id: str | None = None
-    created_at: float = field(default_factory=time.monotonic)
-    completed_at: float | None = None
-    cancel_requested: bool = False
 
 
 class CodeExecutionExecutor(CodeExecutionProtocol):
@@ -217,7 +188,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
             )
             return CodeExecutionOutcomeVO(
                 status=outcome.status,
-                output=output[:500],
+                output=output,
                 truncated=truncated,
                 duration_ms=duration_ms,
                 error_category=outcome.error,
