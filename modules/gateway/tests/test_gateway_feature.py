@@ -130,7 +130,9 @@ def test_fr_gwy_001_establishes_connection():
 
 def test_fr_gwy_002_status_reports_connected():
     """Test that connection status reports correct state after establishment."""
-    feat = _make_orchestrator()
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
     feat.establish_connection()
     status = feat.get_connection_status()
     assert status.state == ConnectionState.CONNECTED
@@ -221,12 +223,12 @@ def test_gateway_establish_connection_returns_protocol_version():
 
 def test_gateway_disconnect_idempotent():
     """Test that disconnect is idempotent when already disconnected."""
-    feat = _make_orchestrator()
-    # First disconnect
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
     feat.disconnect()
-    # Second disconnect should not raise
     feat.disconnect()
-    assert True  # No exception means success
+    assert True
 
 
 def test_gateway_failed_connection_reports_state():
@@ -290,25 +292,22 @@ def test_gateway_multiple_queue_operations():
 
     queue = TrackingQueue()
     feat = _make_orchestrator(scene_queue=queue)
-    # Enqueue multiple operations
     for _ in range(5):
         result = feat.enqueue_scene_operation(SceneOperationVO(is_mutation=True, payload=b"test"))
         assert result.status == "success"
-
-    # Check queue status reflects all operations
     status = feat.get_queue_status()
     assert status.current_depth == 5
 
 
 def test_gateway_disconnect_updates_state():
     """Test that disconnect updates maintenance state."""
-    feat = _make_orchestrator()
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
 
-    # Establish connection
     feat.establish_connection()
     assert feat.get_connection_status().state == ConnectionState.CONNECTED
 
-    # Disconnect - orchestrator passes CLOSED to set_state
     feat.disconnect()
     status = feat.get_connection_status()
     assert status.state == ConnectionState.CLOSED
@@ -316,26 +315,25 @@ def test_gateway_disconnect_updates_state():
 
 def test_gateway_reconnect_increments_attempts():
     """Test that reconnect increments attempt counter."""
-    feat = _make_orchestrator()
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
 
-    # Initial state
     status = feat.get_connection_status()
     initial_attempts = status.reconnect_attempts
-
-    # Attempt reconnect multiple times
     for _ in range(3):
         feat.attempt_reconnect()
-
     status = feat.get_connection_status()
     assert status.reconnect_attempts == initial_attempts + 3
 
 
 def test_gateway_heartbeat_updates_timestamp():
     """Test that heartbeat updates last heartbeat timestamp."""
-    feat = _make_orchestrator()
-    feat.establish_connection()
+    conn = MockConnection()
+    maint = MockMaintenance()
+    feat = GatewayOrchestrator(conn, maint, MockTransport(), MockSceneQueue(), MockCodeExecutor())
 
-    # Send heartbeat while connected
+    feat.establish_connection()
     feat.send_heartbeat()
     status = feat.get_connection_status()
     assert status.last_heartbeat_timestamp is not None
