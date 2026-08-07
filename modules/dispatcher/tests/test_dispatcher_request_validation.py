@@ -361,7 +361,6 @@ class TestNoStateMutation:
 
     def test_catalog_unchanged_after_validation(self) -> None:
         """FR-DSP-003: Validation does not mutate the catalog."""
-        original_version = 1
         catalog = {
             "action": _make_catalog_entry(
                 action_name="action",
@@ -371,7 +370,9 @@ class TestNoStateMutation:
         executor = RequestValidationExecutor(catalog=catalog)
         request = _make_request(action_name="action")
         executor.validate_request(request)
-        assert len(executor._catalog) == original_version
+        found = executor.get_action("action")
+        assert found is not None
+        assert found.action_name == "action"
 
     def test_request_unchanged_after_validation(self) -> None:
         """FR-DSP-003: Validation returns a new VO, not mutated input."""

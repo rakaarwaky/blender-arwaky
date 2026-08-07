@@ -27,9 +27,7 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(
-        self, catalog: dict[str, ActionMetadataVO] | None = None
-    ) -> None:
+    def __init__(self, catalog: dict[str, ActionMetadataVO] | None = None) -> None:
         self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
         self._catalog_version: int = 0
 
@@ -105,34 +103,25 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
         """
         schema = metadata.parameter_schema
         if not isinstance(schema, dict):
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must be a dict"
-            )
+            raise ValueError(f"Action '{metadata.action_name}': parameter_schema must be a dict")
 
         if "type" not in schema and "properties" not in schema:
-            raise ValueError(
-                f"Action '{metadata.action_name}': parameter_schema must declare 'type' or 'properties'"
-            )
+            raise ValueError(f"Action '{metadata.action_name}': parameter_schema must declare 'type' or 'properties'")
 
         properties = schema.get("properties")
         if properties is not None:
             if not isinstance(properties, dict):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'properties' must be a dict"
-                )
+                raise ValueError(f"Action '{metadata.action_name}': parameter_schema 'properties' must be a dict")
             for field_name, field_def in properties.items():
                 if not isinstance(field_def, dict) or "type" not in field_def:
                     raise ValueError(
-                        f"Action '{metadata.action_name}': schema property '{field_name}' "
-                        f"must declare a 'type'"
+                        f"Action '{metadata.action_name}': schema property '{field_name}' must declare a 'type'"
                     )
 
         required = schema.get("required")
         if required is not None:
             if not isinstance(required, list):
-                raise ValueError(
-                    f"Action '{metadata.action_name}': parameter_schema 'required' must be a list"
-                )
+                raise ValueError(f"Action '{metadata.action_name}': parameter_schema 'required' must be a list")
             declared = set(properties or {})
             for field_name in required:
                 if not isinstance(field_name, str) or field_name not in declared:
@@ -143,9 +132,7 @@ class CatalogRegistrationExecutor(CatalogRegistrationProtocol):
 
         # FR-DSP-001: At least one usage example is required
         if not metadata.usage_examples or len(metadata.usage_examples) == 0:
-            raise ValueError(
-                f"Action '{metadata.action_name}': at least one usage_example is required"
-            )
+            raise ValueError(f"Action '{metadata.action_name}': at least one usage_example is required")
 
     def get_catalog(self) -> dict[str, ActionMetadataVO]:
         """Return a sorted snapshot of the catalog (sorted by action name)."""
