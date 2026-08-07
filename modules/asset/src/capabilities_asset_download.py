@@ -27,7 +27,7 @@ from modules.shared.src.common.taxonomy_domain_error import (
     ProviderError,
     ValidationError,
 )
-from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
+from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
 from modules.shared.src.security.contract_validate_path_protocol import (
     ValidatePathProtocol,
@@ -49,18 +49,18 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self,
         security_validator: ValidatePathProtocol | None = None,
         job_scheduler: JobSchedulerProtocol | None = None,
-        config_getter: ConfigGetterProtocol | None = None,
+        config_aggregate: IConfigAggregate | None = None,
     ) -> None:
         """Initialize with dependencies.
 
         Args:
             security_validator: Security policy path validator.
             job_scheduler: Job feature for large download coordination.
-            config_getter: Config feature for cache location and settings.
+            config_aggregate: Config feature facade for cache location and settings.
         """
         self.security_validator = security_validator
         self.job_scheduler = job_scheduler
-        self.config_getter = config_getter
+        self.config_aggregate = config_aggregate
         self._cache_dir: FilePath = FilePath("")
         self._max_size: MaxSize | None = None
         self._overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse")
@@ -289,11 +289,10 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         not provide size metadata. Raises ProviderError if the provider
         is unreachable and no cached size estimate exists.
         """
-        if self.config_getter:
+        if self.config_aggregate:
             try:
-                entrypoint = await self.config_getter.get_entrypoint()
-                estimated = await entrypoint.get_download_size(str(provider), str(asset_id))
-                if estimated is not None and estimated > 0:
+                estimated = self.config_aggregate.get_int(f"asset.max_size.{provider}.{asset_id}", 0)
+                if estimated > 0:
                     return estimated
             except Exception:
                 logger.warning("Could not query size for %s/%s from config; using default", provider, asset_id)
@@ -314,11 +313,10 @@ class AssetDownloadCapability(AssetDownloadProtocol):
             True if metadata is stale, False if still fresh.
         """
         try:
-            if self.config_getter:
-                entrypoint = await self.config_getter.get_entrypoint()
-                # Query metadata freshness via the provider adapter
-                fresh = await entrypoint.is_metadata_fresh(str(provider), str(asset_id))
-                return not fresh if fresh is not None else True
+            if self.config_aggregate:
+                # Query metadata freshness via config aggregate
+                fresh = self.config_aggregate.get_bool(f"asset.metadata_fresh.{provider}.{asset_id}", True)
+                return not fresh
         except Exception as e:
             logger.warning("Metadata freshness check failed for %s/%s: %s", provider, asset_id, e)
         # Default to stale when freshness cannot be determined
