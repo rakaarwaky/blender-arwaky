@@ -46,8 +46,6 @@ EventPayload = dict[str, str | int | float | bool | None]
 # YAML file loader callable — receives a config path, returns parsed data.
 ConfigFileLoader = Callable[[ConfigPath], SettingsData]
 
-_MISSING = "__SENTINEL_MISSING__"  # module-private sentinel
-
 
 @dataclass(frozen=True)
 class SettingsSnapshot:
