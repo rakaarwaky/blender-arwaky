@@ -16,16 +16,54 @@ metadata:
     - create-capabilities-python
     - create-agent-python
 ---
+
 # create-utility-python
 
 Utility = stateless standalone functions. No class, no `self`, no domain rules. File: `utility_<domain>_<role>.py`.
 
 **Allowed imports:** Taxonomy only.
-**Forbidden imports :** Capabilities, Agent, Surface, Contract.
+**Forbidden:** Capabilities, Agent, Surface, Contract.
 
 ## Role Naming
 
-parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer, converter, counter, resolver, detector, builder, joiner, serializer, deserializer, encoder, decoder, hasher, generator, formatter, comparator, differ, matcher, checker, calculator, mapper, merger, grouper, sorter, deduplicator, printer
+Utility role suffixes are unlimited. The role name is chosen based on demand and must describe the technical responsibility and concern of the file.
+
+## Templates
+
+```python
+"""<Domain> utility functions — stateless, pure, domain-agnostic.
+
+Module-level functions only — no classes, no state.
+"""
+
+# from shared.user.taxonomy_user_vo import UserVO  # uncomment if using VOs
+
+
+def <function_name>(<param_name>: str) -> str:
+    """<Description of what this function does>.
+
+    Args:
+        <param_name>: <description>
+
+    Returns:
+        <description of return value>
+    """
+    # pure function logic here
+    pass
+
+
+def <function_name>(<param_name>: str) -> str:
+    """<Description of what this function does>.
+
+    Args:
+        <param_name>: <description>
+
+    Returns:
+        <description of return value>
+    """
+    # pure function logic here
+    pass
+```
 
 ## Rules
 
@@ -38,10 +76,6 @@ parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer
 **Keep as private helper** if ANY: uses `self`, domain-specific, single consumer.
 **Extract here** only if ALL: no `self`, pure/I/O-safe, domain-agnostic, ≥2 consumers.
 
-## Templates
-
-`templates/utility_name.py`
-
 ## Workflow
 
 1. Confirm ≥2 consumers, stateless, domain-agnostic.
@@ -51,11 +85,11 @@ parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer
 
 ## Checklist
 
-- [ ]  Only module-level functions — no class.
-- [ ]  No `self`, no instance state.
-- [ ]  Pure/deterministic (or I/O justified: domain-agnostic + reusable).
-- [ ]  No business rules or layer-name knowledge.
-- [ ]  Used by ≥2 modules.
-- [ ]  No import from Capabilities, Agent, Surface, Contract.
-- [ ]  No magic constants (→ `taxonomy_*_constant.py`).
-- [ ]  `python -c "import <module>"` passes.
+- [ ] Only module-level functions — no class.
+- [ ] No `self`, no instance state.
+- [ ] Pure/deterministic (or I/O justified: domain-agnostic + reusable).
+- [ ] No business rules or layer-name knowledge.
+- [ ] Used by ≥2 modules.
+- [ ] No import from Capabilities, Agent, Surface, Contract.
+- [ ] No magic constants (→ `taxonomy_*_constant.py`).
+- [ ] `python -c "import <module>"` passes.

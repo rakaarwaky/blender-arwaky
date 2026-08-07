@@ -26,7 +26,30 @@ Utility = stateless standalone functions. No class, no `this`, no domain rules. 
 
 ## Role Naming
 
-parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer, converter, counter, resolver, detector, builder, joiner, serializer, deserializer, encoder, decoder, hasher, generator, formatter, comparator, differ, matcher, checker, calculator, mapper, merger, grouper, sorter, deduplicator, printer
+Utility role suffixes are unlimited. The role name is chosen based on demand and must describe the technical responsibility and concern of the file.
+
+## Templates
+
+```typescript
+/** <Domain> utility functions — stateless, pure, domain-agnostic.
+
+Exported functions only — no classes, no state.
+*/
+
+// import type { UserVO } from "./taxonomy_user_vo";  // uncomment if using VOs
+
+/** <Description of what this function does> */
+export function <functionName>(<paramName>: string): string {
+  // pure function logic here
+  return "";
+}
+
+/** <Description of what this function does> */
+export function <functionName>(<paramName>: string): string {
+  // pure function logic here
+  return "";
+}
+```
 
 ## Rules
 
@@ -38,10 +61,6 @@ parser, splitter, trimmer, slugifier, sanitizer, normalizer, extractor, replacer
 
 **Keep as private helper** if ANY: uses `this`, domain-specific, single consumer.
 **Extract here** only if ALL: no `this`, pure/I/O-safe, domain-agnostic, ≥2 consumers.
-
-## Templates
-
-`templates/utility_name.ts`
 
 ## Workflow
 

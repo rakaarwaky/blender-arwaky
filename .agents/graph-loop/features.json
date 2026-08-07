@@ -2,13 +2,13 @@
   "version": "2.0",
   "features": {
     "shared": {
-      "status": "PENDING",
+      "status": "LOCKED",
       "priority": 1,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/shared",
-      "description": "Shared VOs, contracts, utilities — foundation layer",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "description": "Shared VOs, contracts, utilities \u2014 foundation layer",
+      "pipeline_id": "pipeline-20260807-336",
+      "claimed_at": "2026-08-07T08:07:55+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
     },
