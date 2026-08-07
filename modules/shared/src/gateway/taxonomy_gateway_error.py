@@ -64,7 +64,12 @@ class ServerError(Exception):
 
 
 class SecurityViolationError(ServerError):
-    """Raised when user-provided code contains blocked patterns or violates sandbox policy."""
+    """Raised when user-provided code contains blocked patterns or violates sandbox policy.
+
+    Single source of truth for security violation errors across features.
+    Gateway delegates code validation to security feature; this error is
+    raised when the validation result indicates a violation.
+    """
 
     def __init__(self, message: str = "Security violation", _details: Details | None = None) -> None:
         super().__init__("security_violation", message, _details)

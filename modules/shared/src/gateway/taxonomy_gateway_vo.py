@@ -114,6 +114,8 @@ class SceneOperationVO:
     is_mutation: bool = False
     payload: bytes | None = None
     priority: int = 0
+    operation_class: str = ""
+    request_id: str = ""
 
 
 @dataclass(frozen=True)

@@ -23,6 +23,9 @@ from modules.shared.src.gateway.contract_scene_queue_protocol import (
 from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
 )
+from modules.shared.src.gateway.taxonomy_gateway_error import (
+    ConnectionClosedError,
+)
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionOutcomeVO,
     CodeExecutionVO,
@@ -34,6 +37,9 @@ from modules.shared.src.gateway.taxonomy_gateway_vo import (
     SceneOperationVO,
     TransportMessageVO,
     TransportOutcomeVO,
+)
+from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
+    ILauncherOperateAggregate,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -51,12 +57,14 @@ class GatewayOrchestrator(IGatewayAggregate):
         transport: TransportProtocol,
         scene_queue: SceneQueueProtocol,
         code_executor: CodeExecutionProtocol,
+        launcher: ILauncherOperateAggregate | None = None,
     ) -> None:
         self._connection = connection
         self._maintenance = maintenance
         self._transport = transport
         self._scene_queue = scene_queue
         self._code_executor = code_executor
+        self._launcher = launcher
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -71,8 +79,16 @@ class GatewayOrchestrator(IGatewayAggregate):
         return result
 
     def disconnect(self) -> None:
-        """FR-GWY-002: Graceful disconnect."""
+        """FR-GWY-002: Graceful disconnect.
+
+        Fails pending queued ops before closing connection to ensure
+        deterministic failure rather than silent drop.
+        """
         logger.info("Disconnecting gateway")
+        if hasattr(self._scene_queue, 'fail_pending'):
+            self._scene_queue.fail_pending(
+                ConnectionClosedError(details={"reason": "graceful_disconnect"})
+            )
         self._connection.disconnect()
         self._maintenance.set_state(ConnectionState.CLOSED)
 
@@ -107,6 +123,29 @@ class GatewayOrchestrator(IGatewayAggregate):
         return self._code_executor.execute_code(request)
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+
+    def reconnect_with_runtime(self) -> None:
+        """FR-GWY-002 / FR-LAU-004: Reconnect consults Launcher runtime status.
+
+        Orchestration logic: probe launcher → launch if stale → reconnect.
+        Moved from root container to agent layer (AES201 compliance).
+        """
+        if self._launcher is not None:
+            try:
+                status = self._launcher.check_status(depth=ProbeDepth.FULL)
+                if status.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
+                    launch = self._launcher.launch()
+                    if not launch.success or not launch.ready:
+                        raise RuntimeError(
+                            f"Blender runtime not ready during Gateway reconnect: "
+                            f"state={status.state.value}, launch_success={launch.success}"
+                        )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Blender runtime check failed during reconnect: {exc}"
+                ) from exc
+
+        self._connection.establish_connection()
 
     def __repr__(self) -> str:
         return (

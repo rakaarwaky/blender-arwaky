@@ -1,7 +1,7 @@
 """Composition root — DI wiring for the Gateway feature.
 
 Wires capabilities to protocols and bootstraps the orchestrator.
-Supports optional Launcher dependency for process-liveness integration.
+All dependencies injected — zero cross-feature imports, zero business logic.
 """
 
 from modules.shared.src.gateway.contract_code_validation_protocol import (
@@ -19,18 +19,19 @@ from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
+from .taxonomy_gateway_constant import (
+    DEFAULT_EXECUTION_TIMEOUT_SECONDS,
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_MAX_OUTPUT_BYTES,
+    DEFAULT_MAX_PAYLOAD_BYTES,
+)
 
 
 class GatewayContainer:
     """Dependency injection container for the Gateway feature.
 
     Wires all 5 capabilities and composes the orchestrator.
-    ConnectionExecutor receives TransportProtocol + config.
-    CodeExecutionExecutor receives security policy + transport.
-    MaintenanceExecutor receives retry configuration.
-
-    P1: Accepts optional ILauncherOperateAggregate to wire process-liveness
-    into reconnect flow (FR-LAU-004 / Gateway reconnect consults Launcher).
+    All dependencies must be injected — no cross-feature imports allowed.
     """
 
     def __init__(
@@ -46,7 +47,13 @@ class GatewayContainer:
             protocol_version="2.0.0",
         )
 
-        self._transport = TransportExecutor(max_payload_bytes=10_485_760)
+        if code_validation is None:
+            raise ValueError(
+                "GatewayContainer requires a CodeValidationProtocol instance. "
+                "The caller (entry point) must provide one."
+            )
+
+        self._transport = TransportExecutor(max_payload_bytes=DEFAULT_MAX_PAYLOAD_BYTES)
 
         self._connection = ConnectionExecutor(
             transport=self._transport,
@@ -57,22 +64,19 @@ class GatewayContainer:
             max_retries=3,
             base_backoff_seconds=1.0,
             max_backoff_seconds=16.0,
-            reconnect_fn=self._reconnect_with_runtime,
         )
 
-        self._scene_queue = SceneQueueExecutor(max_depth=50, wait_timeout_seconds=30.0)
-
-        if code_validation is None:
-            from modules.security.src.capabilities_code_validator import CodeValidator
-            from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
-
-            code_validation = CodeValidator(policy=SecurityPolicyVO())
+        self._scene_queue = SceneQueueExecutor(
+            transport=self._transport,
+            max_depth=DEFAULT_MAX_DEPTH,
+            wait_timeout_seconds=30.0,
+        )
 
         self._code_executor = CodeExecutionExecutor(
             security_policy=code_validation,
             transport=self._transport,
-            max_output_bytes=1_048_576,
-            execution_timeout_seconds=30.0,
+            max_output_bytes=DEFAULT_MAX_OUTPUT_BYTES,
+            execution_timeout_seconds=DEFAULT_EXECUTION_TIMEOUT_SECONDS,
         )
 
         self._orchestrator = GatewayOrchestrator(
@@ -81,33 +85,10 @@ class GatewayContainer:
             transport=self._transport,
             scene_queue=self._scene_queue,
             code_executor=self._code_executor,
+            launcher=self._launcher,
         )
 
-    def _reconnect_with_runtime(self) -> None:
-        """FR-GWY-002 / P1: Reconnect consults Launcher runtime status.
-
-        Orchestration logic: probe launcher → launch if stale → reconnect.
-        Uses lazy imports to avoid cross-feature module-level dependency.
-        """
-        if self._launcher is not None:
-            from modules.shared.src.launcher.taxonomy_launcher_vo import (
-                ProbeDepth,
-                RuntimeState,
-            )
-
-            try:
-                status = self._launcher.check_status(depth=ProbeDepth.FULL)
-                if status.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
-                    launch = self._launcher.launch()
-                    if not launch.success or not launch.ready:
-                        raise RuntimeError(
-                            f"Blender runtime not ready during Gateway reconnect: "
-                            f"state={status.state.value}, launch_success={launch.success}"
-                        )
-            except Exception as exc:
-                raise RuntimeError(f"Blender runtime check failed during reconnect: {exc}") from exc
-
-        self._connection.establish_connection()
+        self._maintenance._reconnect_fn = self._orchestrator.reconnect_with_runtime
 
     @property
     def agent(self) -> IGatewayAggregate:
