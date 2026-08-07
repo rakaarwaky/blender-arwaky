@@ -11,12 +11,16 @@ import uuid
 from modules.gateway.src import GatewayOrchestrator
 from modules.shared.src.gateway.contract_code_execution_protocol import CodeExecutionProtocol
 from modules.shared.src.gateway.contract_connection_protocol import ConnectionProtocol
+from modules.shared.src.gateway.contract_maintenance_protocol import (
+    ConnectionMaintenanceProtocol,
+)
 from modules.shared.src.gateway.contract_scene_queue_protocol import SceneQueueProtocol
 from modules.shared.src.gateway.contract_transport_protocol import TransportProtocol
 from modules.shared.src.gateway.taxonomy_gateway_vo import (
     CodeExecutionVO,
     ConnectionOutcomeVO,
     ConnectionState,
+    ConnectionStatusVO,
     SceneOperationVO,
     TransportMessageVO,
     TransportOutcomeVO,
@@ -37,6 +41,32 @@ class MockConnection(ConnectionProtocol):
 
     def disconnect(self) -> None:
         self._connected = False
+
+
+class MockMaintenance(ConnectionMaintenanceProtocol):
+    """Mock maintenance for testing."""
+
+    def __init__(self) -> None:
+        self._state = ConnectionState.DISCONNECTED
+        self._heartbeat_count = 0
+        self._reconnect_count = 0
+
+    def get_connection_status(self) -> ConnectionStatusVO:
+        return ConnectionStatusVO(
+            state=self._state,
+            last_heartbeat_timestamp=self._heartbeat_count * 1.0,
+            reconnect_attempts=self._reconnect_count,
+        )
+
+    def send_heartbeat(self) -> None:
+        self._heartbeat_count += 1
+
+    def attempt_reconnect(self) -> ConnectionStatusVO:
+        self._reconnect_count += 1
+        return self.get_connection_status()
+
+    def set_state(self, state: ConnectionState) -> None:
+        self._state = state
 
 
 class MockTransport(TransportProtocol):
@@ -76,6 +106,7 @@ def _make_orchestrator(**overrides) -> GatewayOrchestrator:
     """Helper to create orchestrator with mocks for all required deps."""
     defaults = dict(
         connection=MockConnection(),
+        maintenance=MockMaintenance(),
         transport=MockTransport(),
         scene_queue=MockSceneQueue(),
         code_executor=MockCodeExecutor(),

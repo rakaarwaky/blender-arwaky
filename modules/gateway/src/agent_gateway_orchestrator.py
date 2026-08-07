@@ -14,6 +14,9 @@ from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
 from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
+from modules.shared.src.gateway.contract_maintenance_protocol import (
+    ConnectionMaintenanceProtocol,
+)
 from modules.shared.src.gateway.contract_scene_queue_protocol import (
     SceneQueueProtocol,
 )
@@ -39,8 +42,6 @@ from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
 )
 
-from .capabilities_connection_maintenance import MaintenanceExecutor
-
 logger = logging.getLogger("BlenderMCPServer")
 
 
@@ -52,25 +53,18 @@ class GatewayOrchestrator(IGatewayAggregate):
     def __init__(
         self,
         connection: ConnectionProtocol,
+        maintenance: ConnectionMaintenanceProtocol,
         transport: TransportProtocol,
         scene_queue: SceneQueueProtocol,
         code_executor: CodeExecutionProtocol,
         launcher: ILauncherOperateAggregate | None = None,
-        max_retries: int = 3,
-        base_backoff_seconds: float = 1.0,
-        max_backoff_seconds: float = 16.0,
     ) -> None:
         self._connection = connection
+        self._maintenance = maintenance
         self._transport = transport
         self._scene_queue = scene_queue
         self._code_executor = code_executor
         self._launcher = launcher
-        self._maintenance = MaintenanceExecutor(
-            max_retries=max_retries,
-            base_backoff_seconds=base_backoff_seconds,
-            max_backoff_seconds=max_backoff_seconds,
-            reconnect_fn=self._reconnect_with_runtime,
-        )
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -138,6 +132,7 @@ class GatewayOrchestrator(IGatewayAggregate):
         """
         if self._launcher is not None:
             from modules.shared.src.launcher.taxonomy_launcher_vo import (
+                LaunchRequestVO,
                 ProbeDepth,
                 RuntimeState,
             )
@@ -145,7 +140,7 @@ class GatewayOrchestrator(IGatewayAggregate):
             try:
                 status = self._launcher.check_status(depth=ProbeDepth.FULL)
                 if status.state in (RuntimeState.NOT_RUNNING, RuntimeState.STALE):
-                    launch = self._launcher.launch()
+                    launch = self._launcher.launch(LaunchRequestVO())
                     if not launch.success or not launch.ready:
                         raise RuntimeError(
                             f"Blender runtime not ready during Gateway reconnect: "
