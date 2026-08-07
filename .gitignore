@@ -56,5 +56,7 @@ Thumbs.db
 
 .archive
 .worktree/
+.agents/finding/
+.agents/graph-loop
 .agents/finding/pytest-of-raka/
 pytest-of-raka/

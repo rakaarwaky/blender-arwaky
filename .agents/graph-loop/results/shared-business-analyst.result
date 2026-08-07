@@ -1,5 +1,0 @@
-Report updated with final inventory findings. The analysis is complete:
-
-**File**: `.agents/graph-loop/results/business-analyst-shared.md`
-**Scope**: 190 files, 15 sub-domains, ~13,871 lines of Python
-**History check**: `features.json` shows `shared` status=LOCKED, iteration=0, history=[] — first processing
