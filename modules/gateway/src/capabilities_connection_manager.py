@@ -18,11 +18,11 @@ import asyncio
 import hashlib
 import json
 import logging
-import socket as _socket
 import struct
 import time
 import uuid
 from contextlib import suppress
+from socket import SocketType, create_connection
 
 from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
@@ -429,7 +429,7 @@ class ConnectionExecutor(ConnectionProtocol):
                 message="ConnectionConfigVO requires host and port",
                 details={"host": validated_config.host, "port": validated_config.port},
             )
-        self._socket: _socket.SocketType | None = None
+        self._socket: SocketType | None = None
         self._transport: TransportProtocol = transport
         self._config: ConnectionConfigVO = validated_config
         self._state: ConnectionState = ConnectionState.DISCONNECTED
@@ -454,10 +454,10 @@ class ConnectionExecutor(ConnectionProtocol):
         self._state = ConnectionState.CONNECTING
         logger.info("Establishing connection to %s:%d", self._config.host, self._config.port)
 
-        sock: _socket.SocketType | None = None
+        sock: SocketType | None = None
         try:
             timeout = self._config.timeout_seconds or 30.0
-            sock = _socket.create_connection((self._config.host, self._config.port), timeout=timeout)
+            sock = create_connection((self._config.host, self._config.port), timeout=timeout)
             self._endpoint_summary = f"{self._config.host}:{self._config.port}"
             self._transport.set_socket(sock)
             handshake_response = self._perform_handshake()
@@ -504,7 +504,7 @@ class ConnectionExecutor(ConnectionProtocol):
             return
         try:
             if self._socket:
-                self._socket.close()
+                self.close()
         except Exception as e:
             logger.warning("Error during disconnect: %s", e)
         finally:
@@ -514,7 +514,7 @@ class ConnectionExecutor(ConnectionProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _safe_close_socket(self, sock: _socket.SocketType | None) -> None:
+    def _safe_close_socket(self, sock: SocketType | None) -> None:
         with suppress(Exception):
             if sock is not None:
                 sock.close()

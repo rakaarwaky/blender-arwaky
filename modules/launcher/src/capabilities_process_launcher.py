@@ -34,7 +34,7 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 )
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
-from modules.shared.src.security.utility_security_path import redact_path as _redact_path
+from modules.shared.src.security.utility_security_path import redact_path
 
 
 class _ProcessSpawner(Protocol):
@@ -137,8 +137,8 @@ class ProcessLauncher(LaunchProtocol):
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = ""
     ) -> None:
         if self._events is not None:
-            redacted_ref = _redact_path(process_reference)
-            redacted_reason = _redact_path(reason) if reason else ""
+            redacted_ref = redact_path(process_reference)
+            redacted_reason = redact_path(reason) if reason else ""
             self._events(
                 LauncherLifecycleEvent(
                     event_category=category,
@@ -157,7 +157,7 @@ class ProcessLauncher(LaunchProtocol):
                     violation_category=violation,
                     operation_type="launcher_operation",
                     source_feature="launcher",
-                    target_metadata={"reason": _redact_path(reason)},
+                    target_metadata={"reason": redact_path(reason)},
                     severity=AuditSeverity.WARNING,
                 )
             )

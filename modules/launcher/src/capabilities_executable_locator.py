@@ -182,9 +182,9 @@ class ExecutableLocator(LocateRegisterProtocol):
         events = getattr(self, "_events", None)
         if events is not None:
             # FR-SEC-001: redact full paths in diagnostic output
-            from modules.shared.src.security.utility_security_path import redact_path as _redact_path
+            from modules.shared.src.security.utility_security_path import redact_path
 
-            redacted_path = _redact_path(path)
+            redacted_path = redact_path(path)
             events(
                 LauncherLifecycleEvent(
                     event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
