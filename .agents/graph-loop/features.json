@@ -19,7 +19,7 @@
       ]
     },
     "config": {
-      "status": "LOCKED",
+      "status": "FAILED",
       "priority": 2,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/config",
       "description": "Configuration loading and workspace detection",
@@ -27,104 +27,197 @@
       "claimed_at": "2026-08-07T15:40:45+07:00",
       "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:50+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:52+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:55+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:55+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:56+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:00:58+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:01:00+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:01:00+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:01:12+07:00"
+        },
+        {
+          "status": "FAILED",
+          "reason": "Architect timeout",
+          "failed_at": "2026-08-07T18:01:13+07:00"
+        }
+      ]
     },
     "dispatcher": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 3,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/dispatcher",
       "description": "Command dispatch and routing",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-151",
+      "claimed_at": "2026-08-07T18:01:21+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T18:21:22+07:00"
+        }
+      ]
     },
     "gateway": {
-      "status": "PENDING",
+      "status": "LOCKED",
       "priority": 4,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/gateway",
       "description": "Blender addon gateway and IPC bridge",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-842",
+      "claimed_at": "2026-08-07T18:21:26+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
     },
     "launcher": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 5,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/launcher",
       "description": "Application launcher and lifecycle",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-455",
+      "claimed_at": "2026-08-07T18:21:26+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T18:41:26+07:00"
+        }
+      ]
     },
     "cli": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 6,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/cli",
       "description": "Human CLI surface",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-326",
+      "claimed_at": "2026-08-07T18:41:27+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T19:01:28+07:00"
+        }
+      ]
     },
     "mcp": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 7,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/mcp",
       "description": "AI MCP surface and tool definitions",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-839",
+      "claimed_at": "2026-08-07T19:01:31+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T19:21:31+07:00"
+        }
+      ]
     },
     "job": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 8,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/job",
       "description": "Job queue and task scheduling",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-925",
+      "claimed_at": "2026-08-07T19:21:32+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T19:41:42+07:00"
+        }
+      ]
     },
     "asset": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 9,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/asset",
       "description": "Asset management and import/export",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-431",
+      "claimed_at": "2026-08-07T19:41:44+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T20:01:51+07:00"
+        }
+      ]
     },
     "scene": {
-      "status": "PENDING",
+      "status": "FAILED",
       "priority": 10,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/scene",
       "description": "Scene data and hierarchy operations",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-530",
+      "claimed_at": "2026-08-07T20:01:53+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
-      "history": []
+      "history": [
+        {
+          "status": "FAILED",
+          "reason": "business-analyst timeout",
+          "failed_at": "2026-08-07T20:21:57+07:00"
+        }
+      ]
     },
     "object": {
-      "status": "PENDING",
+      "status": "LOCKED",
       "priority": 11,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/object",
       "description": "Object manipulation and properties",
-      "pipeline_id": null,
-      "claimed_at": null,
-      "locked_by": null,
+      "pipeline_id": "pipeline-20260807-713",
+      "claimed_at": "2026-08-07T23:50:27+07:00",
+      "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
     },

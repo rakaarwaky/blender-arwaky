@@ -1,28 +1,28 @@
 {
   "version": "2.0",
   "pipeline": {
-    "id": "pipeline-20260807-730",
-    "feature": "config",
-    "current_state": "ARCHITECT",
-    "started_at": "2026-08-07T15:40:45+07:00",
+    "id": "pipeline-20260807-713",
+    "feature": "object",
+    "current_state": "ANALYZING",
+    "started_at": "2026-08-07T23:50:27+07:00",
     "iteration": 1,
-    "correlation_id": "corr-20260807-config-371",
-    "pipeline_iteration_counter": 3,
-    "rejection_loop_counter": 2,
+    "correlation_id": "corr-20260807-object-110",
+    "pipeline_iteration_counter": 1,
+    "rejection_loop_counter": 0,
     "parallel_nodes": {
       "business-analyst": {
-        "status": "completed",
+        "status": "running",
         "task_id": null,
-        "report_file": "/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/config-business-analyst.result",
-        "started_at": "2026-08-07T15:41:14+07:00",
-        "completed_at": "2026-08-07T15:43:44+07:00"
+        "report_file": null,
+        "started_at": "2026-08-07T23:50:57+07:00",
+        "completed_at": null
       },
       "tech-lead": {
-        "status": "completed",
+        "status": "running",
         "task_id": null,
-        "report_file": "/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/results/tech-lead-config.md",
-        "started_at": "2026-08-07T15:41:14+07:00",
-        "completed_at": "2026-08-07T15:44:44+07:00"
+        "report_file": null,
+        "started_at": "2026-08-07T23:50:57+07:00",
+        "completed_at": null
       }
     },
     "pending_merge": [],
