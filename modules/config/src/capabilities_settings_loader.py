@@ -135,29 +135,17 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
 
-            # Runtime overrides are caller-scoped — never cached (A5).
             # FR-CFG-001 precedence: runtime overrides > environment > file > built-in defaults
-            # Therefore overrides must be applied to the fully merged snapshot, not raw file data.
-            if overrides is not None and self._strict_mode_enabled:
+            # Overrides are applied unconditionally (independent of strict mode) and
+            # the enriched snapshot is cached so get_snapshot() stays consistent.
+            if overrides is not None:
                 base = self._cached.to_dict() if self._cached is not None else {}
                 structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
                 final = deep_merge_dicts(base, structured)
-                return SettingsSnapshot(_data=final)
-
-            if overrides is not None and not self._strict_mode_enabled:
-                self._last_metadata = ConfigMetadata(
-                    source=self._last_metadata.source,
-                    exists=self._last_metadata.exists,
-                    overrides=self._last_metadata.overrides,
-                    parse_warnings=(
-                        *self._last_metadata.parse_warnings,
-                        ParseWarning("runtime overrides ignored; strict mode off"),
-                    ),
-                    validation_warnings=self._last_metadata.validation_warnings,
-                )
+                self._cached = SettingsSnapshot(_data=final)
 
             return self._cached
 
@@ -266,14 +254,6 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
                     parse_warnings.append(
                         ParseWarning(f"failed to load {resolved}; using defaults")
-                    )
-                    file_data = {}
-                except Exception as exc:
-                    # Catch-all for unexpected errors — re-raise in strict mode
-                    if self._policy_mode == POLICY_MODE_STRICT:
-                        raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(
-                        ParseWarning(f"unexpected error loading {resolved}; using defaults")
                     )
                     file_data = {}
 

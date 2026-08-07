@@ -1,19 +1,12 @@
-"""Config feature module — application configuration management.
+"""Config feature module — AES implementation.
 
-FR-CFG-001: Load and Apply Settings
-FR-CFG-002: Retrieve Settings Values
-FR-CFG-003: Resolve Project Workspace Directory
-FR-CFG-004: Provide Settings Metadata
-FR-CFG-005: Provide Redaction Rules
-
-Architecture:
-- Agent: ConfigOrchestrator (orchestration only)
-- Capabilities: SettingsLoader, SettingsRetriever, WorkspaceResolver,
-  SettingsMetadata, RedactionRules
-- Contract: IConfigAggregate facade + 5 protocols
+Layers:
+  - Taxonomy (shared/src/config/)   → VOs, Errors, Events, Constants
+  - Contract (shared/src/config/)   → 5 individual protocols + Aggregate ABC
+  - Capabilities (5 executors)      → One per FR-CFG operation
+  - Agent                           → ConfigOrchestrator (implements Aggregate facade)
+  - Root                            → ConfigContainer (DI wiring)
 """
-
-from modules.shared.src.config.utility_config_helpers import parse_env_value, search_project_root
 
 from .src.agent_config_orchestrator import ConfigOrchestrator
 from .src.capabilities_redaction_rules import RedactionRulesCapability
@@ -25,12 +18,10 @@ from .src.root_config_container import ConfigContainer
 
 __all__ = [
     "ConfigOrchestrator",
+    "RedactionRulesCapability",
     "SettingsLoaderCapability",
+    "SettingsMetadataCapability",
     "SettingsRetrieverCapability",
     "WorkspaceResolverCapability",
-    "SettingsMetadataCapability",
-    "RedactionRulesCapability",
     "ConfigContainer",
-    "parse_env_value",
-    "search_project_root",
 ]
