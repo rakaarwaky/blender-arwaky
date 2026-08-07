@@ -15,7 +15,11 @@ from .taxonomy_job_constant import (
     JOB_STATE_RUNNING,
     JOB_STATE_TIMED_OUT,
 )
+from .taxonomy_job_error import JobValidationError
 from .taxonomy_job_event import JobEvent
+
+# Backward-compatible alias — prefer JobValidationError
+ValidationError = JobValidationError
 
 __all__ = [
     "IJobAggregate",
@@ -33,4 +37,6 @@ __all__ = [
     "JOB_STATE_RUNNING",
     "JOB_STATE_TIMED_OUT",
     "JobEvent",
+    "JobValidationError",
+    "ValidationError",
 ]

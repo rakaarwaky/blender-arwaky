@@ -59,12 +59,10 @@ from .asset.taxonomy_asset_vo import (
 from .common.contract_command_catalog_protocol import CommandCatalogProtocol
 from .common.contract_execute_action_protocol import ExecuteActionProtocol
 from .common.contract_workflow_protocol import WorkflowProtocol
-from .common.taxonomy_app_config_vo import ApplicationConfig
 from .common.taxonomy_bounding_box_vo import BoundingBox
 from .common.taxonomy_command_catalog_constant import (
     ACTION_NAMES,
     COMMAND_CATALOG,
-    CommandCatalog,
     CommandSpec,
 )
 
@@ -354,7 +352,7 @@ from .telemetry.taxonomy_event_constant import (
     EVENT_TYPE_STARTUP,
     EVENT_TYPE_TOOL_EXECUTION,
 )
-from .telemetry.taxonomy_telemetry_event import TelemetryCategory as _TelemetryCategory  # noqa: F401
+from .telemetry.taxonomy_telemetry_event import TelemetryCategory as _TelemetryCategory
 from .telemetry.taxonomy_telemetry_event import TelemetryEvent
 
 __all__ = [
@@ -458,7 +456,6 @@ __all__ = [
     "AssetMetadataVO",
     "ImportedAsset",
     "SceneInfo",
-    "ApplicationConfig",
     "PlaceAssetVO",
     "GetObjectInfoVO",
     "SetObjectTransformVO",
@@ -490,8 +487,8 @@ __all__ = [
     "ExecutionError",
     "BlenderConnectionError",
     "InvalidCommandError",
-    "EventType",
     "TelemetryEvent",
+    "_TelemetryCategory",
     "ASSET_TYPE_HDRIS",
     "ASSET_TYPE_TEXTURES",
     "ASSET_TYPE_MODELS",
@@ -524,7 +521,6 @@ __all__ = [
     "OBJECT_TYPE_POINTCLOUD",
     "ALLOWED_OBJECT_TYPES",
     "COMMAND_CATALOG",
-    "CommandCatalog",
     "CommandSpec",
     "ACTION_NAMES",
     "RENDER_ENGINE_CYCLES",
@@ -539,7 +535,6 @@ __all__ = [
 
     "create_provider_name",
 
-    "SceneOperateProtocol",
     "SceneCleanupVO",
     "SceneInspectionVO",
     "PlaceAssetProtocol",
@@ -549,10 +544,6 @@ __all__ = [
     "ApplyModifierProtocol",
     "DeleteObjectProtocol",
     "GetObjectInfoProtocol",
-    "RenderOperateProtocol",
-    "ViewportCaptureProtocol",
-    "CameraConfigProtocol",
-    "HdriConfigProtocol",
     "AssetSearchProtocol",
     "AssetDownloadProtocol",
     "AssetExtractProtocol",
@@ -562,7 +553,6 @@ __all__ = [
     "WorkflowProtocol",
     "ExecuteActionProtocol",
     "CommandCatalogProtocol",
-    "SceneInspectionPort",
 
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
@@ -645,11 +635,4 @@ __all__ = [
     "QueueStatusVO",
     "CodeExecutionVO",
     "CodeExecutionOutcomeVO",
-
-    # Utility layer exports
-    "enrich_response_with_tracking",
-    "normalize_payload",
-    "truncate_oversized_payload",
-    "utility_envelope",
-    "validate_execute_command_input",
 ]

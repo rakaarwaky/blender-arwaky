@@ -151,13 +151,3 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
 }
 
 ACTION_NAMES: Final[list[str]] = list(COMMAND_CATALOG.keys())
-
-
-class CommandCatalog:
-    """Canonical command catalog wrapper for backward compatibility."""
-
-    COMMAND_CATALOG = COMMAND_CATALOG
-
-    @staticmethod
-    def list_actions() -> list[str]:
-        return ACTION_NAMES

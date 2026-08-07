@@ -1,5 +1,6 @@
 """Gateway domain — re-exports for contract protocols and taxonomy types."""
 
+from .capabilities_socket_client import BlenderSocketClient
 from .contract_code_execution_protocol import CodeExecutionProtocol
 from .contract_connection_protocol import ConnectionProtocol
 from .contract_maintenance_protocol import ConnectionMaintenanceProtocol
@@ -10,6 +11,9 @@ from .taxonomy_gateway_error import (
     ChannelConflictError,
     ConnectionError,
     GatewayError,
+    GatewayExecutionError,
+    GatewayProviderError,
+    GatewayValidationError,
     PayloadLimitError,
     ProtocolVersionMismatchError,
     SecurityViolationError,
@@ -33,6 +37,7 @@ from .taxonomy_gateway_vo import (
 
 __all__ = [
     "AuthenticationError",
+    "BlenderSocketClient",
     "ChannelConflictError",
     "CodeExecutionOutcomeVO",
     "CodeExecutionProtocol",
@@ -44,8 +49,13 @@ __all__ = [
     "ConnectionProtocol",
     "ConnectionState",
     "ConnectionStatusVO",
+    "ExecutionError",
     "GatewayError",
+    "GatewayExecutionError",
+    "GatewayProviderError",
+    "GatewayValidationError",
     "PayloadLimitError",
+    "ProviderError",
     "ProtocolVersionMismatchError",
     "QueueStatusVO",
     "SceneOperationOutcomeVO",
@@ -59,4 +69,10 @@ __all__ = [
     "TransportParseError",
     "TransportProtocol",
     "TransportType",
+    "ValidationError",
 ]
+
+# Backward-compatible aliases — prefer Gateway* variants
+ValidationError = GatewayValidationError
+ProviderError = GatewayProviderError
+ExecutionError = GatewayExecutionError

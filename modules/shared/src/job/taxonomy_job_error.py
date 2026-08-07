@@ -45,7 +45,7 @@ class InvalidStateTransitionError(JobError):
         self.to_state = to_state
 
 
-class ValidationError(JobError):
+class JobValidationError(JobError):
     """Raised when job validation fails."""
 
     def __init__(self, message: ErrorString) -> None:

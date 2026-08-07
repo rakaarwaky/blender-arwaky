@@ -12,6 +12,7 @@ Implements v2.0.0 configuration behavior per Section 4.1.
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Mapping
 from contextlib import suppress
@@ -24,6 +25,8 @@ except ImportError:  # pragma: no cover
 
 from modules.shared.src.gateway.taxonomy_gateway_error import ConnectionConfigError
 from modules.shared.src.gateway.taxonomy_gateway_vo import ServerConfig
+
+logger = logging.getLogger("BlenderMCPServer")
 
 
 def load_server_config(
@@ -92,9 +95,9 @@ def load_server_config(
                 file_data = yaml.safe_load(f)
             if isinstance(file_data, dict):
                 _merge_dict(config_dict, file_data)
-        except Exception:  # pragma: no cover
+        except Exception as exc:  # pragma: no cover
             # Config file is optional; warn but continue with defaults
-            pass
+            logger.warning("Failed to load config file %s: %s", file_path, exc)
 
     # ─── Step 3: Apply environment variables ────────────────────
     _apply_env_overrides(config_dict, env)

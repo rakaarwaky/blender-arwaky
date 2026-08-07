@@ -34,16 +34,15 @@ def parse_env_value(value: str) -> SettingsValue:
         return True
     if value.lower() in ("false", "no", "off"):
         return False
+    if value.lower() in ("null", "none", ""):
+        return None
     try:
         return int(value)
     except (ValueError, TypeError):
         try:
             return float(value)
         except (ValueError, TypeError):
-            return None
-    if value.lower() in ("null", "none", ""):
-        return None
-    return value
+            return value
 
 
 def search_project_root(markers: tuple[str, ...]) -> Path | None:
