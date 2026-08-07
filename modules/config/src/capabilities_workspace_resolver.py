@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigPath
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath, Timestamp
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
@@ -46,7 +46,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         self._lock = threading.Lock()
         self._cached: WorkspacePath | None = None
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def resolve(self) -> WorkspacePath:
         """Resolve workspace using deterministic strategy order (cached)."""
@@ -62,10 +62,10 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
-            timestamp=time.time(),
+            timestamp=Timestamp(time.time()),
         )
 
-# ─── Block 3: Resolution Strategy ─────────────────────────
+    # ─── Block 3: Resolution Strategy ─────────────────────────
 
     def _resolve_uncached(self) -> WorkspacePath:
         # 1. Explicit override
@@ -104,7 +104,14 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             return WorkspacePath(path=str(marker_path), strategy="marker_search")
 
         # 5. Platform config
-        xdg_config = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        try:
+            home_dir = Path.home()
+        except RuntimeError:
+            home_dir = None
+        if home_dir is not None:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME", str(home_dir / ".config"))
+        else:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME", "")
         prod_path = Path(xdg_config) / "blender-arwaky"
         if prod_path.is_dir():
             return WorkspacePath(path=str(prod_path), strategy="platform_config")
