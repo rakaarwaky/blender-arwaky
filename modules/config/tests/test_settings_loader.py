@@ -166,27 +166,28 @@ def test_schema_v2_on_permissive_warning_and_event():
 
 
 @pytest.mark.unit
-def test_overrides_caller_scoped_not_cached(monkeypatch):  # noqa: ARG001 (unused monkeypatch fixture)
+def test_overrides_applied_unconditionally_and_cached():
+    """Runtime overrides are applied regardless of strict mode and cached."""
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(strict_mode_enabled=True)
+    loader = SettingsLoaderCapability()
     snap1 = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     assert snap1.get("blender.port") == 7777
-    snap2 = loader.load_settings(ConfigPath(cfg))  # no overrides
-    assert snap2.get("blender.port") == 5555  # cached snapshot WITHOUT override
+    # Cached snapshot now includes overrides — consistent with get_snapshot().
+    snap2 = loader.load_settings()  # no path, no overrides → returns cached
+    assert snap2.get("blender.port") == 7777
 
 
 @pytest.mark.unit
-def test_overrides_v2_off_ignored_with_warning():
+def test_overrides_applied_in_permissive_mode():
+    """Runtime overrides are applied even when strict_mode_enabled=False."""
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
     loader = SettingsLoaderCapability(strict_mode_enabled=False)
     snap = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
-    md = loader.get_last_metadata()
-    assert snap.get("blender.port") == 5555
-    assert any("runtime overrides ignored" in w for w in md.parse_warnings)
+    assert snap.get("blender.port") == 7777
 
 
 @pytest.mark.unit
