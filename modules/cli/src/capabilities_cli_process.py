@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from modules.cli.src.capabilities_cli_registry import Registry
 from modules.shared.src.cli.contract_cli_process_protocol import ICliProcessProtocol
 from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo
 from modules.shared.src.cli.utility_cli_process import is_running
-from modules.shared.src.cli.utility_cli_registry import Registry
 
 _ = Registry
 

@@ -1,13 +1,14 @@
 """CLI entry — Blender process management, commands, and utilities."""
 
+from modules.cli.src.capabilities_cli_registry import Registry
+from modules.gateway.src.capabilities_socket_client import BlenderSocketClient
+from modules.shared.src.cli.taxonomy_cli_vo import RegistryStateVo as RegistryState
 from modules.shared.src.cli.utility_cli_process import (
     find_blender,
     is_running,
     kill_blender,
     launch_blender,
 )
-from modules.shared.src.cli.utility_cli_registry import Registry, RegistryState
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
 
 __all__ = [
     "BlenderSocketClient",

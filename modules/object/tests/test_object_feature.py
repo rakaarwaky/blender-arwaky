@@ -30,7 +30,7 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Prompt,
     ScaleVector,
 )
-from modules.shared.src.object.contract_object_operate_aggregate import IObjectOperateAggregate
+from modules.shared.src.object.contract_object_aggregate import IObjectAggregate
 from modules.shared.src.object.taxonomy_object_error import (
     DeletionProtectionError,
     InvalidModifierTypeError,
@@ -458,4 +458,4 @@ def test_object_container_wires_aggregate():
     container = ObjectContainer(FakeBlenderExecutor())
     container.wire()
     agg = container.aggregate
-    assert isinstance(agg, IObjectOperateAggregate)
+    assert isinstance(agg, IObjectAggregate)

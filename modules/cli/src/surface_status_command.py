@@ -1,8 +1,8 @@
 """CLI status command — Show active Blender status."""
 
 
+from modules.cli.src.capabilities_cli_registry import Registry
 from modules.shared.src.cli.utility_cli_process import is_running
-from modules.shared.src.cli.utility_cli_registry import Registry
 
 
 def handle(_args: object) -> dict[str, object]:

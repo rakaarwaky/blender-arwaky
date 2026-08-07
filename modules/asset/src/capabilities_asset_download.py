@@ -27,8 +27,8 @@ from modules.shared.src.common.taxonomy_domain_error import (
     ProviderError,
     ValidationError,
 )
-from modules.shared.src.config.contract_config_protocol import ConfigGetterProtocol
-from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
+from modules.shared.src.config.contract_config_protocol import IIConfigGetterProtocol
+from modules.shared.src.job.contract_job_protocol import IIJobSchedulerProtocol
 from modules.shared.src.security.contract_validate_path_protocol import (
     ValidatePathProtocol,
 )
@@ -48,8 +48,8 @@ class AssetDownloadCapability(AssetDownloadProtocol):
     def __init__(
         self,
         security_validator: ValidatePathProtocol | None = None,
-        job_scheduler: JobSchedulerProtocol | None = None,
-        config_getter: ConfigGetterProtocol | None = None,
+        job_scheduler: IIJobSchedulerProtocol | None = None,
+        config_getter: IIConfigGetterProtocol | None = None,
     ) -> None:
         """Initialize with dependencies.
 

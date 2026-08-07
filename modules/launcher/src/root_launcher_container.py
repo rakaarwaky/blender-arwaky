@@ -12,8 +12,8 @@ from __future__ import annotations
 import logging
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
-from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
-    ILauncherOperateAggregate,
+from modules.shared.src.launcher.contract_launcher_aggregate import (
+    ILauncherAggregate,
 )
 from modules.shared.src.launcher.contract_locate_register_protocol import (
     LocateRegisterProtocol,
@@ -139,7 +139,7 @@ class LauncherContainer:
         return state.process_id if state is not None else None
 
     @property
-    def agent(self) -> ILauncherOperateAggregate:
+    def agent(self) -> ILauncherAggregate:
         if not self._wired or self._orchestrator is None:
             raise RuntimeError("LauncherContainer not wired — call wire() first")
         return self._orchestrator
@@ -149,7 +149,7 @@ def create_launcher_feature(
     config: LauncherConfigVO | None = None,
     state_path: str | None = None,
     security_policy: SecurityPolicyVO | None = None,
-) -> ILauncherOperateAggregate:
+) -> ILauncherAggregate:
     """Factory function to create and wire the launcher feature module.
 
     Security integration (per PRD + FR-LAU "Depends On"):
@@ -162,7 +162,7 @@ def create_launcher_feature(
         security_policy: Optional security policy for path validation and redaction.
 
     Returns:
-        The assembled ILauncherOperateAggregate ready for use.
+        The assembled ILauncherAggregate ready for use.
     """
     container = LauncherContainer(config=config, state_path=state_path, security_policy=security_policy)
     container.wire()

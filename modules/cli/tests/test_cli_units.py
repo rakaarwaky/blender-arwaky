@@ -39,12 +39,14 @@ bm_mod = _load_module(
 
 registry_mod = _load_module(
     "cli.utility_cli_registry",
-    os.path.join(_ROOT, "cli", "src", "utility_cli_registry.py"),
+
+    os.path.join(_ROOT, "cli", "src", "capabilities_cli_registry.py"),
 )
 
 _spec = _importlib_util.spec_from_file_location(
     "utility_socket_client",
-    os.path.join(_ROOT, "shared", "src", "gateway", "utility_socket_client.py"),
+
+    os.path.join(_ROOT, "gateway", "src", "capabilities_socket_client.py"),
 )
 socket_mod = _importlib_util.module_from_spec(_spec)
 _spec.loader.exec_module(socket_mod)

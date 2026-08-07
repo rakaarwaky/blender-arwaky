@@ -9,8 +9,8 @@ from modules.shared.src.gateway.contract_code_validation_protocol import (
 )
 from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
 from modules.shared.src.gateway.taxonomy_gateway_vo import ConnectionConfigVO
-from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
-    ILauncherOperateAggregate,
+from modules.shared.src.launcher.contract_launcher_aggregate import (
+    ILauncherAggregate,
 )
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
@@ -29,13 +29,13 @@ class GatewayContainer:
     CodeExecutionExecutor receives security policy + transport.
     MaintenanceExecutor receives retry configuration.
 
-    P1: Accepts optional ILauncherOperateAggregate to wire process-liveness
+    P1: Accepts optional ILauncherAggregate to wire process-liveness
     into reconnect flow (FR-LAU-004 / Gateway reconnect consults Launcher).
     """
 
     def __init__(
         self,
-        launcher: ILauncherOperateAggregate | None = None,
+        launcher: ILauncherAggregate | None = None,
         connection_config: ConnectionConfigVO | None = None,
         code_validation: CodeValidationProtocol | None = None,
     ) -> None:
@@ -118,7 +118,7 @@ class GatewayContainer:
 
 
 def create_gateway_feature(
-    launcher: ILauncherOperateAggregate | None = None,
+    launcher: ILauncherAggregate | None = None,
     connection_config: ConnectionConfigVO | None = None,
     code_validation: CodeValidationProtocol | None = None,
 ) -> IGatewayAggregate:

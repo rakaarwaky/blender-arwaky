@@ -18,7 +18,7 @@ Structure:
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.contract_extract_archive_protocol import ExtractArchiveProtocol
 from modules.shared.src.security.contract_redact_sensitive_protocol import RedactSensitiveProtocol
-from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
+from modules.shared.src.security.contract_security_aggregate import ISecurityAggregate
 from modules.shared.src.security.contract_validate_code_protocol import ValidateCodeProtocol
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_constant import SECURITY_SOURCE_FEATURE
@@ -33,7 +33,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
 )
 
 
-class SecurityOrchestrator(ISecurityOperateAggregate):
+class SecurityOrchestrator(ISecurityAggregate):
     """Orchestrates security operations through 5 individual capability protocols."""
 
     # ─── Block 1: Class Definition & Constructor ──────────────
@@ -143,7 +143,7 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
 
     @property
-    def security_operate_capability(self) -> ISecurityOperateAggregate:
+    def security_operate_capability(self) -> ISecurityAggregate:
         """Expose self as the security operate aggregate facade for dispatch."""
         return self
 

@@ -14,7 +14,7 @@ Structure:
 
 import logging
 
-from modules.shared.src.security.contract_security_operate_aggregate import ISecurityOperateAggregate
+from modules.shared.src.security.contract_security_aggregate import ISecurityAggregate
 from modules.shared.src.security.taxonomy_security_vo import SecurityPolicyVO
 from modules.shared.src.security.utility_security_path import resolve_path
 
@@ -92,7 +92,7 @@ class SecurityContainer:
         logger.info("Security feature module wired successfully (5 capabilities)")
 
     @property
-    def aggregate(self) -> ISecurityOperateAggregate:
+    def aggregate(self) -> ISecurityAggregate:
         """Return the assembled SecurityOperateAggregate facade.
 
         Must call wire() first, or this property will raise RuntimeError.
@@ -106,7 +106,7 @@ class SecurityContainer:
 
 def create_security_feature(
     policy: SecurityPolicyVO | None = None,
-) -> ISecurityOperateAggregate:
+) -> ISecurityAggregate:
     """Factory function to create and wire the security feature module.
 
     Convenience function for top-level entry points that need the aggregate.

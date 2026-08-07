@@ -1,6 +1,6 @@
 """Capability: Background job scheduler implementation (FR-JOB-005).
 
-Provides JobSchedulerCapability for JobSchedulerProtocol contract.
+Provides JobSchedulerCapability for IIJobSchedulerProtocol contract.
 """
 
 from __future__ import annotations
@@ -8,12 +8,12 @@ from __future__ import annotations
 import logging
 
 from modules.shared.src.common.taxonomy_core_vo import AssetId, ProviderName
-from modules.shared.src.job.contract_job_protocol import JobSchedulerProtocol
+from modules.shared.src.job.contract_job_protocol import IIJobSchedulerProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
-class JobSchedulerCapability(JobSchedulerProtocol):
+class JobSchedulerCapability(IIJobSchedulerProtocol):
     """Capability for submitting background download jobs."""
 
     async def submit_download(

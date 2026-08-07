@@ -15,7 +15,7 @@ from modules.launcher.src.capabilities_process_launcher import ProcessLauncher
 from modules.launcher.src.capabilities_process_shutdown import ProcessShutdown
 from modules.launcher.src.capabilities_runtime_status import RuntimeStatusChecker
 from modules.launcher.src.capabilities_state_persistence import StatePersistence
-from modules.shared.src.launcher.contract_launcher_operate_aggregate import ILauncherOperateAggregate
+from modules.shared.src.launcher.contract_launcher_aggregate import ILauncherAggregate
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
     RegistrationSource,
@@ -247,4 +247,4 @@ def test_fr_lau_005_from_dict_with_missing_keys():
 
 def test_aggregate_is_implemented():
     feat = create_launcher_feature(LauncherConfigVO())
-    assert isinstance(feat, ILauncherOperateAggregate)
+    assert isinstance(feat, ILauncherAggregate)
