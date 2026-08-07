@@ -107,3 +107,7 @@ POLICY_MODE_PERMISSIVE: str = "permissive"
 
 DEFAULT_POLICY_MODE: str = "strict"
 
+# ─── Sentinel (FR-CFG-002) ───────────────────────────────
+
+SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
+

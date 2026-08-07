@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Protocol
 
 from ..common.taxonomy_core_vo import ConfigMetadata
-from .taxonomy_config_vo import SettingsData
+from .taxonomy_config_vo import EventPayload
 
 
 class _IMetadataSource(Protocol):
@@ -32,6 +32,6 @@ class ISettingsMetadataProtocol(ABC):
         ...
 
     @abstractmethod
-    def to_safe_dict(self, metadata: ConfigMetadata) -> SettingsData:
+    def to_safe_dict(self, metadata: ConfigMetadata) -> EventPayload:
         """Serialize metadata for diagnostics. Secrets excluded, safe for MCP/CLI output."""
         ...
