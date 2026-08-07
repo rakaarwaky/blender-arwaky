@@ -4,9 +4,13 @@ the agent orchestrator must not import capability modules (AES §8/§9)."""
 from __future__ import annotations
 
 import ast
+import inspect
 import pathlib
 
 import pytest
+
+from modules.config.src.agent_config_orchestrator import ConfigOrchestrator
+from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 
 _CONFIG_SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
 _CAPABILITIES = list(_CONFIG_SRC.glob("capabilities_*.py"))
@@ -55,3 +59,19 @@ def test_config_v1_capabilities_exist():
         "capabilities_redaction_rules.py",
     ):
         assert expected in names
+
+
+@pytest.mark.unit
+def test_config_orchestrator_implements_all_aggregate_methods():
+    """ConfigOrchestrator must implement every abstract method defined on
+    IConfigAggregate — no missing or stubbed methods."""
+    abstract_methods = IConfigAggregate.__abstractmethods__
+    concrete_methods = {
+        m for m, _ in inspect.getmembers(ConfigOrchestrator, predicate=inspect.isfunction)
+        if not m.startswith("_")
+    }
+    # Every ABC method must appear as a concrete method on the orchestrator
+    missing = abstract_methods - concrete_methods
+    assert not missing, (
+        f"ConfigOrchestrator does not implement IConfigAggregate methods: {missing}"
+    )

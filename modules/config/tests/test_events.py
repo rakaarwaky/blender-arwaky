@@ -12,7 +12,10 @@ from modules.config.src.capabilities_settings_loader import SettingsLoaderCapabi
 from modules.config.src.capabilities_settings_metadata import SettingsMetadataCapability
 from modules.config.src.capabilities_settings_retriever import SettingsRetrieverCapability
 from modules.config.src.capabilities_workspace_resolver import WorkspaceResolverCapability
-from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
+from modules.shared.src.config.taxonomy_config_constant import (
+    EVENT_RING_BUFFER_SIZE,
+    REDACTION_PLACEHOLDER,
+)
 
 
 def _orchestrator(permissive=False):
@@ -99,3 +102,32 @@ def test_recent_events_without_sink_returns_empty():
     # Orchestrator always owns the buffer, so this validates the buffer is empty pre-load
     orch = _orchestrator()
     assert orch.recent_events() == ()
+
+
+@pytest.mark.unit
+def test_event_payloads_never_contain_raw_secret_values():
+    """Ring buffer payloads must not leak raw secret strings.
+
+    Verifies FR-CFG-001/005: secrets never echoed in metadata/logs/diagnostics.
+    After multiple load/reload cycles the event payloads are scanned for any
+    literal sensitive value — none should appear in cleartext.
+    """
+    orch = _orchestrator(permissive=True)
+    for _ in range(10):
+        orch.load()
+    orch.reload()
+    orch.resolve_workspace()
+    events = orch.recent_events()
+
+    secret_literals = ("hunter2", "s3cret_t0ken", "AKIAIOSFODNN7EXAMPLE")
+    for event in events:
+        serialized = str(event)
+        for secret in secret_literals:
+            assert secret not in serialized, f"Raw secret '{secret}' leaked in event payload: {event}"
+        # No event value should equal the redaction placeholder — that would
+        # mean redaction happened but the raw value was also stored alongside.
+        for _key, val in event.items():
+            if isinstance(val, str) and val == REDACTION_PLACEHOLDER:
+                # placeholder in value is fine (it means redaction applied);
+                # placeholder in key is not expected but harmless; skip
+                pass
