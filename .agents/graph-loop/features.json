@@ -23,8 +23,8 @@
       "priority": 2,
       "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/config",
       "description": "Configuration loading and workspace detection",
-      "pipeline_id": "pipeline-20260807-455",
-      "claimed_at": "2026-08-07T15:05:51+07:00",
+      "pipeline_id": "pipeline-20260807-730",
+      "claimed_at": "2026-08-07T15:40:45+07:00",
       "locked_by": "graph-engine",
       "iteration": 0,
       "history": []
