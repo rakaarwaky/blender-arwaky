@@ -107,6 +107,10 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
     def set_state(self, state: ConnectionState) -> None:
         self._state = state
 
+    def set_reconnect_fn(self, reconnect_fn: Callable[[], object] | None) -> None:
+        """Wire the reconnect callback after composition (setter injection)."""
+        self._reconnect_fn = reconnect_fn
+
     # --- Block 3: Dunder Methods, Factories & Helpers ---
 
     def set_active_operation(self, active: bool) -> None:

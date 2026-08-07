@@ -15,6 +15,7 @@ from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionExecutor
+from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
@@ -72,11 +73,14 @@ class GatewayContainer:
             execution_timeout_seconds=DEFAULT_EXECUTION_TIMEOUT_SECONDS,
         )
 
+        self._maintenance = MaintenanceExecutor()
+
         self._orchestrator = GatewayOrchestrator(
             connection=self._connection,
             transport=self._transport,
             scene_queue=self._scene_queue,
             code_executor=self._code_executor,
+            maintenance=self._maintenance,
             launcher=self._launcher,
         )
 

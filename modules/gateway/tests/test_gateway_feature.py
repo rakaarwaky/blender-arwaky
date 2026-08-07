@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 
 from modules.gateway.src import GatewayOrchestrator
+from modules.gateway.src.capabilities_connection_maintenance import MaintenanceExecutor
 from modules.shared.src.gateway.contract_code_execution_protocol import CodeExecutionProtocol
 from modules.shared.src.gateway.contract_connection_protocol import ConnectionProtocol
 from modules.shared.src.gateway.contract_scene_queue_protocol import SceneQueueProtocol
@@ -79,9 +80,15 @@ def _make_orchestrator(**overrides) -> GatewayOrchestrator:
         transport=MockTransport(),
         scene_queue=MockSceneQueue(),
         code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
     )
     defaults.update(overrides)
     return GatewayOrchestrator(**defaults)
+
+
+def _make_maintenance() -> MaintenanceExecutor:
+    """Helper to create a fresh MaintenanceExecutor for inline constructions."""
+    return MaintenanceExecutor()
 
 
 # ─── FR-GWY-001: Establish Connection ──────────────────────────────────────
@@ -100,7 +107,7 @@ def test_fr_gwy_001_establishes_connection():
 def test_fr_gwy_002_status_reports_connected():
     """Test that connection status reports correct state after establishment."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor())
+    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
     feat.establish_connection()
     status = feat.get_connection_status()
     assert status.state == ConnectionState.CONNECTED
@@ -192,7 +199,7 @@ def test_gateway_establish_connection_returns_protocol_version():
 def test_gateway_disconnect_idempotent():
     """Test that disconnect is idempotent when already disconnected."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor())
+    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
     feat.disconnect()
     feat.disconnect()
     assert True
@@ -269,7 +276,7 @@ def test_gateway_multiple_queue_operations():
 def test_gateway_disconnect_updates_state():
     """Test that disconnect updates maintenance state."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor())
+    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
 
     feat.establish_connection()
     assert feat.get_connection_status().state == ConnectionState.CONNECTED
@@ -282,7 +289,7 @@ def test_gateway_disconnect_updates_state():
 def test_gateway_reconnect_increments_attempts():
     """Test that reconnect increments attempt counter."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor())
+    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
 
     status = feat.get_connection_status()
     initial_attempts = status.reconnect_attempts
@@ -295,7 +302,7 @@ def test_gateway_reconnect_increments_attempts():
 def test_gateway_heartbeat_updates_timestamp():
     """Test that heartbeat updates last heartbeat timestamp."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor())
+    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
 
     feat.establish_connection()
     feat.send_heartbeat()

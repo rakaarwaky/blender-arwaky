@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
+from . import (
+    surface_close_command,
+    surface_init_command,
+    surface_render_command,
+    surface_run_command,
+    surface_screenshot_command,
+    surface_status_command,
+)
 from .capabilities_cli_process import CliProcessCapability
-from .surface_close_command import handle as close_handle
-from .surface_init_command import handle as init_handle
-from .surface_render_command import handle as render_handle
-from .surface_run_command import handle as run_handle
-from .surface_screenshot_command import handle as screenshot_handle
-from .surface_status_command import handle as status_handle
 
 _handles = (
-    close_handle,
-    init_handle,
-    render_handle,
-    run_handle,
-    screenshot_handle,
-    status_handle,
+    surface_close_command.handle,
+    surface_init_command.handle,
+    surface_render_command.handle,
+    surface_run_command.handle,
+    surface_screenshot_command.handle,
+    surface_status_command.handle,
 )
 
 

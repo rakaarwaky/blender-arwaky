@@ -15,6 +15,9 @@ from modules.shared.src.gateway.contract_connection_protocol import (
     ConnectionProtocol,
 )
 from modules.shared.src.gateway.contract_gateway_aggregate import IGatewayAggregate
+from modules.shared.src.gateway.contract_maintenance_protocol import (
+    ConnectionMaintenanceProtocol,
+)
 from modules.shared.src.gateway.contract_scene_queue_protocol import (
     SceneQueueProtocol,
 )
@@ -40,8 +43,6 @@ from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
     ILauncherOperateAggregate,
 )
 
-from .capabilities_connection_maintenance import MaintenanceExecutor
-
 logger = logging.getLogger("BlenderMCPServer")
 
 
@@ -61,22 +62,18 @@ class GatewayOrchestrator(IGatewayAggregate):
         transport: TransportProtocol,
         scene_queue: SceneQueueProtocol,
         code_executor: CodeExecutionProtocol,
+        maintenance: ConnectionMaintenanceProtocol,
         launcher: ILauncherOperateAggregate | None = None,
-        max_retries: int = 3,
-        base_backoff_seconds: float = 1.0,
-        max_backoff_seconds: float = 16.0,
     ) -> None:
         self._connection = connection
         self._transport = transport
         self._scene_queue = scene_queue
         self._code_executor = code_executor
         self._launcher = launcher
-        self._maintenance = MaintenanceExecutor(
-            max_retries=max_retries,
-            base_backoff_seconds=base_backoff_seconds,
-            max_backoff_seconds=max_backoff_seconds,
-            reconnect_fn=self._reconnect_with_runtime,
-        )
+        self._maintenance = maintenance
+        set_reconnect_fn = getattr(maintenance, "set_reconnect_fn", None)
+        if callable(set_reconnect_fn):
+            set_reconnect_fn(self._reconnect_with_runtime)
 
     # \u2500\u2500 Block 2: Protocol Method Implementation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
