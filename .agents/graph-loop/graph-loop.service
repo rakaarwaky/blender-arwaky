@@ -1,0 +1,33 @@
+[Unit]
+Description=Graph Loop Agent Pipeline — blender-arwaky (v2.0)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=raka
+Group=raka
+WorkingDirectory=/home/raka/mcp-arwaky/blender-arwaky
+ExecStart=/usr/bin/python3 .agents/graph-loop/src/main.py engine start
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=graph-loop-blender
+
+# Environment
+Environment=HOME=/home/raka
+Environment=PATH=/home/raka/.cargo/bin:/home/raka/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/home/raka/mcp-arwaky/blender-arwaky/.agents/graph-loop/.env
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=80%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/raka/mcp-arwaky/blender-arwaky/.agents
+
+[Install]
+WantedBy=multi-user.target

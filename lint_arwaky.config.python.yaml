@@ -402,31 +402,31 @@ architecture:
       exceptions: ["__init__.py", "__main__.py", "main.py"]
 
     AES501:
-      enabled: false
+      enabled: true
       scope: ["taxonomy"]
       entry_points: []
 
     AES502:
-      enabled: false
+      enabled: true
       scope: ["contract"]
       entry_points: []
 
     AES503:
-      enabled: false
+      enabled: true
       scope: ["capabilities"]
       entry_points: []
 
     AES504:
-      enabled: false
+      enabled: true
       scope: ["utility"]
       entry_points: []
 
     AES505:
-      enabled: false
+      enabled: true
       scope: ["agent"]
       entry_points: []
 
     AES506:
-      enabled: false
+      enabled: true
       scope: ["surface"]
       entry_points: []

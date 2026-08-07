@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "name": "blender-arwaky",
+  "color": "",
+  "dockState": {
+    "zones": {
+      "left": {
+        "position": "left",
+        "visible": false,
+        "size": 260,
+        "layout": null
+      },
+      "right": {
+        "position": "right",
+        "visible": false,
+        "size": 260,
+        "layout": null
+      },
+      "bottom": {
+        "position": "bottom",
+        "visible": false,
+        "size": 240,
+        "layout": null
+      },
+      "center": {
+        "position": "center",
+        "visible": true,
+        "size": 0,
+        "layout": {
+          "type": "tabs",
+          "id": "5439b172-cc8a-4d31-9e5e-f1583b51d4cf",
+          "panelIds": [
+            "bdb5e0bf-8594-41e7-9107-7e9dd192923f"
+          ],
+          "activeIndex": 0
+        }
+      }
+    }
+  },
+  "panels": {
+    "5d930260-39fc-4068-8fa9-872618e1b6df": {
+      "type": "terminal",
+      "title": "raka@fedora:~/mcp-arwaky/blender-arwaky"
+    },
+    "bdb5e0bf-8594-41e7-9107-7e9dd192923f": {
+      "type": "canvas",
+      "title": "Canvas"
+    }
+  },
+  "canvases": {
+    "bdb5e0bf-8594-41e7-9107-7e9dd192923f": {
+      "id": "bdb5e0bf-8594-41e7-9107-7e9dd192923f",
+      "canvasNodes": {
+        "206237d9-5b23-4091-9b1e-d7298c67ad6d": {
+          "id": "206237d9-5b23-4091-9b1e-d7298c67ad6d",
+          "origin": {
+            "x": 320,
+            "y": 310
+          },
+          "size": {
+            "width": 640,
+            "height": 400
+          },
+          "zOrder": 1,
+          "creationIndex": 0,
+          "animationState": "idle",
+          "dockLayout": {
+            "type": "tabs",
+            "id": "cf449965-5f04-41bf-afc7-6560f1300392",
+            "panelIds": [
+              "5d930260-39fc-4068-8fa9-872618e1b6df"
+            ],
+            "activeIndex": 0
+          }
+        }
+      },
+      "zoomLevel": 1,
+      "viewportOffset": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "version": "2.0",
+  "features": {
+    "shared": {
+      "status": "PENDING",
+      "priority": 1,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/shared",
+      "description": "Shared VOs, contracts, utilities — foundation layer",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "config": {
+      "status": "PENDING",
+      "priority": 2,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/config",
+      "description": "Configuration loading and workspace detection",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "dispatcher": {
+      "status": "PENDING",
+      "priority": 3,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/dispatcher",
+      "description": "Command dispatch and routing",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "gateway": {
+      "status": "PENDING",
+      "priority": 4,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/gateway",
+      "description": "Blender addon gateway and IPC bridge",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "launcher": {
+      "status": "PENDING",
+      "priority": 5,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/launcher",
+      "description": "Application launcher and lifecycle",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "cli": {
+      "status": "PENDING",
+      "priority": 6,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/cli",
+      "description": "Human CLI surface",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "mcp": {
+      "status": "PENDING",
+      "priority": 7,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/mcp",
+      "description": "AI MCP surface and tool definitions",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "job": {
+      "status": "PENDING",
+      "priority": 8,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/job",
+      "description": "Job queue and task scheduling",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "asset": {
+      "status": "PENDING",
+      "priority": 9,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/asset",
+      "description": "Asset management and import/export",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "scene": {
+      "status": "PENDING",
+      "priority": 10,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/scene",
+      "description": "Scene data and hierarchy operations",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "object": {
+      "status": "PENDING",
+      "priority": 11,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/object",
+      "description": "Object manipulation and properties",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "render": {
+      "status": "PENDING",
+      "priority": 12,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/render",
+      "description": "Render engine integration",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "security": {
+      "status": "PENDING",
+      "priority": 13,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/security",
+      "description": "AES compliance and validation rules",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "diagnostics": {
+      "status": "PENDING",
+      "priority": 14,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/diagnostics",
+      "description": "Diagnostics and error reporting",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    },
+    "telemetry": {
+      "status": "PENDING",
+      "priority": 15,
+      "path": "/home/raka/mcp-arwaky/blender-arwaky/modules/telemetry",
+      "description": "Telemetry and metrics collection",
+      "pipeline_id": null,
+      "claimed_at": null,
+      "locked_by": null,
+      "iteration": 0,
+      "history": []
+    }
+  },
+  "dedup_rules": {
+    "cooldown_minutes": 60
+  }
+}
