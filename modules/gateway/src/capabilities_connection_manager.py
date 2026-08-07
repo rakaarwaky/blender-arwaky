@@ -35,11 +35,6 @@ from modules.shared.src.gateway.contract_transport_protocol import (
     TransportProtocol,
 )
 from modules.shared.src.gateway.taxonomy_gateway_constant import (
-    CONNECTION_STATE_CLOSED,
-    CONNECTION_STATE_CONNECTED,
-    CONNECTION_STATE_DISCONNECTED,
-    CONNECTION_STATE_FAILED,
-    CONNECTION_STATE_RECONNECTING,
     DEFAULT_PROTOCOL_VERSION,
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
@@ -80,7 +75,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         self._port: int = 9876
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
-        self._state: ConnectionState = CONNECTION_STATE_DISCONNECTED
+        self._state: ConnectionState = ConnectionState.DISCONNECTED
         self._active_operation: bool = False
         self._protocol_version: str | None = DEFAULT_PROTOCOL_VERSION
         self._last_error: str | None = None
@@ -116,7 +111,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 await self._perform_handshake(config)
                 await self._authenticate(config)
 
-                self._state = CONNECTION_STATE_CONNECTED
+                self._state = ConnectionState.CONNECTED
                 self._reconnect_attempts = attempt + 1
                 self._consecutive_failures = 0
                 self._last_heartbeat_at = time.monotonic()
@@ -131,7 +126,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 )
 
                 status = ConnectionStatus(
-                    state=CONNECTION_STATE_CONNECTED,
+                    state=ConnectionState.CONNECTED,
                     host=self._host,
                     port=self._port,
                     transport_type=config.transport_type,
@@ -146,11 +141,11 @@ class BlenderConnection(IBlenderConnectionProtocol):
 
             except (VersionMismatchError, AuthenticationError, ConnectionConfigError):
                 await self._close_stream()
-                self._state = CONNECTION_STATE_FAILED
+                self._state = ConnectionState.FAILED
                 raise
 
             except Exception as e:
-                self._state = CONNECTION_STATE_FAILED
+                self._state = ConnectionState.FAILED
                 self._last_error = str(e)
                 logger.warning(
                     "Connection attempt %d/%d failed: %s",
@@ -166,7 +161,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     logger.debug("Waiting %.1f seconds before reconnect attempt %d", delay, attempt + 2)
                     await asyncio.sleep(delay)
 
-        self._state = CONNECTION_STATE_FAILED
+        self._state = ConnectionState.FAILED
         raise BlenderConnectionExhausted(
             attempts=max_attempts,
             details={"host": self._host, "port": self._port},
@@ -176,10 +171,10 @@ class BlenderConnection(IBlenderConnectionProtocol):
         await self._stop_heartbeat()
         await self._close_stream()
         old_state = self._state
-        self._state = CONNECTION_STATE_CLOSED
-        if old_state != CONNECTION_STATE_CLOSED:
+        self._state = ConnectionState.CLOSED
+        if old_state != ConnectionState.CLOSED:
             await self._event_publisher.publish(ConnectionLost(reason="closed"))
-            logger.info("Disconnected from Blender (state=%s)", CONNECTION_STATE_CLOSED)
+            logger.info("Disconnected from Blender (state=%s)", ConnectionState.CLOSED)
 
     async def is_connected(self) -> bool:
         try:
@@ -400,7 +395,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     if self._active_operation:
                         logger.warning("Operation in progress — deferring reconnect")
                         continue
-                    self._state = CONNECTION_STATE_RECONNECTING
+                    self._state = ConnectionState.RECONNECTING
                     await self._event_publisher.publish(ConnectionLost(reason="heartbeat_timeout"))
                     await self._close_stream()
             except asyncio.CancelledError:

@@ -58,7 +58,7 @@ logger = logging.getLogger("BlenderMCPServer")
 class BlenderCommandAdapter(IBlenderCommandProtocol):
     """Command dispatch capability for Blender TCP/stdio operations.
 
-    Implements FR-SRV-003 (v2.0.0): dispatches named commands with
+    Implements FR-GWY-003: dispatches named commands with
     catalog-driven validation, timeout enforcement, and response
     truncation. No queue management — queued by orchestrator.
     """
@@ -194,6 +194,7 @@ class TransportExecutor(TransportProtocol):
     def _receive_response(self, _timeout_seconds: float) -> bytes:
         if not self._socket:
             raise TimeoutError("No socket connection")
+        self._socket.settimeout(_timeout_seconds)
         # Header is only 4 bytes — simple concatenation is fine here
         header = b""
         while len(header) < 4:
@@ -206,7 +207,7 @@ class TransportExecutor(TransportProtocol):
             raise PayloadLimitError(
                 f"Response length {length} exceeds max payload {self._max_payload_bytes}"
             )
-        # Use bytearray to avoid O(n²) memory copies on large payloads
+        # Use bytearray to avoid O(n2) memory copies on large payloads
         data = bytearray()
         while len(data) < length:
             chunk = self._socket.recv(length - len(data))

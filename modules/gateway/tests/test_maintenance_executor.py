@@ -80,10 +80,11 @@ def test_reconnect_none_outcome_treated_as_failure():
     assert status.state == ConnectionState.FAILED
 
 
-def test_reconnect_without_hook_keeps_legacy_connected_behavior():
+def test_reconnect_without_hook_transitions_to_failed():
     executor = MaintenanceExecutor()
     status = executor.attempt_reconnect()
-    assert status.state == ConnectionState.CONNECTED
+    assert status.state == ConnectionState.FAILED
+    assert "No reconnect function configured" in (status.last_failure_reason or "")
 
 
 def test_reconnect_counter_resets_after_exhaustion():
