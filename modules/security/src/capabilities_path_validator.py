@@ -17,10 +17,8 @@ from modules.shared.src.security.taxonomy_security_vo import (
 from modules.shared.src.security.utility_security_path import (
     is_within_allowed_dirs,
     normalize_path,
+    redact_path,
     resolve_path,
-)  # fmt: skip
-from modules.shared.src.security.utility_security_path import (
-    redact_path as _redact_path,
 )
 
 
@@ -105,7 +103,7 @@ class PathValidator(ValidatePathProtocol):
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Symbolic link escape",
-                audit_metadata={"rule": "symlink_escape", "path": _redact_path(resolved)},
+                audit_metadata={"rule": "symlink_escape", "path": redact_path(resolved)},
             )
 
         allowed_dirs = self._policy.allowed_directories
@@ -117,7 +115,7 @@ class PathValidator(ValidatePathProtocol):
                 operation_context=request.operation_context,
                 allowed=False,
                 denial_reason="Path outside allowed directories",
-                audit_metadata={"rule": "unauthorized_access", "path": _redact_path(resolved)},
+                audit_metadata={"rule": "unauthorized_access", "path": redact_path(resolved)},
             )
 
         return PathValidationVO(
@@ -127,7 +125,7 @@ class PathValidator(ValidatePathProtocol):
             operation_context=request.operation_context,
             allowed=True,
             canonical_path=resolved,
-            audit_metadata={"path": _redact_path(resolved), "mode": request.access_mode.value},
+            audit_metadata={"path": redact_path(resolved), "mode": request.access_mode.value},
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
