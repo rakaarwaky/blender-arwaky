@@ -57,3 +57,4 @@ Thumbs.db
 .archive
 .worktree/
 .agents/finding/
+.agents/graph-loop

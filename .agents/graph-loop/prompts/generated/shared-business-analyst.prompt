@@ -4,7 +4,7 @@
 - **FRD Path:** /home/raka/mcp-arwaky/blender-arwaky/modules/shared/FRD.md
 - **FRD Hash:** sha256:1f4c6033b3427742631321b1ac666b2b3c15662caa52f1a466eddc2545da81cc
 - **Project Root:** /home/raka/mcp-arwaky/blender-arwaky
-- **Correlation ID:** corr-20260807-shared-767
+- **Correlation ID:** corr-20260807-shared-622
 - **Pipeline Iteration:** 1/5
 - **Rejection Loop:** 0/3
 - **Rule:** Only analyze files within Feature Path. Do NOT touch files outside Feature Path.
