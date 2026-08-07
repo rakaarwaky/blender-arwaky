@@ -153,6 +153,9 @@ class ConfigOrchestrator(IConfigAggregate):
 
     def _record_event(self, event: object) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
+        if not hasattr(event, '__dataclass_fields__'):
+            logger.warning("Skipping non-dataclass event: %s", type(event).__name__)
+            return
         payload = asdict(event)
         # Apply redaction to prevent secret leakage in event logs
         redacted_payload = self._redaction_rules.redact_dict(payload) if isinstance(payload, dict) else payload
