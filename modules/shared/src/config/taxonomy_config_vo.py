@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import NewType
 
 from ..common.taxonomy_core_vo import ConfigPath
 
@@ -45,6 +46,17 @@ EventPayload = dict[str, str | int | float | bool | None]
 
 # YAML file loader callable — receives a config path, returns parsed data.
 ConfigFileLoader = Callable[[ConfigPath], SettingsData]
+
+# Strongly-typed accessor values (AES402: no raw primitives in contract signatures)
+ConfigStringValue = NewType("ConfigStringValue", str)
+ConfigIntValue = NewType("ConfigIntValue", int)
+ConfigFloatValue = NewType("ConfigFloatValue", float)
+ConfigEventLimit = NewType("ConfigEventLimit", int)
+
+# Singleton defaults for contract signatures (B008-safe: no calls in defaults)
+DEFAULT_CONFIG_STRING: ConfigStringValue = ConfigStringValue("")
+DEFAULT_CONFIG_INT: ConfigIntValue = ConfigIntValue(0)
+DEFAULT_CONFIG_FLOAT: ConfigFloatValue = ConfigFloatValue(0.0)
 
 
 @dataclass(frozen=True)
@@ -158,7 +170,4 @@ class RedactionRule:
         matches ``author`` — an accepted false positive.
         """
         key_lower = key.lower()
-        for pattern in self.key_patterns:
-            if pattern.lower() in key_lower:
-                return True
-        return False
+        return any(pattern.lower() in key_lower for pattern in self.key_patterns)

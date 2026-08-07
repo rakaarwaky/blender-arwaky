@@ -10,6 +10,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from ..common.taxonomy_core_vo import RequestId, ToolName
+
 
 class McpSchemaProtocol(ABC):
     """Protocol for exposing MCP tool schemas from dispatcher catalog."""
@@ -35,9 +37,9 @@ class McpRoutingProtocol(ABC):
     @abstractmethod
     async def route_tool_call(
         self,
-        tool_name: str,
+        tool_name: ToolName,
         payload: dict[str, Any],
-        tracking_id: str | None = None,
+        tracking_id: RequestId | None = None,
     ) -> dict[str, Any]:
         """Route tool call to correct aggregate.
 
@@ -49,7 +51,7 @@ class McpRoutingProtocol(ABC):
     @abstractmethod
     async def validate_tool_input(
         self,
-        tool_name: str,
+        tool_name: ToolName,
         payload: dict[str, Any],
         strict_mode: bool = True,
     ) -> list[str]:
@@ -68,8 +70,8 @@ class McpResponseProtocol(ABC):
     async def format_response(
         self,
         result: Any,
-        tool_name: str,
-        tracking_id: str,
+        tool_name: ToolName,
+        tracking_id: RequestId,
         error_category: str | None = None,
     ) -> dict[str, Any]:
         """Format aggregate result into MCP-compliant response.

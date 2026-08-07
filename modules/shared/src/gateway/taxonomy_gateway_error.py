@@ -7,7 +7,38 @@ All errors use explicit typed classes — no bare strings.
 
 from __future__ import annotations
 
-from modules.shared.src.common.taxonomy_core_vo import Details, ErrorMessage, ErrorString
+from modules.shared.src.common.taxonomy_core_vo import (
+    ActionName,
+    Details,
+    DurationMs,
+    ErrorMessage,
+    ErrorString,
+    QueueDepth,
+    ReconnectAttempt,
+    RequestId,
+    TaskUuid,
+    VersionString,
+)
+
+# VO singleton defaults (B008-safe: no constructor calls in argument defaults)
+DEFAULT_SECURITY_MSG: ErrorString = ErrorString("Security violation")
+DEFAULT_EXEC_TIMEOUT_MS: DurationMs = DurationMs(30_000.0)
+DEFAULT_ACTION_REF: ActionName = ActionName("")
+DEFAULT_CMD_TIMEOUT_MS: DurationMs = DurationMs(5_000.0)
+DEFAULT_QUEUE_DEPTH: QueueDepth = QueueDepth(50)
+DEFAULT_REQUEST_REF: RequestId = RequestId("")
+DEFAULT_OP_TIMEOUT_MS: DurationMs = DurationMs(10_000.0)
+DEFAULT_TASK_REF: TaskUuid = TaskUuid("")
+DEFAULT_CONFIG_ERR_MSG: ErrorString = ErrorString("Connection config error")
+DEFAULT_AUTH_ERR_MSG: ErrorString = ErrorString("Authentication failed")
+DEFAULT_VERSION_REF: VersionString = VersionString("")
+DEFAULT_RECONNECT_ATTEMPTS: ReconnectAttempt = ReconnectAttempt(3)
+DEFAULT_BLENDER_CONN_MSG: ErrorString = ErrorString("Blender connection failure")
+DEFAULT_VALIDATION_MSG: ErrorString = ErrorString("Validation error")
+DEFAULT_VALIDATION_CODE: ErrorString = ErrorString("validation_error")
+DEFAULT_PROVIDER_MSG: ErrorString = ErrorString("Provider error")
+DEFAULT_EXECUTION_MSG: ErrorString = ErrorString("Execution error")
+DEFAULT_ADAPTER_MSG: ErrorString = ErrorString("Adapter surface error")
 
 
 class GatewayError(Exception):
@@ -71,7 +102,9 @@ class SecurityViolationError(ServerError):
     raised when the validation result indicates a violation.
     """
 
-    def __init__(self, message: str = "Security violation", _details: Details | None = None) -> None:
+    def __init__(
+        self, message: ErrorString = DEFAULT_SECURITY_MSG, _details: Details | None = None
+    ) -> None:
         super().__init__("security_violation", message, _details)
 
 
@@ -81,14 +114,19 @@ class SecurityViolationError(ServerError):
 class ExecutionTimeoutError(ServerError):
     """Raised when code execution exceeds the configured timeout."""
 
-    def __init__(self, timeout_ms: float = 30_000.0, _details: Details | None = None) -> None:
+    def __init__(self, timeout_ms: DurationMs = DEFAULT_EXEC_TIMEOUT_MS, _details: Details | None = None) -> None:
         super().__init__("execution_timeout", f"Execution exceeded {timeout_ms}ms", {"timeout_ms": timeout_ms})
 
 
 class CommandTimeoutError(ServerError):
     """Raised when a command response exceeds the configured timeout."""
 
-    def __init__(self, action: str = "", timeout_ms: float = 5_000.0, _details: Details | None = None) -> None:
+    def __init__(
+        self,
+        action: ActionName = DEFAULT_ACTION_REF,
+        timeout_ms: DurationMs = DEFAULT_CMD_TIMEOUT_MS,
+        _details: Details | None = None,
+    ) -> None:
         super().__init__(
             "command_timeout",
             f"Command '{action}' timed out after {timeout_ms}ms",
@@ -105,7 +143,12 @@ class PendingOpsLimitError(ServerError):
     Error code: 'too_many_pending_operations'
     """
 
-    def __init__(self, max_depth: int = 50, request_id: str | None = None, _details: Details | None = None) -> None:
+    def __init__(
+        self,
+        max_depth: QueueDepth = DEFAULT_QUEUE_DEPTH,
+        request_id: RequestId | None = None,
+        _details: Details | None = None,
+    ) -> None:
         super().__init__(
             "too_many_pending_operations",
             f"Queue full (depth={max_depth})",
@@ -124,7 +167,12 @@ class OperationWaitTimeoutError(ServerError):
     Error code: 'operation_wait_timeout'
     """
 
-    def __init__(self, request_id: str = "", timeout_ms: float = 10_000.0, _details: Details | None = None) -> None:
+    def __init__(
+        self,
+        request_id: RequestId = DEFAULT_REQUEST_REF,
+        timeout_ms: DurationMs = DEFAULT_OP_TIMEOUT_MS,
+        _details: Details | None = None,
+    ) -> None:
         super().__init__(
             "operation_wait_timeout",
             f"Operation wait timeout for {request_id}",
@@ -138,7 +186,7 @@ class OperationWaitTimeoutError(ServerError):
 class TaskNotFoundError(ServerError):
     """Raised when polling an unknown or expired async task."""
 
-    def __init__(self, task_id: str = "", _details: Details | None = None) -> None:
+    def __init__(self, task_id: TaskUuid = DEFAULT_TASK_REF, _details: Details | None = None) -> None:
         super().__init__("task_not_found", f"Task not found: {task_id}", {"task_id": task_id})
 
 
@@ -148,14 +196,14 @@ class TaskNotFoundError(ServerError):
 class ConnectionConfigError(ServerError):
     """Raised when connection factory receives invalid configuration."""
 
-    def __init__(self, message: str = "Connection config error", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_CONFIG_ERR_MSG, _details: Details | None = None) -> None:
         super().__init__("connection_config_error", message, _details)
 
 
 class AuthenticationError(ServerError):
     """Raised when connection authentication fails."""
 
-    def __init__(self, message: str = "Authentication failed", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_AUTH_ERR_MSG, _details: Details | None = None) -> None:
         super().__init__("authentication_failed", message, _details)
 
 
@@ -166,7 +214,12 @@ class VersionMismatchError(ServerError):
     Error code: 'version_mismatch'
     """
 
-    def __init__(self, expected: str = "", actual: str = "", _details: Details | None = None) -> None:
+    def __init__(
+        self,
+        expected: VersionString = DEFAULT_VERSION_REF,
+        actual: VersionString = DEFAULT_VERSION_REF,
+        _details: Details | None = None,
+    ) -> None:
         super().__init__(
             "version_mismatch",
             f"Expected major version {expected}, got {actual}",
@@ -184,7 +237,7 @@ class ConnectionClosedError(ServerError):
 class BlenderConnectionExhausted(ServerError):
     """Raised after all reconnect attempts have been exhausted."""
 
-    def __init__(self, attempts: int = 3, _details: Details | None = None) -> None:
+    def __init__(self, attempts: ReconnectAttempt = DEFAULT_RECONNECT_ATTEMPTS, _details: Details | None = None) -> None:
         super().__init__(
             "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
         )
@@ -193,7 +246,7 @@ class BlenderConnectionExhausted(ServerError):
 class BlenderConnectionFailure(ServerError):
     """Raised when connection is lost or unavailable."""
 
-    def __init__(self, message: str = "Blender connection failure", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_BLENDER_CONN_MSG, _details: Details | None = None) -> None:
         super().__init__("blender_connection_failure", message, _details)
 
 
@@ -204,7 +257,10 @@ class GatewayValidationError(ServerError):
     """Raised for unknown commands, invalid parameters, or syntax errors."""
 
     def __init__(
-        self, message: str = "Validation error", code: str = "validation_error", details: Details | None = None
+        self,
+        message: ErrorString = DEFAULT_VALIDATION_MSG,
+        code: ErrorString = DEFAULT_VALIDATION_CODE,
+        details: Details | None = None,
     ) -> None:
         super().__init__(code, message, details)
 
@@ -215,21 +271,21 @@ class GatewayValidationError(ServerError):
 class GatewayProviderError(ServerError):
     """Raised when Blender addon returns a command-specific failure."""
 
-    def __init__(self, message: str = "Provider error", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_PROVIDER_MSG, _details: Details | None = None) -> None:
         super().__init__("provider_error", message, _details)
 
 
 class GatewayExecutionError(ServerError):
     """Raised when Blender code execution returns a runtime failure."""
 
-    def __init__(self, message: str = "Execution error", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_EXECUTION_MSG, _details: Details | None = None) -> None:
         super().__init__("execution_error", message, _details)
 
 
 class AdapterSurfaceError(ServerError):
     """Raised when an unexpected adapter surface failure occurs."""
 
-    def __init__(self, message: str = "Adapter surface error", _details: Details | None = None) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_ADAPTER_MSG, _details: Details | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)
 
 

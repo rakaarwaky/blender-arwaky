@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import RequestId, ToolName
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.mcp.contract_mcp_protocol import McpRoutingProtocol
 
@@ -25,9 +26,9 @@ class McpRoutingImpl(McpRoutingProtocol):
 
     async def route_tool_call(
         self,
-        tool_name: str,
+        tool_name: ToolName,
         payload: dict[str, Any],
-        _tracking_id: str | None = None,
+        _tracking_id: RequestId | None = None,
     ) -> dict[str, Any]:
         """Route tool call to correct aggregate.
 

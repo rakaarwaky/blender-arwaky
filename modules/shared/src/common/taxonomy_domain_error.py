@@ -20,7 +20,7 @@ class BlenderMCPError(Exception):
         """Serialize error for MCP response."""
         return {
             "code": self.__class__.__name__,
-            "message": str(ErrorString(str(self))),
+            "message": self._error_message,
             "details": getattr(self, "details", None),
         }
 
@@ -38,7 +38,7 @@ class DomainError(BlenderMCPError):
         """Serialize error for MCP response."""
         return {
             "code": self.__class__.__name__,
-            "message": str(ErrorString(str(self))),
+            "message": self._error_message,
             "details": getattr(self, "details", None),
         }
 

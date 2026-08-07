@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import logging
 
+from modules.shared.src.mcp.capabilities_response_formatter import McpResponseImpl
+from modules.shared.src.mcp.capabilities_routing_proxy import McpRoutingImpl
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
     McpSchemaProtocol,
 )
-from modules.shared.src.mcp.mcp_response_formatter import McpResponseImpl
-from modules.shared.src.mcp.mcp_routing_proxy import McpRoutingImpl
 
 logger = logging.getLogger("BlenderMCPServer")
 

@@ -6,8 +6,7 @@ Input and output fields live in a single VO per concept.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from dataclasses import field as dc_field
+from dataclasses import dataclass, field as dc_field
 
 # ============================================================
 # Health Composition (FR-DIA-001)

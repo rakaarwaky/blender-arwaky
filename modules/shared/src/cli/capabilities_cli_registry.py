@@ -9,13 +9,16 @@ import json
 import os
 import threading
 
-from modules.shared.src.cli.taxonomy_cli_vo import CliResultVo, RegistryStateVo
+from modules.shared.src.cli.contract_cli_registry_protocol import IRegistryProtocol
+from modules.shared.src.cli.taxonomy_cli_constant import REGISTRY_DEFAULT_PORT
+from modules.shared.src.cli.taxonomy_cli_vo import BlenderPid, CliResultVo, RegistryStateVo
+from modules.shared.src.common.taxonomy_core_vo import FilePath, PortNumber
 
 REGISTRY_FILE = "registry.json"
 DEFAULT_PORT = 9876
 
 
-class Registry:
+class Registry(IRegistryProtocol):
     """Thread-safe singleton managing registry.json using Taxonomy VOs."""
 
     _instance: Registry | None = None
@@ -61,19 +64,19 @@ class Registry:
         """Return current registry state VO."""
         return self._state
 
-    def get_active(self) -> str | None:
+    def get_active(self) -> FilePath | None:
         return self._state.active_entity
 
-    def get_port(self) -> int:
+    def get_port(self) -> PortNumber:
         return self._state.port
 
-    def get_pid(self) -> int | None:
+    def get_pid(self) -> BlenderPid | None:
         return self._state.pid
 
     def is_active(self) -> bool:
         return self._state.active_entity is not None
 
-    def set_active(self, filepath: str, pid: int, port: int = DEFAULT_PORT) -> None:
+    def set_active(self, filepath: FilePath, pid: BlenderPid, port: PortNumber = REGISTRY_DEFAULT_PORT) -> None:
         self._state = RegistryStateVo(active_entity=filepath, port=port, pid=pid)
         self._save()
 
@@ -92,7 +95,7 @@ class Registry:
             )
         return None
 
-    def assert_active(self, filepath: str) -> CliResultVo | None:
+    def assert_active(self, filepath: FilePath) -> CliResultVo | None:
         """Return CliResultVo error if active state does not match filepath, or None if valid."""
         if not self._state.active_entity:
             return CliResultVo(

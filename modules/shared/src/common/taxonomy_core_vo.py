@@ -111,6 +111,10 @@ CapabilityRef = NewType("CapabilityRef", str)
 # Exit code for CLI main() return codes
 ExitCode = NewType("ExitCode", int)
 
+# Queue / retry limits for error payloads
+QueueDepth = NewType("QueueDepth", int)
+ReconnectAttempt = NewType("ReconnectAttempt", int)
+
 # Pathing
 FilePath = NewType("FilePath", str)
 DirectoryPath = NewType("DirectoryPath", str)

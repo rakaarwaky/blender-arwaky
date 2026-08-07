@@ -80,6 +80,8 @@ ignore = ["E501"]
 "blender_mcp_addon/properties.py" = []  # noqa already used inline
 "modules/shared/src/gateway/taxonomy_gateway_error.py" = ["N818"]  # BlenderConnectionExhausted/BlenderConnectionFailure are intentional names
 "modules/scene/src/__init__.py" = ["N813"]  # Lazy __getattr__ import needs lowercase alias for forward refs
+# isort wants `dataclass` and `field as dc_field` on separate lines; AES203 flags that split as unused.
+"modules/shared/src/{security,launcher,gateway,diagnostics}/taxonomy_*.py" = ["I001"]
 
 [tool.ruff.format]
 quote-style = "double"

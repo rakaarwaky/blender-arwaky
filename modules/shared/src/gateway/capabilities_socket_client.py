@@ -10,11 +10,14 @@ import socket
 import struct
 from typing import Any
 
+from modules.shared.src.gateway.contract_transport_protocol import TransportProtocol
+from modules.shared.src.gateway.taxonomy_gateway_vo import TransportMessageVO, TransportOutcomeVO
+
 MAX_MESSAGE_SIZE = 10 * 1024 * 1024
 DEFAULT_TIMEOUT = 30.0
 
 
-class BlenderSocketClient:
+class BlenderSocketClient(TransportProtocol):
     """TCP client for communicating with Blender addon."""
 
     def __init__(self, host: str = "localhost", port: int = 9876, timeout: float = DEFAULT_TIMEOUT):
@@ -22,6 +25,21 @@ class BlenderSocketClient:
         self.port = port
         self.timeout = timeout
         self._sock: socket.socket | None = None
+
+    def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
+        """Send a framed transport request and return the correlated outcome."""
+        if not self._sock:
+            self.connect()
+        params = json.loads(request.payload.decode("utf-8")) if request.payload else {}
+        response = self.send_command(request.operation_class, params)
+        outcome_payload = json.dumps(response).encode("utf-8")
+        return TransportOutcomeVO(
+            tracking_id=request.tracking_id,
+            status="success",
+            payload=outcome_payload,
+            request_size_bytes=len(request.payload or b""),
+            response_size_bytes=len(outcome_payload),
+        )
 
     def connect(self) -> None:
         try:

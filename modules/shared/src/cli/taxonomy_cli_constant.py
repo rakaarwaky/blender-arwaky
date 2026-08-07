@@ -1,4 +1,8 @@
-"""CLI constants — exit codes and error category identifiers."""
+"""CLI constants — exit codes, error category identifiers, and registry defaults."""
+
+from ..common.taxonomy_core_vo import PortNumber
+
+REGISTRY_DEFAULT_PORT: PortNumber = PortNumber(9876)
 
 EXIT_SUCCESS = 0
 EXIT_VALIDATION = 2

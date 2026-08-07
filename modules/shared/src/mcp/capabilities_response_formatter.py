@@ -10,6 +10,7 @@ import logging
 import uuid
 from typing import Any
 
+from modules.shared.src.common.taxonomy_core_vo import RequestId, ToolName
 from modules.shared.src.mcp.contract_mcp_protocol import McpResponseProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -26,8 +27,8 @@ class McpResponseImpl(McpResponseProtocol):
     async def format_response(
         self,
         result: Any,
-        tool_name: str,
-        tracking_id: str | None = None,
+        tool_name: ToolName,
+        tracking_id: RequestId | None = None,
         error_category: str | None = None,
     ) -> dict[str, Any]:
         """Format aggregate result into MCP-compliant response envelope.
@@ -78,7 +79,7 @@ class McpResponseImpl(McpResponseProtocol):
         # In production, integrate with actual redaction patterns.
         return response
 
-    def _truncate_response(self, _envelope: dict[str, Any], tool_name: str, tid: str) -> dict[str, Any]:
+    def _truncate_response(self, _envelope: dict[str, Any], tool_name: ToolName, tid: RequestId) -> dict[str, Any]:
         """Truncate oversized response per FR-MCP-003 strategy."""
         return {
             "tracking_id": tid,

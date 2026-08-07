@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NewType
+
+BlenderPid = NewType("BlenderPid", int)
 
 
 @dataclass(frozen=True)
