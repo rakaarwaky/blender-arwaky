@@ -121,10 +121,10 @@ class TelemetryEvent:
     category: TelemetryCategory
     session_id: SessionId
     timestamp: Timestamp
-    feature_area: str
-    operation_type: str
-    outcome_category: str
-    version: VersionString = "unknown"
-    platform: PlatformName = "unknown"
-    duration_bucket: float | None = None
+    feature_area: FeatureArea
+    operation_type: OperationType
+    outcome_category: OutcomeCategory
+    version: VersionString = VersionString("unknown")
+    platform: PlatformName = PlatformName("unknown")
+    duration_bucket: DurationBucket | None = None
     metadata: dict[str, str] | None = None

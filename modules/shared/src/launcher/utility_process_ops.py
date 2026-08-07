@@ -17,10 +17,6 @@ import signal
 import socket
 import time
 
-from .taxonomy_launcher_vo import RuntimeStateVO
-
-_taxonomy_types = (RuntimeStateVO,)
-
 logger = logging.getLogger("BlenderMCPServer")
 
 

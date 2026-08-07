@@ -195,26 +195,26 @@ class BlenderConnectionFailure(ServerError):
 # ─── Validation Errors ──────────────────────────────────────────
 
 
-class ValidationError(ServerError):
+class GatewayValidationError(ServerError):
     """Raised for unknown commands, invalid parameters, or syntax errors."""
 
     def __init__(
-        self, message: str = "Validation error", code: str = "validation_error", _details: Details | None = None
+        self, message: str = "Validation error", code: str = "validation_error", details: Details | None = None
     ) -> None:
-        super().__init__(code, message, _details)
+        super().__init__(code, message, details)
 
 
 # ─── Adapter / Surface Errors ────────────────────────────────────
 
 
-class ProviderError(ServerError):
+class GatewayProviderError(ServerError):
     """Raised when Blender addon returns a command-specific failure."""
 
     def __init__(self, message: str = "Provider error", _details: Details | None = None) -> None:
         super().__init__("provider_error", message, _details)
 
 
-class ExecutionError(ServerError):
+class GatewayExecutionError(ServerError):
     """Raised when Blender code execution returns a runtime failure."""
 
     def __init__(self, message: str = "Execution error", _details: Details | None = None) -> None:

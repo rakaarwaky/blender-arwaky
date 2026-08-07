@@ -1,5 +1,6 @@
 """CLI taxonomy — VOs, constants, and events for CLI surface type safety."""
 
+from .capabilities_cli_registry import Registry
 from .taxonomy_cli_constant import (
     CATEGORY_CAPACITY,
     CATEGORY_CONFIGURATION,
@@ -40,4 +41,5 @@ __all__ = [
     "CliEvent",
     "CliResultVo",
     "CliErrorVo",
+    "Registry",
 ]
