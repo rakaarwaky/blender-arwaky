@@ -13,9 +13,7 @@ and SceneQueueExecutor (sync queue-based, SceneQueueProtocol).
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
-import queue
 import threading
 import time
 import uuid
@@ -72,7 +70,7 @@ class OperationQueue(IOperationQueueProtocol):
         self._event_publisher = event_publisher
         self._max_depth = max_depth
         self._wait_timeout_ms = wait_timeout_ms
-        self._queue: deque[QueuedOperation] = deque()
+        self._queue: list[QueuedOperation] = []
         self._operation_states: dict[str, OperationState] = {}
         self._started_events: dict[str, asyncio.Future] = {}
         self._result_events: dict[str, asyncio.Future] = {}
@@ -107,7 +105,7 @@ class OperationQueue(IOperationQueueProtocol):
         async with self._lock:
             if not self._queue:
                 return None
-            operation = self._queue.popleft()
+            operation = self._queue.pop(0)
         await self._event_publisher.publish(ItemDequeued(request_id=operation.request_id))
         logger.info("Dequeued operation %s (remaining=%d)", operation.request_id, len(self._queue))
         return operation
@@ -179,7 +177,7 @@ class OperationQueue(IOperationQueueProtocol):
     async def cancel_pending(self, error: Exception) -> int:
         async with self._lock:
             cancelled = 0
-            remaining = deque()
+            remaining = []
             for op in self._queue:
                 state = self._operation_states.get(op.request_id)
                 if state and state.started:
@@ -198,7 +196,7 @@ class OperationQueue(IOperationQueueProtocol):
                     state = self._operation_states.get(op.request_id)
                     if state:
                         state.error = error
-                    self._queue.remove(op)
+                    self._queue.pop(i)
                     return True
         return False
 
@@ -226,9 +224,14 @@ class SceneQueueExecutor(SceneQueueProtocol):
     Enforces depth limit (channel conflict) and wait timeout.
     """
 
-    def __init__(self, transport: TransportProtocol, max_depth: int = 50, wait_timeout_seconds: float = 30.0) -> None:
+    def __init__(
+        self,
+        transport: TransportProtocol,
+        max_depth: int = 50,
+        wait_timeout_seconds: float = 30.0,
+    ) -> None:
         self._transport = transport
-        self._queue: queue.Queue[SceneOperationVO] = queue.Queue(maxsize=max_depth)
+        self._queue: deque[SceneOperationVO] = deque(maxlen=max_depth)
         self._max_depth: int = max_depth
         self._wait_timeout_seconds: float = wait_timeout_seconds
         self._execution_lock = threading.Lock()
@@ -238,14 +241,13 @@ class SceneQueueExecutor(SceneQueueProtocol):
         if not operation.is_mutation:
             logger.debug("Read-only operation bypasses queue")
             return self._execute_directly(operation)
-        try:
-            self._queue.put_nowait(operation)
-        except queue.Full:
+        if len(self._queue) >= self._max_depth:
             raise ChannelConflictError(f"Queue depth limit {self._max_depth} reached") from None
+        self._queue.append(operation)
         acquired = self._execution_lock.acquire(timeout=self._wait_timeout_seconds)
         if not acquired:
-            with contextlib.suppress(Exception):
-                self._queue.get_nowait()
+            if self._queue:
+                self._queue.popleft()
             raise TimeoutError(f"Queue wait timeout exceeded after {self._wait_timeout_seconds}s")
         self._processing = True
         try:
@@ -257,21 +259,18 @@ class SceneQueueExecutor(SceneQueueProtocol):
     def fail_pending(self, _error: Exception) -> int:
         """Fail and remove all pending operations in the queue.
 
+        FR-GWY-002: Pending ops fail deterministically on connection loss.
         Returns the number of operations cancelled.
         """
-        cancelled = 0
-        while not self._queue.empty():
-            try:
-                self._queue.get_nowait()
-                cancelled += 1
-            except Exception:
-                break
-        logger.info("Failed %d pending operations in scene queue", cancelled)
+        cancelled = len(self._queue)
+        self._queue.clear()
+        if cancelled > 0:
+            logger.info("Failed %d pending operations in scene queue", cancelled)
         return cancelled
 
     def get_queue_status(self) -> QueueStatusVO:
         return QueueStatusVO(
-            current_depth=self._queue.qsize(),
+            current_depth=len(self._queue),
             is_busy=self._processing,
             max_depth=self._max_depth,
         )
@@ -307,9 +306,9 @@ class SceneQueueExecutor(SceneQueueProtocol):
             logger.error("Mutation execution failed: %s", e)
             return SceneOperationOutcomeVO(
                 status="error",
-                error_message=str(e),
+                error=str(e),
                 execution_duration_ms=duration_ms,
             )
 
     def __repr__(self) -> str:
-        return f"SceneQueueExecutor(depth={self._queue.qsize()}/{self._max_depth}, busy={self._processing})"
+        return f"SceneQueueExecutor(depth={len(self._queue)}/{self._max_depth}, busy={self._processing})"

@@ -15,7 +15,6 @@ from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
 
 from .agent_gateway_orchestrator import GatewayOrchestrator
 from .capabilities_code_execution import CodeExecutionExecutor
-from .capabilities_connection_maintenance import MaintenanceExecutor
 from .capabilities_connection_manager import ConnectionExecutor
 from .capabilities_scene_queue import SceneQueueExecutor
 from .capabilities_transport_executor import TransportExecutor
@@ -60,12 +59,6 @@ class GatewayContainer:
             config=self._connection_config,
         )
 
-        self._maintenance = MaintenanceExecutor(
-            max_retries=3,
-            base_backoff_seconds=1.0,
-            max_backoff_seconds=16.0,
-        )
-
         self._scene_queue = SceneQueueExecutor(
             transport=self._transport,
             max_depth=DEFAULT_MAX_DEPTH,
@@ -81,14 +74,11 @@ class GatewayContainer:
 
         self._orchestrator = GatewayOrchestrator(
             connection=self._connection,
-            maintenance=self._maintenance,
             transport=self._transport,
             scene_queue=self._scene_queue,
             code_executor=self._code_executor,
             launcher=self._launcher,
         )
-
-        self._maintenance._reconnect_fn = self._orchestrator.reconnect_with_runtime
 
     @property
     def agent(self) -> IGatewayAggregate:
