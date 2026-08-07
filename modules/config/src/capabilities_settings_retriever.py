@@ -90,8 +90,10 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
             return raw
 
         if self._policy_mode == POLICY_MODE_STRICT:
+            # Sanitize path — use only final segment to avoid leaking structure
+            safe_ref = path.rsplit(".", maxsplit=1)[-1] if "." in path else path
             raise ConfigTypeError(
-                ErrorString(f"{path}: expected {expected.__name__}, got {type(raw).__name__}")
+                ErrorString(f"{safe_ref}: expected {expected.__name__}, got {type(raw).__name__}")
             )
         return default
 
