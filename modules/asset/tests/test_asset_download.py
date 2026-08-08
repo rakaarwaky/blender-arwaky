@@ -354,7 +354,7 @@ async def test_fr_ast_005_staleness_check_skipped_without_config_aggregate(
     assert result["success"] is True
 
 
-def test_fr_ast_005_check_metadata_staleness_fresh(_cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_fresh():
     """Test _check_metadata_staleness returns False when metadata is fresh."""
     import asyncio as _asyncio
 
@@ -367,7 +367,7 @@ def test_fr_ast_005_check_metadata_staleness_fresh(_cache_dir: str):
     assert result is False
 
 
-def test_fr_ast_005_check_metadata_staleness_stale(_cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_stale():
     """Test _check_metadata_staleness returns True when metadata is stale."""
     import asyncio as _asyncio
 

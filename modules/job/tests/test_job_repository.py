@@ -77,16 +77,11 @@ def _make_clock(initial_time: float = 1000.0) -> tuple[Callable[[], Timestamp], 
 
 @pytest.fixture
 def repo() -> InMemoryJobLifecycleRepository:
-    """Repository with monotonic clock and predictable IDs."""
+    """Repository with monotonic clock and predictable timing."""
     policy = _make_policy(max_active=10)
     clock_fn, _ = _make_clock(1000.0)
-    id_counter = [0]
 
-    def gen_id() -> JobId:
-        id_counter[0] += 1
-        return JobId(f"test-{id_counter[0]}")
-
-    return InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher(), id_generator=gen_id)
+    return InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher())
 
 
 # ─── FR-JOB-001: Track and Update Task Lifecycle ─────────────────────────────
@@ -585,13 +580,8 @@ def test_fr_job_005_capacity_check_atomic_with_creation(repo: InMemoryJobLifecyc
     _ = repo  # fixture consumed but not used in this test body
     policy = _make_policy(max_active=2)
     clock_fn, _ = _make_clock(1000.0)
-    id_counter = [0]
 
-    def gen_id() -> JobId:
-        id_counter[0] += 1
-        return JobId(f"test-cap-{id_counter[0]}")
-
-    cap_repo = InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher(), id_generator=gen_id)
+    cap_repo = InMemoryJobLifecycleRepository(policy=policy, clock=clock_fn, event_publisher=JobLoggingEventPublisher())
 
     # Create 2 tasks (fills capacity)
     cmd1 = CreateTaskCommand(operation_type=OperationType("render"))
