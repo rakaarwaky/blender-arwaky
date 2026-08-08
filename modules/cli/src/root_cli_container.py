@@ -10,7 +10,6 @@ from . import (
     surface_screenshot_command,
     surface_status_command,
 )
-from .capabilities_cli_process import CliProcessCapability
 
 _handles = (
     surface_close_command.handle,
@@ -24,10 +23,3 @@ _handles = (
 
 class CliContainer:
     """Dependency injection container for CLI feature."""
-
-    def __init__(self) -> None:
-        self._process_capability = CliProcessCapability()
-
-    @property
-    def process_capability(self) -> CliProcessCapability:
-        return self._process_capability
