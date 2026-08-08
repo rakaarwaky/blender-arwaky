@@ -14,7 +14,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "mcp[cli]>=2.0.0",
+    "mcp[cli]>=1.29.0,<2.0.0",
     "tomli>=2.4.1",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
@@ -78,10 +78,6 @@ ignore = ["E501"]
 "blender_mcp_addon/polyhaven.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/sketchfab.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/properties.py" = []  # noqa already used inline
-"modules/shared/src/gateway/taxonomy_gateway_error.py" = ["N818"]  # BlenderConnectionExhausted/BlenderConnectionFailure are intentional names
-"modules/scene/src/__init__.py" = ["N813"]  # Lazy __getattr__ import needs lowercase alias for forward refs
-# isort wants `dataclass` and `field as dc_field` on separate lines; AES203 flags that split as unused.
-"modules/shared/src/{security,launcher,gateway,diagnostics}/taxonomy_*.py" = ["I001"]
 
 [tool.ruff.format]
 quote-style = "double"

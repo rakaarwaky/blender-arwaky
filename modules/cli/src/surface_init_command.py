@@ -2,8 +2,8 @@
 
 import os
 
-from modules.shared.src.cli.utility_cli_process import launch_blender
 from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import launch_blender
 
 
 def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:

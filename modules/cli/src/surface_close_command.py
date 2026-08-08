@@ -1,8 +1,8 @@
 """CLI close command — Close active Blender instance."""
 
 
-from modules.shared.src.cli.utility_cli_process import is_running, kill_blender
 from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import is_running, kill_blender
 from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
 
 
