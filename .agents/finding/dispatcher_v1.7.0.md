@@ -1,5 +1,152 @@
 # Module: dispatcher (v1.7.0)
 
+---
+name: role-business-analyst
+description: "Expert business analyst: validates requirements clarity, business flow, logic implementation, testability, and FRD-to-code traceability."
+metadata:
+  tags: [business-analyst, requirements, flow, traceability, frd, logic, testability, acceptance]
+  triggers: [review as business analyst, business analysis, check requirements, validate requirements, business analyst review, requirements audit, frd traceability]
+  dependencies: []
+  related: [role-architect, role-tech-lead, role-fullstack-developer, role-quality-analysis]
+---
+# role-business-analyst
+
+Expert business logic engineer and requirements analyst.
+
+## Prerequisites
+
+Read first:
+
+1. `.agents/rules/RULES_AES.md` (architectural constraints)
+2. `ARCHITECTURE.md` (7-layer context)
+3. `PRD.md` (product context)
+4. `.agents/skills/` (skill-driven dev)
+
+## Workflow
+
+Execute sequentially, no skips.
+
+### 1. Identify
+
+- Locate: `modules|crates|packages/<feature>/`
+- Read `<feature>/FRD.md`
+- List modules + responsibilities
+
+### 2. Reference
+
+- `RULES_AES.md` Groups 2 & 4 (import + role constraints)
+- Map each FRD requirement to code files
+- Rule: 1 FR = 1 capabilities file + 1 contract protocol (surface features excepted)
+
+### 3. Analyze
+
+
+| Dimension            | Focus                                   |
+| ---------------------- | ----------------------------------------- |
+| Requirements Clarity | Unambiguous, complete, consistent       |
+| Business Flow        | Matches spec, edge cases handled        |
+| Logic Implementation | FRD→code correct, no missing paths     |
+| Testability          | Verifiable, acceptance criteria defined |
+| Traceability         | FRD→code/tests/config traceable        |
+
+Prioritize: clarity, testability, traceability.
+
+### 4. Dedup
+
+1. `ls .agents/plans/todo-<feature>-*.md`
+2. `gh pr list --label "need review" --label "<feature>"`
+3. Extract issues from existing plans + active PRs
+4. Keep only NEW issues
+5. Record: "{N} covered, {M} new"
+
+**M=0:** Stop. Report "No new issues."
+
+### 5. Plan
+
+Save: `.agents/plans/todo-<feature>-business-analyst-<timestamp>.md`
+
+- NEW issues only
+- Severity-categorized
+- you must write the propose change file for all critical, warning,info recomendation without exection
+- Modular file per feature-member if multiple features
+
+## Template
+
+# Plan: — Business Analyst
+
+## Summary
+
+{One paragraph}
+
+## Findings
+
+### Requirements Clarity
+
+
+| # | Severity | Issue | Location | Recommendation |
+| --- | ---------- | ------- | ---------- | ---------------- |
+
+### Business Flow
+
+
+| # | Severity | Issue | Location | Recommendation |
+| --- | ---------- | ------- | ---------- | ---------------- |
+
+### Logic Implementation
+
+
+| # | Severity | Issue | Location | Recommendation |
+| --- | ---------- | ------- | ---------- | ---------------- |
+
+### Testability & Acceptance
+
+
+| # | Severity | Issue | Location | Recommendation |
+| --- | ---------- | ------- | ---------- | ---------------- |
+
+### Traceability (FRD→Code)
+
+
+| # | Severity | Issue | Location | Recommendation |
+| --- | ---------- | ------- | ---------- | ---------------- |
+
+## Violations
+
+{List or "None"}
+
+## Action Items
+
+- [ ]  {Priority} {Item}
+
+### Propose Change
+
+{Grouped by file}
+
+## Severity
+
+
+| Level       | Meaning                                                                        |
+| ------------- | -------------------------------------------------------------------------------- |
+| 🔴 CRITICAL | Missing core requirement, wrong logic, data integrity risk. Immediate fix.     |
+| 🟡 WARNING  | Ambiguous requirement, missing edge case, incomplete criteria. Fix this cycle. |
+| 🟢 INFO     | Suggestion or optimization. Deferrable.                                        |
+
+## Checklist
+
+- [ ]  Prerequisites read
+- [ ]  Feature + modules identified
+- [ ]  FRD mapped to code files
+- [ ]  All 5 dimensions analyzed
+- [ ]  Severity categorized
+- [ ]  Deduped vs existing plans + active PRs
+- [ ]  Plan written (NEW issues + fixed code)
+- [ ]  Saved to correct path
+- [ ]  M=0: stopped with report
+
+```
+
+```
+
 This document contains the source code for module `dispatcher` along with related and imported definitions from the `shared` module.
 
 ## File List
@@ -10738,16 +10885,16 @@ A single rule with **12 sub-conditions** — each has `allowed`, `mandatory`, an
 | #  | Scope                                                           | Allowed Imports                                            | Mandatory Imports             | Forbidden Imports                                                |
 | ---- | ----------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------ |
 | 1  | `taxonomy(vo)`                                                  | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
-| 2  | `taxonomy(entity,error,event)`                                  | taxonomy                                                   | taxonomy(vo&#124;constant)    | agent*, surface*, contract*, utility*, capabilities*, root       |
+| 2  | `taxonomy(entity,error,event)`                                  | taxonomy                                                   | taxonomy(vo|constant)    | agent*, surface*, contract*, utility*, capabilities*, root       |
 | 3  | `taxonomy(constant)`                                            | taxonomy                                                   | None                          | agent*, surface*, contract*, utility*, capabilities*, root       |
 | 4  | `utility`                                                       | taxonomy                                                   | None                          | agent*, surface*, contract*, capabilities*, root                 |
 | 5  | `contract(protocol)`                                            | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, contract(aggregate), root       |
 | 6  | `contract(aggregate)`                                           | taxonomy, contract                                         | taxonomy                      | agent*, surface*, capabilities*, root                            |
 | 7  | `capabilities`                                                  | taxonomy, contract(protocol), utility                      | taxonomy, contract(protocol)  | surface*, agent*, capabilities*, root                            |
 | 8  | `agent(orchestrator)`                                           | taxonomy, contract(aggregate), contract(protocol), utility | taxonomy, contract(aggregate) | surface*, capabilities*, root                                    |
-| 9  | `surfaces(command&#124;controller&#124;page)`                   | taxonomy, contract(aggregate), utility                     | None                          | agent*, capabilities*, contract(protocol), root                  |
-| 10 | `surfaces(hook&#124;store&#124;action&#124;screen&#124;router)` | taxonomy                                                   | None                          | agent*, capabilities*, contract(protocol), smart surfaces*, root |
-| 11 | `surfaces(component&#124;view&#124;layout)`                     | taxonomy                                                   | None                          | agent*, contract*, capabilities*, all surface*, root             |
+| 9  | `surfaces(command|controller|page)`                   | taxonomy, contract(aggregate), utility                     | None                          | agent*, capabilities*, contract(protocol), root                  |
+| 10 | `surfaces(hook|store|action|screen|router)` | taxonomy                                                   | None                          | agent*, capabilities*, contract(protocol), smart surfaces*, root |
+| 11 | `surfaces(component|view|layout)`                     | taxonomy                                                   | None                          | agent*, contract*, capabilities*, all surface*, root             |
 | 12 | `root`                                                          | taxonomy, contract, capabilities, agent, surface           | None                          | None                                                             |
 
 ---
@@ -11027,4 +11174,3 @@ Orphan detection per category:
 ```
 
 ---
-

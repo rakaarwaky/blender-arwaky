@@ -1,0 +1,1 @@
+execute all plan /home/raka/mcp-arwaky/blender-arwaky/.agents/plans

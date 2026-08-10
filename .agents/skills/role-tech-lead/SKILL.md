@@ -64,7 +64,7 @@ Save: `.agents/plans/todo-<feature>-tech-lead-<timestamp>.md`
 
 - NEW issues only
 - Severity-categorized
-- Include fixed code
+- you must write the propose change file for all critical, warning,info recomendation without exection
 
 ## Template
 
@@ -134,4 +134,5 @@ Save: `.agents/plans/todo-<feature>-tech-lead-<timestamp>.md`
 - [ ] M=0: stopped with report
 
 ```
+
 ```

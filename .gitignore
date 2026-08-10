@@ -58,3 +58,4 @@ Thumbs.db
 .worktree/
 .agents/finding/
 .agents/graph-loop
+.agents/qwen-web-automation
