@@ -57,9 +57,9 @@ def test_concurrent_transitions_keep_repository_consistent() -> None:
         list(pool.map(lifecycle.start_task, (snapshot.job_id for snapshot in created)))
 
     running = lifecycle.list_running()
-    assert len(running) == len(created)
-    assert {snapshot.job_id for snapshot in running} == {snapshot.job_id for snapshot in created}
-    assert lifecycle.active_count() == len(created)
+    assert len(running) == len(created)  # nosec B101
+    assert {snapshot.job_id for snapshot in running} == {snapshot.job_id for snapshot in created}  # nosec B101
+    assert lifecycle.active_count() == len(created)  # nosec B101
 
 
 def test_orchestrator_rejects_capacity_without_partial_record() -> None:
@@ -71,8 +71,8 @@ def test_orchestrator_rejects_capacity_without_partial_record() -> None:
     with pytest.raises(CapacityError):
         orchestrator.submit_task(CreateTaskCommand(operation_type=OperationType("download")))
 
-    assert lifecycle.active_count() == 1
-    assert lifecycle.get_record(first.job_id).operation_type == OperationType("render")
+    assert lifecycle.active_count() == 1  # nosec B101
+    assert lifecycle.get_record(first.job_id).operation_type == OperationType("render")  # nosec B101
 
 
 def test_orchestrator_cleanup_times_out_stale_running_task() -> None:
@@ -94,6 +94,6 @@ def test_orchestrator_cleanup_times_out_stale_running_task() -> None:
 
     summary = orchestrator.cleanup_expired_tasks()
 
-    assert summary.reclaimed_capacity == 1
-    assert lifecycle.get_record(created.job_id).state == "TIMED_OUT"
-    assert lifecycle.active_count() == 0
+    assert summary.reclaimed_capacity == 1  # nosec B101
+    assert lifecycle.get_record(created.job_id).state == "TIMED_OUT"  # nosec B101
+    assert lifecycle.active_count() == 0  # nosec B101

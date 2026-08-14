@@ -40,23 +40,23 @@ def test_recorder_uses_enricher_environment_metadata() -> None:
 
     result = recorder.record_event(_draft(), EnabledFlag(True))
 
-    assert result.recorded is True
+    assert result.recorded is True  # nosec B101
     record = recorder._buffer[0]
     metadata = enricher.get_environment_metadata()
-    assert record.version == metadata.app_version
-    assert record.platform == metadata.platform
-    assert metadata.schema_version == "1.0"
+    assert record.version == metadata.app_version  # nosec B101
+    assert record.platform == metadata.platform  # nosec B101
+    assert metadata.schema_version == "1.0"  # nosec B101
 
 
 def test_transmission_is_explicitly_disabled_without_sender() -> None:
     result = TelemetryTransmissionCapability().transmit([])
-    assert result.transmitted is True
-    assert result.attempted is False
+    assert result.transmitted is True  # nosec B101
+    assert result.attempted is False  # nosec B101
 
     result = TelemetryTransmissionCapability().transmit([object()])  # type: ignore[list-item]
-    assert result.transmitted is False
-    assert result.attempted is False
-    assert result.error == "transmission_not_configured"
+    assert result.transmitted is False  # nosec B101
+    assert result.attempted is False  # nosec B101
+    assert result.error == "transmission_not_configured"  # nosec B101
 
 
 def test_transmission_sender_receives_scrubbed_records() -> None:
@@ -67,10 +67,10 @@ def test_transmission_sender_receives_scrubbed_records() -> None:
 
     result = capability.transmit(list(source._buffer))
 
-    assert result.transmitted is True
-    assert result.attempted is True
-    assert len(received) == 1
-    assert len(source._buffer) == 1
+    assert result.transmitted is True  # nosec B101
+    assert result.attempted is True  # nosec B101
+    assert len(received) == 1  # nosec B101
+    assert len(source._buffer) == 1  # nosec B101
 
 
 def test_transmission_failure_is_masked() -> None:
@@ -79,6 +79,6 @@ def test_transmission_failure_is_masked() -> None:
 
     result = TelemetryTransmissionCapability(fail).transmit([object()])  # type: ignore[list-item]
 
-    assert result.transmitted is False
-    assert result.attempted is True
-    assert result.error == "transmission_failed"
+    assert result.transmitted is False  # nosec B101
+    assert result.attempted is True  # nosec B101
+    assert result.error == "transmission_failed"  # nosec B101

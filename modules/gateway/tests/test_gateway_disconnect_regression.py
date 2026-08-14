@@ -50,7 +50,7 @@ def test_disconnect_fails_pending_queue_without_keyword_type_error() -> None:
 
     gateway.disconnect()
 
-    assert connection.disconnected is True
-    assert len(queue.failed) == 1
-    assert queue.failed[0].details["reason"] == "graceful_disconnect"
-    assert maintenance.states[-1] == ConnectionState.CLOSED
+    assert connection.disconnected is True  # nosec B101
+    assert len(queue.failed) == 1  # nosec B101
+    assert queue.failed[0].details["reason"] == "graceful_disconnect"  # nosec B101
+    assert maintenance.states[-1] == ConnectionState.CLOSED  # nosec B101

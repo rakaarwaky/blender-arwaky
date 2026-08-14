@@ -12,6 +12,6 @@ def test_asset_container_wires_download_capability() -> None:
 
     orchestrator = container.get_orchestrator()
 
-    assert orchestrator is not None
-    assert orchestrator._download is not None
-    assert orchestrator._download.config_aggregate is None
+    assert orchestrator is not None  # nosec B101
+    assert orchestrator._download is not None  # nosec B101
+    assert orchestrator._download.config_aggregate is None  # nosec B101

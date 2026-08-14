@@ -37,7 +37,7 @@ def test_run_routes_command_to_injected_dispatcher_and_returns_json(capsys) -> N
             "--json",
             "run",
             "--filepath",
-            "/tmp/example.blend",
+            "example.blend",
             "--action",
             "get_scene_info",
             "--params",
@@ -46,14 +46,14 @@ def test_run_routes_command_to_injected_dispatcher_and_returns_json(capsys) -> N
         dispatcher=dispatcher,
     )
 
-    assert exit_code == EXIT_SUCCESS
-    assert len(dispatcher.requests) == 1
-    assert dispatcher.requests[0].action_name == "get_scene_info"
-    assert dispatcher.requests[0].parameters == {"include_objects": True}
+    assert exit_code == EXIT_SUCCESS  # nosec B101
+    assert len(dispatcher.requests) == 1  # nosec B101
+    assert dispatcher.requests[0].action_name == "get_scene_info"  # nosec B101
+    assert dispatcher.requests[0].parameters == {"include_objects": True}  # nosec B101
     output = _json_output(capsys)
-    assert output["success"] is True
-    assert output["tracking_id"] == "track-cli-001"
-    assert output["result"] == {"object": "Cube"}
+    assert output["success"] is True  # nosec B101
+    assert output["tracking_id"] == "track-cli-001"  # nosec B101
+    assert output["result"] == {"object": "Cube"}  # nosec B101
 
 
 def test_run_masks_dispatcher_error_and_uses_validation_exit_code(capsys) -> None:
@@ -70,22 +70,22 @@ def test_run_masks_dispatcher_error_and_uses_validation_exit_code(capsys) -> Non
             "--json",
             "run",
             "--filepath",
-            "/tmp/example.blend",
+            "example.blend",
             "--action",
             "get_scene_info",
         ],
         dispatcher=dispatcher,
     )
 
-    assert exit_code == EXIT_VALIDATION
+    assert exit_code == EXIT_VALIDATION  # nosec B101
     output = _json_output(capsys)
-    assert output == {
+    assert output == {  # nosec B101
         "success": False,
         "error": "Operation failed",
         "category": "validation_error",
         "ref": "cli-502",
     }
-    assert "private" not in json.dumps(output)
+    assert "private" not in json.dumps(output)  # nosec B101
 
 
 def test_run_auto_wires_dispatcher_when_not_injected(monkeypatch, capsys) -> None:
@@ -126,15 +126,15 @@ def test_run_auto_wires_dispatcher_when_not_injected(monkeypatch, capsys) -> Non
             "--json",
             "run",
             "--filepath",
-            "/tmp/example.blend",
+            "example.blend",
             "--action",
             "get_scene_info",
         ]
     )
 
-    assert exit_code == EXIT_SUCCESS
-    assert len(dispatcher.requests) == 1
-    assert _json_output(capsys)["tracking_id"] == "track-cli-003"
+    assert exit_code == EXIT_SUCCESS  # nosec B101
+    assert len(dispatcher.requests) == 1  # nosec B101
+    assert _json_output(capsys)["tracking_id"] == "track-cli-003"  # nosec B101
 
 
 def test_invalid_json_params_is_masked_with_validation_exit_code(capsys) -> None:
@@ -143,7 +143,7 @@ def test_invalid_json_params_is_masked_with_validation_exit_code(capsys) -> None
             "--json",
             "run",
             "--filepath",
-            "/tmp/example.blend",
+            "example.blend",
             "--action",
             "get_scene_info",
             "--params",
@@ -152,8 +152,8 @@ def test_invalid_json_params_is_masked_with_validation_exit_code(capsys) -> None
         dispatcher=FakeDispatcher(UnifiedResultEnvelopeVO.success_envelope(message="unused", tracking_id="unused")),
     )
 
-    assert exit_code == EXIT_VALIDATION
+    assert exit_code == EXIT_VALIDATION  # nosec B101
     output = _json_output(capsys)
-    assert output["success"] is False
-    assert output["category"] == "validation_error"
-    assert output["ref"] == "cli-400"
+    assert output["success"] is False  # nosec B101
+    assert output["category"] == "validation_error"  # nosec B101
+    assert output["ref"] == "cli-400"  # nosec B101

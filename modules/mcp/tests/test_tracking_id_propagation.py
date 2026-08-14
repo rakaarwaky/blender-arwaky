@@ -15,7 +15,7 @@ async def test_formatter_preserves_upstream_tracking_id() -> None:
         tracking_id="",
     )
 
-    assert response["tracking_id"] == "track-mcp-001"
+    assert response["tracking_id"] == "track-mcp-001"  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -28,5 +28,5 @@ async def test_formatter_preserves_tracking_id_when_truncating() -> None:
         tracking_id="",
     )
 
-    assert response["tracking_id"] == "track-mcp-002"
-    assert response["data"]["truncated"] is True
+    assert response["tracking_id"] == "track-mcp-002"  # nosec B101
+    assert response["data"]["truncated"] is True  # nosec B101
