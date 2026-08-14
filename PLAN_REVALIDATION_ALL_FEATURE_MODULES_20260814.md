@@ -19,6 +19,7 @@ This document verifies whether the 2026-08-08 business-analyst plans are still r
 |---|---:|---:|---:|---:|---:|---|
 | asset | 6 | 1 | 5 | 0 | 0 | `todo-asset-business-analyst-20260814-revalidated.md` |
 | cli | 11 | 5 | 5 | 1 | 0 | `todo-cli-business-analyst-20260814-revalidated.md` |
+| config | 5 | 0 | 2 | 3 | 0 | `todo-config-business-analyst-20260814-revalidated.md` |
 | diagnostics | 12 | 3 | 9 | 0 | 0 | `todo-diagnostics-business-analyst-20260814-revalidated.md` |
 | dispatcher | 15 | 1 | 8 | 6 | 0 | `todo-dispatcher-business-analyst-20260814-revalidated.md` |
 | gateway | 18 | 2 | 11 | 5 | 0 | `todo-gateway-business-analyst-20260814-revalidated.md` |
