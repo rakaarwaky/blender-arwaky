@@ -52,4 +52,3 @@ class ServerStartSurface:
             mcp.run(transport="sse")
         else:
             mcp.run()
-

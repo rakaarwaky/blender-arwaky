@@ -86,7 +86,9 @@ class AssetProviderMetadataCapability(AssetProviderProtocol):
             id=asset_id,
             type=AssetType(self._extract_type(raw_provider_data)),
             categories=TagList(self._extract_categories(raw_provider_data)),
-            thumbnail_url=ThumbnailUrl(self._extract_thumbnail(raw_provider_data)) if self._extract_thumbnail(raw_provider_data) else None,
+            thumbnail_url=ThumbnailUrl(self._extract_thumbnail(raw_provider_data))
+            if self._extract_thumbnail(raw_provider_data)
+            else None,
             license_summary=self._extract_license(raw_provider_data),
             download_available=self._extract_download_availability(raw_provider_data),
             attribution=self._extract_attribution(raw_provider_data),

@@ -31,15 +31,13 @@ from modules.shared.src.launcher.taxonomy_launcher_vo import (
 class _LivenessChecker(Protocol):
     """Returns True if the pid is actually alive. DI boundary."""
 
-    def __call__(self, process_id: int) -> bool:
-        ...
+    def __call__(self, process_id: int) -> bool: ...
 
 
 class _BridgeProbe(Protocol):
     """Returns True if the bridge endpoint is responsive. DI boundary."""
 
-    def __call__(self, timeout_seconds: float) -> bool:
-        ...
+    def __call__(self, timeout_seconds: float) -> bool: ...
 
 
 class RuntimeStatusChecker(RuntimeStatusProtocol):
@@ -92,13 +90,15 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
         uptime = (time.monotonic() - self._launch_time) if self._launch_time else None
 
         if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_STATUS_CHECKED,
-                state_before=state,
-                state_after=state,
-                process_reference=str(pid),
-                reason_summary=f"status_check_depth={depth.value}",
-            ))
+            self._events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_STATUS_CHECKED,
+                    state_before=state,
+                    state_after=state,
+                    process_reference=str(pid),
+                    reason_summary=f"status_check_depth={depth.value}",
+                )
+            )
 
         return RuntimeStatusVO(state=state, process_id=pid, ready=ready, uptime_seconds=uptime, depth=depth)
 
@@ -130,8 +130,12 @@ class RuntimeStatusChecker(RuntimeStatusProtocol):
 
     def _emit_stale(self, pid: int) -> None:
         if self._events is not None:
-            self._events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_STALE_STATE_DETECTED,
-                state_before=RuntimeState.RUNNING_READY, state_after=RuntimeState.STALE,
-                process_reference=str(pid), reason_summary="stale_state_detected",
-            ))
+            self._events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_STALE_STATE_DETECTED,
+                    state_before=RuntimeState.RUNNING_READY,
+                    state_after=RuntimeState.STALE,
+                    process_reference=str(pid),
+                    reason_summary="stale_state_detected",
+                )
+            )

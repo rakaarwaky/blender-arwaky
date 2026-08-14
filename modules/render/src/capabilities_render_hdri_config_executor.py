@@ -148,9 +148,7 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         if not (MIN_HDRI_STRENGTH <= strength <= MAX_HDRI_STRENGTH):
             return RenderError(
                 category=RenderErrorCategory.VALIDATION,
-                message=Prompt(
-                    f"HDRI strength must be between {MIN_HDRI_STRENGTH} and {MAX_HDRI_STRENGTH}"
-                ),
+                message=Prompt(f"HDRI strength must be between {MIN_HDRI_STRENGTH} and {MAX_HDRI_STRENGTH}"),
             )
 
         if request.overwrite_policy not in VALID_OVERWRITE_POLICIES:

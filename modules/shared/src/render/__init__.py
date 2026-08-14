@@ -81,7 +81,6 @@ __all__ = [
     "IRenderHdriConfigProtocol",
     "IRenderSceneImageProtocol",
     "IRenderViewportCaptureProtocol",
-
     # Constants
     "CAMERA_SENSOR_FIT_AUTO",
     "CAMERA_SENSOR_FIT_HORIZONTAL",
@@ -125,11 +124,9 @@ __all__ = [
     "VIEW_ANGLE_ACTIVE_CAMERA",
     "VIEW_ANGLE_ORTHOGRAPHIC",
     "VIEW_ANGLE_PERSPECTIVE",
-
     # Errors
     "RenderError",
     "RenderErrorCategory",
-
     # Events
     "CameraConfiguredEvent",
     "HdriLightingConfiguredEvent",
@@ -137,7 +134,6 @@ __all__ = [
     "SceneRenderCompletedEvent",
     "SceneRenderFailedEvent",
     "ViewportCapturedEvent",
-
     # VOs
     "Aperture",
     "CameraConfigMetricsVO",

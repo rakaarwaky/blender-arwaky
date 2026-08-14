@@ -24,6 +24,7 @@ def _make_validator(policy: SecurityPolicyVO | None = None) -> CodeValidator:
 def _validate(cap: CodeValidator, code: str, **overrides: object) -> CodeValidationVO:
     """Helper to run validate_code synchronously via asyncio."""
     import asyncio
+
     base = CodeValidationVO(code_text=code, strict_mode=True)
     update = {k: v for k, v in overrides.items()}
     return asyncio.run(cap.validate_code(CodeValidationVO(**{**dict(base.__dict__), **update})))

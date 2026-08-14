@@ -1,5 +1,6 @@
 # modules/shared/src/job/taxonomy_job_vo.py
 """Job domain value objects — immutable data concepts."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -30,6 +31,7 @@ RecordCount = NewType("RecordCount", int)
 
 # ─── Policy ──────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class JobPolicy:
     """Configuration for job lifecycle behavior.
@@ -45,7 +47,9 @@ class JobPolicy:
     progress_throttle_seconds: float = 0.5
     count_pending_toward_capacity: bool = True
 
+
 # ─── Commands ────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class CreateTaskCommand:
@@ -55,6 +59,7 @@ class CreateTaskCommand:
     correlation_id: CorrelationId | None = None
     metadata: TaskMetadata | None = None
 
+
 @dataclass(frozen=True)
 class ProgressUpdateCommand:
     """Command to update progress for an existing task."""
@@ -62,6 +67,7 @@ class ProgressUpdateCommand:
     job_id: JobId
     progress: Progress
     message: ProgressMessage | None = None
+
 
 @dataclass(frozen=True)
 class CompleteTaskCommand:
@@ -71,6 +77,7 @@ class CompleteTaskCommand:
     result_url: ResultUrl | None = None
     summary: ProgressMessage | None = None
 
+
 @dataclass(frozen=True)
 class FailTaskCommand:
     """Command to mark a task as failed with error details."""
@@ -79,6 +86,7 @@ class FailTaskCommand:
     error_message: ErrorString
     error_category: ErrorCategory | None = None
 
+
 @dataclass(frozen=True)
 class CancelTaskCommand:
     """Command to request cancellation of a running or pending task."""
@@ -86,7 +94,9 @@ class CancelTaskCommand:
     job_id: JobId
     reason: CancellationReason | None = None
 
+
 # ─── Read Models / Results ───────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class JobStatusSnapshot:
@@ -114,6 +124,7 @@ class JobStatusSnapshot:
     is_cancellable: bool = False
     progress_applicable: bool = False
 
+
 @dataclass(frozen=True)
 class CancellationResult:
     """Result of a cancellation evaluation."""
@@ -123,6 +134,7 @@ class CancellationResult:
     outcome: str
     message: str
 
+
 @dataclass(frozen=True)
 class CleanupDecision:
     """Purge/stale timeout decision from job cleanup resolution."""
@@ -130,6 +142,7 @@ class CleanupDecision:
     purge_ids: tuple[JobId, ...] = field(default_factory=tuple)
     stale_timeout_ids: tuple[JobId, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
+
 
 @dataclass(frozen=True)
 class CleanupSummary:
@@ -140,6 +153,7 @@ class CleanupSummary:
     reclaimed_capacity: int
     warnings: tuple[str, ...] = field(default_factory=tuple)
 
+
 @dataclass(frozen=True)
 class CapacityDecision:
     """Evaluation result for background capacity eligibility."""
@@ -149,6 +163,7 @@ class CapacityDecision:
     limit: int
     available: int
     reason: str = ""
+
 
 @dataclass(frozen=True)
 class CapacityStatus:

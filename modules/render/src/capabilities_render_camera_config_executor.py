@@ -114,9 +114,7 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
         if not (MIN_FOCAL_LENGTH <= focal_length <= MAX_FOCAL_LENGTH):
             return RenderError(
                 category=RenderErrorCategory.VALIDATION,
-                message=Prompt(
-                    f"focal_length must be between {MIN_FOCAL_LENGTH} and {MAX_FOCAL_LENGTH}"
-                ),
+                message=Prompt(f"focal_length must be between {MIN_FOCAL_LENGTH} and {MAX_FOCAL_LENGTH}"),
             )
 
         if request.sensor_fit not in VALID_SENSOR_FITS:

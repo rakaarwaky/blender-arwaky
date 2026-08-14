@@ -73,7 +73,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._snapshot: SettingsSnapshot | None = None
         self._event_buffer: deque[EventPayload] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
-# ─── Block 2: Aggregate Method Implementation ─────────────
+    # ─── Block 2: Aggregate Method Implementation ─────────────
 
     def _ensure_loaded(self) -> SettingsSnapshot:
         """Lazy-load: populate snapshot + events if not yet loaded."""
@@ -116,9 +116,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Check if a path exists in settings."""
         return self._retriever.has_value(self.get_snapshot(), path)
 
-    def get_string(
-        self, path: ConfigPath, default: ConfigStringValue = DEFAULT_CONFIG_STRING
-    ) -> ConfigStringValue:
+    def get_string(self, path: ConfigPath, default: ConfigStringValue = DEFAULT_CONFIG_STRING) -> ConfigStringValue:
         """Retrieve string value."""
         return self._retriever.get_string(self.get_snapshot(), path, default)
 
@@ -130,9 +128,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Retrieve boolean value."""
         return self._retriever.get_bool(self.get_snapshot(), path, default)
 
-    def get_float(
-        self, path: ConfigPath, default: ConfigFloatValue = DEFAULT_CONFIG_FLOAT
-    ) -> ConfigFloatValue:
+    def get_float(self, path: ConfigPath, default: ConfigFloatValue = DEFAULT_CONFIG_FLOAT) -> ConfigFloatValue:
         """Retrieve float value."""
         return self._retriever.get_float(self.get_snapshot(), path, default)
 
@@ -146,9 +142,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate metadata retrieval (reflects latest load)."""
         return self._metadata_provider.get_metadata()
 
-    def recent_events(
-        self, limit: ConfigEventLimit = DEFAULT_CONFIG_EVENT_LIMIT
-    ) -> tuple[EventPayload, ...]:
+    def recent_events(self, limit: ConfigEventLimit = DEFAULT_CONFIG_EVENT_LIMIT) -> tuple[EventPayload, ...]:
         """Return the most recent config domain events, oldest → newest.
 
         GIL assumption: CPython's GIL makes ``deque.append`` and
@@ -168,14 +162,14 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-# ─── Block 3: Event Recording ─────────────────────────────
+    # ─── Block 3: Event Recording ─────────────────────────────
 
     def _record_event(
         self,
         event: SettingsLoadedEvent | SettingsReloadEvent | SettingsValidationWarningEvent | WorkspaceResolvedEvent,
     ) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
-        if not hasattr(event, '__dataclass_fields__'):
+        if not hasattr(event, "__dataclass_fields__"):
             logger.warning("Skipping non-dataclass event: %s", type(event).__name__)
             return
         payload = asdict(event)
@@ -184,7 +178,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._event_buffer.append(redacted_payload)
         logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 
-# ─── Dunder ────────────────────────────────────────────────
+    # ─── Dunder ────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"

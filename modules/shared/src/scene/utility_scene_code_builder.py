@@ -23,7 +23,7 @@ def build_inspection_code(request: SceneInspectionVO) -> PythonCode:
     - detailed: full dump with all object properties
     """
     include_hidden = bool(request.include_hidden_objects)
-    detail_level = getattr(request, 'detail_level', 'standard') or 'standard'
+    detail_level = getattr(request, "detail_level", "standard") or "standard"
 
     if detail_level == "minimal":
         return _build_minimal_inspection_code(include_hidden)

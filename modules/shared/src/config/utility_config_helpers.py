@@ -156,7 +156,7 @@ def apply_env_overrides(
             continue
         if not key.startswith(prefix):
             continue
-        remainder = key[len(prefix):]
+        remainder = key[len(prefix) :]
         if not remainder:
             continue
         remainder = remainder.lower()
@@ -284,4 +284,3 @@ def parse_settings_path(path: str, escape_enabled: bool) -> tuple[str, ...]:
         i += 1
     segments.append(current)
     return tuple(segments)
-

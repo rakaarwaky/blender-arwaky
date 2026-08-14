@@ -73,9 +73,7 @@ class TelemetrySessionManager(TelemetrySessionProtocol):
     def _persist(self) -> None:
         try:
             self._persistence_path.parent.mkdir(parents=True, exist_ok=True)
-            self._persistence_path.write_text(
-                json.dumps({"session_id": str(self._session_id)})
-            )
+            self._persistence_path.write_text(json.dumps({"session_id": str(self._session_id)}))
         except OSError as exc:
             logger.warning("Failed to persist telemetry session: %s", exc)
 

@@ -39,7 +39,6 @@ class AssetImportProtocol(ABC):
         scale_normalization: ScaleNormalization | None = None,
         duplicate_policy: DuplicatePolicy | None = None,
         format_hint: AssetFormatHint | None = None,
-
     ) -> dict[str, object]:
         """Import a locally available asset file into Blender.
 

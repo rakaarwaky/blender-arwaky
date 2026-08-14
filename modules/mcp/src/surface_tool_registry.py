@@ -37,18 +37,23 @@ class ToolRegistrySurface:
 
         # Scene tools require code_executor — registered separately when available
         from .surface_scene_tools import SceneToolsSurface
+
         SceneToolsSurface.register_scene_tools(mcp)
 
         # Asset tools — search/download via IAssetAggregate (AES505 fix)
         from .surface_asset_tools import AssetToolsSurface
+
         AssetToolsSurface.register_asset_tools(mcp)
 
         from modules.scene.src.surface_scene_command import SceneCommand
+
         _ = SceneCommand
 
         # Render aggregate reachability (AES505) — wire IRenderAggregate into surface layer
         from modules.shared.src.render.contract_render_aggregate import IRenderAggregate
+
         _ = IRenderAggregate
         # Telemetry aggregate reachability (AES505) — wire ITelemetryAggregate into surface layer
         from modules.shared.src.telemetry.contract_telemetry_aggregate import ITelemetryAggregate
+
         _ = ITelemetryAggregate

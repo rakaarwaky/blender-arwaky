@@ -23,27 +23,15 @@ def _sample(**kwargs):
 
 class TestMetricsSnapshotRequiredCounters:
     def test_tasks_created_counter(self) -> None:
-        snap = asyncio.run(
-            _make_collector().collect_metrics_snapshot(
-                sample=_sample(tasks_created=5)
-            )
-        )
+        snap = asyncio.run(_make_collector().collect_metrics_snapshot(sample=_sample(tasks_created=5)))
         assert snap.counters["tasks_created"] == 5
 
     def test_tasks_failed_counter(self) -> None:
-        snap = asyncio.run(
-            _make_collector().collect_metrics_snapshot(
-                sample=_sample(tasks_failed=3)
-            )
-        )
+        snap = asyncio.run(_make_collector().collect_metrics_snapshot(sample=_sample(tasks_failed=3)))
         assert snap.counters["tasks_failed"] == 3
 
     def test_tasks_completed_counter(self) -> None:
-        snap = asyncio.run(
-            _make_collector().collect_metrics_snapshot(
-                sample=_sample(tasks_completed=7)
-            )
-        )
+        snap = asyncio.run(_make_collector().collect_metrics_snapshot(sample=_sample(tasks_completed=7)))
         assert snap.counters["tasks_completed"] == 7
 
 
@@ -83,11 +71,7 @@ class TestMetricsSnapshotCounterReset:
         assert snap.counter_reset_indicator is False
 
     def test_setting_high_counter_records_value(self) -> None:
-        snap = asyncio.run(
-            _make_collector().collect_metrics_snapshot(
-                sample=_sample(tasks_created=999999)
-            )
-        )
+        snap = asyncio.run(_make_collector().collect_metrics_snapshot(sample=_sample(tasks_created=999999)))
         assert snap.counters["tasks_created"] == 999999
 
     def test_multiple_calls_retain_latest_counters(self) -> None:

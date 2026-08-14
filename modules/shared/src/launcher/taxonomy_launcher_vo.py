@@ -7,7 +7,8 @@ Input and output fields live in a single VO per concept.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from enum import Enum
 from typing import NewType
 
@@ -53,6 +54,7 @@ class LaunchMethod(str, Enum):
 # Registration Source / Discovery
 # ============================================================
 
+
 class RegistrationSource(str, Enum):
     """How the Blender executable path was discovered."""
 
@@ -76,6 +78,7 @@ class VersionCompatibility(str, Enum):
 # Runtime State Classification (FR-LAU-004)
 # ============================================================
 
+
 class RuntimeState(str, Enum):
     """Classified runtime state."""
 
@@ -90,6 +93,7 @@ class RuntimeState(str, Enum):
 # ============================================================
 # FR-LAU-001: Locate and Register
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ExecutableReferenceVO:
@@ -115,6 +119,7 @@ class RegistrationOutcomeVO:
 # FR-LAU-002: Launch
 # ============================================================
 
+
 @dataclass(frozen=True)
 class LaunchOutcomeVO:
     """Unified launch result — input and output in one VO."""
@@ -132,6 +137,7 @@ class LaunchOutcomeVO:
 # FR-LAU-003: Shut Down
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ShutdownOutcomeVO:
     """Unified shutdown result — input and output in one VO."""
@@ -147,6 +153,7 @@ class ShutdownOutcomeVO:
 # ============================================================
 # FR-LAU-004: Runtime Status
 # ============================================================
+
 
 @dataclass(frozen=True)
 class RuntimeStatusVO:
@@ -175,6 +182,7 @@ class StatusCheckOutcomeVO:
 # FR-LAU-005: Persist Runtime State
 # ============================================================
 
+
 @dataclass(frozen=True)
 class RuntimeStateVO:
     """Persisted runtime state record."""
@@ -192,11 +200,6 @@ class RuntimeStateVO:
 
         field_names = {f.name for f in fields(self)}
         return not field_names.isdisjoint(SECRET_KEYS)
-
-
-
-
-
 
 
 @dataclass(frozen=True)
@@ -234,6 +237,7 @@ class StatePersistenceOutcomeVO:
 # Launcher Configuration
 # ============================================================
 
+
 @dataclass(frozen=True)
 class LauncherConfigVO:
     """Launcher configuration resolved from config feature / environment."""
@@ -253,6 +257,7 @@ class LauncherConfigVO:
 # ============================================================
 # FR-LAU-002: Launch Request (shared integration contract)
 # ============================================================
+
 
 @dataclass(frozen=True)
 class BridgeEndpointVO:

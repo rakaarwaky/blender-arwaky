@@ -1,5 +1,6 @@
 # modules/shared/src/job/contract_job_aggregate.py
 """Job domain aggregate — facade implemented by Agent, consumed by Surface."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

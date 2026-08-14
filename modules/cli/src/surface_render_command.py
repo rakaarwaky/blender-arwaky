@@ -10,7 +10,7 @@ def _mask_error(category: str, ref: str, message: str = "Operation failed") -> d
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: object) -> dict[str, object]:
+def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle render command: execute full frame render."""
     registry = Registry()
     error = registry.assert_active(args.filepath)

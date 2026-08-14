@@ -1,5 +1,6 @@
 # modules/shared/src/job/taxonomy_job_constant.py
 """Job domain constants — compile-time literal values."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -16,27 +17,33 @@ JOB_STATE_CANCELLED: Final[JobState] = JobState("CANCELLED")
 JOB_STATE_TIMED_OUT: Final[JobState] = JobState("TIMED_OUT")
 
 # ─── State Sets ──────────────────────────────────────────────────────────────
-ACTIVE_JOB_STATES: Final[frozenset[JobState]] = frozenset({
-    JOB_STATE_PENDING,
-    JOB_STATE_RUNNING,
-})
+ACTIVE_JOB_STATES: Final[frozenset[JobState]] = frozenset(
+    {
+        JOB_STATE_PENDING,
+        JOB_STATE_RUNNING,
+    }
+)
 
-TERMINAL_JOB_STATES: Final[frozenset[JobState]] = frozenset({
-    JOB_STATE_COMPLETED,
-    JOB_STATE_FAILED,
-    JOB_STATE_CANCELLED,
-    JOB_STATE_TIMED_OUT,
-})
-
-# ─── Valid Transitions ───────────────────────────────────────────────────────
-VALID_JOB_TRANSITIONS: Final[Mapping[JobState, frozenset[JobState]]] = {
-    JOB_STATE_PENDING: frozenset({JOB_STATE_RUNNING, JOB_STATE_CANCELLED}),
-    JOB_STATE_RUNNING: frozenset({
+TERMINAL_JOB_STATES: Final[frozenset[JobState]] = frozenset(
+    {
         JOB_STATE_COMPLETED,
         JOB_STATE_FAILED,
         JOB_STATE_CANCELLED,
         JOB_STATE_TIMED_OUT,
-    }),
+    }
+)
+
+# ─── Valid Transitions ───────────────────────────────────────────────────────
+VALID_JOB_TRANSITIONS: Final[Mapping[JobState, frozenset[JobState]]] = {
+    JOB_STATE_PENDING: frozenset({JOB_STATE_RUNNING, JOB_STATE_CANCELLED}),
+    JOB_STATE_RUNNING: frozenset(
+        {
+            JOB_STATE_COMPLETED,
+            JOB_STATE_FAILED,
+            JOB_STATE_CANCELLED,
+            JOB_STATE_TIMED_OUT,
+        }
+    ),
     JOB_STATE_COMPLETED: frozenset(),
     JOB_STATE_FAILED: frozenset(),
     JOB_STATE_CANCELLED: frozenset(),

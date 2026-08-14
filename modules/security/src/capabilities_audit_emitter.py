@@ -39,9 +39,7 @@ class AuditEmitter(EmitAuditProtocol):
         fallback_buffer: list[SecurityAuditEventVO] | None = None,
     ) -> None:
         self._sink = sink
-        self._fallback_buffer: list[SecurityAuditEventVO] = (
-            fallback_buffer if fallback_buffer is not None else []
-        )
+        self._fallback_buffer: list[SecurityAuditEventVO] = fallback_buffer if fallback_buffer is not None else []
 
     # ─── Block 2: Public Contract  ────────────────────────
     async def emit_audit(self, event: SecurityAuditEventVO) -> SecurityAuditEventVO:

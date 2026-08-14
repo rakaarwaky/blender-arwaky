@@ -1,6 +1,5 @@
 """CLI close command — Close active Blender instance."""
 
-
 from modules.shared.src.cli.capabilities_cli_registry import Registry
 from modules.shared.src.cli.utility_cli_process import is_running, kill_blender
 from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
@@ -10,7 +9,7 @@ def _mask_error(category: str, ref: str, message: str = "Operation failed") -> d
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: object) -> dict[str, object]:
+def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle close command: close active Blender instance."""
     registry = Registry()
 
@@ -30,9 +29,12 @@ def handle(args: object) -> dict[str, object]:
     if pid and is_running(pid).success:
         kill_blender(pid)
 
-
     registry.clear()
 
     if save_failed:
-        return {"success": True, "message": "Blender closed (save may have failed)", "warnings": ["File may not have been saved before close"]}
+        return {
+            "success": True,
+            "message": "Blender closed (save may have failed)",
+            "warnings": ["File may not have been saved before close"],
+        }
     return {"success": True, "message": "Blender closed"}

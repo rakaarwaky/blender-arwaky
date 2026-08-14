@@ -1,4 +1,5 @@
 """Render domain — FR-RND-002: Render scene image."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

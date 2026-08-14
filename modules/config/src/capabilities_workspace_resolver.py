@@ -86,9 +86,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
                 if candidate.is_dir():
                     return WorkspacePath(path=str(candidate), strategy="env_signal")
                 # FR-CFG-003: "Invalid env path logs warning, falls through"
-                logger.warning(
-                    "BLENDERMCP_ROOT path is not a directory: %s", env_root
-                )
+                logger.warning("BLENDERMCP_ROOT path is not a directory: %s", env_root)
             except (OSError, ValueError) as exc:
                 logger.warning("Invalid BLENDERMCP_ROOT path '%s': %s", env_root, exc)
 

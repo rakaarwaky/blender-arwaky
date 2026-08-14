@@ -14,19 +14,21 @@ EVENT_TYPE_PROMPT_SENT: Final[str] = "prompt_sent"
 EVENT_TYPE_CONNECTION: Final[str] = "connection"
 EVENT_TYPE_ERROR: Final[str] = "error"
 
-ALLOWED_ACTIONS: frozenset[str] = frozenset([
-    "action_execute",
-    "action_list",
-    "health_check",
-    "settings_view",
-    "task_status",
-    "task_cancel",
-    "search",
-    "download",
-    "import",
-    "render",
-    "screenshot",
-])
+ALLOWED_ACTIONS: frozenset[str] = frozenset(
+    [
+        "action_execute",
+        "action_list",
+        "health_check",
+        "settings_view",
+        "task_status",
+        "task_cancel",
+        "search",
+        "download",
+        "import",
+        "render",
+        "screenshot",
+    ]
+)
 
 FEATURE_AREAS: dict[str, str] = {
     "action_execute": "dispatcher",

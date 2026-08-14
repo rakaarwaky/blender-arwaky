@@ -20,6 +20,9 @@ from modules.shared.src.common.taxonomy_core_vo import (
     Timestamp,
     VersionString,
 )
+from modules.shared.src.telemetry.contract_telemetry_enrichment_protocol import (
+    TelemetryEnrichmentProtocol,
+)
 from modules.shared.src.telemetry.contract_telemetry_recording_protocol import (
     TelemetryRecordingProtocol,
 )
@@ -35,9 +38,14 @@ logger = logging.getLogger("blender-arwaky.telemetry")
 
 
 class TelemetryRecordingCapability(TelemetryRecordingProtocol):
-    def __init__(self, buffer_capacity: int = 1000) -> None:
+    def __init__(
+        self,
+        buffer_capacity: int = 1000,
+        enricher: TelemetryEnrichmentProtocol | None = None,
+    ) -> None:
         self._buffer: deque[TelemetryRecord] = deque(maxlen=buffer_capacity)
         self._enabled = EnabledFlag(True)
+        self._enricher = enricher
 
     def is_enabled(self) -> SuccessFlag:
         return SuccessFlag(bool(self._enabled))
@@ -59,6 +67,7 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
                 rejection_reason=TelemetryRejectionReason.ACTION_NOT_ALLOWLISTED,
             )
 
+        metadata = self._enricher.get_environment_metadata() if self._enricher is not None else None
         record = TelemetryRecord(
             action_type=draft.action_type,
             category=draft.classification.category,
@@ -67,8 +76,8 @@ class TelemetryRecordingCapability(TelemetryRecordingProtocol):
             feature_area=draft.classification.feature_area,
             operation_type=draft.classification.operation_type,
             outcome_category=draft.outcome_category,
-            version=VersionString("unknown"),
-            platform=PlatformName("unknown"),
+            version=metadata.app_version if metadata is not None else VersionString("unknown"),
+            platform=metadata.platform if metadata is not None else PlatformName("unknown"),
             duration_bucket=draft.duration_bucket,
         )
 

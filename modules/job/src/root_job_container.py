@@ -2,6 +2,7 @@
 
 Wires 5 capabilities to 5 protocols, assembles the agent.
 """
+
 from __future__ import annotations
 
 import logging
@@ -55,7 +56,6 @@ class JobContainer:
         capacity = JobCapacityChecker()
         scheduler = JobSchedulerCapability()
         _ = scheduler
-
 
         self._orchestrator = JobOrchestrator(
             lifecycle=lifecycle,

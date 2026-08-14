@@ -33,33 +33,28 @@ class IDiagnosticsAggregate(ABC):
     async def compose_health(
         self,
         request: HealthCompositionRequestVO,
-    ) -> HealthDetailsVO:
-        ...
+    ) -> HealthDetailsVO: ...
 
     @abstractmethod
     async def collect_metrics_snapshot(
         self,
         sample: MetricsSampleVO,
-    ) -> MetricsSnapshotVO:
-        ...
+    ) -> MetricsSnapshotVO: ...
 
     @abstractmethod
     async def emit_audit_event(
         self,
         request: AuditEventRequestVO,
-    ) -> AuditRecordVO:
-        ...
+    ) -> AuditRecordVO: ...
 
     @abstractmethod
     async def log_record(
         self,
         request: LogRecordRequestVO,
-    ) -> LogResultVO:
-        ...
+    ) -> LogResultVO: ...
 
     @abstractmethod
     async def get_snapshot(
         self,
         request: SnapshotRequestVO,
-    ) -> DiagnosticsSnapshotVO:
-        ...
+    ) -> DiagnosticsSnapshotVO: ...

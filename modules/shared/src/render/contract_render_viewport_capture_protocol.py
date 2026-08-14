@@ -1,4 +1,5 @@
 """Render domain — FR-RND-001: Capture viewport screenshot."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

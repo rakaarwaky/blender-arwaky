@@ -204,9 +204,7 @@ class TransportExecutor(TransportProtocol):
             header += chunk
         length = int.from_bytes(header, "big")
         if length > self._max_payload_bytes:
-            raise PayloadLimitError(
-                f"Response length {length} exceeds max payload {self._max_payload_bytes}"
-            )
+            raise PayloadLimitError(f"Response length {length} exceeds max payload {self._max_payload_bytes}")
         # Use bytearray to avoid O(n2) memory copies on large payloads
         data = bytearray()
         while len(data) < length:

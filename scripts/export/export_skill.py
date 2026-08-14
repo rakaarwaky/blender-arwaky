@@ -102,10 +102,7 @@ def write_markdown(
 ) -> None:
     with open(output_path, "w", encoding="utf-8") as out:
         out.write(f"# Skill Pack: {title}\n\n")
-        out.write(
-            f"This document contains files for skill pack `{title}` "
-            "from `.agents/skills/`.\n\n"
-        )
+        out.write(f"This document contains files for skill pack `{title}` from `.agents/skills/`.\n\n")
 
         out.write("## File List\n\n")
         for f in sorted_files:
@@ -137,16 +134,19 @@ def parse_args() -> argparse.Namespace:
         description="Export Python skill directories into a consolidated Markdown file automatically."
     )
     parser.add_argument(
-        "--skill", "-s",
+        "--skill",
+        "-s",
         help="Export a specific skill name. Omit to automatically export all Python skills.",
     )
     parser.add_argument(
-        "--lang", "-l",
+        "--lang",
+        "-l",
         default="python",
         help="Filter skills by language ('python', 'rust', 'typescript', 'all'). Default: python.",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output file path (default: .agents/skills/exports/python_skills_pack.md).",
     )
     return parser.parse_args()

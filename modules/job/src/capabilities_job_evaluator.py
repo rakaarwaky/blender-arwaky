@@ -4,6 +4,7 @@
 Evaluates cancellation eligibility. Signals executor via utility.
 Does NOT mutate state — Agent applies transition via repository.
 """
+
 from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import JobState

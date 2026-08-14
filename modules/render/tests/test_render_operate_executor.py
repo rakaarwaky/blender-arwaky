@@ -71,6 +71,7 @@ class MockSecurityValidator(ValidatePathProtocol):
                 denial_reason="Path denied by security policy",
             )
         from pathlib import Path as _Path
+
         return PathValidationVO(
             target_path=request.target_path,
             access_mode=request.access_mode,
@@ -148,9 +149,7 @@ async def test_fr_rnd_001_invalid_shading(
 async def test_fr_rnd_001_invalid_image_format(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
-    result = await viewport_executor.capture_viewport(
-        _viewport_req(image_format=ImageFormat("GIF"))
-    )
+    result = await viewport_executor.capture_viewport(_viewport_req(image_format=ImageFormat("GIF")))
     assert bool(result.success) is False
 
 
@@ -158,9 +157,7 @@ async def test_fr_rnd_001_invalid_image_format(
 async def test_fr_rnd_001_invalid_overwrite_policy(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
-    result = await viewport_executor.capture_viewport(
-        _viewport_req(overwrite_policy="maybe")
-    )
+    result = await viewport_executor.capture_viewport(_viewport_req(overwrite_policy="maybe"))
     assert bool(result.success) is False
 
 

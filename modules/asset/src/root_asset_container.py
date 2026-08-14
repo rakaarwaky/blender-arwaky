@@ -77,8 +77,6 @@ class AssetContainer:
             from .capabilities_asset_provider import AssetProviderMetadataCapability
             from .capabilities_asset_search_handler import AssetSearchHandler
 
-
-
             # CE02: Read FRD config keys (wired per capability's own config_getter)
             overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
             enabled_providers = self._get_config_value("enabled_providers", None)

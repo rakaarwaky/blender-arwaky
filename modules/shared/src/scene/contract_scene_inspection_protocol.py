@@ -1,4 +1,5 @@
 """Scene domain — FR-SCN-001: Inspect scene state."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

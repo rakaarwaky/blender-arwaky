@@ -29,7 +29,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
     def __init__(self, metadata_supplier: _IMetadataSource | None = None) -> None:
         self._metadata_supplier = metadata_supplier
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_metadata(self) -> ConfigMetadata:
         """Return current settings metadata (reflects latest load/reload)."""
@@ -41,7 +41,7 @@ class SettingsMetadataCapability(ISettingsMetadataProtocol):
         """Serialize metadata for diagnostics output (secrets excluded)."""
         return metadata.to_dict()
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "SettingsMetadataCapability()"

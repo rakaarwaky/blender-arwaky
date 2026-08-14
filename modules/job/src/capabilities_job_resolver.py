@@ -4,6 +4,7 @@
 Resolves which terminal records to purge and which running
 records to time out. Stateless — receives data, returns decision.
 """
+
 from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import JobId, Timestamp

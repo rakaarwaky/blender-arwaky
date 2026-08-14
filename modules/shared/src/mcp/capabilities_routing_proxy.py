@@ -19,7 +19,9 @@ logger = logging.getLogger("BlenderMCPServer")
 class McpRoutingImpl(McpRoutingProtocol):
     """MCP routing implementation that delegates to owning feature contracts."""
 
-    def __init__(self, dispatcher: Any | None = None, diagnostics: Any | None = None, config: Any | None = None) -> None:
+    def __init__(
+        self, dispatcher: Any | None = None, diagnostics: Any | None = None, config: Any | None = None
+    ) -> None:
         self._dispatcher = dispatcher
         self._diagnostics = diagnostics
         self._config = config

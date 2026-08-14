@@ -56,7 +56,9 @@ class ModifierActionConfirmationError(DomainError):
     """Raised when a destructive modifier action requires explicit confirmation."""
 
     def __init__(self, modifier_name: ModifierName, action: ActionName) -> None:
-        super().__init__(ErrorString(f"Destructive action '{action}' on modifier '{modifier_name}' requires confirmation"))
+        super().__init__(
+            ErrorString(f"Destructive action '{action}' on modifier '{modifier_name}' requires confirmation")
+        )
         self.modifier_name = modifier_name
         self.action = action
 
@@ -65,7 +67,9 @@ class DeletionProtectionError(DomainError):
     """Raised when attempting to delete a protected object without confirmation."""
 
     def __init__(self, object_name: ObjectName, protected_category: ProtectedCategory) -> None:
-        super().__init__(ErrorString(f"Cannot delete protected object '{object_name}' (category: {protected_category})"))
+        super().__init__(
+            ErrorString(f"Cannot delete protected object '{object_name}' (category: {protected_category})")
+        )
         self.object_name = object_name
         self.protected_category = protected_category
 
