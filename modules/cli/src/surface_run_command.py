@@ -44,8 +44,10 @@ def handle(args: object) -> dict[str, object]:
     port = registry.get_port()
     try:
         with BlenderSocketClient(port=port) as client:
-            result = client.send_command(action, params)
-            return result
+            response = client.send_command(action, params)
+            if response.get("status") == "success":
+                return {"success": True, "result": response.get("result")}
+            return _mask_error("upstream", "cli-502", response.get("message", "Blender command failed"))
     except ConnectionError:
         return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
     except Exception:

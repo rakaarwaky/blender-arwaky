@@ -1,5 +1,6 @@
 """CLI render command — Execute full frame render."""
 
+import os
 
 from modules.shared.src.cli.capabilities_cli_registry import Registry
 from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
@@ -22,11 +23,19 @@ def handle(args: object) -> dict[str, object]:
         "resolution_x": args.resolution_x,
         "resolution_y": args.resolution_y,
     }
-
     try:
         with BlenderSocketClient(port=port) as client:
-            result = client.send_command("render", params)
-            return {"success": True, "message": "Render started", "filepath": args.output, "result": result}
+            response = client.send_command("render", params)
+            if response.get("status") != "success":
+                return _mask_error("upstream", "cli-502", response.get("message", "Render failed"))
+            if not os.path.exists(args.output):
+                return _mask_error("unexpected", "cli-500", "Render file was not created")
+            return {
+                "success": True,
+                "message": "Render completed",
+                "filepath": args.output,
+                "result": response.get("result"),
+            }
     except ConnectionError:
         return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
     except Exception:

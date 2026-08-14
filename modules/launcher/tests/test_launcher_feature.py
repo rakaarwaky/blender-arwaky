@@ -33,7 +33,8 @@ def test_fr_lau_001_registers_override_executable():
     assert res.source == RegistrationSource.OVERRIDE
 
 
-def test_fr_lau_001_no_candidate_returns_error():
+def test_fr_lau_001_no_candidate_returns_error(monkeypatch):
+    monkeypatch.setattr("modules.launcher.src.capabilities_executable_locator.shutil.which", lambda _name: None)
     feat = create_launcher_feature(LauncherConfigVO())
     res = feat.locate_and_register(LauncherConfigVO())
     assert res.registered is False
