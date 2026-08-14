@@ -1,7 +1,4 @@
-"""CLI process helpers — launch, find, kill, check Blender process.
-
-Shared utility between CLI surface commands. Stateless functions only.
-"""
+"""Shared utility between CLI surface commands. Manages Blender lifecycle."""
 
 from __future__ import annotations
 
@@ -48,6 +45,7 @@ def launch_blender(
 ) -> int:
     """Launch Blender with addon and return PID."""
     blender_exe = find_blender()
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
     cmd = [blender_exe]
     if mode == "headless":
@@ -59,23 +57,28 @@ def launch_blender(
         cmd.extend(["--python-expr", pre_save_script])
 
     if addon_path is None:
-        project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         addon_path = os.path.join(project_root, "blender_mcp_addon")
 
-    if os.path.exists(addon_path):
+    if mode == "headless":
+        headless_script = os.path.join(project_root, "scripts", "blender", "run_server_headless.py")
+        cmd.extend(["--python", headless_script])
+    elif os.path.exists(addon_path):
         cmd.extend(
             [
                 "--python-expr",
-                f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
+                f"import sys\nsys.path.insert(0, r'{project_root}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
             ]
         )
 
     try:
+        process_env = os.environ.copy()
+        process_env["BLENDERMCP_PORT"] = str(port)
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL if mode == "headless" else None,
             stderr=subprocess.DEVNULL if mode == "headless" else None,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0,
+            env=process_env,
         )
     except OSError as e:
         raise RuntimeError(f"Failed to launch Blender process: {e}") from e

@@ -75,7 +75,7 @@ if not BlenderMCPServer:
     sys.exit(1)
 
 # 4. Start or Re-use Server
-port = 9876
+port = int(os.environ.get("BLENDERMCP_PORT", "9876"))
 
 # Check if server is already running in this Blender instance
 if hasattr(bpy.types, "blendermcp_server") and bpy.types.blendermcp_server.running:
