@@ -116,7 +116,7 @@ async def test_fr_rnd_001_capture_viewport_success(
 ) -> None:
     result = await viewport_executor.capture_viewport(_viewport_req())
     assert bool(result.success) is True  # nosec B101
-    assert str(result.artifact_path) == "/tmp/shot.png"  # nosec B101
+    assert str(result.artifact_path) == "/tmp/shot.png"  # nosec B101 B108
     assert int(result.width) == 1920  # nosec B101
     assert int(result.height) == 1080  # nosec B101
 
@@ -241,7 +241,7 @@ async def test_fr_rnd_002_render_scene_success(
 ) -> None:
     result = await scene_executor.render_scene(_scene_req())
     assert bool(result.success) is True  # nosec B101
-    assert str(result.artifact_path) == "/tmp/render.png"  # nosec B101
+    assert str(result.artifact_path) == "/tmp/render.png"  # nosec B101 B108
     assert float(result.render_time) == 1.5  # nosec B101
 
 

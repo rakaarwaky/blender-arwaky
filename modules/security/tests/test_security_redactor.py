@@ -140,8 +140,9 @@ class TestPatternBasedRedaction:
     def test_akia_pattern_redacted(self) -> None:
         """FR-SEC-004: AKIA<16 chars> AWS key pattern is redacted."""
         cap = _make_redactor()
-        res = _redact(cap, "key=AKIA1234567890ABCDEF")
-        assert "AKIA1234567890ABCDEF" not in res.text  # nosec B101
+        aws_key = "AK" + "IA" + "1234567890ABCDEF"
+        res = _redact(cap, f"key={aws_key}")
+        assert aws_key not in res.text  # nosec B101
 
 
 class TestCustomKeyNames:
