@@ -1,4 +1,6 @@
 # Plan: dispatcher — Business Analyst
+> **Historical plan notice (2026-08-14):** This 2026-08-08 plan is retained for audit history only. Do not execute its recommendations directly. Use the corresponding `*-20260814-revalidated.md` plan, which classifies each finding as `open`, `needs-clarification`, `resolved`, or `obsolete`.
+
 
 ## Summary
 The dispatcher module implements the single routing/catalog authority between consumers (CLI/MCP) and domain features per FR-DSP-001..006. AES structure: 1 agent orchestrator, 6 capabilities, 1 root container. FRD-to-code traceability is complete and strong. Catalog shared instance pattern correctly enforces single-source-of-truth. No violations found.
