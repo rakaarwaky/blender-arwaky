@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from typing import Protocol
+from urllib.parse import unquote
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -61,6 +62,10 @@ class PathValidator(ValidatePathProtocol):
                 denial_reason="Empty path",
                 audit_metadata={"rule": "empty_path"},
             )
+
+        # Decode URL-escaped separators/dots before traversal detection.
+        # This prevents encoded paths from bypassing the segment check.
+        target = unquote(target)
 
         # Check for path traversal BEFORE normalization
         if ".." in target.replace("\\", "/").split("/"):

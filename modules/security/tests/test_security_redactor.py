@@ -30,6 +30,7 @@ def _make_redactor(
 def _redact(cap: SensitiveRedactor, text: str, **overrides: object) -> RedactionVO:
     """Helper to run redact synchronously via asyncio."""
     import asyncio
+
     base = RedactionVO(text=text, sensitivity_level=SensitivityLevel.HIGH)
     update = {k: v for k, v in overrides.items()}
     return asyncio.run(cap.redact(RedactionVO(**{**dict(base.__dict__), **update})))
@@ -339,11 +340,17 @@ class TestEdgeCases:
         assert "hunter2" not in res.text
 
     def test_multiline_secret_redacted(self) -> None:
-        """FR-SEC-004: multiline secrets are redacted."""
+        """FR-SEC-004: quoted multiline secrets are fully redacted."""
         cap = _make_redactor()
-        _redact(cap, "password=line1\nline2")
-        # The pattern matches up to whitespace/comma, so only line1 is redacted
-        # This is expected behavior for the pattern-based approach
+        res = _redact(cap, 'password="line1\nline2"')
+        assert "line1" not in res.text
+        assert "line2" not in res.text
+
+    def test_near_key_word_is_not_false_positive(self) -> None:
+        """FR-SEC-004: ordinary words containing key names are preserved."""
+        cap = _make_redactor()
+        res = _redact(cap, "tokenize this normal message")
+        assert res.text == "tokenize this normal message"
 
 
 class TestSensitivityLevels:

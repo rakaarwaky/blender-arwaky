@@ -43,6 +43,7 @@ class TestEmptyPathValidation:
         """FR-SEC-001: empty string path is rejected."""
         cap = _make_validator()
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="", access_mode=AccessMode.READ)))
         assert res.allowed is False
         assert res.denial_reason == "Empty path"
@@ -51,6 +52,7 @@ class TestEmptyPathValidation:
         """FR-SEC-001: whitespace-only path is rejected (becomes empty after normalization)."""
         cap = _make_validator()
         import asyncio
+
         # Whitespace path may normalize to something — but empty check catches ""
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="", access_mode=AccessMode.WRITE)))
         assert res.allowed is False
@@ -59,6 +61,7 @@ class TestEmptyPathValidation:
         """FR-SEC-001: every denial emits audit metadata."""
         cap = _make_validator()
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="", access_mode=AccessMode.READ)))
         assert isinstance(res.audit_metadata, dict)
         assert res.audit_metadata.get("rule") == "empty_path"
@@ -75,9 +78,28 @@ class TestPathTraversalDetection:
         """
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/../etc/passwd", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/../etc/passwd", access_mode=AccessMode.READ))
+        )
         assert res.allowed is False
         assert res.denial_reason in ("Path traversal detected", "Path outside allowed directories")
+
+    def test_encoded_traversal_rejected(self) -> None:
+        """FR-SEC-001: URL-encoded traversal is rejected before normalization."""
+        cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
+        import asyncio
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(
+                    target_path="/safe/%2e%2e/%65tc/passwd",
+                    access_mode=AccessMode.READ,
+                )
+            )
+        )
+        assert res.allowed is False
+        assert res.denial_reason == "Path traversal detected"
 
     def test_nested_traversal_rejected(self) -> None:
         """FR-SEC-001: nested ../ traversal is rejected.
@@ -87,7 +109,10 @@ class TestPathTraversalDetection:
         """
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/../../../etc/passwd", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/../../../etc/passwd", access_mode=AccessMode.READ))
+        )
         assert res.allowed is False
 
     def test_traversal_in_middle_rejected(self) -> None:
@@ -98,14 +123,22 @@ class TestPathTraversalDetection:
         """
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/subdir/../../etc/passwd", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(target_path="/safe/subdir/../../etc/passwd", access_mode=AccessMode.READ)
+            )
+        )
         assert res.allowed is False
 
     def test_traversal_audit_metadata(self) -> None:
         """FR-SEC-001: traversal denial includes audit metadata with redacted path."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/../etc/passwd", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/../etc/passwd", access_mode=AccessMode.READ))
+        )
         assert isinstance(res.audit_metadata, dict)
         # After normalization the path is rejected by allowed-dirs check
         assert res.audit_metadata.get("rule") in ("path_traversal", "unauthorized_access")
@@ -114,7 +147,10 @@ class TestPathTraversalDetection:
         """FR-SEC-001: normalized path without traversal is allowed."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/project/file.txt", access_mode=AccessMode.WRITE)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/project/file.txt", access_mode=AccessMode.WRITE))
+        )
         assert res.allowed is True
 
 
@@ -125,6 +161,7 @@ class TestAllowedDirectories:
         """FR-SEC-001: path outside allowed directories is rejected."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/etc/passwd", access_mode=AccessMode.READ)))
         assert res.allowed is False
         assert res.denial_reason == "Path outside allowed directories"
@@ -133,13 +170,19 @@ class TestAllowedDirectories:
         """FR-SEC-001: subdirectories of allowed directories are allowed."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/projects/blender/addon.py", access_mode=AccessMode.WRITE)))
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(target_path="/safe/projects/blender/addon.py", access_mode=AccessMode.WRITE)
+            )
+        )
         assert res.allowed is True
 
     def test_allowed_directory_itself_is_allowed(self) -> None:
         """FR-SEC-001: the allowed directory itself is allowed."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe", access_mode=AccessMode.READ)))
         assert res.allowed is True
 
@@ -147,14 +190,20 @@ class TestAllowedDirectories:
         """FR-SEC-001: multiple allowed directories are supported."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe", "/tmp/build")))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/tmp/build/output.blend", access_mode=AccessMode.WRITE)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/tmp/build/output.blend", access_mode=AccessMode.WRITE))
+        )
         assert res.allowed is True
 
     def test_no_allowed_directories_accepts_all(self) -> None:
         """FR-SEC-001: empty allowed directories accepts any path."""
         cap = _make_validator(_make_policy(allowed_directories=[]))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/any/path/file.txt", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/any/path/file.txt", access_mode=AccessMode.READ))
+        )
         assert res.allowed is True
 
 
@@ -165,11 +214,12 @@ class TestRelativePathResolution:
         """FR-SEC-001: relative path resolved against base directory."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(
-            target_path="main.blend",
-            access_mode=AccessMode.WRITE,
-            base_directory="/safe/project"
-        )))
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(target_path="main.blend", access_mode=AccessMode.WRITE, base_directory="/safe/project")
+            )
+        )
         assert res.allowed is True
         assert res.canonical_path.endswith("main.blend")
 
@@ -182,22 +232,28 @@ class TestRelativePathResolution:
         """
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(
-            target_path="../../etc/passwd",
-            access_mode=AccessMode.READ,
-            base_directory="/safe/project"
-        )))
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(
+                    target_path="../../etc/passwd", access_mode=AccessMode.READ, base_directory="/safe/project"
+                )
+            )
+        )
         assert res.allowed is False
 
     def test_deep_relative_path_resolved(self) -> None:
         """FR-SEC-001: deeply nested relative path resolved correctly."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(
-            target_path="subdir/deep/file.blend",
-            access_mode=AccessMode.WRITE,
-            base_directory="/safe/project"
-        )))
+
+        res = asyncio.run(
+            cap.validate_path(
+                PathValidationVO(
+                    target_path="subdir/deep/file.blend", access_mode=AccessMode.WRITE, base_directory="/safe/project"
+                )
+            )
+        )
         assert res.allowed is True
 
 
@@ -210,6 +266,7 @@ class TestSymlinkHandling:
         mock_resolver.resolve.return_value = "/etc/passwd"  # different from normalized
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)), mock_resolver)
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/link", access_mode=AccessMode.READ)))
         assert res.allowed is False
         assert res.denial_reason == "Symbolic link escape"
@@ -220,6 +277,7 @@ class TestSymlinkHandling:
         mock_resolver.resolve.side_effect = OSError("permission denied")
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)), mock_resolver)
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file", access_mode=AccessMode.READ)))
         assert res.allowed is False
         assert res.denial_reason == "Symlink resolution failed"
@@ -228,6 +286,7 @@ class TestSymlinkHandling:
         """FR-SEC-001: without resolver, symlink check is skipped."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file", access_mode=AccessMode.READ)))
         assert res.allowed is True
 
@@ -239,28 +298,40 @@ class TestAccessModes:
         """FR-SEC-001: read access to allowed path is permitted."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.READ))
+        )
         assert res.allowed is True
 
     def test_write_access_allowed(self) -> None:
         """FR-SEC-001: write access to allowed path is permitted."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.WRITE)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.WRITE))
+        )
         assert res.allowed is True
 
     def test_delete_access_allowed(self) -> None:
         """FR-SEC-001: delete access to allowed path is permitted."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.DELETE)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.DELETE))
+        )
         assert res.allowed is True
 
     def test_create_access_allowed(self) -> None:
         """FR-SEC-001: create access to allowed path is permitted."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/new_file.txt", access_mode=AccessMode.CREATE)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/new_file.txt", access_mode=AccessMode.CREATE))
+        )
         assert res.allowed is True
 
 
@@ -271,7 +342,10 @@ class TestCanonicalPath:
         """FR-SEC-001: allowed path returns canonical normalized path."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/project/file.txt", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/project/file.txt", access_mode=AccessMode.READ))
+        )
         assert res.allowed is True
         assert res.canonical_path == "/safe/project/file.txt"
 
@@ -279,6 +353,7 @@ class TestCanonicalPath:
         """FR-SEC-001: denied path may include canonical reference."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/etc/passwd", access_mode=AccessMode.READ)))
         assert res.allowed is False
         assert res.canonical_path is not None or res.denial_reason is not None
@@ -291,13 +366,17 @@ class TestAuditMetadata:
         """FR-SEC-001: allowed path includes audit metadata."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.READ))
+        )
         assert isinstance(res.audit_metadata, dict)
 
     def test_denied_has_audit_metadata(self) -> None:
         """FR-SEC-001: denied path includes audit metadata with rule."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/etc/passwd", access_mode=AccessMode.READ)))
         assert isinstance(res.audit_metadata, dict)
         assert "rule" in res.audit_metadata
@@ -310,6 +389,7 @@ class TestPathResolutionErrors:
         """FR-SEC-001: OS error during path resolution produces denial."""
         cap = _make_validator(SecurityPolicyVO())
         import asyncio
+
         # Normal path without resolver — should succeed if within allowed (empty allows all)
         res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/some/path", access_mode=AccessMode.READ)))
         assert res.allowed is True
@@ -334,7 +414,10 @@ class TestEdgeCases:
         """FR-SEC-001: network path is handled deterministically."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/network/file", access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/network/file", access_mode=AccessMode.READ))
+        )
         # Deterministic: either allowed or rejected based on allowed dirs
         assert res.allowed in (True, False)
 
@@ -342,15 +425,21 @@ class TestEdgeCases:
         """FR-SEC-001: overly long path is handled."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/" + "a" * 10000, access_mode=AccessMode.READ)))
+
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/" + "a" * 10000, access_mode=AccessMode.READ))
+        )
         assert res.allowed in (True, False)
 
     def test_directory_vs_file_path(self) -> None:
         """FR-SEC-001: path is file vs directory — both validated same way."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         res_dir = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/dir", access_mode=AccessMode.READ)))
-        res_file = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.WRITE)))
+        res_file = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/file.txt", access_mode=AccessMode.WRITE))
+        )
         # Both should succeed if within allowed dirs
         assert res_dir.allowed is True
         assert res_file.allowed is True
@@ -359,6 +448,9 @@ class TestEdgeCases:
         """FR-SEC-001: parent directory must be allowed even if target file does not yet exist."""
         cap = _make_validator(_make_policy(allowed_directories=("/safe",)))
         import asyncio
+
         # New file in existing dir — parent (/safe) is allowed
-        res = asyncio.run(cap.validate_path(PathValidationVO(target_path="/safe/newfile.txt", access_mode=AccessMode.CREATE)))
+        res = asyncio.run(
+            cap.validate_path(PathValidationVO(target_path="/safe/newfile.txt", access_mode=AccessMode.CREATE))
+        )
         assert res.allowed is True
