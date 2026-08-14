@@ -22,6 +22,7 @@ from .capabilities_catalog_registration import CatalogRegistrationExecutor
 from .capabilities_request_validation import RequestValidationExecutor
 from .capabilities_result_normalization import ResultNormalizationExecutor
 from .capabilities_sync_dispatch import SyncDispatchExecutor
+from .utility_action_catalog_bootstrap import register_canonical_actions
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -55,6 +56,8 @@ class DispatcherContainer:
         catalog: dict = {}
 
         catalog_registration = CatalogRegistrationExecutor(catalog)
+        registered_actions = register_canonical_actions(catalog_registration)
+        logger.info("Registered %d canonical dispatcher actions", registered_actions)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
         background_submit = (

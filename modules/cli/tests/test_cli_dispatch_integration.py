@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+
 from modules.root_cli_main_entry import EXIT_SUCCESS, EXIT_VALIDATION, main
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import (
@@ -79,12 +80,13 @@ def test_run_masks_dispatcher_error_and_uses_validation_exit_code(capsys) -> Non
 
     assert exit_code == EXIT_VALIDATION  # nosec B101
     output = _json_output(capsys)
-    assert output == {  # nosec B101
-        "success": False,
-        "error": "Operation failed",
-        "category": "validation_error",
-        "ref": "cli-502",
-    }
+    assert output["success"] is False  # nosec B101
+    assert output["error"] == "Operation failed"  # nosec B101
+    assert output["category"] == "validation_error"  # nosec B101
+    assert output["ref"] == "cli-502"  # nosec B101
+    assert output["message"] == "Operation failed"  # nosec B101
+    assert output["hint"]  # nosec B101
+    assert "detail" in output  # nosec B101
     assert "private" not in json.dumps(output)  # nosec B101
 
 
@@ -104,14 +106,14 @@ def test_run_auto_wires_dispatcher_when_not_injected(monkeypatch, capsys) -> Non
         pass
 
     class FakeLauncherContainer:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object) -> None:  # noqa: ARG002
             self.agent = object()
 
         def wire(self) -> None:
             return None
 
     class FakeDispatcherContainer:
-        def __init__(self, launcher_action_router: object) -> None:
+        def __init__(self, launcher_action_router: object) -> None:  # noqa: ARG002
             self.agent = dispatcher
 
         def wire(self) -> None:

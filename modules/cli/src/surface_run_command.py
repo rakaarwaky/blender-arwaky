@@ -39,7 +39,11 @@ def handle(args: object, dispatcher: object | None = None) -> dict[str, object]:
 
     if dispatcher is not None:
         try:
-            request = ActionCommandVO(action_name=action, parameters=params)
+            request = ActionCommandVO(
+                action_name=action,
+                parameters=params,
+                confirmation_flag=bool(getattr(args, "confirm", False) or getattr(args, "force", False)),
+            )
             envelope = dispatcher.execute_action(request)
             if envelope.success:
                 return {

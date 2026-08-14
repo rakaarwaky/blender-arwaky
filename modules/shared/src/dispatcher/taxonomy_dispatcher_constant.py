@@ -7,6 +7,18 @@ Taxonomy layer: pure constants only — no functions, loops, classes, or I/O.
 from __future__ import annotations
 
 DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
+    "gateway": {
+        "execute_blender_code": {
+            "description": "Execute validated Blender Python code",
+            "parameters": {
+                "code": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Blender Python source code",
+                },
+            },
+        },
+    },
     "scene": {
         "get_scene_info": {
             "description": "Full scene metadata — object count, frame range, resolution, render engine",
@@ -281,6 +293,11 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         "launch_blender": {
             "description": "Start Blender with integration component active",
             "parameters": {
+                "filepath": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Optional .blend file to open",
+                },
                 "mode": {
                     "type": "string",
                     "required": False,

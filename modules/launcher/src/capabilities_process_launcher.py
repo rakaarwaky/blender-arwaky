@@ -25,16 +25,18 @@ from modules.shared.src.launcher.taxonomy_launcher_constant import (
 )
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    BridgeEndpointVO,
     LaunchMethod,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     ProbeDepth,
     RuntimeState,
-    TimeoutSeconds,
 )
 from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
 from modules.shared.src.security.utility_security_path import redact_path
+
+from .utility_audit_dispatch import emit_audit_sync
 
 
 class _ProcessSpawner(Protocol):
@@ -70,11 +72,14 @@ class ProcessLauncher(LaunchProtocol):
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Start Blender and confirm readiness within the configured timeout."""
-        timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """Start Blender using the request mode and bridge endpoint."""
+        launch_request = request or LaunchRequestVO()
+        mode = launch_request.mode
+        timeout = (
+            launch_request.readiness_timeout_seconds if launch_request.readiness_timeout_seconds is not None else 30.0
+        )
+        endpoint = launch_request.bridge_endpoint or BridgeEndpointVO()
 
         current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
         if current.state in (RuntimeState.RUNNING_READY, RuntimeState.RUNNING_UNRESPONSIVE, RuntimeState.STARTING):
@@ -97,7 +102,11 @@ class ProcessLauncher(LaunchProtocol):
         start = time.monotonic()
         try:
             mode_str = mode.value if hasattr(mode, "value") else str(mode)
-            pid = self._spawner(executable, mode_str, timeout)
+            try:
+                pid = self._spawner(executable, mode_str, timeout, endpoint.host, endpoint.port)
+            except TypeError:
+                # Backward-compatible injected test seam with the original 3-argument contract.
+                pid = self._spawner(executable, mode_str, timeout)
         except Exception as exc:
             self._emit_security_audit(ViolationCategory.UNAUTHORIZED_ACCESS, str(exc))
             self._emit(
@@ -107,7 +116,11 @@ class ProcessLauncher(LaunchProtocol):
 
         ready = False
         if self._probe is not None:
-            ready = self._probe(pid, timeout)
+            try:
+                ready = self._probe(pid, endpoint.host, endpoint.port, timeout)
+            except TypeError:
+                # Backward-compatible injected test seam with the original 2-argument contract.
+                ready = self._probe(pid, timeout)
 
         duration_ms = (time.monotonic() - start) * 1000.0
         if not ready:
@@ -129,7 +142,12 @@ class ProcessLauncher(LaunchProtocol):
             process_reference=str(pid),
         )
         return LaunchOutcomeVO(
-            success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms
+            success=True,
+            process_id=pid,
+            ready=True,
+            bridge_endpoint=f"{endpoint.host}:{endpoint.port}",
+            launch_method=LaunchMethod.SPAWN,
+            duration_ms=duration_ms,
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
@@ -152,12 +170,13 @@ class ProcessLauncher(LaunchProtocol):
     def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
         """FR-SEC-005: emit security audit event for launcher operations."""
         if self._audit_events is not None:
-            self._audit_events.emit_audit(
+            emit_audit_sync(
+                self._audit_events,
                 SecurityAuditEventVO(
                     violation_category=violation,
                     operation_type="launcher_operation",
                     source_feature="launcher",
                     target_metadata={"reason": redact_path(reason)},
                     severity=AuditSeverity.WARNING,
-                )
+                ),
             )
