@@ -97,7 +97,8 @@ class FakeRoutingProtocol:
 class FakeResponseProtocol:
     """Fake McpResponseProtocol implementation for testing."""
 
-    async def format_response(self, result, tool_name, _tracking_id="", _error_category=None):
+    async def format_response(self, result, tool_name, tracking_id="", error_category=None):
+        del tracking_id, error_category
         return {"result": result, "tool": tool_name}
 
     async def mask_secrets(self, response):

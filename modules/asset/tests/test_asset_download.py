@@ -360,7 +360,7 @@ def test_fr_ast_005_check_metadata_staleness_fresh():
 
     class MockConfigAggregate:
         def get_bool(self, _path: str, _default: bool = False) -> bool:
-            return False  # Not stale → fresh
+            return True  # Fresh metadata
 
     cap = AssetDownloadCapability(config_aggregate=MockConfigAggregate())
     result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
@@ -373,7 +373,7 @@ def test_fr_ast_005_check_metadata_staleness_stale():
 
     class MockConfigAggregate:
         def get_bool(self, _path: str, _default: bool = False) -> bool:
-            return True  # Stale
+            return False  # Stale metadata
 
     cap = AssetDownloadCapability(config_aggregate=MockConfigAggregate())
     result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))

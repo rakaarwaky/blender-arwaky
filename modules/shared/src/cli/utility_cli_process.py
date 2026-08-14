@@ -52,12 +52,13 @@ def find_blender() -> CliResultVo:
     )
 
 
-async def _async_launch(cmd: list[str]) -> asyncio.subprocess.Process:
+async def _async_launch(cmd: list[str], env: dict[str, str]) -> asyncio.subprocess.Process:
     """Launch process asynchronously via asyncio.create_subprocess_exec."""
     return await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL,
+        env=env,
     )
 
 
@@ -100,18 +101,17 @@ def launch_blender(
         pre_save_script = f"import bpy\nbpy.ops.wm.save_as_mainfile(filepath=r'{resolved_filepath}')"
         cmd.extend(["--python-expr", pre_save_script])
 
-    if addon_path is None:
-        project_root = pathlib.Path(__file__).resolve().parents[4]
-        addon_path_obj = project_root / "blender_mcp_addon"
-    else:
-        addon_path_obj = pathlib.Path(addon_path).resolve()
+    project_root = pathlib.Path(__file__).resolve().parents[4]
+    addon_path_obj = project_root / "blender_mcp_addon" if addon_path is None else pathlib.Path(addon_path).resolve()
 
-    if addon_path_obj.exists():
-        addon_path_str = str(addon_path_obj)
+    if mode == "headless":
+        headless_script = project_root / "scripts" / "blender" / "run_server_headless.py"
+        cmd.extend(["--python", str(headless_script)])
+    elif addon_path_obj.exists():
         cmd.extend(
             [
                 "--python-expr",
-                f"import sys\nsys.path.insert(0, r'{addon_path_str}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
+                f"import sys\nsys.path.insert(0, r'{project_root}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
             ]
         )
 
@@ -121,10 +121,12 @@ def launch_blender(
         except RuntimeError:
             loop = None
 
+        process_env = os.environ.copy()
+        process_env["BLENDERMCP_PORT"] = str(port)
         if loop and loop.is_running():
-            proc = loop.run_until_complete(_async_launch(cmd))
+            proc = loop.run_until_complete(_async_launch(cmd, process_env))
         else:
-            proc = asyncio.run(_async_launch(cmd))
+            proc = asyncio.run(_async_launch(cmd, process_env))
         pid = proc.pid
     except Exception as e:
         return CliResultVo(

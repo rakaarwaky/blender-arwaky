@@ -138,8 +138,8 @@ def test_kill_blender_false_for_absent_pid():
 
 def test_find_blender_raises_when_missing(monkeypatch):
     monkeypatch.delenv("BLENDER_EXECUTABLE", raising=False)
-    monkeypatch.setattr(bm_mod.os.path, "exists", lambda _path: False)
-    monkeypatch.setattr(bm_mod.subprocess, "run", lambda *_args, **_kwargs: mock.Mock(returncode=1, stdout=""))
+    monkeypatch.setattr(bm_mod.pathlib.Path, "is_file", lambda _path: False)
+    monkeypatch.setattr(bm_mod.shutil, "which", lambda _name: None)
     res = bm_mod.find_blender()
     assert res.success is False
     assert res.category == "not_found"
