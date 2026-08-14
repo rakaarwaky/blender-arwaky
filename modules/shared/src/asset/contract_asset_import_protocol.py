@@ -21,6 +21,9 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ScaleNormalization,
 )
 
+_DEFAULT_SCALE_NORMALIZATION = ScaleNormalization(False)
+_DEFAULT_DUPLICATE_POLICY = DuplicatePolicy("rename")
+
 
 class AssetImportProtocol(ABC):
     """Protocol for importing asset files into Blender.
@@ -37,8 +40,8 @@ class AssetImportProtocol(ABC):
         file_path: FilePath,
         asset_type: AssetType,
         target_collection: AssetCollectionName | None = None,
-        scale_normalization: ScaleNormalization = ScaleNormalization(False),
-        duplicate_policy: DuplicatePolicy = DuplicatePolicy("rename"),
+        scale_normalization: ScaleNormalization = _DEFAULT_SCALE_NORMALIZATION,
+        duplicate_policy: DuplicatePolicy = _DEFAULT_DUPLICATE_POLICY,
         format_hint: AssetFormatHint | None = None,
     ) -> dict[str, Any]:
         """Import a locally available asset file into Blender.

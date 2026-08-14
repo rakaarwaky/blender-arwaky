@@ -30,7 +30,7 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 # ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
-WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"      # replaces both legacy+product root lookup
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"  # replaces both legacy+product root lookup
 STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 

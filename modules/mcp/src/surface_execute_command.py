@@ -47,6 +47,7 @@ class ExecuteCommandSurface:
 
             # Oversized payload protection (FR-MCP-002)
             import json
+
             payload_size = len(json.dumps({"action": action, "args": args}).encode("utf-8"))
             if payload_size > MAX_PAYLOAD_SIZE:
                 return await container.response.format_response(
@@ -57,9 +58,7 @@ class ExecuteCommandSurface:
                 )
 
             # Surface-level validation only (FR-MCP-002)
-            errors = await container.routing.validate_tool_input(
-                "execute_command", {"action": action, "args": args}
-            )
+            errors = await container.routing.validate_tool_input("execute_command", {"action": action, "args": args})
             if errors:
                 return await container.response.format_response(
                     result={"error": "; ".join(errors)},

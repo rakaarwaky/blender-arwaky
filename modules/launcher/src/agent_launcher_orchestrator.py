@@ -65,7 +65,9 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(
+        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
+    ) -> LaunchOutcomeVO:
         """Delegate launch to the capabilities layer."""
         logger.info("Orchestrating launch (mode=%s)", mode.value)
         return self._launch.launch(mode, readiness_timeout_seconds)

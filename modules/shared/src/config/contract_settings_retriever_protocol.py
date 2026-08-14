@@ -31,29 +31,21 @@ class ISettingsRetrieverProtocol(ABC):
         ...
 
     @abstractmethod
-    def get_string(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: str = ""
-    ) -> str:
+    def get_string(self, snapshot: SettingsSnapshot, path: ConfigPath, default: str = "") -> str:
         """Retrieve a string value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_int(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: int = 0
-    ) -> int:
+    def get_int(self, snapshot: SettingsSnapshot, path: ConfigPath, default: int = 0) -> int:
         """Retrieve an integer value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_bool(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: bool = False
-    ) -> bool:
+    def get_bool(self, snapshot: SettingsSnapshot, path: ConfigPath, default: bool = False) -> bool:
         """Retrieve a boolean value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_float(
-        self, snapshot: SettingsSnapshot, path: ConfigPath, default: float = 0.0
-    ) -> float:
+    def get_float(self, snapshot: SettingsSnapshot, path: ConfigPath, default: float = 0.0) -> float:
         """Retrieve a float value. Returns default on type mismatch."""
         ...

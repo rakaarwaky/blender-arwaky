@@ -15,6 +15,8 @@ class LaunchProtocol(ABC):
     """Protocol interface for launching the Blender process with readiness wait."""
 
     @abstractmethod
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(
+        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
+    ) -> LaunchOutcomeVO:
         """Start Blender with the integration component active and confirm readiness."""
         ...

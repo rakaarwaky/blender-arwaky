@@ -1,4 +1,5 @@
 """Job domain — FR-JOB-005: Enforce background capacity."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

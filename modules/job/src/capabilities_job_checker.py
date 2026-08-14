@@ -4,6 +4,7 @@
 Evaluates whether a new task can be accepted under capacity policy.
 Stateless — receives count and policy, returns decision.
 """
+
 from __future__ import annotations
 
 from modules.shared.src.job.contract_job_capacity_protocol import IJobCapacity

@@ -23,6 +23,13 @@ def handle(args: Any) -> dict[str, Any]:
     try:
         pid = launch_blender(filepath, mode=args.mode, port=args.port)
         registry.set_active(filepath, pid, args.port)
-        return {"success": True, "message": "Blender session started", "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
+        return {
+            "success": True,
+            "message": "Blender session started",
+            "filepath": filepath,
+            "pid": pid,
+            "port": args.port,
+            "mode": args.mode,
+        }
     except Exception:
         return _mask_error("unexpected", "cli-500")

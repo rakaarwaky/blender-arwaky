@@ -129,7 +129,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
     async def _execute_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
-        return result.output if hasattr(result, 'output') else str(result)
+        return result.output if hasattr(result, "output") else str(result)
 
     def __repr__(self) -> str:
         return "SceneInspectionExecutor()"

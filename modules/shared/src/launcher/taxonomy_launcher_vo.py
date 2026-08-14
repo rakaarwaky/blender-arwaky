@@ -52,6 +52,7 @@ class LaunchMethod(str, Enum):
 # Registration Source / Discovery
 # ============================================================
 
+
 class RegistrationSource(str, Enum):
     """How the Blender executable path was discovered."""
 
@@ -75,6 +76,7 @@ class VersionCompatibility(str, Enum):
 # Runtime State Classification (FR-LAU-004)
 # ============================================================
 
+
 class RuntimeState(str, Enum):
     """Classified runtime state."""
 
@@ -89,6 +91,7 @@ class RuntimeState(str, Enum):
 # ============================================================
 # FR-LAU-001: Locate and Register
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ExecutableReferenceVO:
@@ -114,6 +117,7 @@ class RegistrationOutcomeVO:
 # FR-LAU-002: Launch
 # ============================================================
 
+
 @dataclass(frozen=True)
 class LaunchOutcomeVO:
     """Unified launch result — input and output in one VO."""
@@ -131,6 +135,7 @@ class LaunchOutcomeVO:
 # FR-LAU-003: Shut Down
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ShutdownOutcomeVO:
     """Unified shutdown result — input and output in one VO."""
@@ -146,6 +151,7 @@ class ShutdownOutcomeVO:
 # ============================================================
 # FR-LAU-004: Runtime Status
 # ============================================================
+
 
 @dataclass(frozen=True)
 class RuntimeStatusVO:
@@ -173,6 +179,7 @@ class StatusCheckOutcomeVO:
 # ============================================================
 # FR-LAU-005: Persist Runtime State
 # ============================================================
+
 
 @dataclass(frozen=True)
 class RuntimeStateVO:
@@ -206,6 +213,7 @@ class StatePersistenceOutcomeVO:
 # ============================================================
 # Launcher Configuration
 # ============================================================
+
 
 @dataclass(frozen=True)
 class LauncherConfigVO:

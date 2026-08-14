@@ -157,15 +157,9 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
             lines.append(f"bpy.context.active_object.rotation_euler = {tuple_str(rotation)}")
 
         # Set object name
-        lines.append(
-            "created_obj = bpy.context.active_object"
-        )
-        lines.append(
-            "if created_obj:"
-        )
-        lines.append(
-            f"    created_obj.name = {quote_string(resolved_name)}"
-        )
+        lines.append("created_obj = bpy.context.active_object")
+        lines.append("if created_obj:")
+        lines.append(f"    created_obj.name = {quote_string(resolved_name)}")
 
         return "\n".join(lines)
 

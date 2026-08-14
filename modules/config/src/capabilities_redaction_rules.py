@@ -39,7 +39,7 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
             full_redact=True,
         )
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_redaction_rule(self) -> RedactionRule:
         """Return the authoritative redaction rule."""
@@ -60,15 +60,12 @@ class RedactionRulesCapability(IRedactionRulesProtocol):
             elif isinstance(value, dict):
                 result[key] = self.redact_dict(value)
             elif isinstance(value, list):
-                result[key] = [
-                    self.redact_dict(item) if isinstance(item, dict) else item
-                    for item in value
-                ]
+                result[key] = [self.redact_dict(item) if isinstance(item, dict) else item for item in value]
             else:
                 result[key] = value
         return result
 
-# ─── Block 3: Dunder Methods, Factories, Helpers ──────────
+    # ─── Block 3: Dunder Methods, Factories, Helpers ──────────
 
     def __repr__(self) -> str:
         return "RedactionRulesCapability()"

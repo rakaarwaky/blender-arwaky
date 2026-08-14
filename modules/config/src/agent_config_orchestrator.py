@@ -60,7 +60,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._snapshot: SettingsSnapshot | None = None
         self._event_buffer: deque[EventPayload] = deque(maxlen=EVENT_RING_BUFFER_SIZE)
 
-# ─── Block 2: Aggregate Method Implementation ─────────────
+    # ─── Block 2: Aggregate Method Implementation ─────────────
 
     def load(
         self,
@@ -140,7 +140,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate dictionary redaction."""
         return self._redaction_rules.redact_dict(data)
 
-# ─── Block 3: Event Recording ─────────────────────────────
+    # ─── Block 3: Event Recording ─────────────────────────────
 
     def _record_event(self, event: object) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
@@ -150,7 +150,7 @@ class ConfigOrchestrator(IConfigAggregate):
         self._event_buffer.append(redacted_payload)
         logger.info("config_event %s", json.dumps(redacted_payload, default=str))
 
-# ─── Dunder ────────────────────────────────────────────────
+    # ─── Dunder ────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         return "ConfigOrchestrator()"

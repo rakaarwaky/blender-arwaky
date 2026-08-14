@@ -14,6 +14,7 @@ from enum import Enum
 # Connection State / Transport
 # ============================================================
 
+
 class ConnectionState(str, Enum):
     """Connection state machine states."""
 
@@ -35,6 +36,7 @@ class TransportType(str, Enum):
 # ============================================================
 # FR-GWY-001: Establish Connection
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ConnectionConfigVO:
@@ -65,6 +67,7 @@ class ConnectionOutcomeVO:
 # FR-GWY-002: Maintain Connection
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ConnectionStatusVO:
     """Unified connection status — input and output in one VO."""
@@ -79,6 +82,7 @@ class ConnectionStatusVO:
 # ============================================================
 # FR-GWY-003: Transport Request and Response
 # ============================================================
+
 
 @dataclass(frozen=True)
 class TransportMessageVO:
@@ -106,6 +110,7 @@ class TransportOutcomeVO:
 # ============================================================
 # FR-GWY-004: Scene Operation Queue
 # ============================================================
+
 
 @dataclass(frozen=True)
 class SceneOperationVO:
@@ -140,6 +145,7 @@ class QueueStatusVO:
 # FR-GWY-005: Execute Raw Python Code
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CodeExecutionVO:
     """Unified code execution request — input and output in one VO."""
@@ -162,10 +168,11 @@ class CodeExecutionOutcomeVO:
     error_message: str | None = None
     error_location: str | None = None
     task_reference: str | None = None
+
+
 # ============================================================
 # Connection State & Status
 # ============================================================
-
 
 
 @dataclass(frozen=True)
@@ -230,6 +237,7 @@ class ExecutionResult:
 # Command Result
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CommandResult:
     """Typed command dispatch result (replaces dict[str, Any])."""
@@ -266,6 +274,7 @@ class TaskStatus:
 # Server Metrics
 # ============================================================
 
+
 @dataclass(frozen=True)
 class ServerMetrics:
     """Immutable metrics snapshot from the event bus collector."""
@@ -292,6 +301,7 @@ class ServerMetrics:
 # Security Policy
 # ============================================================
 
+
 @dataclass(frozen=True)
 class CodeSecurityPolicy:
     """Static security policy for code validation."""
@@ -303,6 +313,7 @@ class CodeSecurityPolicy:
 # ============================================================
 # Queued Operation
 # ============================================================
+
 
 @dataclass(frozen=True)
 class QueuedOperation:
@@ -320,6 +331,7 @@ class QueuedOperation:
 # ============================================================
 # Server Configuration
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ServerConfig:
@@ -375,6 +387,7 @@ class ServerConfig:
 # ============================================================
 # Command Specification
 # ============================================================
+
 
 @dataclass(frozen=True)
 class ServerCommandSpec:

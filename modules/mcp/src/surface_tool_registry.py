@@ -35,4 +35,5 @@ class ToolRegistrySurface:
 
         # Scene tools require code_executor — registered separately when available
         from .surface_scene_tools import SceneToolsSurface
+
         SceneToolsSurface.register_scene_tools(mcp)

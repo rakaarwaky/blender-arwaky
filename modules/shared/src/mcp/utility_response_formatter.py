@@ -36,9 +36,7 @@ def envelope_with_tracking(
 
     if error_category:
         envelope["success"] = False
-        envelope["message"] = (
-            str(result) if isinstance(result, (str, int, float)) else "Execution failed"
-        )
+        envelope["message"] = str(result) if isinstance(result, (str, int, float)) else "Execution failed"
 
     return envelope
 

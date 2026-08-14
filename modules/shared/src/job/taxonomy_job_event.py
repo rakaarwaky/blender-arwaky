@@ -1,5 +1,6 @@
 # modules/shared/src/job/taxonomy_job_event.py
 """Job domain events — immutable domain facts."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

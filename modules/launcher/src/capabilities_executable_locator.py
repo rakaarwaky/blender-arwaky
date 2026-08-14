@@ -127,10 +127,12 @@ class ExecutableLocator(LocateRegisterProtocol):
     def _emit_registered(self, source: RegistrationSource, path: str) -> None:
         events = getattr(self, "_events", None)
         if events is not None:
-            events(LauncherLifecycleEvent(
-                event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
-                state_before=RuntimeState.NOT_RUNNING,
-                state_after=RuntimeState.RUNNING_READY,
-                process_reference=path,
-                reason_summary=f"registered_from_{source.value}",
-            ))
+            events(
+                LauncherLifecycleEvent(
+                    event_category=LAUNCHER_EVENT_EXECUTABLE_REGISTERED,
+                    state_before=RuntimeState.NOT_RUNNING,
+                    state_after=RuntimeState.RUNNING_READY,
+                    process_reference=path,
+                    reason_summary=f"registered_from_{source.value}",
+                )
+            )

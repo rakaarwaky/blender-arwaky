@@ -30,10 +30,10 @@ jobs:
         run: uv sync --all-extras
 
       - name: Ruff check
-        run: uv run ruff check src/ blender_mcp_addon/
+        run: uv run ruff check modules/*/src blender_mcp_addon/
 
       - name: Ruff format check
-        run: uv run ruff format --check src/ blender_mcp_addon/
+        run: uv run ruff format --check modules/*/src blender_mcp_addon/
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -59,8 +59,8 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/ \
-            --cov=src \
+          uv run pytest \
+            --cov=modules \
             --cov=blender_mcp_addon \
             --cov-report=term \
             --cov-report=xml:coverage.xml \

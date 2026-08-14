@@ -46,7 +46,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         self._lock = threading.Lock()
         self._cached: WorkspacePath | None = None
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def resolve(self) -> WorkspacePath:
         """Resolve workspace using deterministic strategy order (cached)."""
@@ -65,7 +65,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             timestamp=time.time(),
         )
 
-# ─── Block 3: Resolution Strategy ─────────────────────────
+    # ─── Block 3: Resolution Strategy ─────────────────────────
 
     def _resolve_uncached(self) -> WorkspacePath:
         # 1. Explicit override

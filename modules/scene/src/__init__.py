@@ -27,6 +27,7 @@ def __getattr__(name: str):
     if name in ("SceneContainer", "create_scene_container"):
         from .root_scene_container import SceneContainer as _SceneContainer
         from .root_scene_container import create_scene_container as _create_scene_container
+
         if name == "SceneContainer":
             return _SceneContainer
         return _create_scene_container

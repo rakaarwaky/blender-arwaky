@@ -76,9 +76,7 @@ class AssetOrchestrator(IAssetAggregate):
     def _asset_key(self, provider: str, asset_id: str) -> str:
         return f"{provider}:{asset_id}"
 
-    def _set_workflow_state(
-        self, provider: str, asset_id: str, **states: bool
-    ) -> None:
+    def _set_workflow_state(self, provider: str, asset_id: str, **states: bool) -> None:
         key = self._asset_key(provider, asset_id)
         if key not in self._workflow_states:
             self._workflow_states[key] = {}
@@ -118,9 +116,7 @@ class AssetOrchestrator(IAssetAggregate):
         )
 
         # BF01: Track download state for workflow enforcement
-        self._set_workflow_state(
-            str(request.provider), str(request.asset_id), downloaded=raw.get("success", False)
-        )
+        self._set_workflow_state(str(request.provider), str(request.asset_id), downloaded=raw.get("success", False))
 
         if raw.get("success"):
             _emit_event("asset_downloaded", file_path=raw.get("file_path"), cached=raw.get("cached"))
@@ -196,9 +192,7 @@ class AssetOrchestrator(IAssetAggregate):
             _emit_event("asset_imported", object_count=len(raw.get("object_names", ())))
 
         # BF01: Update workflow state
-        self._set_workflow_state(
-            str(request.asset_type), str(request.file_path), imported=raw.get("success", False)
-        )
+        self._set_workflow_state(str(request.asset_type), str(request.file_path), imported=raw.get("success", False))
 
         return AssetImportBlenderVO(
             file_path=request.file_path,

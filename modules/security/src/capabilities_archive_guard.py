@@ -82,7 +82,12 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 continue
 
             if entry.uncompressed_size > opts.max_entry_size:
-                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason=f"Entry exceeds maximum size: {entry.uncompressed_size} > {opts.max_entry_size}"))
+                rejected.append(
+                    RejectedEntryVO(
+                        entry_path=entry.entry_path,
+                        reason=f"Entry exceeds maximum size: {entry.uncompressed_size} > {opts.max_entry_size}",
+                    )
+                )
                 continue
 
             if os.path.isabs(entry.entry_path):
@@ -95,17 +100,21 @@ class ArchiveGuard(ExtractArchiveProtocol):
 
             entry_resolved = os.path.normpath(os.path.join(dest_normalized, entry.entry_path))
             if not entry_resolved.startswith(dest_normalized + os.sep) and entry_resolved != dest_normalized:
-                rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory"))
+                rejected.append(
+                    RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory")
+                )
                 continue
 
             # Depth check: count nesting levels relative to destination (FR-SEC-002)
             relative = os.path.relpath(entry_resolved, dest_normalized)
             nesting_depth = 0 if relative == "." else relative.count(os.sep) + 1
             if nesting_depth > opts.max_depth:
-                rejected.append(RejectedEntryVO(
-                    entry_path=entry.entry_path,
-                    reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
-                ))
+                rejected.append(
+                    RejectedEntryVO(
+                        entry_path=entry.entry_path,
+                        reason=f"Entry nesting depth {nesting_depth} exceeds maximum {opts.max_depth}",
+                    )
+                )
                 continue
 
             total_size += entry.uncompressed_size

@@ -12,9 +12,7 @@ class CommandCatalogProtocol(ABC):
     """Port interface for querying the command catalog."""
 
     @abstractmethod
-    def get_command_spec(
-        self, action: ActionName
-    ) -> CommandSpec | None:
+    def get_command_spec(self, action: ActionName) -> CommandSpec | None:
         """Retrieve command spec for a named action."""
         pass
 
@@ -24,8 +22,6 @@ class CommandCatalogProtocol(ABC):
         pass
 
     @abstractmethod
-    def filter_by_domain(
-        self, domain: DomainRef
-    ) -> dict[ActionName, CommandSpec]:
+    def filter_by_domain(self, domain: DomainRef) -> dict[ActionName, CommandSpec]:
         """Return command specs filtered by domain."""
         pass

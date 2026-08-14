@@ -57,6 +57,7 @@ class AssetSearchVO:
     Input: query.
     Output: assets, total, next_token, provider.
     """
+
     # Input
     query: SearchQuery
     # Output
@@ -73,6 +74,7 @@ class AssetDownloadVO:
     Input: asset_id, destination_path.
     Output: success, file_path, message.
     """
+
     # Input
     asset_id: AssetId
     destination_path: FilePath
@@ -89,6 +91,7 @@ class ImportGlbVO:
     Input: file_path, object_name.
     Output: success, object_name, message.
     """
+
     # Input
     file_path: str
     object_name: ObjectName | None = None
@@ -105,6 +108,7 @@ class ExportModelVO:
     Input: object_name, file_path, export_format.
     Output: success, message.
     """
+
     # Input
     object_name: ObjectName
     file_path: str
@@ -191,7 +195,6 @@ class AssetImportBlenderVO:
     message: str = ""
     error: ErrorMessage | None = None
     error_summary: str | None = None
-
 
 
 @dataclass(frozen=True)

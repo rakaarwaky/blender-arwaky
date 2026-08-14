@@ -70,7 +70,9 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
         creates the modifier, then applies it destructively via operator.
         Requires confirmation for destructive actions.
         """
-        logger.info("Applying modifier %s on object %s (action: %s)", request.modifier_name, request.object_name, request.action)
+        logger.info(
+            "Applying modifier %s on object %s (action: %s)", request.modifier_name, request.object_name, request.action
+        )
 
         # Validate action type
         if request.action not in MODIFIER_ACTIONS:
@@ -122,9 +124,7 @@ class ApplyModifierExecutor(ApplyModifierProtocol):
         action = request.action
 
         if action == "add":
-            lines.append(
-                f"mod = obj.modifiers.new(name={quote_string(str(request.modifier_name))}, type=mod_type)\n"
-            )
+            lines.append(f"mod = obj.modifiers.new(name={quote_string(str(request.modifier_name))}, type=mod_type)\n")
         elif action == "update":
             lines.append(
                 f"# Update existing modifier or add new\n"

@@ -37,7 +37,9 @@ class ILauncherOperateAggregate(ABC):
         ...
 
     @abstractmethod
-    def launch(self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None) -> LaunchOutcomeVO:
+    def launch(
+        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
+    ) -> LaunchOutcomeVO:
         """FR-LAU-002: Launch Blender and confirm readiness."""
         ...
 

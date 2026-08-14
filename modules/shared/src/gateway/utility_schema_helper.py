@@ -50,10 +50,12 @@ _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
         name="get_scene_info",
         required_params=(),
         optional_params=("include_objects", "include_data_blocks"),
-        param_types=ServerCommandSpec._make_param_types({
-            "include_objects": "bool",
-            "include_data_blocks": "bool",
-        }),
+        param_types=ServerCommandSpec._make_param_types(
+            {
+                "include_objects": "bool",
+                "include_data_blocks": "bool",
+            }
+        ),
         default_timeout_ms=5000.0,
         max_timeout_ms=60000.0,
         idempotent=True,
@@ -64,11 +66,13 @@ _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
         name="get_object_info",
         required_params=("name",),
         optional_params=("include_data", "include_children"),
-        param_types=ServerCommandSpec._make_param_types({
-            "name": "str",
-            "include_data": "bool",
-            "include_children": "bool",
-        }),
+        param_types=ServerCommandSpec._make_param_types(
+            {
+                "name": "str",
+                "include_data": "bool",
+                "include_children": "bool",
+            }
+        ),
         default_timeout_ms=5000.0,
         max_timeout_ms=60000.0,
         idempotent=True,
@@ -79,13 +83,15 @@ _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
         name="get_screenshot",
         required_params=(),
         optional_params=("max_size", "view_angle", "shading_mode", "show_overlays", "focus_object"),
-        param_types=ServerCommandSpec._make_param_types({
-            "max_size": "int",
-            "view_angle": "float",
-            "shading_mode": "str",
-            "show_overlays": "bool",
-            "focus_object": "str",
-        }),
+        param_types=ServerCommandSpec._make_param_types(
+            {
+                "max_size": "int",
+                "view_angle": "float",
+                "shading_mode": "str",
+                "show_overlays": "bool",
+                "focus_object": "str",
+            }
+        ),
         default_timeout_ms=5000.0,
         max_timeout_ms=60000.0,
         idempotent=True,

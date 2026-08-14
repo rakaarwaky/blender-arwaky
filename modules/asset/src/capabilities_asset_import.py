@@ -142,7 +142,9 @@ class AssetImportCapability(AssetImportProtocol):
             if self.event_publisher is not None:
                 try:
                     if hasattr(self.event_publisher, "publish"):
-                        self.event_publisher.publish("asset_imported", file_path=str(file_path), asset_type=str(asset_type))
+                        self.event_publisher.publish(
+                            "asset_imported", file_path=str(file_path), asset_type=str(asset_type)
+                        )
                     elif callable(self.event_publisher):
                         self.event_publisher("asset_imported", file_path=str(file_path), asset_type=str(asset_type))
                 except Exception as ep_err:
@@ -161,9 +163,7 @@ class AssetImportCapability(AssetImportProtocol):
                 "error_summary": f"Blender import failed: {e}",
             }
 
-    def _is_supported_format(
-        self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None
-    ) -> bool:
+    def _is_supported_format(self, file_path: str, asset_type: AssetType, format_hint: AssetFormatHint | None) -> bool:
         """Check if file format is supported for import.
 
         Validates both the file extension and the actual content
@@ -226,4 +226,3 @@ class AssetImportCapability(AssetImportProtocol):
             command["format_hint"] = format_hint
 
         return command
-

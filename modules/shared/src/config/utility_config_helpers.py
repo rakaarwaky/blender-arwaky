@@ -157,7 +157,7 @@ def apply_env_overrides(
             continue
         if not key.startswith(prefix):
             continue
-        remainder = key[len(prefix):]
+        remainder = key[len(prefix) :]
         if not remainder:
             continue
         remainder = remainder.lower()

@@ -3,6 +3,7 @@
 Capability implements this protocol. The Agent layer depends on it.
 FR-CFG-002: Retrieve configuration values for cache and settings.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

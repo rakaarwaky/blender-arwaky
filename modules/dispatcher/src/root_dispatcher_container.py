@@ -49,9 +49,13 @@ class DispatcherContainer:
         catalog_registration = CatalogRegistrationExecutor(catalog)
         action_discovery = ActionDiscoveryExecutor(catalog)
         request_validation = RequestValidationExecutor(catalog)
-        background_submit = BackgroundSubmitExecutor(
-            job_tracker=self._job_lifecycle,
-        ) if self._job_lifecycle else None
+        background_submit = (
+            BackgroundSubmitExecutor(
+                job_tracker=self._job_lifecycle,
+            )
+            if self._job_lifecycle
+            else None
+        )
         result_normalization = ResultNormalizationExecutor()
 
         self._orchestrator = DispatcherOrchestrator(

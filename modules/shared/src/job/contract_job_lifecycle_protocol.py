@@ -1,4 +1,5 @@
 """Job domain — FR-JOB-001: Track and update task lifecycle."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

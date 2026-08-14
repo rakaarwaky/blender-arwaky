@@ -35,5 +35,9 @@ def handle(args: Any) -> dict[str, Any]:
     registry.clear()
 
     if save_failed:
-        return {"success": True, "message": "Blender closed (save may have failed)", "warnings": ["File may not have been saved before close"]}
+        return {
+            "success": True,
+            "message": "Blender closed (save may have failed)",
+            "warnings": ["File may not have been saved before close"],
+        }
     return {"success": True, "message": "Blender closed"}

@@ -126,9 +126,7 @@ class AssetExtractCapability(AssetExtractProtocol):
             }
 
         options = ArchiveExtractionOptionsVO(
-            max_entry_count=max_entries
-            if max_entries is not None
-            else ArchiveExtractionOptionsVO.max_entry_count,
+            max_entry_count=max_entries if max_entries is not None else ArchiveExtractionOptionsVO.max_entry_count,
             max_total_size=max_extracted_size
             if max_extracted_size is not None
             else ArchiveExtractionOptionsVO.max_total_size,
@@ -248,9 +246,7 @@ class AssetExtractCapability(AssetExtractProtocol):
 
         raise ValidationError(f"Unsupported archive format: {path.suffix or name_lower}")
 
-    def _extract_allowed(
-        self, artifact_path: str, dest: str, rejected_names: set[str]
-    ) -> list[str]:
+    def _extract_allowed(self, artifact_path: str, dest: str, rejected_names: set[str]) -> list[str]:
         """Extract only the entries the security supervisor approved.
 
         No local path/symlink/size checks are performed here; safety has
@@ -291,6 +287,7 @@ class AssetExtractCapability(AssetExtractProtocol):
                     p.unlink()
                 elif p.is_dir():
                     import shutil
+
                     shutil.rmtree(p, ignore_errors=True)
             except OSError as e:
                 logger.warning("Failed to clean up extracted file %s: %s", file_path, e)

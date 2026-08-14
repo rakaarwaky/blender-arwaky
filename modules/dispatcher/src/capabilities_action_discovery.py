@@ -54,17 +54,11 @@ class ActionDiscoveryExecutor(ActionDiscoveryProtocol):
         if capability_filter:
             # FR-DSP-002: capability/category filter matches the owning feature reference.
             capability_filter_l = capability_filter.lower()
-            actions = [
-                a
-                for a in actions
-                if capability_filter_l in str(a.owning_feature_ref).lower()
-            ]
+            actions = [a for a in actions if capability_filter_l in str(a.owning_feature_ref).lower()]
 
         result = DiscoveryOutcomeVO(
             actions=[self._format_action(a, detail_level) for a in actions],
-            catalog_version=max(
-                (a.catalog_version for a in self._catalog.values()), default=0
-            ),
+            catalog_version=max((a.catalog_version for a in self._catalog.values()), default=0),
             result_count=len(actions),
         )
 

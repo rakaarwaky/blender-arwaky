@@ -71,4 +71,3 @@ class PolicyOverrideEvent:
     target_metadata: MetadataMap = dc_field(default_factory=dict)
     correlation_id: str | None = None
     timestamp: float = 0.0
-

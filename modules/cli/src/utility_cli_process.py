@@ -63,10 +63,12 @@ def launch_blender(
         addon_path = os.path.join(project_root, "blender_mcp_addon")
 
     if os.path.exists(addon_path):
-        cmd.extend([
-            "--python-expr",
-            f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
-        ])
+        cmd.extend(
+            [
+                "--python-expr",
+                f"import sys\nsys.path.insert(0, r'{addon_path}')\nimport bpy\nbpy.ops.preferences.addon_enable(module='blender_mcp_addon')",
+            ]
+        )
 
     try:
         process = subprocess.Popen(

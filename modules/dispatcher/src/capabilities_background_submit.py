@@ -65,9 +65,7 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
         # Background eligibility (FR-DSP-005)
         bg_eligible = request.resolved_metadata.get("background_eligibility_flag", False)
         if not bg_eligible:
-            logger.warning(
-                "Action '%s' is not eligible for background execution", request.action_name
-            )
+            logger.warning("Action '%s' is not eligible for background execution", request.action_name)
             return UnifiedResultEnvelopeVO.error_envelope(
                 message=f"Action '{request.action_name}' does not support background execution",
                 tracking_id=tracking_id,

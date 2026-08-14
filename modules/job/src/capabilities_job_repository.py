@@ -4,6 +4,7 @@
 Owns in-memory task records. Enforces state machine.
 All transitions atomic and thread-safe.
 """
+
 from __future__ import annotations
 
 import logging
@@ -92,11 +93,11 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         self._records: dict[str, JobRecord] = {}
         self._active_count: int = 0
         self._event_publisher = event_publisher
+        self._id_generator = id_generator
 
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 
     def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
-        now = self._now()
         operation = sanitize_operation_type(str(command.operation_type))
         if not str(operation).strip():
             raise ValidationError(ErrorString("operation_type is required"))
@@ -130,9 +131,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         if progress_value < 0.0 or progress_value > 100.0:
             raise ValidationError(ErrorString("progress must be between 0 and 100"))
 
-        message = sanitize_progress_message(
-            str(command.message) if command.message else None
-        )
+        message = sanitize_progress_message(str(command.message) if command.message else None)
 
         with self._lock:
             record = self._get_or_raise(command.job_id)
@@ -145,8 +144,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
             if (
                 record.last_progress_at is not None
-                and (float(now) - float(record.last_progress_at))
-                < self._policy.progress_throttle_seconds
+                and (float(now) - float(record.last_progress_at)) < self._policy.progress_throttle_seconds
                 and progress_value < 100.0
             ):
                 return record.to_snapshot()
@@ -161,9 +159,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         return snapshot
 
     def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
-        summary = sanitize_progress_message(
-            str(command.summary) if command.summary else None
-        )
+        summary = sanitize_progress_message(str(command.summary) if command.summary else None)
         snapshot = self._transition(
             command.job_id,
             JOB_STATE_COMPLETED,
@@ -213,19 +209,11 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
     def list_terminal(self) -> tuple[JobStatusSnapshot, ...]:
         with self._lock:
-            return tuple(
-                r.to_snapshot()
-                for r in self._records.values()
-                if r.state in TERMINAL_JOB_STATES
-            )
+            return tuple(r.to_snapshot() for r in self._records.values() if r.state in TERMINAL_JOB_STATES)
 
     def list_running(self) -> tuple[JobStatusSnapshot, ...]:
         with self._lock:
-            return tuple(
-                r.to_snapshot()
-                for r in self._records.values()
-                if r.state == JOB_STATE_RUNNING
-            )
+            return tuple(r.to_snapshot() for r in self._records.values() if r.state == JOB_STATE_RUNNING)
 
     def delete_records(self, job_ids: tuple[JobId, ...]) -> DeletedCount:
         with self._lock:
@@ -243,10 +231,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     # ─── Block 3: Dunder Methods, Factories, and Private Helpers ─────────────
 
     def __repr__(self) -> str:
-        return (
-            f"<InMemoryJobLifecycleRepository "
-            f"records={len(self._records)} active={self._active_count}>"
-        )
+        return f"<InMemoryJobLifecycleRepository records={len(self._records)} active={self._active_count}>"
 
     def _now(self) -> Timestamp:
         return Timestamp(float(self._clock()))

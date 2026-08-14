@@ -117,9 +117,7 @@ class SceneStateSummaryVO:
     collection_count: ObjectCount = field(default_factory=lambda: ObjectCount(0))
     collections: tuple[CollectionSummaryVO, ...] = ()
 
-    protected_object_summary: ProtectedObjectSummaryVO = field(
-        default_factory=ProtectedObjectSummaryVO
-    )
+    protected_object_summary: ProtectedObjectSummaryVO = field(default_factory=ProtectedObjectSummaryVO)
     capability_flags: dict[str, bool] = field(default_factory=dict)
     message: Prompt = field(default_factory=lambda: Prompt(""))
 

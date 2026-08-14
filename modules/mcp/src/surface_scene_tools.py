@@ -54,7 +54,7 @@ class SceneToolsSurface:
                 request_data = json.loads(request_json) if request_json else {}
                 vo = SceneInspectionVO(**request_data)
                 result = await command.inspect(vo)
-                return json.dumps(result.__dict__ if hasattr(result, '__dict__') else result, default=str)
+                return json.dumps(result.__dict__ if hasattr(result, "__dict__") else result, default=str)
             except Exception as e:
                 logger.error("inspect_scene failed: %s", e, exc_info=True)
                 return json.dumps({"error": str(e), "success": False})
@@ -80,7 +80,7 @@ class SceneToolsSurface:
                 request_data = json.loads(request_json) if request_json else {}
                 vo = SceneCleanupVO(**request_data)
                 result = await command.cleanup(vo)
-                return json.dumps(result.__dict__ if hasattr(result, '__dict__') else result, default=str)
+                return json.dumps(result.__dict__ if hasattr(result, "__dict__") else result, default=str)
             except Exception as e:
                 logger.error("cleanup_scene failed: %s", e, exc_info=True)
                 return json.dumps({"error": str(e), "success": False})

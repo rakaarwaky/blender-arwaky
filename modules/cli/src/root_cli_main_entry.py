@@ -124,7 +124,12 @@ def main() -> int:
                 args.params = json.loads(args.params)
             except json.JSONDecodeError as e:
                 logger.debug("Invalid JSON params: %s", e)
-                result = {"success": False, "error": "Invalid JSON parameters", "category": "validation_error", "ref": "cli-400"}
+                result = {
+                    "success": False,
+                    "error": "Invalid JSON parameters",
+                    "category": "validation_error",
+                    "ref": "cli-400",
+                }
             else:
                 result = surface_run_command.handle(args)
 
@@ -141,7 +146,12 @@ def main() -> int:
             result = surface_status_command.handle(args)
 
         else:
-            result = {"success": False, "error": f"Unknown command: {args.command}", "category": "validation_error", "ref": "cli-400"}
+            result = {
+                "success": False,
+                "error": f"Unknown command: {args.command}",
+                "category": "validation_error",
+                "ref": "cli-400",
+            }
 
     except Exception:
         logger.exception("Unexpected CLI error")

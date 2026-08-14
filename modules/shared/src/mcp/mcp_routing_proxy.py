@@ -18,7 +18,9 @@ logger = logging.getLogger("BlenderMCPServer")
 class McpRoutingImpl(McpRoutingProtocol):
     """MCP routing implementation that delegates to owning feature contracts."""
 
-    def __init__(self, dispatcher: Any | None = None, diagnostics: Any | None = None, config: Any | None = None) -> None:
+    def __init__(
+        self, dispatcher: Any | None = None, diagnostics: Any | None = None, config: Any | None = None
+    ) -> None:
         self._dispatcher = dispatcher
         self._diagnostics = diagnostics
         self._config = config
@@ -34,6 +36,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         FR-MCP-002: Every tool routes to same aggregate as CLI command.
         Divergence from CLI semantics is a defect.
         """
+        del tracking_id  # Reserved by the protocol for correlation metadata.
         if tool_name == "execute_command":
             action = payload.get("action", "")
             args = payload.get("args", {})
@@ -73,6 +76,7 @@ class McpRoutingImpl(McpRoutingProtocol):
         FR-MCP-002: Surface validates shape only (recognized, parsed, required fields).
         Semantic validation delegated to dispatcher + owning features.
         """
+        del strict_mode  # Strictness is owned by the downstream validator.
         errors: list[str] = []
 
         if not isinstance(payload, dict):

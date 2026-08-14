@@ -1,4 +1,5 @@
 """Job domain — contracts, taxonomy, and shared types."""
+
 from .contract_job_aggregate import IJobAggregate
 from .contract_job_cancellation_protocol import IJobCancellation
 from .contract_job_capacity_protocol import IJobCapacity

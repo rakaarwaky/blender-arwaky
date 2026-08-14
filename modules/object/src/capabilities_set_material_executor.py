@@ -121,19 +121,23 @@ class SetMaterialExecutor(SetMaterialProtocol):
         # Handle slot creation/assignment with optional index (FR-OBJ-004)
         slot_index = getattr(request, "slot_index", None)
         if slot_index is not None:
-            lines.extend([
-                "# Assign material to specific slot index",
-                f"while len(obj.data.materials) <= {slot_index}:",
-                "    obj.data.materials.append(bpy.data.materials.new(name=\"temp\"))",
-                f"obj.data.materials[{slot_index}] = mat",
-            ])
+            lines.extend(
+                [
+                    "# Assign material to specific slot index",
+                    f"while len(obj.data.materials) <= {slot_index}:",
+                    '    obj.data.materials.append(bpy.data.materials.new(name="temp"))',
+                    f"obj.data.materials[{slot_index}] = mat",
+                ]
+            )
         else:
-            lines.extend([
-                "if len(obj.data.materials) == 0:",
-                "    obj.data.materials.append(mat)",
-                "else:",
-                "    obj.data.materials[0] = mat",
-            ])
+            lines.extend(
+                [
+                    "if len(obj.data.materials) == 0:",
+                    "    obj.data.materials.append(mat)",
+                    "else:",
+                    "    obj.data.materials[0] = mat",
+                ]
+            )
 
         return "\n".join(lines)
 

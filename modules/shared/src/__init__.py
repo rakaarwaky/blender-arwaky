@@ -490,6 +490,7 @@ __all__ = [
     "BlenderConnectionError",
     "InvalidCommandError",
     "EventType",
+    "TelemetryCategory",
     "TelemetryEvent",
     "ASSET_TYPE_HDRIS",
     "ASSET_TYPE_TEXTURES",
@@ -535,9 +536,7 @@ __all__ = [
     "EVENT_TYPE_ERROR",
     "create_asset_id",
     "create_object_id",
-
     "create_provider_name",
-
     "SceneOperateProtocol",
     "SceneCleanupVO",
     "SceneInspectionVO",
@@ -562,7 +561,6 @@ __all__ = [
     "ExecuteActionProtocol",
     "CommandCatalogProtocol",
     "SceneInspectionPort",
-
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",
@@ -644,7 +642,6 @@ __all__ = [
     "QueueStatusVO",
     "CodeExecutionVO",
     "CodeExecutionOutcomeVO",
-
     # Utility layer exports
     "enrich_response_with_tracking",
     "normalize_payload",

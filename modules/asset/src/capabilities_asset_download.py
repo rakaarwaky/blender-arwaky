@@ -326,9 +326,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         # Default to stale when freshness cannot be determined
         return True
 
-    async def _submit_background_download(
-        self, provider: ProviderName, asset_id: AssetId, cache_path: str
-    ) -> str:
+    async def _submit_background_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
         """Submit download as background job via job scheduler.
 
         Returns a task reference string that callers can poll for
@@ -337,12 +335,9 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         """
         if self.job_scheduler is None:
             raise ValidationError(
-                "Background downloads require job feature wiring "
-                "(FR-AST-002): set job_scheduler in __init__"
+                "Background downloads require job feature wiring (FR-AST-002): set job_scheduler in __init__"
             )
-        task_ref = await self.job_scheduler.submit_download(
-            provider, asset_id, cache_path
-        )
+        task_ref = await self.job_scheduler.submit_download(provider, asset_id, cache_path)
         return task_ref
 
     async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
@@ -366,6 +361,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         except Exception:
             # Clean up temp file on failure — no partial cache side-effect.
             import pathlib
+
             pathlib.Path(tmp_path).unlink(missing_ok=True)
             raise
         return cache_path

@@ -74,6 +74,7 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         backoff = self._calculate_backoff()
         logger.debug("Applying %.1fs backoff before reconnect", backoff)
         import threading
+
         if threading.current_thread().name != "MainThread":
             time.sleep(min(backoff, 0.1))
         try:
