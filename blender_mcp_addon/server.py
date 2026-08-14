@@ -203,6 +203,7 @@ class BlenderMCPServer:
             "get_scene_info": self.get_scene_info,
             "get_object_info": self.get_object_info,
             "get_viewport_screenshot": utils.get_viewport_screenshot,
+            "render": self.render,
             "execute_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
@@ -250,6 +251,28 @@ class BlenderMCPServer:
             "rotation": list(obj.rotation_euler),
             "scale": list(obj.scale),
         }
+
+    def render(self, output_path, resolution_x=1920, resolution_y=1080):
+        """Render the active scene to an image file and return its metadata."""
+        scene = bpy.context.scene
+        previous_resolution = (scene.render.resolution_x, scene.render.resolution_y, scene.render.resolution_percentage)
+        previous_filepath = scene.render.filepath
+        try:
+            scene.render.resolution_x = int(resolution_x)
+            scene.render.resolution_y = int(resolution_y)
+            scene.render.resolution_percentage = 100
+            scene.render.filepath = output_path
+            bpy.ops.render.render(write_still=True)
+            return {
+                "filepath": output_path,
+                "width": scene.render.resolution_x,
+                "height": scene.render.resolution_y,
+            }
+        finally:
+            scene.render.resolution_x, scene.render.resolution_y, scene.render.resolution_percentage = (
+                previous_resolution
+            )
+            scene.render.filepath = previous_filepath
 
     def execute_code(self, code):
         out = io.StringIO()
