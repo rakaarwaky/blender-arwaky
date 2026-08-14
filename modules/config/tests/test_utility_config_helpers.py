@@ -236,3 +236,28 @@ def test_resolve_default_config_path_env(monkeypatch):
 def test_resolve_default_config_path_cwd(monkeypatch):
     monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
     assert resolve_default_config_path(None).endswith("config.yaml")
+
+
+@pytest.mark.unit
+def test_resolve_default_config_path_xdg(monkeypatch, tmp_path):
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
+    xdg = tmp_path / "config"
+    xdg.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    target = xdg / "blender-arwaky" / "config.yaml"
+    target.parent.mkdir(parents=True)
+    target.write_text("server:\n  transport: sse\n")
+    monkeypatch.chdir(tmp_path)
+    assert resolve_default_config_path(None) == str(target)
+
+
+@pytest.mark.unit
+def test_resolve_default_config_path_fallback_when_xdg_missing(monkeypatch, tmp_path):
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
+    xdg = tmp_path / "empty-config"
+    xdg.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    cwd_cfg = tmp_path / "config.yaml"
+    cwd_cfg.write_text("server:\n  transport: sse\n")
+    monkeypatch.chdir(tmp_path)
+    assert resolve_default_config_path(None) == str(cwd_cfg)

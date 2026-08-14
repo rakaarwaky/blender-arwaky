@@ -6,6 +6,9 @@ No classes, no functions — only ALL_CAPS declarations.
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from .taxonomy_config_vo import SettingsValue
 
 # ─── Sensitive Key Patterns (FR-CFG-005) ──────────────────────
@@ -113,3 +116,11 @@ DEFAULT_POLICY_MODE: str = "strict"
 # taxonomy_config_vo; promoted to a public constant for cross-module use.
 
 SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
+
+# ─── XDG Config Location ────────────────────────────────────
+# Default per-user config directory follows XDG Base Directory when
+# XDG_CONFIG_HOME is set; otherwise ~/.config.
+
+XDG_CONFIG_DIR: Path = Path(
+    os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+) / "blender-arwaky"

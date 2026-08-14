@@ -3,8 +3,12 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 XDG_BIN_HOME="${XDG_BIN_HOME:-${HOME}/.local/bin}"
+XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 INSTALL_DIR="${XDG_BIN_HOME}"
-VENV_DIR="${PROJECT_ROOT}/.venv"
+APP_ID="blender-arwaky"
+VENV_DIR="${XDG_DATA_HOME}/${APP_ID}/venv"
+CONFIG_DIR="${XDG_CONFIG_HOME}/${APP_ID}"
 
 cmds=(blender-arwaky blender-mcp)
 
@@ -14,23 +18,32 @@ ensure_uv_or_pip() {
     rm -rf "${VENV_DIR}"
   fi
 
+  if [[ ! -d "${VENV_DIR}" ]]; then
+    echo "[*] Creating virtual environment at ${VENV_DIR} ..."
+    mkdir -p "$(dirname "${VENV_DIR}")"
+    python3 -m venv "${VENV_DIR}"
+  fi
+
   if command -v uv >/dev/null 2>&1; then
-    echo "[*] Using uv for install"
-    (cd "${PROJECT_ROOT}" && uv pip install -e .)
+    echo "[*] Using uv for install from ${PROJECT_ROOT}"
+    (cd "${PROJECT_ROOT}" && uv pip install --python "${VENV_DIR}/bin/python3" -e .)
     return
   fi
   if [[ -x "${VENV_DIR}/bin/pip" ]]; then
-    echo "[*] Using venv pip for install"
+    echo "[*] Using venv pip for install from ${PROJECT_ROOT}"
     "${VENV_DIR}/bin/pip" install -e "${PROJECT_ROOT}"
     return
   fi
-  echo "[!] No uv or project venv found; creating ${VENV_DIR} ..."
-  python3 -m venv "${VENV_DIR}"
-  "${VENV_DIR}/bin/pip" install -e "${PROJECT_ROOT}"
+  echo "[!] No usable installer found."
+  return 1
 }
 
 ensure_install_dir() {
   mkdir -p "${INSTALL_DIR}"
+}
+
+ensure_config_dir() {
+  mkdir -p "${CONFIG_DIR}"
 }
 
 write_wrapper() {
@@ -68,10 +81,13 @@ main() {
   echo "Project Root: ${PROJECT_ROOT}"
   echo "Install Dir:  ${INSTALL_DIR}"
   echo "Venv Dir:     ${VENV_DIR}"
+  echo "Config Dir:   ${CONFIG_DIR}"
+  echo "XDG Data:     ${XDG_DATA_HOME}"
   echo
 
   ensure_uv_or_pip
   ensure_install_dir
+  ensure_config_dir
 
   for cmd in "${cmds[@]}"; do
     write_wrapper "${cmd}"
