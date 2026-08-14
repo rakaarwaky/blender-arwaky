@@ -55,12 +55,12 @@ blender --background --python scripts/blender/run_server_headless.py
 
 | Script                       | Purpose                                              |
 | ---------------------------- | ---------------------------------------------------- |
-| `install_cli_wrappers.py`    | Install `blender-cli` and `blender-arwaky` globally. |
+| `install.sh`                 | Install `blender-cli` and `blender-arwaky` globally. |
 
 ```bash
-uv run python scripts/install/install_cli_wrappers.py
+bash scripts/install/install.sh
 blender-arwaky --help
-blender-cli --help
+blender-mcp --help
 ```
 
 ## Conventions
