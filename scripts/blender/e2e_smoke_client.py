@@ -14,6 +14,17 @@ output = Path(
     )
 )
 export_output = output.with_suffix(".glb")
+hdri_output = output.with_suffix(".hdr")
+
+
+def write_test_hdri(path: Path) -> None:
+    """Write a tiny uncompressed Radiance HDR fixture for Blender loading."""
+    header = b"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 2\n"
+    pixel = bytes((128, 96, 64, 128))
+    path.write_bytes(header + pixel * 4)
+
+
+write_test_hdri(hdri_output)
 
 
 def expect_success(label: str, response: dict[str, object]) -> dict[str, object]:
@@ -39,6 +50,18 @@ with BlenderSocketClient(port=port, timeout=10.0) as client:
             {"object_name": "E2ECube", "location": [1, 2, 3], "scale": [1.5, 1.5, 1.5]},
         ),
     )
+    expect_success(
+        "place_asset",
+        client.send_command(
+            "place_asset",
+            {
+                "asset_id": "E2ECube",
+                "location": [4, 5, 6],
+                "rotation": [10, 20, 30],
+                "scale": [2, 2, 2],
+            },
+        ),
+    )
     object_response = client.send_command("get_object_info", {"object_name": "E2ECube"})
     expect_success("get_object_info", object_response)
     expect_success(
@@ -48,6 +71,13 @@ with BlenderSocketClient(port=port, timeout=10.0) as client:
     expect_success(
         "execute_blender_code",
         client.send_command("execute_blender_code", {"code": "print(bpy.context.scene.name)"}),
+    )
+    expect_success(
+        "setup_environment",
+        client.send_command(
+            "setup_environment",
+            {"hdri_id": str(hdri_output), "strength": 1.25},
+        ),
     )
     expect_success(
         "export_model",

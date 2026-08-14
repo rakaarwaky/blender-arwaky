@@ -2,12 +2,14 @@ import contextlib
 import io
 import json
 import logging
+import math
 import queue
 import socket
 import struct
 import threading
 import time
 from contextlib import redirect_stdout
+from pathlib import Path
 
 import bpy
 
@@ -202,7 +204,9 @@ class BlenderMCPServer:
         handlers = {
             "get_scene_info": self.get_scene_info,
             "cleanup_scene": self.cleanup_scene,
+            "setup_environment": self.setup_environment,
             "get_object_info": self.get_object_info,
+            "place_asset": self.place_asset,
             "create_primitive": self.create_primitive,
             "set_object_transform": self.set_object_transform,
             "delete_object": self.delete_object,
@@ -261,6 +265,67 @@ class BlenderMCPServer:
                 if obj.type == "MESH":
                     bpy.data.objects.remove(obj, do_unlink=True)
         return {"mode": mode, "removed": True}
+
+    def setup_environment(self, hdri_id, strength=1.0):
+        """Configure a local HDRI file as the active World environment.
+
+        ``hdri_id`` is a local, already-available asset reference. Asset
+        acquisition remains owned by the Asset feature; this handler only
+        applies the resolved file in Blender.
+        """
+        hdri_path = Path(str(hdri_id)).expanduser()
+        if not hdri_path.is_file():
+            raise FileNotFoundError(f"HDRI asset not found: {hdri_id}")
+        if hdri_path.suffix.lower() not in {".hdr", ".exr"}:
+            raise ValueError("HDRI asset must use .hdr or .exr format")
+        strength = float(strength)
+        if not math.isfinite(strength) or not 0.0 <= strength <= 10.0:
+            raise ValueError("HDRI strength must be between 0 and 10")
+
+        scene = bpy.context.scene
+        world = scene.world or bpy.data.worlds.new(name="World")
+        scene.world = world
+        world.use_nodes = True
+        nodes = world.node_tree.nodes
+        links = world.node_tree.links
+        nodes.clear()
+        output = nodes.new("ShaderNodeOutputWorld")
+        background = nodes.new("ShaderNodeBackground")
+        environment = nodes.new("ShaderNodeTexEnvironment")
+        environment.image = bpy.data.images.load(str(hdri_path.resolve()), check_existing=True)
+        background.inputs["Strength"].default_value = strength
+        links.new(environment.outputs["Color"], background.inputs["Color"])
+        links.new(background.outputs["Background"], output.inputs["Surface"])
+        return {
+            "hdri_id": str(hdri_path.resolve()),
+            "environment_ref": world.name,
+            "strength": strength,
+        }
+
+    def place_asset(self, asset_id, location=None, rotation=None, scale=None):
+        """Place an existing scene object identified by an exact asset reference."""
+        obj = bpy.data.objects.get(str(asset_id))
+        if obj is None:
+            raise ValueError(f"Asset object not found: {asset_id}")
+        if location is not None:
+            if len(location) != 3 or not all(math.isfinite(float(value)) for value in location):
+                raise ValueError("location must contain three finite numbers")
+            obj.location = tuple(float(value) for value in location)
+        if rotation is not None:
+            if len(rotation) != 3 or not all(math.isfinite(float(value)) for value in rotation):
+                raise ValueError("rotation must contain three finite degree values")
+            obj.rotation_euler = tuple(math.radians(float(value)) for value in rotation)
+        if scale is not None:
+            if len(scale) != 3 or not all(math.isfinite(float(value)) and float(value) != 0.0 for value in scale):
+                raise ValueError("scale must contain three finite non-zero numbers")
+            obj.scale = tuple(float(value) for value in scale)
+        return {
+            "asset_id": str(asset_id),
+            "object_name": obj.name,
+            "location": list(obj.location),
+            "rotation": list(obj.rotation_euler),
+            "scale": list(obj.scale),
+        }
 
     def get_object_info(self, object_name):
         obj = bpy.data.objects.get(object_name)

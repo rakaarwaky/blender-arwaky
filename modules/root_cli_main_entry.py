@@ -37,8 +37,12 @@ ERROR_CATEGORIES: dict[str, int] = {
     "confirmation": EXIT_VALIDATION,
     "confirmation_error": EXIT_VALIDATION,
     "unsupported": EXIT_UPSTREAM,
+    "unsupported_error": EXIT_UPSTREAM,
+    "blocked": EXIT_UPSTREAM,
+    "blocked_error": EXIT_UPSTREAM,
     "configuration_error": EXIT_VALIDATION,
     "not_found": EXIT_UPSTREAM,
+    "not_found_error": EXIT_UPSTREAM,
     "capacity": EXIT_UPSTREAM,
     "timeout": EXIT_UPSTREAM,
     "security_violation": EXIT_UPSTREAM,
@@ -175,13 +179,20 @@ def _build_parser() -> CliArgumentParser:
     _example(status_parser, "blender-arwaky status --json")
 
     def add_action(
-        name: str, action: str, description: str, fields: list[tuple[str, dict[str, object]]], example: str
+        name: str,
+        action: str,
+        description: str,
+        fields: list[tuple[str, dict[str, object]]],
+        example: str,
+        availability: str = "executable",
     ) -> None:
-        command_parser = subparsers.add_parser(name, help=description, description=description)
+        help_text = f"[{availability}] {description}"
+        command_parser = subparsers.add_parser(name, help=help_text, description=help_text)
         for flag, options in fields:
             command_parser.add_argument(flag, **options)
         command_parser.set_defaults(
             action_name=action,
+            action_availability=availability,
             parameter_fields=[str(options.get("dest", flag.lstrip("-").replace("-", "_"))) for flag, options in fields],
         )
         _add_common_flags(command_parser)
@@ -360,6 +371,10 @@ def _normalize_result(result: dict[str, object]) -> dict[str, object]:
             "hint",
             {
                 "validation_error": "Review command syntax and required flags.",
+                "blocked": "This capability is contract-blocked and is not routed.",
+                "blocked_error": "This capability is contract-blocked and is not routed.",
+                "unsupported": "This runtime does not support the requested execution mode.",
+                "unsupported_error": "This runtime does not support the requested execution mode.",
                 "state": "Start Blender or use the matching active filepath.",
                 "connection": "Check that Blender and the addon TCP server are running.",
                 "not_found": "Verify the action or resource identifier.",

@@ -116,3 +116,87 @@ def test_destructive_command_forwards_confirmation(capsys) -> None:
     assert exit_code == 0  # nosec B101
     assert router.calls == [("delete_object", {"object_name": "Cube"})]  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_set_env_maps_to_render_action(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+    assert main(["--json", "set-env", "--hdri-id", "fixture.hdr", "--strength", "2.5"], dispatcher=dispatcher) == 0  # nosec B101
+    assert dispatcher.requests[0].action_name == "setup_environment"  # nosec B101
+    assert dispatcher.requests[0].parameters == {"hdri_id": "fixture.hdr", "strength": 2.5}  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_place_asset_maps_transform_flags(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+    assert (  # nosec B101
+        main(
+            [
+                "--json",
+                "place-asset",
+                "--asset-id",
+                "E2ECube",
+                "--location",
+                "1",
+                "2",
+                "3",
+                "--rotation",
+                "10",
+                "20",
+                "30",
+                "--scale",
+                "2",
+                "2",
+                "2",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )
+    assert dispatcher.requests[0].action_name == "place_asset"  # nosec B101
+    assert dispatcher.requests[0].parameters == {  # nosec B101
+        "asset_id": "E2ECube",
+        "location": [1.0, 2.0, 3.0],
+        "rotation": [10.0, 20.0, 30.0],
+        "scale": [2.0, 2.0, 2.0],
+    }
+    assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_cancel_task_requires_confirmation(capsys) -> None:
+    from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
+
+    router = RecordingActionRouter()
+    container = DispatcherContainer(launcher_action_router=router)
+    container.wire()
+    assert main(["--json", "cancel-task", "--task-id", "task-001"], dispatcher=container.agent) == EXIT_VALIDATION  # nosec B101
+    assert _json(capsys)["category"] == "confirmation_error"  # nosec B101
+    assert router.calls == []  # nosec B101
+
+
+def test_cancel_task_forwards_after_confirmation(capsys) -> None:
+    from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
+
+    router = RecordingActionRouter()
+    container = DispatcherContainer(launcher_action_router=router)
+    container.wire()
+    assert main(["--json", "cancel-task", "--task-id", "task-001", "--confirm"], dispatcher=container.agent) == 0  # nosec B101
+    assert router.calls == [("cancel_task", {"task_id": "task-001"})]  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_config_and_set_config_map_typed_json(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+    assert main(["--json", "config", "--key", "blender.port"], dispatcher=dispatcher) == 0  # nosec B101
+    assert dispatcher.requests[0].parameters == {"key": "blender.port"}  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+
+    assert (  # nosec B101
+        main(
+            ["--json", "set-config", "--key", "blender.port", "--value", "9999", "--confirm"],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )
+    assert dispatcher.requests[-1].parameters == {"key": "blender.port", "value": "9999"}  # nosec B101
+    assert dispatcher.requests[-1].confirmation_flag is True  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101

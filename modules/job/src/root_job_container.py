@@ -6,8 +6,11 @@ Wires 5 capabilities to 5 protocols, assembles the agent.
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 import time
 from collections.abc import Callable
+from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import Timestamp
 from modules.shared.src.job.contract_job_aggregate import IJobAggregate
@@ -18,7 +21,7 @@ from .capabilities_job_checker import JobCapacityChecker
 from .capabilities_job_evaluator import JobCancellationEvaluator
 from .capabilities_job_event_publisher import JobLoggingEventPublisher
 from .capabilities_job_monitor import JobStatusMonitor
-from .capabilities_job_repository import InMemoryJobLifecycleRepository
+from .capabilities_job_repository import JsonFileJobLifecycleRepository
 from .capabilities_job_resolver import JobCleanupResolver
 from .capabilities_job_scheduler import JobSchedulerCapability
 
@@ -30,9 +33,17 @@ class JobContainer:
         self,
         policy: JobPolicy | None = None,
         clock: Callable[[], Timestamp] | None = None,
+        storage_path: str | os.PathLike[str] | None = None,
     ) -> None:
         self._policy = policy or JobPolicy()
         self._clock = clock
+        self._storage_path = Path(
+            storage_path
+            or os.environ.get(
+                "BLENDERMCP_JOB_STORE",
+                str(Path(tempfile.gettempdir()) / "blender-arwaky-job-store.json"),
+            )
+        )
         self._orchestrator: JobOrchestrator | None = None
         self._wired: bool = False
 
@@ -45,10 +56,11 @@ class JobContainer:
         clock = self._clock or (lambda: Timestamp(time.time()))
         event_publisher = JobLoggingEventPublisher()
 
-        lifecycle = InMemoryJobLifecycleRepository(
+        lifecycle = JsonFileJobLifecycleRepository(
             policy=self._policy,
             clock=clock,
             event_publisher=event_publisher,
+            storage_path=self._storage_path,
         )
         monitor = JobStatusMonitor()
         cancellation = JobCancellationEvaluator()
@@ -79,7 +91,8 @@ class JobContainer:
 def create_job_feature(
     policy: JobPolicy | None = None,
     clock: Callable[[], Timestamp] | None = None,
+    storage_path: str | os.PathLike[str] | None = None,
 ) -> IJobAggregate:
-    container = JobContainer(policy=policy, clock=clock)
+    container = JobContainer(policy=policy, clock=clock, storage_path=storage_path)
     container.wire()
     return container.agent

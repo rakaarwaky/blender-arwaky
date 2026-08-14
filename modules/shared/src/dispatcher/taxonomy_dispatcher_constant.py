@@ -35,22 +35,6 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                 },
             },
         },
-        "setup_environment": {
-            "description": "Setup HDRI lighting for the scene",
-            "parameters": {
-                "hdri_id": {
-                    "type": "string",
-                    "required": True,
-                    "description": "HDRI asset identifier",
-                },
-                "strength": {
-                    "type": "number",
-                    "required": False,
-                    "description": "Light intensity multiplier",
-                    "default": 1.0,
-                },
-            },
-        },
     },
     "object": {
         "get_object_info": {
@@ -158,6 +142,22 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         },
     },
     "render": {
+        "setup_environment": {
+            "description": "Configure HDRI lighting using a local file resolved by the Asset feature",
+            "parameters": {
+                "hdri_id": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Absolute or project-local path to an already cached .hdr or .exr asset",
+                },
+                "strength": {
+                    "type": "number",
+                    "required": False,
+                    "description": "Environment light strength in the inclusive range 0-10",
+                    "default": 1.0,
+                },
+            },
+        },
         "get_viewport_screenshot": {
             "description": "Capture AI-optimized viewport screenshot",
             "parameters": {

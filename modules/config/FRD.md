@@ -53,6 +53,15 @@ All features.
 - **Edge Cases**: Empty/missing/leading/trailing/repeated path, whitespace, non-text path, list position on non-list, out-of-range, literal dot, type mismatch, mutable default, deeply nested path
 - **Error Handling**: Default for missing keys; ValidationError for malformed path (strict); TypeError for type mismatch (strict); immutable/copy semantics prevent mutation
 
+### FR-CFG-006: Mutate and Persist a Setting
+
+- **Description**: Update one typed configuration value through the Config aggregate and atomically persist the resulting YAML document.
+- **Input**: Non-empty dotted key and JSON/YAML-compatible typed value.
+- **Output**: New immutable settings snapshot with the updated value.
+- **Rules**: Mutation is available only through `IConfigAggregate.set_config`. The value is validated against `SETTINGS_SCHEMA` before any write. Writes use a temporary file, flush/fsync, and atomic replacement; a failed write leaves the previous file and snapshot intact. Secret-like keys matching the authoritative redaction rule are rejected rather than stored through the CLI mutation surface. A new ConfigContainer process reads the persisted value. CLI retrieval recursively redacts sensitive values and never prints the rejected secret value.
+- **Edge Cases**: Missing config file, malformed existing file, unknown key, wrong scalar type, invalid dotted path, permission denied, concurrent writer, atomic replacement failure, secret-like key.
+- **Error Handling**: ValidationError for invalid key/value or secret-like key; load/parse error for invalid existing source; write error with no partial success.
+
 ### FR-CFG-003: Resolve Project Workspace Directory
 
 - **Description**: Resolve project root via deterministic strategies. Single trusted root for all file-based ops.

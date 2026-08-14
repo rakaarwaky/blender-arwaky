@@ -23,6 +23,7 @@ from modules.shared.src.config.contract_settings_metadata_protocol import ISetti
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
+from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
 from modules.shared.src.config.taxonomy_config_event import (
     SettingsLoadedEvent,
     SettingsReloadEvent,
@@ -115,6 +116,13 @@ class ConfigOrchestrator(IConfigAggregate):
     def has(self, path: ConfigPath) -> bool:
         """Check if a path exists in settings."""
         return self._retriever.has_value(self.get_snapshot(), path)
+
+    def set_config(self, path: ConfigPath, value: SettingsValue) -> SettingsSnapshot:
+        """Persist a typed config value through the loader mutation contract."""
+        if self._redaction_rules.get_redaction_rule().matches_key(str(path)):
+            raise ConfigValidationError("Secret-like configuration keys cannot be mutated through the CLI")
+        self._snapshot = self._loader.set_value(path, value)
+        return self._snapshot
 
     def get_string(self, path: ConfigPath, default: ConfigStringValue = DEFAULT_CONFIG_STRING) -> ConfigStringValue:
         """Retrieve string value."""

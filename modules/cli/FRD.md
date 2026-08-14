@@ -161,10 +161,17 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 
 Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in target feature, not CLI.
 
+Availability is surfaced in command help as `executable`, `blocked`, or `unsupported`; a blocked command is never routed as a fake success. `set-env` uses `--hdri-id` as a local path to an already cached `.hdr` or `.exr` file resolved by the Asset feature. `place-asset` uses `--asset-id` as the exact Blender object name produced by an import/asset-resolution step; it does not silently download or resolve a provider asset. `--rotation` is expressed in degrees, while Blender response rotations remain radians where applicable.
+
+`task-status` and `cancel-task` read the shared Job store, which is file-backed and atomically replaced so a new CLI process can observe task state created by another process. `cancel-task` is destructive and requires `--confirm`; not-found, terminal, unsupported cancellation, and race outcomes remain distinct.
+
+`set-config --value` accepts JSON scalar/array/object syntax; unquoted JSON strings are treated as strings. Config writes are schema-validated and atomically persisted. Secret-like keys are rejected for mutation, and `config` output is recursively redacted.
+
 ## Error Categories
 
-- **Owned**: validation error (surface-level arg problems), configuration error (settings unavailable)
+- **Owned**: validation error (surface-level arg problems), configuration error (settings unavailable), blocked (contract not executable), unsupported (runtime mode/capability unavailable)
 - **Displayed but unowned**: not_found, capacity, timeout, security_violation, connection, state, task — pass through from owning features with CLI remediation hints attached (hints carry no logic authority)
+- `not_found` must never be used for a known-but-blocked or known-but-unsupported command.
 
 ## Events
 

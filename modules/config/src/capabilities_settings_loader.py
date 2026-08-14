@@ -10,11 +10,15 @@ runtime overrides, thread-safe single-load caching.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import os
+import tempfile
 import threading
 import time
 from pathlib import Path
+
+import yaml
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ConfigMetadata,
@@ -53,6 +57,7 @@ from modules.shared.src.config.taxonomy_config_vo import (
     SettingsOverrides,
     SettingsSchema,
     SettingsSnapshot,
+    SettingsValue,
 )
 from modules.shared.src.config.utility_config_helpers import (
     apply_env_overrides,
@@ -165,6 +170,47 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 if self._policy_mode == POLICY_MODE_PERMISSIVE and self._cached is not None:
                     return self._cached
                 raise
+
+    def set_value(
+        self,
+        path: ConfigPath,
+        value: SettingsValue,
+        config_path: ConfigPath | None = None,
+    ) -> SettingsSnapshot:
+        """Validate and atomically persist one typed dotted-path setting."""
+        segments = tuple(str(path).split(".")) if str(path) else ()
+        if not segments or any(not segment for segment in segments):
+            raise ConfigPathError("Configuration key must be a non-empty dotted path")
+
+        target = Path(str(resolve_default_config_path(config_path)))
+        with self._lock:
+            if target.is_file():
+                base = load_yaml_safe(ConfigPath(str(target)))
+            else:
+                base = copy.deepcopy(self._cached_data or _get_defaults_cache())
+            set_nested_value(base, segments, value)
+            errors, _warnings = validate_settings_schema(base, self._schema)
+            if errors:
+                raise ConfigValidationError("; ".join(errors))
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, temporary = tempfile.mkstemp(dir=str(target.parent), suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    yaml.safe_dump(base, handle, sort_keys=True)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, target)
+            except BaseException:
+                with contextlib.suppress(OSError):
+                    os.unlink(temporary)
+                raise
+
+            merged, filedata, metadata = self._build_core(ConfigPath(str(target)))
+            self._cached_data = filedata
+            self._cached = SettingsSnapshot(_data=merged)
+            self._last_metadata = metadata
+            return self._cached
 
     def get_last_metadata(self) -> ConfigMetadata:
         """Return metadata from the most recent successful load."""
