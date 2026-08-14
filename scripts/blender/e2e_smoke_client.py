@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import json
 import os
-import sys
-import time
+import tempfile
 from pathlib import Path
 
 from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
 
-
 port = int(os.environ.get("BLENDERMCP_PORT", "9987"))
-output = Path(os.environ.get("E2E_OUTPUT", "/tmp/blender-arwaky-e2e.png"))
+output = Path(
+    os.environ.get(
+        "E2E_OUTPUT",
+        str(Path(tempfile.gettempdir()) / "blender-arwaky-e2e.png"),
+    )
+)
 
 
 def expect_success(label: str, response: dict[str, object]) -> None:

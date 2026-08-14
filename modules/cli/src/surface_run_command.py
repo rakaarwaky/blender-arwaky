@@ -49,7 +49,8 @@ def handle(args: object, dispatcher: object | None = None) -> dict[str, object]:
                     "warnings": envelope.warnings,
                     "metadata": envelope.metadata,
                 }
-            category = str(envelope.error_category or "upstream")
+            raw_category = envelope.error_category or "upstream"
+            category = str(getattr(raw_category, "value", raw_category))
             if category.startswith("DispatchErrorCategory."):
                 category = category.rsplit(".", 1)[-1].lower()
             return _mask_error(category, "cli-502")

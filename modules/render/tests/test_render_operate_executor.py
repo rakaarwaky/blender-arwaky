@@ -369,16 +369,16 @@ async def test_fr_rnd_001_max_size_zero_unlimited(
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_002_overwrite_policy_reject() -> None:
-    """FR-RND-002: overwrite_policy='reject' rejects when artifact exists."""
+async def test_fr_rnd_002_overwrite_policy_reject(tmp_path) -> None:
+    """FR-RND-002: overwrite_policy='reject' rejects an existing artifact."""
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
     exec_ = RenderSceneImageExecutor(
-        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/render.png"}),
+        code_executor=MockCodeExecutor(payload={"artifact_path": str(target)}),
         security_validator=MockSecurityValidator(),
     )
-    # Reject policy with existing artifact path — capability accepts it at validation
-    # (Blender runtime enforces actual overwrite; capability validates format only)
-    result = await exec_.render_scene(_scene_req(overwrite_policy="reject"))
-    assert bool(result.success) is True
+    result = await exec_.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="reject"))
+    assert bool(result.success) is False
 
 
 @pytest.mark.asyncio
@@ -391,3 +391,53 @@ async def test_fr_rnd_002_overwrite_policy_unique() -> None:
     result = await exec_.render_scene(_scene_req(overwrite_policy="unique"))
     assert bool(result.success) is True
     assert "abc123" in str(result.artifact_path)
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_reject_policy_blocks_existing_file(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    code_executor = MockCodeExecutor(payload={"artifact_path": str(target)})
+    executor = RenderSceneImageExecutor(
+        code_executor=code_executor,
+        security_validator=MockSecurityValidator(),
+    )
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="reject"))
+
+    assert bool(result.success) is False
+    assert "already exists" in str(result.message)
+    assert code_executor.captured_code is None
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_unique_policy_skips_existing_numbered_candidates(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    (tmp_path / "render_1.png").write_bytes(b"existing")
+    security = MockSecurityValidator()
+    executor = RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": str(target)}),
+        security_validator=security,
+    )
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="unique"))
+
+    assert bool(result.success) is True
+    assert security._calls[-1].target_path == str(tmp_path / "render_2.png")
+    assert "render_2.png" in str(executor._code_executor.captured_code)
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_unique_policy_has_bounded_collision_scan(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    for counter in range(1, 1001):
+        (tmp_path / f"render_{counter}.png").write_bytes(b"existing")
+    executor = RenderSceneImageExecutor(code_executor=MockCodeExecutor(), security_validator=MockSecurityValidator())
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="unique"))
+
+    assert bool(result.success) is False
+    assert "unique render output" in str(result.message)
+    assert executor._code_executor.captured_code is None

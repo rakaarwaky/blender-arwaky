@@ -95,7 +95,7 @@ class GatewayOrchestrator(IGatewayAggregate):
         """
         logger.info("Disconnecting gateway")
         if hasattr(self._scene_queue, "fail_pending"):
-            self._scene_queue.fail_pending(ConnectionClosedError(details={"reason": "graceful_disconnect"}))
+            self._scene_queue.fail_pending(ConnectionClosedError(_details={"reason": "graceful_disconnect"}))
         self._connection.disconnect()
         self._maintenance.set_state(ConnectionState.CLOSED)
 

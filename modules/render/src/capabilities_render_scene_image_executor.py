@@ -226,12 +226,14 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
         if request.overwrite_policy != "unique" or not target.exists():
             return request, None
 
-        counter = 1
-        while True:
+        for counter in range(1, 1001):
             candidate = target.with_name(f"{target.stem}_{counter}{target.suffix}")
             if not candidate.exists():
                 return replace(request, output_path=FilePath(str(candidate))), None
-            counter += 1
+        return request, RenderError(
+            category=RenderErrorCategory.RENDER_OUTPUT,
+            message=Prompt("Unable to allocate a unique render output path"),
+        )
 
     async def _validate_security(self, path: str) -> None:
         """Validate output path through security policy (FR-RND-002)."""

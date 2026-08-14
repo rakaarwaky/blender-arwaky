@@ -78,16 +78,7 @@ class AssetContainer:
             from .capabilities_asset_search_handler import AssetSearchHandler
 
             # CE02: Read FRD config keys (wired per capability's own config_getter)
-            overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
             enabled_providers = self._get_config_value("enabled_providers", None)
-
-            # Normalize overwrite_policy to DuplicatePolicy
-            from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
-
-            if isinstance(overwrite_policy, DuplicatePolicy):
-                overwrite_policy_vo = overwrite_policy
-            else:
-                overwrite_policy_vo = DuplicatePolicy(str(overwrite_policy))
 
             search = AssetSearchHandler(
                 self._connection,
@@ -96,8 +87,7 @@ class AssetContainer:
             download = AssetDownloadCapability(
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,
-                config_getter=self._config_getter,
-                overwrite_policy=overwrite_policy_vo,
+                config_aggregate=self._config_getter,
             )
             extract = AssetExtractCapability(
                 security_supervisor=self._security_supervisor,

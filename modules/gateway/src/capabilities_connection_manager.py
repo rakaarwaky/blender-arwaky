@@ -191,7 +191,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         timeout_ms: float | None = None,
     ) -> CommandResult:
         if self._writer is None or self._writer.closed:
-            raise ConnectionClosedError(details={"reason": "no_writer"})
+            raise ConnectionClosedError(_details={"reason": "no_writer"})
         try:
             payload = {
                 "type": "command",
@@ -206,13 +206,13 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 self._writer.write(header + json_bytes)
                 await self._writer.drain()
             except (BrokenPipeError, OSError) as e:
-                raise ConnectionClosedError(details={"reason": "drain_failed", "error": str(e)}) from e
+                raise ConnectionClosedError(_details={"reason": "drain_failed", "error": str(e)}) from e
             response = await self._receive_response(timeout_ms)
             resp_dict = json.loads(response.decode("utf-8"))
             if resp_dict.get("status") == "error":
                 raise BlenderConnectionFailure(
                     message=resp_dict.get("message", "Command failed"),
-                    details={"action": action},
+                    _details={"action": action},
                 )
             return CommandResult(
                 status="success",
@@ -226,12 +226,12 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 raise
             raise BlenderConnectionFailure(
                 message=f"Command '{action}' failed: {e}",
-                details={"action": action},
+                _details={"action": action},
             ) from e
 
     async def receive_full_response(self, _buffer_size: int = 8192) -> bytes:
         if self._reader is None:
-            raise ConnectionClosedError(details={"reason": "no_reader"})
+            raise ConnectionClosedError(_details={"reason": "no_reader"})
         header = await self._reader.readexactly(4)
         msg_len = struct.unpack("!I", header)[0]
         payload = await self._reader.readexactly(msg_len)
@@ -323,9 +323,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
         try:
             header = await asyncio.wait_for(self._reader.readexactly(4), timeout=timeout_s)
         except asyncio.TimeoutError:
-            raise ConnectionClosedError(details={"reason": "response_timeout"}) from None
+            raise ConnectionClosedError(_details={"reason": "response_timeout"}) from None
         except asyncio.IncompleteReadError:
-            raise ConnectionClosedError(details={"reason": "connection_dropped"}) from None
+            raise ConnectionClosedError(_details={"reason": "connection_dropped"}) from None
         msg_len = struct.unpack("!I", header)[0]
         try:
             payload = await asyncio.wait_for(
@@ -333,9 +333,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
                 timeout=timeout_s,
             )
         except asyncio.TimeoutError:
-            raise ConnectionClosedError(details={"reason": "payload_timeout"}) from None
+            raise ConnectionClosedError(_details={"reason": "payload_timeout"}) from None
         except asyncio.IncompleteReadError:
-            raise ConnectionClosedError(details={"reason": "connection_dropped_during_read"}) from None
+            raise ConnectionClosedError(_details={"reason": "connection_dropped_during_read"}) from None
         return payload
 
     def _is_remote(self) -> bool:

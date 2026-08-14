@@ -374,3 +374,11 @@ class TestASTWalkCoverage:
         assert res.allowed is False
         # Should have violations for both import and function calls
         assert len(res.violations) >= 2
+
+
+def test_custom_blocked_construct_rejects_import() -> None:
+    """A custom policy module must be checked as an import, not only a call."""
+    policy = SecurityPolicyVO(blocked_code_constructs=("dangerous_module",))
+    result = _validate(_make_validator(policy), "import dangerous_module")
+    assert result.allowed is False
+    assert any(v.category == "blocked_module_import" for v in result.violations)
