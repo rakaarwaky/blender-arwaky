@@ -75,6 +75,7 @@ def _restore_render_state(state):
 
 def get_viewport_screenshot(
     filepath,
+    max_size=None,
     view_angle="PERSPECTIVE",
     shading_mode="MATERIAL",
     show_overlays=True,
@@ -96,6 +97,11 @@ def get_viewport_screenshot(
 
     # Save render state (both modes)
     render_state = _save_render_state()
+    previous_resolution = (
+        bpy.context.scene.render.resolution_x,
+        bpy.context.scene.render.resolution_y,
+        bpy.context.scene.render.resolution_percentage,
+    )
 
     # Save viewport state
     space_data = _get_3d_space()
@@ -109,7 +115,7 @@ def get_viewport_screenshot(
             space_data.overlay.show_overlays = show_overlays
 
         # Focus on specific object if requested
-        if focus_object:
+        if focus_object and space_data and not is_headless:
             obj = bpy.data.objects.get(focus_object)
             if obj:
                 bpy.context.view_layer.objects.active = obj
@@ -124,6 +130,13 @@ def get_viewport_screenshot(
                 )
 
             # Set render settings for quick screenshot
+            if max_size:
+                scene = bpy.context.scene
+                largest_dimension = max(scene.render.resolution_x, scene.render.resolution_y)
+                if largest_dimension > max_size:
+                    scale = float(max_size) / largest_dimension
+                    scene.render.resolution_x = max(1, int(scene.render.resolution_x * scale))
+                    scene.render.resolution_y = max(1, int(scene.render.resolution_y * scale))
             bpy.context.scene.render.image_settings.file_format = "PNG"
             bpy.context.scene.render.filepath = filepath
 
@@ -154,6 +167,11 @@ def get_viewport_screenshot(
         # Always restore settings
         _restore_viewport_state(space_data, viewport_state)
         _restore_render_state(render_state)
+        (
+            bpy.context.scene.render.resolution_x,
+            bpy.context.scene.render.resolution_y,
+            bpy.context.scene.render.resolution_percentage,
+        ) = previous_resolution
 
 
 def clean_imported_glb(filepath, mesh_name=None):

@@ -29,9 +29,16 @@ def handle(args: object) -> dict[str, object]:
 
     try:
         with BlenderSocketClient(port=port) as client:
-            result = client.send_command("get_viewport_screenshot", params)
+            response = client.send_command("get_viewport_screenshot", params)
+            if response.get("status") != "success":
+                return _mask_error("upstream", "cli-502", response.get("message", "Screenshot failed"))
             if os.path.exists(args.output):
-                return {"success": True, "message": "Screenshot saved", "filepath": args.output, "result": result}
+                return {
+                    "success": True,
+                    "message": "Screenshot saved",
+                    "filepath": args.output,
+                    "result": response.get("result"),
+                }
             return _mask_error("unexpected", "cli-500", "Screenshot file was not created")
     except ConnectionError:
         return _mask_error("connection", "cli-503", "Cannot connect to Blender — is it running?")
