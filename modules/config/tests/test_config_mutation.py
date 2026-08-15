@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from modules.config.src.root_config_container import ConfigContainer
-from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
 from modules.shared.src.common.taxonomy_core_vo import ConfigPath
+from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
 
 
 def test_set_config_persists_typed_value_atomically(tmp_path, monkeypatch) -> None:

@@ -21,7 +21,7 @@ class FakeResponse:
         self._read = True
         return self.body
 
-    def __enter__(self) -> "FakeResponse":
+    def __enter__(self) -> FakeResponse:
         return self
 
     def __exit__(self, *_args: object) -> None:
@@ -50,7 +50,7 @@ async def test_polyhaven_download_writes_requested_destination(tmp_path: Path) -
     destination = tmp_path / "asset.cache"
     calls: list[str] = []
 
-    def opener(request, timeout: float):
+    def opener(request, **_kwargs):
         calls.append(request.full_url)
         if request.full_url.endswith("/files/chair"):
             return FakeResponse(json.dumps({"blend": {"hdr": {"url": "https://cdn.example/chair.hdr"}}}).encode())
@@ -78,7 +78,7 @@ async def test_sketchfab_requires_explicit_token() -> None:
 
 @pytest.mark.asyncio
 async def test_provider_http_failure_is_categorized() -> None:
-    def opener(request, timeout: float):
+    def opener(request, **_kwargs):
         raise HTTPError(request.full_url, 503, "unavailable", {}, None)
 
     connection = AssetProviderConnectionImpl(opener=opener)

@@ -55,7 +55,7 @@ Follow the project's architecture and style:
 
 - **AES layered architecture** — see [AGENT.md](AGENT.md)
 - **3-word file naming**: `{domain}_{concern}_{suffix}.py`
-- **Type hints everywhere** — mypy must pass
+- **Type hints on public boundaries** — keep runtime contracts explicit; Ruff and tests are the mandatory gates
 - **Docstrings** — public functions/classes
 - **Tests required** — see [TEST.md](TEST.md)
 
@@ -63,14 +63,11 @@ Follow the project's architecture and style:
 
 New code should be accompanied by tests:
 
-| Layer | Test Directory | Marker |
-|-------|---------------|--------|
-| `taxonomy/` | `tests/unit/` | `@pytest.mark.unit` |
-| `contract/` | `tests/unit/` or `tests/integration/` | unit/integration |
-| `capabilities/` | `tests/unit/` or `tests/integration/` | unit/integration |
-| `agent/` | `tests/integration/` | `@pytest.mark.integration` |
-| `surfaces/` | `tests/functional/` | `@pytest.mark.functional` |
-| `blender_mcp_addon/` | `tests/addon/` | `@pytest.mark.addon` |
+| Scope | Test Directory | Marker |
+|-------|-----------------|--------|
+| Any feature module | `modules/<feature>/tests/` | `unit`, `integration`, or `functional` |
+| Blender addon | `blender_mcp_addon/` or colocated addon tests | `addon` |
+| Slow or real-runtime checks | Owning module test directory | `slow` |
 
 ### 4. Run the test suite
 
@@ -85,24 +82,22 @@ uv run pytest -m functional
 uv run pytest -m addon
 
 # Run with coverage
-uv run pytest --cov=src --cov=blender_mcp_addon
+uv run pytest --cov=modules --cov=blender_mcp_addon
 
 # Run a specific test
-uv run pytest tests/unit/test_command_catalog.py -v
+uv run pytest modules/dispatcher/tests/test_dispatcher_catalog_registration.py -v
 ```
 
 ### 5. Run linters and type checks
 
 ```bash
 # Ruff (lint + format)
-uv run ruff check src/ blender_mcp_addon/
-uv run ruff format --check src/ blender_mcp_addon/
+uv run ruff check modules blender_mcp_addon scripts
+uv run ruff format --check modules blender_mcp_addon scripts
 
-# Mypy (type check)
-uv run mypy src/
-
-# Bandit (security scan)
-uv run bandit -c bandit.yaml -r src/
+# Python syntax and repository quality/build gates
+python -m compileall -q modules blender_mcp_addon
+bash scripts/ci.sh
 
 # Or use pre-commit (runs all of the above)
 pre-commit run --all-files
@@ -134,7 +129,7 @@ Pre-commit hooks will run automatically on commit.
 ### 8. Open a Pull Request
 
 - Push your branch: `git push origin feat/your-feature-name`
-- Open a PR against the `main` branch
+- Open a PR against the `develop` branch
 - Fill out the PR template
 - Wait for CI to pass
 - Address review comments
@@ -155,12 +150,9 @@ blender-arwaky/
 │   │       └── root_<domain>_container.py
 │   ├── cli/src/            # CLI surface — direct command per action
 │   └── mcp/src/            # MCP surface — 5 tools via execute_command
-├── blender_mcp_addon/      # Blender addon (TCP server)
-├── tests/                  # Test suite
-│   ├── unit/               # @pytest.mark.unit
-│   ├── integration/        # @pytest.mark.integration
-│   ├── functional/         # @pytest.mark.functional
-│   └── addon/              # @pytest.mark.addon (mock bpy)
+├── modules/<feature>/tests/ # Tests colocated with each feature module
+│   └── test_*.py           # Unit/integration/functional coverage
+├── blender_mcp_addon/      # Addon tests and runtime package
 ├── scripts/                # Helper scripts (see scripts/README.md)
 │   ├── build/              # CI/release: build_addon_package, bump_release_version
 │   ├── blender/            # Runtime: run_server_headless, manage_blender_process, ...

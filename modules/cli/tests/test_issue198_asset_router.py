@@ -5,7 +5,7 @@ from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
 
 
 class FakeAssetAggregate:
-    async def search(self, query, providers=None):
+    async def search(self, query, _providers=None):
         return [AssetMetadata(id="asset-1", name=str(query), type="model", provider="Polyhaven")]
 
     async def get_provider_metadata(self, provider, asset_id):

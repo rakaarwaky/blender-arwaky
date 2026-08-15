@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Local CI script — runs the same checks as GitHub Actions
-set -euo pipefail
+# Run the repository quality gates locally.
 
-cd "$(dirname "$0")/.."
+set -uo pipefail
 
-echo "=== BlenderArwaky Local CI ==="
-echo ""
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Tests intentionally exercise the default launcher registry path. Remove only
+# generated runtime state; never remove source or user configuration files.
+cleanup_runtime_state() {
+    rm -f "$ROOT_DIR/launcher_state.json" "$ROOT_DIR/registry.json"
+}
+trap cleanup_runtime_state EXIT
 
 passed=0
 failed=0
@@ -19,32 +19,28 @@ failed=0
 run_check() {
     local name="$1"
     shift
-    echo -e "${YELLOW}▸ ${name}${NC}"
+    printf '▸ %s\n' "$name"
     if "$@"; then
-        echo -e "${GREEN}  ✓ passed${NC}"
-        ((passed++))
+        printf '  ✓ passed\n\n'
+        passed=$((passed + 1))
     else
-        echo -e "${RED}  ✗ failed${NC}"
-        ((failed++))
+        printf '  ✗ failed\n\n'
+        failed=$((failed + 1))
     fi
-    echo ""
 }
 
-# 1. Ruff lint
-run_check "Ruff lint" uv run ruff check src/ blender_mcp_addon/
+run_check "Ruff lint" uv run ruff check modules blender_mcp_addon scripts
+run_check "Ruff format" uv run ruff format --check modules blender_mcp_addon scripts
+run_check "Python syntax" python -m compileall -q modules blender_mcp_addon
+run_check "Bandit security" uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
+run_check "Tests" uv run pytest -q --tb=short
+run_check "Addon package" bash -c 'uv run python scripts/build/build_addon_package.py && unzip -t dist/blender_mcp_addon.zip >/dev/null'
+run_check "Python distributions" bash -c 'build_dir=$(mktemp -d) && trap "rm -rf \"$build_dir\"" EXIT && uv build --out-dir "$build_dir" >/dev/null && test -n "$(find "$build_dir" -maxdepth 1 -type f -print -quit)"'
 
-# 2. Ruff format
-run_check "Ruff format" uv run ruff format --check src/ blender_mcp_addon/
-
-# 3. Tests
-run_check "Tests" uv run pytest tests/ -q --tb=short
-
-# Summary
-echo "=== Summary ==="
-echo -e "${GREEN}Passed: ${passed}${NC}"
+printf '%s\n' '=== Summary ==='
+printf 'Passed: %s\n' "$passed"
 if [ "$failed" -gt 0 ]; then
-    echo -e "${RED}Failed: ${failed}${NC}"
+    printf 'Failed: %s\n' "$failed"
     exit 1
-else
-    echo -e "${GREEN}All checks passed!${NC}"
 fi
+printf '%s\n' 'All checks passed!'

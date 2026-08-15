@@ -76,7 +76,7 @@ class TestExecutableRegistrationPersistence:
         assert loaded is not None
         assert loaded.executable_path == "/usr/bin/python3"
 
-    def test_register_skipped_when_no_persist_cap(self, tmp_path: Path) -> None:
+    def test_register_skipped_when_no_persist_cap(self) -> None:
         """P0 (Finding #1): Registration works even without persist capability."""
         locator = _make_locators(persist_cap=None)
         config = LauncherConfigVO(executable_path="/usr/bin/blender")
@@ -84,7 +84,7 @@ class TestExecutableRegistrationPersistence:
         result = locator.locate_and_register(config, override="/usr/bin/python3")
         assert result.registered is True
 
-    def test_register_failure_is_non_blocking(self, tmp_path: Path) -> None:
+    def test_register_failure_is_non_blocking(self) -> None:
         """P0 (Finding #1): Registration persistence failure doesn't block registration."""
 
         # Persist cap that always fails
@@ -108,7 +108,7 @@ class TestExecutableRegistrationPersistence:
 class TestPIDReuseGuard:
     """Test P0 fix for PID reuse detection (Finding #3)."""
 
-    def test_pid_reuse_detected_via_proc_stat(self, tmp_path: Path) -> None:
+    def test_pid_reuse_detected_via_proc_stat(self) -> None:
         """P0 (Finding #3): PID reuse detected by comparing /proc/{pid}/stat start time."""
         events_received: list[dict] = []
 
@@ -160,7 +160,7 @@ class TestPIDReuseGuard:
         assert result.state == RuntimeState.STALE
         assert result.stale is True
 
-    def test_pid_reuse_skipped_when_no_start_time(self, tmp_path: Path) -> None:
+    def test_pid_reuse_skipped_when_no_start_time(self) -> None:
         """P0 (Finding #3): PID reuse check skipped when _process_start_time is None."""
         events_received: list[dict] = []
 
@@ -182,7 +182,7 @@ class TestPIDReuseGuard:
         # Should return RUNNING_READY (no PID reuse check when no start time)
         assert result.state == RuntimeState.RUNNING_READY
 
-    def test_pid_reuse_fallback_on_proc_error(self, tmp_path: Path) -> None:
+    def test_pid_reuse_fallback_on_proc_error(self) -> None:
         """P0 (Finding #3): PID reuse check falls back gracefully on /proc errors."""
         events_received: list[dict] = []
 

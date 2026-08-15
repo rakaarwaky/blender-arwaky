@@ -12,10 +12,10 @@ uv run pytest
 ## Test Structure
 
 ```
-tests/
-  unit/           # Pure logic, data models, mocked interfaces
-  integration/    # Layer interactions, DI wiring, service integration
-  functional/     # End-to-end command flows within project boundaries
+modules/<feature>/tests/
+  test_*.py       # Tests colocated with the owning feature module
+
+Markers remain available for targeted suites: unit, integration, functional, addon, and slow.
 ```
 
 ## Running Tests
@@ -29,13 +29,13 @@ uv run pytest
 ### Specific test file
 
 ```bash
-uv run pytest tests/unit/test_command_catalog.py -v
+uv run pytest modules/dispatcher/tests/test_dispatcher_catalog_registration.py -v
 ```
 
 ### Specific test function
 
 ```bash
-uv run pytest tests/integration/test_tool_registry.py::test_register_tools -v
+uv run pytest modules/mcp/tests/test_issue198_runtime.py -v
 ```
 
 ### With verbose output
@@ -74,7 +74,7 @@ uv run pytest -v --tb=short
 ### Prerequisites
 
 1. Blender running with addon enabled (server on port 9876)
-2. MCP server started: `uv run python -m surfaces.mcp_server_entry`
+2. MCP server started: `uv run blender-mcp`
 
 ### Test Steps
 
@@ -107,7 +107,7 @@ execute_command(
 ```python
 execute_command(
     action="get_viewport_screenshot",
-    args={"view_angle": "TOP", "shading": "WIREFRAME"}
+    args={"view_angle": "TOP", "shading_mode": "WIREFRAME"}
 )
 # Expect: screenshot PNG bytes
 ```
@@ -118,10 +118,10 @@ execute_command(
 
 ```bash
 # Ruff linter
-uv run ruff check src/ blender_mcp_addon/
+uv run ruff check modules blender_mcp_addon scripts
 
 # Auto-fix
-uv run ruff check src/ --fix
+uv run ruff check modules blender_mcp_addon scripts --fix
 ```
 
 ---
@@ -148,11 +148,11 @@ and open `htmlcov/index.html` to see uncovered lines.
 
 ## Writing New Tests
 
-1. Add test file in `tests/unit/`, `tests/integration/`, or `tests/functional/`
+1. Add a `test_*.py` file under the owning feature's `modules/<feature>/tests/` directory
 2. Use `test_` prefix for function/file names
 3. Mock external dependencies (API calls, Blender socket)
 4. Add to appropriate `@pytest.mark` category
-5. Verify coverage: `uv run pytest --cov=<module> tests/`
+5. Verify coverage: `uv run pytest --cov=modules --cov=blender_mcp_addon`
 
 **Template:**
 

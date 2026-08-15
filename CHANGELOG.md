@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-08-15
+
+### Added
+
+- CI coverage for `develop` and `main` with Ruff, Python syntax compilation, multi-version pytest, cross-feature integration tests, and distributable artifact verification.
+- Local `scripts/ci.sh` gates for linting, tests, addon packaging, and Python distribution builds with runtime-state cleanup.
+
+### Changed
+
+- Pytest discovery and coverage now target the actual `modules/` and `blender_mcp_addon/` source layout.
+- Release and contributor workflows now use the current `develop` branch and repository paths.
+
+### Fixed
+
+- Removed test lint violations without changing HTTP adapter keyword contracts or pytest fixture discovery.
+
 ## [1.7.0] - 2026-07-XX
 
 ### ⚠ BREAKING

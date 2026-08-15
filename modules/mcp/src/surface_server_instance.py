@@ -26,6 +26,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.server import Settings as FastMcpSettings
 
 from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
 from modules.shared.src.mcp.utility_mcp_bootstrap import (
@@ -150,6 +151,10 @@ class ServerInstanceSurface:
                     "wire it in the composition root (root_mcp_main_entry) and pass it in."
                 )
 
+            # FastMCP's generic Settings model contains a forward reference for
+            # lifespan. Rebuild it before Pydantic validates the instance so
+            # Python 3.13 startup remains warning-free.
+            FastMcpSettings.model_rebuild()
             _mcp_instance = FastMCP(
                 name=name,
                 instructions="Blender Arwaky Server — 3D asset search, AI generation, scene assembly via standardized tool pipelines.",

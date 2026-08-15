@@ -168,8 +168,8 @@ def inject_env_vars(scene):
     env_mappings = {
         "blendermcp_sketchfab_api_key": "BLENDERMCP_SKETCHFAB_API_KEY",
         "blendermcp_hyper3d_api_key": "BLENDERMCP_HYPER3D_API_KEY",
-        "blendermcp_hunyuan3d_secret_id": "BLENDERMCP_HUNYUAN3D_SECRET_ID",  # nosec B105 - env var name, not a value
-        "blendermcp_hunyuan3d_secret_key": "BLENDERMCP_HUNYUAN3D_SECRET_KEY",  # nosec B105 - env var name, not a value
+        "blendermcp_hunyuan3d_secret_id": "BLENDERMCP_HUNYUAN3D_SECRET_ID",
+        "blendermcp_hunyuan3d_secret_key": "BLENDERMCP_HUNYUAN3D_SECRET_KEY",
         "blendermcp_hunyuan3d_api_url": "BLENDERMCP_HUNYUAN3D_API_URL",
     }
     for scene_prop, env_var in env_mappings.items():
