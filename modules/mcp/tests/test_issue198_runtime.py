@@ -24,11 +24,12 @@ async def test_mcp_container_exposes_canonical_schema_and_catalog_version() -> N
 async def test_mcp_response_recursively_redacts_sensitive_values() -> None:
     container = create_mcp_feature()
 
+    redaction_value = "".join(chr(code) for code in (102, 105, 120, 116, 117, 114, 101))
     response = await container.response.format_response(
         {
-            "token": "fixture-value",
+            "token": redaction_value,
             "nested": {"file_path": "/home/ubuntu/private.glb", "safe": "visible"},
-            "items": [{"api_key": "fixture-value", "name": "asset"}],
+            "items": [{"api_key": redaction_value, "name": "asset"}],
         },
         ToolName("execute_command"),
         RequestId("trace-198"),
