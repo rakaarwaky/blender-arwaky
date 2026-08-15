@@ -162,6 +162,32 @@ Wave 4 does not add a new MCP tool, external solver/provider integration, dashbo
 
 Wave 4 preserves the five-tool MCP surface and adds no private simulation registry. Fluid bake, external solvers, and progress/cancellation orchestration remain intentionally outside this wave.
 
+### Wave 5 — Rigging and deformation foundations (proposed)
+
+The current catalog has no canonical armature, pose-bone, constraint, shape-key, or deformation-state actions. Wave 5 should close that core Blender gap with a focused `modules/rigging` aggregate rather than expanding unrelated object or animation handlers.
+
+| Capability | Proposed canonical actions | Boundary |
+|---|---|---|
+| Armature inspection | `inspect_armature` | Bounded bones, parent relationships, deform flags, and pose summary |
+| Pose control | `set_pose_bone_transform` | One named pose bone; bounded location, Euler rotation, or scale updates |
+| Constraints | `configure_bone_constraint` | Allow-listed constraint types and validated target/subtarget references |
+| Shape keys | `configure_shape_key` | Create/update one named shape key with bounded value and slider limits |
+| Deformation inspection | `get_deformation_state` | Bounded armature modifiers, constraints, and shape-key summary |
+
+Wave 5 non-goals are automatic weighting, weight-paint workflows, retargeting, driver graph authoring, full IK solving, B-Bone authoring, and external rig formats. The five-tool MCP surface remains unchanged, and every action requires a real Blender runtime handler plus contract and smoke coverage before it is accepted.
+
+#### Wave 5 implementation status
+
+| Capability | Implemented actions | Verification |
+|---|---|---|
+| Armature inspection | `inspect_armature` | Blender 4.0.2 smoke: two-bone hierarchy, parent/child relation, deform flags, and pose summary |
+| Pose control | `set_pose_bone_transform` | Unit bounds and Blender smoke: Child bone Euler rotation plus invalid vector error |
+| Constraints | `configure_bone_constraint` | Allow-list contract and Blender smoke: `COPY_ROTATION` with target object, then safe removal |
+| Shape keys | `configure_shape_key` | Slider/value bounds and Blender smoke: create, inspect, and remove `Smile` key |
+| Deformation inspection | `get_deformation_state` | Blender smoke: armature modifier, pose constraint, and shape-key summary |
+
+Wave 5 preserves the five-tool MCP surface and does not add private rigging state. The accepted implementation is limited to explicit Blender data-block mutations and bounded inspection; automatic weighting, IK solving, retargeting, drivers, and external rig formats remain future scope.
+
 ## Porting method
 
 For each candidate implementation, maintain a small migration record containing the upstream URL, commit SHA, source file, license disposition, behavior being retained, Arwaky contract receiving it, and tests added. Porting proceeds in this order:

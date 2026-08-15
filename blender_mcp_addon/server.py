@@ -256,6 +256,11 @@ class BlenderMCPServer:
             "configure_particle_system": self.configure_particle_system,
             "configure_force_field": self.configure_force_field,
             "configure_fluid_domain": self.configure_fluid_domain,
+            "inspect_armature": self.inspect_armature,
+            "set_pose_bone_transform": self.set_pose_bone_transform,
+            "configure_bone_constraint": self.configure_bone_constraint,
+            "configure_shape_key": self.configure_shape_key,
+            "get_deformation_state": self.get_deformation_state,
             "execute_code": self.execute_code,
             "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
@@ -875,6 +880,250 @@ class BlenderMCPServer:
         if hasattr(scene, "cycles"):
             result["cycles_samples"] = scene.cycles.samples
         return result
+
+    def inspect_armature(self, object_name, limit=100):
+        """Inspect a bounded armature hierarchy and pose summary."""
+        limit = self._bounded_wave_three_limit(limit)
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Armature object not found: {object_name}")
+        if obj.type != "ARMATURE":
+            raise ValueError("inspect_armature requires an armature object")
+        bones = []
+        for bone in list(obj.data.bones)[:limit]:
+            pose_bone = obj.pose.bones.get(bone.name)
+            bones.append(
+                {
+                    "name": bone.name,
+                    "parent": bone.parent.name if bone.parent else None,
+                    "children": [child.name for child in list(bone.children)[:64]],
+                    "use_deform": bone.use_deform,
+                    "head": list(bone.head_local),
+                    "tail": list(bone.tail_local),
+                    "pose_location": list(pose_bone.location) if pose_bone else [0.0, 0.0, 0.0],
+                    "pose_rotation": list(pose_bone.rotation_euler) if pose_bone else [0.0, 0.0, 0.0],
+                    "pose_scale": list(pose_bone.scale) if pose_bone else [1.0, 1.0, 1.0],
+                }
+            )
+        return {"object_name": obj.name, "bone_count": len(obj.data.bones), "bones": bones}
+
+    def set_pose_bone_transform(self, armature_name, bone_name, location=None, rotation_euler=None, scale=None):
+        """Set one bounded pose-bone transform."""
+        location = self._bounded_wave_five_vector(location, "location", -100000.0, 100000.0)
+        rotation_euler = self._bounded_wave_five_vector(
+            rotation_euler, "rotation_euler", -math.tau * 1000.0, math.tau * 1000.0
+        )
+        scale = self._bounded_wave_five_vector(scale, "scale", -1000.0, 1000.0)
+        if location is None and rotation_euler is None and scale is None:
+            raise ValueError("at least one pose transform vector is required")
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None:
+            raise ValueError(f"Armature object not found: {armature_name}")
+        if obj.type != "ARMATURE":
+            raise ValueError("set_pose_bone_transform requires an armature object")
+        pose_bone = obj.pose.bones.get(str(bone_name))
+        if pose_bone is None:
+            raise ValueError(f"Pose bone not found: {bone_name}")
+        changed = False
+        if location is not None:
+            changed = changed or list(pose_bone.location) != location
+            pose_bone.location = location
+        if rotation_euler is not None:
+            pose_bone.rotation_mode = "XYZ"
+            changed = changed or list(pose_bone.rotation_euler) != rotation_euler
+            pose_bone.rotation_euler = rotation_euler
+        if scale is not None:
+            changed = changed or list(pose_bone.scale) != scale
+            pose_bone.scale = scale
+        return {
+            "object_name": obj.name,
+            "changed": changed,
+            "operation": "set_pose_bone_transform",
+            "bone_name": pose_bone.name,
+        }
+
+    def configure_bone_constraint(
+        self,
+        armature_name,
+        bone_name,
+        constraint_type,
+        enabled,
+        constraint_name=None,
+        target_object=None,
+        subtarget=None,
+    ):
+        """Create, update, or remove one allow-listed pose-bone constraint."""
+        constraint_type = str(constraint_type).upper()
+        if constraint_type not in {"COPY_LOCATION", "COPY_ROTATION", "LIMIT_LOCATION", "LIMIT_ROTATION"}:
+            raise ValueError(f"Unsupported bone constraint type: {constraint_type}")
+        name = str(constraint_name or f"Arwaky_{constraint_type}").strip()
+        if not name or len(name) > 128:
+            raise ValueError("constraint_name must be 1-128 characters")
+        if subtarget is not None and len(str(subtarget)) > 128:
+            raise ValueError("subtarget must not exceed 128 characters")
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None:
+            raise ValueError(f"Armature object not found: {armature_name}")
+        if obj.type != "ARMATURE":
+            raise ValueError("configure_bone_constraint requires an armature object")
+        pose_bone = obj.pose.bones.get(str(bone_name))
+        if pose_bone is None:
+            raise ValueError(f"Pose bone not found: {bone_name}")
+        constraint = pose_bone.constraints.get(name)
+        if not bool(enabled):
+            if constraint is None:
+                return {
+                    "object_name": obj.name,
+                    "changed": False,
+                    "operation": "configure_bone_constraint",
+                    "bone_name": pose_bone.name,
+                    "constraint_name": name,
+                }
+            pose_bone.constraints.remove(constraint)
+            return {
+                "object_name": obj.name,
+                "changed": True,
+                "operation": "configure_bone_constraint",
+                "bone_name": pose_bone.name,
+                "constraint_name": name,
+            }
+        if constraint is not None and constraint.type != constraint_type:
+            pose_bone.constraints.remove(constraint)
+            constraint = None
+        if constraint is None:
+            constraint = pose_bone.constraints.new(type=constraint_type)
+            constraint.name = name
+        if target_object:
+            target = bpy.data.objects.get(str(target_object))
+            if target is None:
+                raise ValueError(f"Constraint target object not found: {target_object}")
+            if hasattr(constraint, "target"):
+                constraint.target = target
+        if subtarget is not None and hasattr(constraint, "subtarget"):
+            constraint.subtarget = str(subtarget)
+        return {
+            "object_name": obj.name,
+            "changed": True,
+            "operation": "configure_bone_constraint",
+            "bone_name": pose_bone.name,
+            "constraint_name": constraint.name,
+        }
+
+    def configure_shape_key(
+        self,
+        object_name,
+        shape_key_name,
+        enabled,
+        value=0.0,
+        slider_min=0.0,
+        slider_max=1.0,
+    ):
+        """Create, update, or remove one bounded mesh shape key."""
+        name = str(shape_key_name).strip()
+        if not name or len(name) > 128:
+            raise ValueError("shape_key_name must be 1-128 characters")
+        value = self._bounded_wave_five_scalar(value, "value", -10.0, 10.0)
+        slider_min = self._bounded_wave_five_scalar(slider_min, "slider_min", -10.0, 10.0)
+        slider_max = self._bounded_wave_five_scalar(slider_max, "slider_max", -10.0, 10.0)
+        if slider_min > slider_max:
+            raise ValueError("slider_min must be less than or equal to slider_max")
+        if not slider_min <= value <= slider_max:
+            raise ValueError("value must be within slider limits")
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError("configure_shape_key requires a mesh object")
+        key = obj.data.shape_keys.key_blocks.get(name) if obj.data.shape_keys else None
+        if bool(enabled):
+            if key is None:
+                key = obj.shape_key_add(name=name)
+            key.value = value
+            key.slider_min = slider_min
+            key.slider_max = slider_max
+            return {
+                "object_name": obj.name,
+                "changed": True,
+                "operation": "configure_shape_key",
+                "shape_key_name": key.name,
+            }
+        if key is None:
+            raise ValueError(f"Shape key not found: {name}")
+        if key.name == "Basis":
+            raise ValueError("Basis shape key cannot be removed")
+        obj.shape_key_remove(key)
+        return {
+            "object_name": obj.name,
+            "changed": True,
+            "operation": "configure_shape_key",
+            "shape_key_name": name,
+        }
+
+    def get_deformation_state(self, object_name):
+        """Inspect bounded armature modifiers, constraints, and shape keys."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError("get_deformation_state requires a mesh object")
+        armature_modifiers = []
+        constraints = []
+        for modifier in list(obj.modifiers)[:64]:
+            if modifier.type != "ARMATURE":
+                continue
+            armature_modifiers.append(
+                {"name": modifier.name, "object_name": modifier.object.name if modifier.object else None}
+            )
+            armature = modifier.object
+            if armature and armature.type == "ARMATURE":
+                for pose_bone in list(armature.pose.bones)[:1000]:
+                    for constraint in list(pose_bone.constraints)[:32]:
+                        constraints.append(
+                            {
+                                "bone_name": pose_bone.name,
+                                "name": constraint.name,
+                                "type": constraint.type,
+                                "target_object": constraint.target.name if constraint.target else None,
+                                "subtarget": getattr(constraint, "subtarget", ""),
+                            }
+                        )
+        for constraint in list(obj.constraints)[:64]:
+            constraints.append(
+                {
+                    "bone_name": None,
+                    "name": constraint.name,
+                    "type": constraint.type,
+                    "target_object": constraint.target.name if constraint.target else None,
+                    "subtarget": getattr(constraint, "subtarget", ""),
+                }
+            )
+        shape_keys = []
+        if obj.data.shape_keys:
+            for key in list(obj.data.shape_keys.key_blocks)[:128]:
+                shape_keys.append(
+                    {"name": key.name, "value": key.value, "slider_min": key.slider_min, "slider_max": key.slider_max}
+                )
+        return {
+            "object_name": obj.name,
+            "armature_modifiers": armature_modifiers,
+            "constraints": constraints[:128],
+            "shape_keys": shape_keys,
+        }
+
+    @staticmethod
+    def _bounded_wave_five_scalar(value, name, lower, upper):
+        scalar = float(value)
+        if not math.isfinite(scalar) or not lower <= scalar <= upper:
+            raise ValueError(f"{name} must be between {lower} and {upper}")
+        return scalar
+
+    @classmethod
+    def _bounded_wave_five_vector(cls, value, name, lower, upper):
+        if value is None:
+            return None
+        if len(value) != 3:
+            raise ValueError(f"{name} must contain exactly 3 numbers")
+        return [cls._bounded_wave_five_scalar(item, name, lower, upper) for item in value]
 
     @staticmethod
     def _bounded_wave_three_limit(value):

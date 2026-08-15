@@ -670,6 +670,58 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             },
         },
     },
+    "rigging": {
+        "inspect_armature": {
+            "description": "Inspect a bounded armature bone hierarchy and pose summary",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+        "set_pose_bone_transform": {
+            "description": "Set a bounded transform on one named pose bone",
+            "parameters": {
+                "armature_name": {"type": "string", "required": True},
+                "bone_name": {"type": "string", "required": True},
+                "location": {"type": "array[number]", "required": False},
+                "rotation_euler": {"type": "array[number]", "required": False},
+                "scale": {"type": "array[number]", "required": False},
+            },
+        },
+        "configure_bone_constraint": {
+            "description": "Create, update, or remove one allow-listed bone constraint",
+            "parameters": {
+                "armature_name": {"type": "string", "required": True},
+                "bone_name": {"type": "string", "required": True},
+                "constraint_type": {
+                    "type": "string",
+                    "required": True,
+                    "enum": ["COPY_LOCATION", "COPY_ROTATION", "LIMIT_LOCATION", "LIMIT_ROTATION"],
+                },
+                "enabled": {"type": "boolean", "required": True},
+                "constraint_name": {"type": "string", "required": False},
+                "target_object": {"type": "string", "required": False},
+                "subtarget": {"type": "string", "required": False},
+            },
+        },
+        "configure_shape_key": {
+            "description": "Create, update, or remove one bounded mesh shape key",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "shape_key_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "value": {"type": "number", "required": False},
+                "slider_min": {"type": "number", "required": False},
+                "slider_max": {"type": "number", "required": False},
+            },
+        },
+        "get_deformation_state": {
+            "description": "Inspect bounded deformation modifiers, constraints, and shape keys",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+            },
+        },
+    },
     "asset": {
         "search_assets": {
             "description": "Search configured asset providers",
