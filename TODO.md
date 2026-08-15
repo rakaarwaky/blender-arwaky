@@ -27,7 +27,7 @@
 |---|---|---|---|
 | Architecture | AES naming and dependency boundaries preserved | Ruff and repository architecture conventions | Complete |
 | Static quality | No Ruff errors, format drift, syntax errors, whitespace errors, or high/medium security findings | Ruff lint/format, `compileall`, Bandit `-ll -ii`, and `git diff --check` | Complete |
-| Automated tests | Full suite passes on supported Python 3.10–3.13 with coverage above threshold | `1029 passed`; explicit coverage run: `70.04%` against a 60% threshold | Complete |
+| Automated tests | Full suite passes on supported Python 3.10–3.13 with coverage above threshold | `1029 passed`; explicit coverage run: `70.03%` against a 60% threshold | Complete |
 | Integration coverage | Cross-feature CLI, MCP, Asset, and Launcher contracts are exercised | Dedicated integration job in `.github/workflows/ci.yml` | Complete |
 | Build verification | Addon ZIP and Python wheel/sdist build and integrity checks | Local/CI package jobs | Complete |
 | CI/CD | Push and PR gates run for `develop` and `main`; tagged release builds and publishes artifacts | `.github/workflows/ci.yml` and `release.yml` | Complete |
