@@ -188,6 +188,19 @@ Wave 5 non-goals are automatic weighting, weight-paint workflows, retargeting, d
 
 Wave 5 preserves the five-tool MCP surface and does not add private rigging state. The accepted implementation is limited to explicit Blender data-block mutations and bounded inspection; automatic weighting, IK solving, retargeting, drivers, and external rig formats remain future scope.
 
+### Wave 6 — Render and viewport completion (planned)
+
+Wave 6 should complete the existing Render/Viewport FRD rather than create another broad feature pack. Camera configuration, frame rendering, and render settings already have canonical runtime coverage. The remaining audited gap is the unconnected viewport capture and HDRI lighting contract.
+
+| Capability | Proposed canonical action | Boundary |
+|---|---|---|
+| Viewport capture | `get_viewport_screenshot` | Validated output path, bounded dimensions, shading mode, overlays, and optional focus object |
+| HDRI lighting | `configure_hdri_lighting` | Asset-feature-resolved local HDRI, bounded strength/rotation, world-node setup, and lighting-only/visible policy |
+
+Wave 6 acceptance requires a real Blender handler for both actions, security path validation, artifact references rather than raw image payloads, graceful background-context behavior, unit/contract tests, Blender smoke verification, and unchanged five-tool MCP surface. Existing `configure_camera`, `render`, and `set_render_settings` actions remain regression targets and are not duplicated.
+
+Wave 6 non-goals are asset-provider implementation, arbitrary filesystem access, viewport UI automation, compositor redesign, external render farms, denoising algorithms, and new MCP tools. HDRI retrieval must reuse the existing asset/security boundary; the render action must reuse the existing job/capacity lifecycle for long-running work.
+
 ## Porting method
 
 For each candidate implementation, maintain a small migration record containing the upstream URL, commit SHA, source file, license disposition, behavior being retained, Arwaky contract receiving it, and tests added. Porting proceeds in this order:
