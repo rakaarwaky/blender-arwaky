@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from modules.cli.src.capabilities_cli_action_router import CliActionRouter
+from modules.cli.src.surface_cli_action_router import CliActionRouter
 from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
 
 

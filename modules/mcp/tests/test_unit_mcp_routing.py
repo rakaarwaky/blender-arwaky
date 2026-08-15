@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
 from modules.mcp.src.surface_health_check import HealthCheckSurface
-from modules.mcp.src.surface_help import HelpSurface
+from modules.mcp.src.surface_help_content import HelpSurface
 from modules.mcp.src.surface_list_commands import ListCommandsSurface
 
 

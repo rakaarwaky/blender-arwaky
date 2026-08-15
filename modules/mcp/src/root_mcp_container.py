@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 
 from modules.asset.src.root_asset_container import create_asset_container
-from modules.cli.src.capabilities_cli_action_router import CliActionRouter
+from modules.cli.src.surface_cli_action_router import CliActionRouter
 from modules.config.src.root_config_container import ConfigContainer
 from modules.launcher.src.root_launcher_container import create_launcher_feature
 from modules.mcp.src.capabilities_schema_provider import McpSchemaImpl

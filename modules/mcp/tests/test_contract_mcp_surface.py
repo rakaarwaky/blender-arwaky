@@ -18,7 +18,7 @@ from typing import Any
 from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
 from modules.mcp.src.surface_get_config import GetConfigSurface
 from modules.mcp.src.surface_health_check import HealthCheckSurface
-from modules.mcp.src.surface_help import HelpSurface
+from modules.mcp.src.surface_help_content import HelpSurface
 from modules.mcp.src.surface_list_commands import ListCommandsSurface
 from modules.mcp.src.surface_scene_tools import SceneToolsSurface
 from modules.mcp.src.surface_tool_registry import ToolRegistrySurface

@@ -522,7 +522,7 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
 
     if dispatcher is None:
         try:
-            from modules.cli.src.capabilities_cli_action_router import CliActionRouter
+            from modules.cli.src.surface_cli_action_router import CliActionRouter
             from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
             from modules.launcher.src.root_launcher_container import LauncherConfigVO, LauncherContainer
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from modules.cli.src.capabilities_cli_action_router import CliActionRouter
+from modules.cli.src.surface_cli_action_router import CliActionRouter
 
 
 @dataclass(frozen=True)

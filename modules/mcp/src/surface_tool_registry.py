@@ -15,7 +15,7 @@ class ToolRegistrySurface:
         from .surface_execute_command import ExecuteCommandSurface
         from .surface_get_config import GetConfigSurface
         from .surface_health_check import HealthCheckSurface
-        from .surface_help import HelpSurface
+        from .surface_help_content import HelpSurface
         from .surface_list_commands import ListCommandsSurface
 
         ExecuteCommandSurface.register(mcp, container)

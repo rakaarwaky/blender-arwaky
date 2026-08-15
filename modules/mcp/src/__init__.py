@@ -4,7 +4,7 @@ from . import (
     surface_execute_command,
     surface_get_config,
     surface_health_check,
-    surface_help,
+    surface_help_content,
     surface_list_commands,
     surface_prompt_register,
     surface_scene_tools,
@@ -15,7 +15,7 @@ from . import (
 from .surface_execute_command import ExecuteCommandSurface
 from .surface_get_config import GetConfigSurface
 from .surface_health_check import HealthCheckSurface
-from .surface_help import HelpSurface
+from .surface_help_content import HelpSurface
 from .surface_list_commands import ListCommandsSurface
 from .surface_prompt_register import PromptRegistrationModule
 from .surface_server_instance import ServerInstanceSurface
@@ -35,7 +35,7 @@ __all__ = [
     "surface_execute_command",
     "surface_get_config",
     "surface_health_check",
-    "surface_help",
+    "surface_help_content",
     "surface_list_commands",
     "surface_prompt_register",
     "surface_server_instance",
