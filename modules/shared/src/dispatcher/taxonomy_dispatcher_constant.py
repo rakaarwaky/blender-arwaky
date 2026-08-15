@@ -488,6 +488,138 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             },
         },
     },
+    "compositor": {
+        "inspect_compositor_nodes": {
+            "description": "Inspect a bounded compositor node graph for the active scene",
+            "parameters": {
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+        "configure_compositor": {
+            "description": "Enable or disable compositor nodes for the active scene",
+            "parameters": {
+                "use_nodes": {"type": "boolean", "required": True},
+            },
+        },
+        "create_compositor_node": {
+            "description": "Create one allow-listed compositor node in the active scene",
+            "parameters": {
+                "node_type": {
+                    "type": "string",
+                    "required": True,
+                    "enum": [
+                        "CompositorNodeRGB",
+                        "CompositorNodeMixRGB",
+                        "CompositorNodeBlur",
+                        "CompositorNodeComposite",
+                        "CompositorNodeViewer",
+                    ],
+                },
+                "node_name": {"type": "string", "required": False},
+            },
+        },
+        "set_compositor_link": {
+            "description": "Create a validated link between compositor node sockets",
+            "parameters": {
+                "from_node": {"type": "string", "required": True},
+                "from_socket": {"type": "string", "required": True},
+                "to_node": {"type": "string", "required": True},
+                "to_socket": {"type": "string", "required": True},
+            },
+        },
+    },
+    "vse": {
+        "inspect_sequence_editor": {
+            "description": "Inspect bounded VSE strips and channels for the active scene",
+            "parameters": {
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+        "create_sequence_strip": {
+            "description": "Create an allow-listed VSE strip from a validated local media path",
+            "parameters": {
+                "strip_type": {
+                    "type": "string",
+                    "required": True,
+                    "enum": ["COLOR", "IMAGE", "MOVIE", "SOUND"],
+                },
+                "strip_name": {"type": "string", "required": True},
+                "filepath": {"type": "string", "required": False},
+                "channel": {"type": "integer", "required": True},
+                "frame_start": {"type": "integer", "required": True},
+                "frame_end": {"type": "integer", "required": False},
+            },
+        },
+        "remove_sequence_strip": {
+            "description": "Remove one named VSE strip from the active scene",
+            "parameters": {
+                "strip_name": {"type": "string", "required": True},
+            },
+            "metadata": {"destructive_flag": True, "risk_level": "high"},
+        },
+        "render_sequence": {
+            "description": "Render a bounded VSE frame range to a validated local output path",
+            "parameters": {
+                "output_path": {"type": "string", "required": True},
+                "frame_start": {"type": "integer", "required": False},
+                "frame_end": {"type": "integer", "required": False},
+            },
+            "metadata": {
+                "default_timeout": 300.0,
+                "timeout_class": "long_running",
+                "background_eligibility_flag": True,
+                "long_running_flag": True,
+                "risk_level": "high",
+            },
+        },
+    },
+    "physics": {
+        "get_physics_state": {
+            "description": "Inspect bounded rigid body and cloth state for one object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+            },
+        },
+        "configure_rigid_body": {
+            "description": "Configure rigid body simulation settings for one mesh object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "body_type": {"type": "string", "required": False, "enum": ["ACTIVE", "PASSIVE"]},
+                "mass": {"type": "number", "required": False},
+                "kinematic": {"type": "boolean", "required": False},
+            },
+        },
+        "configure_cloth_simulation": {
+            "description": "Configure bounded cloth simulation settings for one mesh object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "quality": {"type": "integer", "required": False},
+                "pin_group": {"type": "string", "required": False},
+            },
+        },
+        "bake_physics_simulation": {
+            "description": "Bake a bounded physics cache for the active scene",
+            "parameters": {
+                "frame_start": {"type": "integer", "required": False},
+                "frame_end": {"type": "integer", "required": False},
+            },
+            "metadata": {
+                "default_timeout": 300.0,
+                "timeout_class": "long_running",
+                "background_eligibility_flag": True,
+                "long_running_flag": True,
+                "destructive_flag": True,
+                "risk_level": "high",
+            },
+        },
+        "clear_physics_bake": {
+            "description": "Clear cached physics simulation data for the active scene",
+            "parameters": {},
+            "metadata": {"destructive_flag": True, "risk_level": "high"},
+        },
+    },
     "asset": {
         "search_assets": {
             "description": "Search configured asset providers",

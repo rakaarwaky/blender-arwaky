@@ -128,6 +128,16 @@ Add only after Wave 2 contracts are stable:
 
 Long-running compositor, VSE, and physics operations must use `modules/job`; no domain may create a private job registry.
 
+#### Wave 3 implementation status
+
+| Module | Implemented actions | Verification |
+|---|---|---|
+| `modules/compositor` | `inspect_compositor_nodes`, `configure_compositor`, `create_compositor_node`, `set_compositor_link` | AES executor tests and Blender 4.0.2 smoke: node creation, dynamic socket discovery, exact link, bounded inspection |
+| `modules/vse` | `inspect_sequence_editor`, `create_sequence_strip`, `remove_sequence_strip`, `render_sequence` | AES executor tests and Blender 4.0.2 smoke: COLOR strip lifecycle and invalid media path; render is a real handler with long-running metadata |
+| `modules/physics` | `get_physics_state`, `configure_rigid_body`, `configure_cloth_simulation`, `bake_physics_simulation`, `clear_physics_bake` | AES executor tests and Blender 4.0.2 smoke: rigid body, cloth, state inspection, disable lifecycle; bake/clear use Blender cache operators |
+
+Wave 3 keeps the five-tool MCP surface unchanged. Sequence rendering and physics baking carry explicit `background_eligibility_flag`, `long_running_flag`, bounded timeouts, and destructive/risk metadata so the shared dispatcher/job path can coordinate them without domain-specific registries. Fluid, particle, and force-field packs remain future scope rather than speculative actions.
+
 ## Porting method
 
 For each candidate implementation, maintain a small migration record containing the upstream URL, commit SHA, source file, license disposition, behavior being retained, Arwaky contract receiving it, and tests added. Porting proceeds in this order:

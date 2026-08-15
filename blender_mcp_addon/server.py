@@ -238,6 +238,19 @@ class BlenderMCPServer:
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
             "ensure_mesh_uv_layer": self.ensure_mesh_uv_layer,
+            "inspect_compositor_nodes": self.inspect_compositor_nodes,
+            "configure_compositor": self.configure_compositor,
+            "create_compositor_node": self.create_compositor_node,
+            "set_compositor_link": self.set_compositor_link,
+            "inspect_sequence_editor": self.inspect_sequence_editor,
+            "create_sequence_strip": self.create_sequence_strip,
+            "remove_sequence_strip": self.remove_sequence_strip,
+            "render_sequence": self.render_sequence,
+            "get_physics_state": self.get_physics_state,
+            "configure_rigid_body": self.configure_rigid_body,
+            "configure_cloth_simulation": self.configure_cloth_simulation,
+            "bake_physics_simulation": self.bake_physics_simulation,
+            "clear_physics_bake": self.clear_physics_bake,
             "execute_code": self.execute_code,
             "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
@@ -857,6 +870,340 @@ class BlenderMCPServer:
         if hasattr(scene, "cycles"):
             result["cycles_samples"] = scene.cycles.samples
         return result
+
+    @staticmethod
+    def _bounded_wave_three_limit(value):
+        limit = int(value)
+        if not 1 <= limit <= 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        return limit
+
+    @staticmethod
+    def _bounded_wave_three_frame(value):
+        frame = int(value)
+        if not -100000 <= frame <= 100000:
+            raise ValueError("frame must be between -100000 and 100000")
+        return frame
+
+    @staticmethod
+    def _bounded_wave_three_channel(value):
+        channel = int(value)
+        if not 1 <= channel <= 128:
+            raise ValueError("channel must be between 1 and 128")
+        return channel
+
+    @staticmethod
+    def _validated_wave_three_output_path(value):
+        path = Path(str(value)).expanduser()
+        if not str(path).strip() or path.name in {"", ".", ".."}:
+            raise ValueError("output_path must be a file path")
+        if path.exists() and path.is_dir():
+            raise ValueError("output_path must be a file path")
+        return path.resolve()
+
+    @staticmethod
+    def _sequence_collection(scene, create=False):
+        editor = scene.sequence_editor_create() if create else scene.sequence_editor
+        if editor is None:
+            return None
+        strips = getattr(editor, "strips", None)
+        if strips is None:
+            strips = getattr(editor, "sequences", None)
+        return strips
+
+    def inspect_compositor_nodes(self, limit=100):
+        """Inspect a bounded compositor graph for the active scene."""
+        limit = self._bounded_wave_three_limit(limit)
+        scene = bpy.context.scene
+        nodes = []
+        links = []
+        node_tree = scene.node_tree if scene.use_nodes and scene.node_tree else None
+        if node_tree:
+            for node in list(node_tree.nodes)[:limit]:
+                nodes.append(
+                    {
+                        "name": node.name,
+                        "node_type": node.bl_idname,
+                        "inputs": [socket.name for socket in list(node.inputs)[:128]],
+                        "outputs": [socket.name for socket in list(node.outputs)[:128]],
+                    }
+                )
+            for link in list(node_tree.links)[:limit]:
+                links.append(
+                    {
+                        "from_node": link.from_node.name,
+                        "from_socket": link.from_socket.name,
+                        "to_node": link.to_node.name,
+                        "to_socket": link.to_socket.name,
+                    }
+                )
+        return {"use_nodes": bool(scene.use_nodes), "nodes": nodes, "links": links}
+
+    def configure_compositor(self, use_nodes):
+        """Enable or disable compositor node usage."""
+        scene = bpy.context.scene
+        use_nodes = bool(use_nodes)
+        changed = scene.use_nodes != use_nodes
+        scene.use_nodes = use_nodes
+        return {"changed": changed, "use_nodes": bool(scene.use_nodes)}
+
+    def create_compositor_node(self, node_type, node_name=None):
+        """Create one allow-listed compositor node."""
+        allowed = {
+            "CompositorNodeRGB",
+            "CompositorNodeMixRGB",
+            "CompositorNodeBlur",
+            "CompositorNodeComposite",
+            "CompositorNodeViewer",
+        }
+        node_type = str(node_type)
+        if node_type not in allowed:
+            raise ValueError(f"Unsupported compositor node type: {node_type}")
+        scene = bpy.context.scene
+        scene.use_nodes = True
+        node = scene.node_tree.nodes.new(node_type)
+        if node_name:
+            name = str(node_name).strip()
+            if not name or len(name) > 128:
+                raise ValueError("node_name must be 1-128 characters")
+            node.name = name
+        return {"changed": True, "node_name": node.name, "node_type": node.bl_idname, "use_nodes": True}
+
+    def set_compositor_link(self, from_node, from_socket, to_node, to_socket):
+        """Create one validated compositor socket link."""
+        scene = bpy.context.scene
+        if not scene.use_nodes or scene.node_tree is None:
+            raise ValueError("Compositor nodes are disabled")
+        source = scene.node_tree.nodes.get(str(from_node))
+        target = scene.node_tree.nodes.get(str(to_node))
+        if source is None or target is None:
+            raise ValueError("Compositor source or target node not found")
+        source_socket = source.outputs.get(str(from_socket))
+        target_socket = target.inputs.get(str(to_socket))
+        if source_socket is None or target_socket is None:
+            raise ValueError("Compositor source or target socket not found")
+        for link in scene.node_tree.links:
+            if link.from_socket == source_socket and link.to_socket == target_socket:
+                return {"changed": False, "message": "Link already exists"}
+        scene.node_tree.links.new(source_socket, target_socket)
+        return {"changed": True, "message": "Link created"}
+
+    def inspect_sequence_editor(self, limit=100):
+        """Inspect bounded VSE strip state."""
+        limit = self._bounded_wave_three_limit(limit)
+        scene = bpy.context.scene
+        strips = self._sequence_collection(scene)
+        values = []
+        if strips is not None:
+            for strip in list(strips)[:limit]:
+                values.append(
+                    {
+                        "name": strip.name,
+                        "strip_type": strip.type,
+                        "channel": strip.channel,
+                        "frame_start": strip.frame_final_start,
+                        "frame_final": strip.frame_final_end,
+                        "filepath": getattr(strip, "filepath", None),
+                    }
+                )
+        return {"sequence_present": strips is not None, "strips": values}
+
+    def create_sequence_strip(
+        self,
+        strip_type,
+        strip_name,
+        filepath=None,
+        channel=1,
+        frame_start=1,
+        frame_end=None,
+    ):
+        """Create a bounded VSE strip from explicit media types."""
+        strip_type = str(strip_type).upper()
+        if strip_type not in {"COLOR", "IMAGE", "MOVIE", "SOUND"}:
+            raise ValueError(f"Unsupported sequence strip type: {strip_type}")
+        name = str(strip_name).strip()
+        if not name or len(name) > 128:
+            raise ValueError("strip_name must be 1-128 characters")
+        channel = self._bounded_wave_three_channel(channel)
+        start = self._bounded_wave_three_frame(frame_start)
+        end = start + 1 if frame_end is None else self._bounded_wave_three_frame(frame_end)
+        if end <= start:
+            raise ValueError("frame_end must be greater than frame_start")
+        if strip_type != "COLOR":
+            if not filepath:
+                raise ValueError("filepath is required for media strips")
+            media_path = Path(str(filepath)).expanduser()
+            if not media_path.is_file():
+                raise FileNotFoundError(str(filepath))
+            filepath = str(media_path.resolve())
+        strips = self._sequence_collection(bpy.context.scene, create=True)
+        if strips is None:
+            raise RuntimeError("Blender sequence editor collection is unavailable")
+        if strip_type == "COLOR":
+            strip = strips.new_effect(name=name, type="COLOR", channel=channel, frame_start=start, frame_end=end)
+        elif strip_type == "IMAGE":
+            strip = strips.new_image(name=name, filepath=filepath, channel=channel, frame_start=start)
+            strip.frame_final_end = end
+        elif strip_type == "MOVIE":
+            strip = strips.new_movie(name=name, filepath=filepath, channel=channel, frame_start=start)
+        else:
+            strip = strips.new_sound(name=name, filepath=filepath, channel=channel, frame_start=start)
+        return {"changed": True, "strip_name": strip.name, "strip_type": strip.type}
+
+    def remove_sequence_strip(self, strip_name):
+        """Remove one exact VSE strip."""
+        name = str(strip_name).strip()
+        if not name:
+            raise ValueError("strip_name is required")
+        strips = self._sequence_collection(bpy.context.scene)
+        if strips is None:
+            raise ValueError("Sequence editor is not initialized")
+        strip = strips.get(name)
+        if strip is None:
+            raise ValueError(f"Sequence strip not found: {name}")
+        strips.remove(strip)
+        return {"changed": True, "strip_name": name}
+
+    def render_sequence(self, output_path, frame_start=None, frame_end=None):
+        """Render a bounded sequence range using Blender's real render operator."""
+        path = self._validated_wave_three_output_path(output_path)
+        start = None if frame_start is None else self._bounded_wave_three_frame(frame_start)
+        end = None if frame_end is None else self._bounded_wave_three_frame(frame_end)
+        if start is not None and end is not None and end < start:
+            raise ValueError("frame_end must be greater than or equal to frame_start")
+        scene = bpy.context.scene
+        previous = (scene.frame_start, scene.frame_end, scene.render.filepath)
+        try:
+            if start is not None:
+                scene.frame_start = start
+            if end is not None:
+                scene.frame_end = end
+            scene.render.filepath = str(path)
+            bpy.ops.render.render(animation=True, write_still=True)
+            return {
+                "changed": True,
+                "output_path": str(path),
+                "frame_start": scene.frame_start,
+                "frame_end": scene.frame_end,
+            }
+        finally:
+            scene.frame_start, scene.frame_end, scene.render.filepath = previous
+
+    def get_physics_state(self, object_name):
+        """Inspect rigid body and cloth state for one object."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        rigid = obj.rigid_body
+        cloth = next((item for item in obj.modifiers if item.type == "CLOTH"), None)
+        settings = cloth.settings if cloth else None
+        return {
+            "object_name": obj.name,
+            "rigid_body_enabled": rigid is not None,
+            "rigid_body_type": rigid.type if rigid else None,
+            "rigid_body_mass": rigid.mass if rigid else None,
+            "rigid_body_kinematic": rigid.kinematic if rigid else None,
+            "cloth_enabled": cloth is not None,
+            "cloth_quality": settings.quality if settings else None,
+            "cloth_pin_group": settings.vertex_group_mass if settings else None,
+        }
+
+    def configure_rigid_body(self, object_name, enabled, body_type="ACTIVE", mass=1.0, kinematic=False):
+        """Configure or remove a bounded rigid body component."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        body_type = str(body_type).upper()
+        if body_type not in {"ACTIVE", "PASSIVE"}:
+            raise ValueError(f"Unsupported rigid body type: {body_type}")
+        mass = float(mass)
+        if not 0.001 <= mass <= 1.0e6 or not math.isfinite(mass):
+            raise ValueError("mass must be between 0.001 and 1000000")
+        changed = False
+        if bool(enabled):
+            bpy.ops.object.select_all(action="DESELECT")
+            obj.select_set(True)
+            bpy.context.view_layer.objects.active = obj
+            if obj.rigid_body is None:
+                bpy.ops.rigidbody.object_add()
+                changed = True
+            rigid = obj.rigid_body
+            if rigid.type != body_type or rigid.mass != mass or rigid.kinematic != bool(kinematic):
+                changed = True
+            rigid.type = body_type
+            rigid.mass = mass
+            rigid.kinematic = bool(kinematic)
+        elif obj.rigid_body is not None:
+            bpy.ops.object.select_all(action="DESELECT")
+            obj.select_set(True)
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.rigidbody.object_remove()
+            changed = True
+        return {
+            "object_name": obj.name,
+            "changed": changed,
+            "operation": "configure_rigid_body",
+            "body_type": body_type if bool(enabled) else None,
+            "mass": mass if bool(enabled) else None,
+        }
+
+    def configure_cloth_simulation(self, object_name, enabled, quality=5, pin_group=None):
+        """Configure or remove a bounded cloth modifier."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        quality = int(quality)
+        if not 1 <= quality <= 80:
+            raise ValueError("quality must be between 1 and 80")
+        if pin_group is not None and len(str(pin_group)) > 64:
+            raise ValueError("pin_group must not exceed 64 characters")
+        cloth = next((item for item in obj.modifiers if item.type == "CLOTH"), None)
+        changed = False
+        if bool(enabled):
+            if cloth is None:
+                cloth = obj.modifiers.new(name="Cloth", type="CLOTH")
+                changed = True
+            cloth.settings.quality = quality
+            if pin_group is not None:
+                cloth.settings.vertex_group_mass = str(pin_group)
+        elif cloth is not None:
+            obj.modifiers.remove(cloth)
+            changed = True
+        return {
+            "object_name": obj.name,
+            "changed": changed,
+            "operation": "configure_cloth_simulation",
+            "quality": cloth.settings.quality if cloth and bool(enabled) else None,
+        }
+
+    def bake_physics_simulation(self, frame_start=None, frame_end=None):
+        """Bake the active scene's physics cache through Blender's cache operator."""
+        start = None if frame_start is None else self._bounded_wave_three_frame(frame_start)
+        end = None if frame_end is None else self._bounded_wave_three_frame(frame_end)
+        if start is not None and end is not None and end < start:
+            raise ValueError("frame_end must be greater than or equal to frame_start")
+        scene = bpy.context.scene
+        previous = (scene.frame_start, scene.frame_end)
+        try:
+            if start is not None:
+                scene.frame_start = start
+            if end is not None:
+                scene.frame_end = end
+            bpy.ops.ptcache.bake_all(bake=True)
+            return {
+                "object_name": None,
+                "changed": True,
+                "operation": "bake_physics_simulation",
+                "frame_start": scene.frame_start,
+                "frame_end": scene.frame_end,
+            }
+        finally:
+            scene.frame_start, scene.frame_end = previous
+
+    def clear_physics_bake(self):
+        """Clear all active scene physics cache data through Blender."""
+        bpy.ops.ptcache.free_bake_all()
+        return {"object_name": None, "changed": True, "operation": "clear_physics_bake"}
 
     @staticmethod
     def _bounded_wave_two_limit(value):

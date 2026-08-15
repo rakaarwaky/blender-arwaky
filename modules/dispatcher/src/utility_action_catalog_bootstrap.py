@@ -32,6 +32,8 @@ def iter_action_metadata() -> Iterable[ActionMetadataVO]:
             required = [
                 name for name, spec in parameters.items() if isinstance(spec, dict) and bool(spec.get("required"))
             ]
+            raw_metadata = raw_spec.get("metadata", {})
+            metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
             read_only = action_name.startswith(
                 ("get_", "inspect_", "validate_", "search_", "list_", "health_", "status")
             )
@@ -42,11 +44,15 @@ def iter_action_metadata() -> Iterable[ActionMetadataVO]:
                 description=str(raw_spec.get("description", action_name)),
                 parameter_schema={"type": "object", "properties": properties, "required": required},
                 usage_examples=[f"{action_name}({', '.join(required)})"],
-                idempotency_flag=read_only,
-                scene_mutation_flag=not read_only,
-                destructive_flag=destructive,
-                read_only_flag=read_only,
-                risk_level="high" if destructive else "medium",
+                default_timeout=float(metadata.get("default_timeout", 30.0)),
+                timeout_class=str(metadata.get("timeout_class", "default")),
+                idempotency_flag=bool(metadata.get("idempotency_flag", read_only)),
+                scene_mutation_flag=bool(metadata.get("scene_mutation_flag", not read_only)),
+                background_eligibility_flag=bool(metadata.get("background_eligibility_flag", False)),
+                destructive_flag=bool(metadata.get("destructive_flag", destructive)),
+                read_only_flag=bool(metadata.get("read_only_flag", read_only)),
+                long_running_flag=bool(metadata.get("long_running_flag", False)),
+                risk_level=str(metadata.get("risk_level", "high" if destructive else "medium")),
             )
 
 
