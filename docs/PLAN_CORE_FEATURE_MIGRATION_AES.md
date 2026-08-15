@@ -188,6 +188,22 @@ Wave 5 non-goals are automatic weighting, weight-paint workflows, retargeting, d
 
 Wave 5 preserves the five-tool MCP surface and does not add private rigging state. The accepted implementation is limited to explicit Blender data-block mutations and bounded inspection; automatic weighting, IK solving, retargeting, drivers, and external rig formats remain future scope.
 
+### Wave 6 — HDRI lighting completion (planned)
+
+The audit corrected the initial Wave 6 proposal. Camera configuration, full-frame rendering, render settings, and viewport screenshot dispatch already exist as canonical/runtime-backed functionality and must not be duplicated. The only confirmed missing Render/Camera capability is HDRI lighting configuration.
+
+| Status | Existing action | Evidence or Wave 6 decision |
+|---|---|---|
+| Complete | `configure_camera` | Canonical catalog, server dispatch entry, and `BlenderMCPServer.configure_camera` handler exist |
+| Complete | `render` | Canonical catalog, server dispatch entry, and `BlenderMCPServer.render` handler exist |
+| Complete | `set_render_settings` | Canonical catalog, server dispatch entry, and `BlenderMCPServer.set_render_settings` handler exist |
+| Complete | `get_viewport_screenshot` | Canonical catalog and dispatch to the existing utility handler exist |
+| Wave 6 scope | `configure_hdri_lighting` | No canonical schema, dispatch entry, or runtime handler was found; implement this action only |
+
+Wave 6 acceptance requires an actual `configure_hdri_lighting` Blender handler, reuse of the Asset and Security boundaries for a validated local HDRI reference, bounded strength/rotation, world-node setup, lighting-only versus visible-background policy, unit/contract tests, and Blender smoke verification. Existing camera, render, render-settings, and viewport actions remain regression targets only.
+
+Wave 6 non-goals are reimplementing camera/render/viewport actions, asset-provider implementation, arbitrary filesystem access, viewport UI automation, compositor redesign, external render farms, denoising algorithms, and new MCP tools. The five-tool MCP surface remains unchanged.
+
 ## Porting method
 
 For each candidate implementation, maintain a small migration record containing the upstream URL, commit SHA, source file, license disposition, behavior being retained, Arwaky contract receiving it, and tests added. Porting proceeds in this order:

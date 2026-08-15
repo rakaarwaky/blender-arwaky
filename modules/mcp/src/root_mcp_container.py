@@ -11,6 +11,7 @@ import logging
 from modules.asset.src.root_asset_container import create_asset_container
 from modules.cli.src.surface_cli_action_router import CliActionRouter
 from modules.config.src.root_config_container import ConfigContainer
+from modules.job.src.root_job_container import create_job_feature
 from modules.launcher.src.root_launcher_container import create_launcher_feature
 from modules.mcp.src.capabilities_schema_provider import McpSchemaImpl
 from modules.security.src.root_security_container import create_security_feature
@@ -47,9 +48,21 @@ class McpContainer:
 
         # Create protocol implementations backed by canonical feature contracts.
         schema = McpSchemaImpl()
-        action_router = CliActionRouter(create_launcher_feature())
-        self._routing = McpRoutingImpl(schema=schema, action_router=action_router)
+        config = ConfigContainer().build()
         security = create_security_feature()
+        asset = create_asset_container(
+            security_validator=security,
+            security_supervisor=security,
+            config_getter=config,
+        ).get_orchestrator()
+        action_router = CliActionRouter(
+            create_launcher_feature(),
+            job=create_job_feature(),
+            config=config,
+            security=security,
+            asset=asset,
+        )
+        self._routing = McpRoutingImpl(schema=schema, action_router=action_router)
 
         async def redact_text(text: str) -> str:
             from modules.shared.src.security.taxonomy_security_vo import RedactionVO
@@ -60,11 +73,7 @@ class McpContainer:
         catalog_version = schema.catalog_version()
         self._schema = schema
         self._response = McpResponseImpl(catalog_version=catalog_version, redaction_policy=redact_text)
-        self._asset = create_asset_container(
-            security_validator=security,
-            security_supervisor=security,
-            config_getter=ConfigContainer().build(),
-        ).get_orchestrator()
+        self._asset = asset
 
         self._wired = True
         logger.info("MCP surface module wired successfully")

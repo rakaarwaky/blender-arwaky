@@ -18,4 +18,4 @@ class TelemetryTransmissionProtocol(ABC):
     @abstractmethod
     def transmit(self, records: Sequence[TelemetryRecord]) -> bool:
         """Transmit a batch and return whether the boundary acknowledged it."""
-        raise NotImplementedError
+        ...

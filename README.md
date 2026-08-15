@@ -145,7 +145,7 @@ execute_command(
 )
 ```
 
-The five-tool registry and embedded help contract are defined in [`surface_tool_registry.py`](modules/mcp/src/surface_tool_registry.py) and [`utility_help_content.py`](modules/shared/src/mcp/utility_help_content.py).
+The five-tool registry and embedded help contract are defined in [`surface_tool_registry.py`](modules/mcp/src/surface_tool_registry.py) and [`taxonomy_mcp_constant.py`](modules/shared/src/mcp/taxonomy_mcp_constant.py).
 
 ## Canonical action catalog
 
@@ -343,4 +343,4 @@ Blender Arwaky is released under the [MIT License](LICENSE).
 [5]: https://github.com/sandraschi/blender-mcp "Blender MCP by sandraschi"
 [6]: modules/mcp/src/surface_tool_registry.py "Blender Arwaky five-tool registry"
 [7]: modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py "Blender Arwaky canonical action catalog"
-[8]: modules/shared/src/mcp/utility_help_content.py "Blender Arwaky embedded MCP/CLI help"
+[8]: modules/shared/src/mcp/taxonomy_mcp_constant.py "Blender Arwaky embedded MCP/CLI help"

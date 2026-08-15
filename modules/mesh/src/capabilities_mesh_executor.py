@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.mesh.taxonomy_mesh_vo import (
     MeshMutationVO,
     MeshStatisticsVO,
@@ -15,7 +16,7 @@ from modules.shared.src.mesh.taxonomy_mesh_vo import (
 _ALLOWED_OPERATIONS = {"recalculate_normals", "triangulate", "remove_doubles"}
 
 
-class MeshExecutor:
+class MeshExecutor(IWaveFeatureProtocol):
     """Delegate validated mesh behavior to the injected Blender gateway."""
 
     def __init__(self, code_executor: object) -> None:

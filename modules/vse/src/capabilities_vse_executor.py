@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.vse.taxonomy_vse_vo import SequenceMutationVO, SequenceStateVO, SequenceStripVO
 
 _ALLOWED_STRIP_TYPES = {"COLOR", "IMAGE", "MOVIE", "SOUND"}
 
 
-class VseExecutor:
+class VseExecutor(IWaveFeatureProtocol):
     """Delegate VSE operations to the injected Blender gateway."""
 
     def __init__(self, code_executor: object) -> None:

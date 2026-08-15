@@ -10,19 +10,19 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from modules.asset.src.capabilities_asset_provider_connection import AssetProviderConnectionImpl
 from modules.shared.src.asset.contract_asset_provider_connection_protocol import IAssetProviderConnection
 from modules.shared.src.asset.contract_asset_search_protocol import AssetSearchProtocol
 from modules.shared.src.asset.utility.utility_polyhaven_search import polyhaven_search
 from modules.shared.src.asset.utility.utility_sketchfab_search import sketchfab_search
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.common.taxonomy_core_vo import SearchQuery
 
 logger = logging.getLogger("BlenderMCPServer")
 
-__all__ = ["AssetProviderConnectionImpl", "AssetSearchHandler"]
+__all__ = ["AssetSearchHandler"]
 
 
-class AssetSearchHandler(AssetSearchProtocol):
+class AssetSearchHandler(AssetSearchProtocol, IWaveFeatureProtocol):
     """Asset search handler with configurable provider list.
 
     FR-AST-001: Unified search across providers. Defaults to Polyhaven and Sketchfab.

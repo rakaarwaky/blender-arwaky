@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.compositor.taxonomy_compositor_vo import (
     CompositorGraphVO,
     CompositorLinkVO,
@@ -21,7 +22,7 @@ _ALLOWED_NODE_TYPES = {
 }
 
 
-class CompositorExecutor:
+class CompositorExecutor(IWaveFeatureProtocol):
     """Delegate compositor graph operations to the injected gateway."""
 
     def __init__(self, code_executor: object) -> None:

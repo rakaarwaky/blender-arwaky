@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from modules.shared.src.mcp.utility_help_content import (
-    build_help_result,
-    is_known_help_topic,
-)
+from modules.shared.src.mcp.taxonomy_mcp_constant import HELP_TOPICS
+from modules.shared.src.mcp.utility_routing_proxy import build_help_result
+
+
+def is_known_help_topic(topic: str | None) -> bool:
+    """Return whether a help topic is present in the static taxonomy."""
+    return str(topic or "overview").strip().lower() in HELP_TOPICS
 
 
 class HelpSurface:

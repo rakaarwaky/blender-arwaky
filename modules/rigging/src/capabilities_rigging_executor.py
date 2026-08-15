@@ -6,6 +6,7 @@ import json
 import math
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.rigging.taxonomy_rigging_vo import (
     ArmatureStateVO,
     DeformationStateVO,
@@ -15,7 +16,7 @@ from modules.shared.src.rigging.taxonomy_rigging_vo import (
 _ALLOWED_CONSTRAINT_TYPES = {"COPY_LOCATION", "COPY_ROTATION", "LIMIT_LOCATION", "LIMIT_ROTATION"}
 
 
-class RiggingExecutor:
+class RiggingExecutor(IWaveFeatureProtocol):
     """Delegate rigging operations to the injected Blender gateway."""
 
     def __init__(self, code_executor: object) -> None:

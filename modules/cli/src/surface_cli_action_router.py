@@ -6,10 +6,6 @@ import asyncio
 import json
 from dataclasses import asdict, is_dataclass
 
-from modules.asset.src.root_asset_container import create_asset_container
-from modules.config.src.root_config_container import ConfigContainer
-from modules.job.src.root_job_container import create_job_feature
-from modules.security.src.root_security_container import create_security_feature
 from modules.shared.src.asset.taxonomy_asset_vo import (
     AssetDownloadCacheVO,
     AssetExtractArchiveVO,
@@ -58,16 +54,20 @@ class CliActionRouter:
         "register_executable",
     }
 
-    def __init__(self, launcher: object) -> None:
+    def __init__(
+        self,
+        launcher: object,
+        *,
+        job: object | None = None,
+        config: object | None = None,
+        security: object | None = None,
+        asset: object | None = None,
+    ) -> None:
         self._launcher = launcher
-        self._job = create_job_feature()
-        self._config = ConfigContainer().build()
-        self._security = create_security_feature()
-        self._asset = create_asset_container(
-            security_validator=self._security,
-            security_supervisor=self._security,
-            config_getter=self._config,
-        ).get_orchestrator()
+        self._job = job
+        self._config = config
+        self._security = security
+        self._asset = asset
 
     def execute_action(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
         if action_name in self._LAUNCHER_ACTIONS:
