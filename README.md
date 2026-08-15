@@ -149,25 +149,85 @@ The five-tool registry and embedded help contract are defined in [`surface_tool_
 
 ## Canonical action catalog
 
-The current dispatcher catalog contains **75 canonical actions across 15 owners**. The number refers to feature/tool actions, not the five MCP protocol tools. Every one of these canonical actions is exposed once by the CLI using a kebab-case command and by MCP using its snake_case action name.
+The current dispatcher catalog contains **75 canonical actions across 15 categories**. The table below is generated from the canonical dispatcher schemas. Action names are the MCP/API `snake_case` names; the CLI exposes the same actions in `kebab-case`.
 
-| Owner | Count | Actions |
-|---|---:|---|
-| Gateway | 1 | `execute_blender_code` |
-| Scene | 6 | `get_scene_info`, `cleanup_scene`, `list_scene_objects`, `get_object_hierarchy`, `undo`, `redo` |
-| Object | 9 | `get_object_info`, `create_primitive`, `set_object_transform`, `delete_object`, `set_material`, `create_material`, `set_material_properties`, `set_material_texture`, `apply_modifier` |
-| Geometry Nodes | 4 | `inspect_geometry_node_group`, `create_geometry_node_group`, `set_geometry_node_link`, `set_geometry_node_modifier` |
-| Animation | 4 | `get_animation_state`, `insert_object_keyframe`, `set_timeline_range`, `list_object_keyframes` |
-| Mesh | 4 | `get_mesh_statistics`, `validate_mesh`, `perform_mesh_edit_operation`, `ensure_mesh_uv_layer` |
-| Render | 5 | `configure_camera`, `setup_environment`, `get_viewport_screenshot`, `render`, `set_render_settings` |
-| Compositor | 4 | `inspect_compositor_nodes`, `configure_compositor`, `create_compositor_node`, `set_compositor_link` |
-| VSE | 4 | `inspect_sequence_editor`, `create_sequence_strip`, `remove_sequence_strip`, `render_sequence` |
-| Physics | 10 | `get_physics_state`, `configure_rigid_body`, `configure_cloth_simulation`, `bake_physics_simulation`, `clear_physics_bake`, `get_simulation_state`, `get_simulation_cache_status`, `configure_particle_system`, `configure_force_field`, `configure_fluid_domain` |
-| Rigging | 5 | `inspect_armature`, `set_pose_bone_transform`, `configure_bone_constraint`, `configure_shape_key`, `get_deformation_state` |
-| Asset | 8 | `search_assets`, `get_provider_metadata`, `download_asset`, `extract_asset`, `import_asset`, `import_glb`, `export_model`, `place_asset` |
-| Launcher | 4 | `launch_blender`, `shutdown_blender`, `get_runtime_status`, `register_executable` |
-| Job | 5 | `submit_task`, `list_tasks`, `get_capacity_status`, `get_task_status`, `cancel_task` |
-| Config | 2 | `get_config`, `set_config` |
+| No. | Category | Action | Description |
+|---:|---|---|---|
+| 1 | gateway | `execute_blender_code` | Execute validated Blender Python code |
+| 2 | scene | `get_scene_info` | Full scene metadata — object count, frame range, resolution, render engine |
+| 3 | scene | `cleanup_scene` | Remove objects from scene by mode |
+| 4 | scene | `list_scene_objects` | List scene objects with optional visibility and type filters |
+| 5 | scene | `get_object_hierarchy` | Inspect parent-child hierarchy for one object or the scene roots |
+| 6 | scene | `undo` | Undo the most recent Blender edit operation |
+| 7 | scene | `redo` | Redo the most recently undone Blender edit operation |
+| 8 | object | `get_object_info` | Get details of a specific object — location, rotation, scale, modifiers, materials |
+| 9 | object | `create_primitive` | Create a new primitive mesh object |
+| 10 | object | `set_object_transform` | Update object transform — location, rotation, or scale |
+| 11 | object | `delete_object` | Remove an object from the scene |
+| 12 | object | `set_material` | Assign a material to an object |
+| 13 | object | `create_material` | Create or reuse a PBR material |
+| 14 | object | `set_material_properties` | Update PBR properties of an existing material |
+| 15 | object | `set_material_texture` | Assign a local image texture to a material base color |
+| 16 | object | `apply_modifier` | Apply a modifier on an object |
+| 17 | geometry_nodes | `inspect_geometry_node_group` | Inspect a Geometry Nodes group with bounded node, socket, and link metadata |
+| 18 | geometry_nodes | `create_geometry_node_group` | Create or reuse a Geometry Nodes group and optionally bind it to an object modifier |
+| 19 | geometry_nodes | `set_geometry_node_link` | Create a validated link between sockets in a Geometry Nodes group |
+| 20 | geometry_nodes | `set_geometry_node_modifier` | Bind an existing Geometry Nodes group to an object modifier |
+| 21 | animation | `get_animation_state` | Inspect an object's bounded animation action, frame range, and F-curves |
+| 22 | animation | `insert_object_keyframe` | Insert a bounded keyframe for an object's location, rotation, or scale |
+| 23 | animation | `set_timeline_range` | Set the scene timeline frame range with bounded integer values |
+| 24 | animation | `list_object_keyframes` | List an object's bounded F-curve keyframe points |
+| 25 | mesh | `get_mesh_statistics` | Inspect bounded mesh vertex, edge, polygon, normal, and UV statistics |
+| 26 | mesh | `validate_mesh` | Run bounded mesh validation for loose, degenerate, and non-manifold geometry |
+| 27 | mesh | `perform_mesh_edit_operation` | Perform one bounded edit-mode-independent mesh cleanup operation |
+| 28 | mesh | `ensure_mesh_uv_layer` | Create or reuse a named UV layer on a mesh object |
+| 29 | render | `configure_camera` | Configure a Blender camera and optional depth of field |
+| 30 | render | `setup_environment` | Configure HDRI lighting using a local file resolved by the Asset feature |
+| 31 | render | `get_viewport_screenshot` | Capture AI-optimized viewport screenshot |
+| 32 | render | `render` | Execute a full frame render |
+| 33 | render | `set_render_settings` | Configure bounded scene render settings without rendering |
+| 34 | compositor | `inspect_compositor_nodes` | Inspect a bounded compositor node graph for the active scene |
+| 35 | compositor | `configure_compositor` | Enable or disable compositor nodes for the active scene |
+| 36 | compositor | `create_compositor_node` | Create one allow-listed compositor node in the active scene |
+| 37 | compositor | `set_compositor_link` | Create a validated link between compositor node sockets |
+| 38 | vse | `inspect_sequence_editor` | Inspect bounded VSE strips and channels for the active scene |
+| 39 | vse | `create_sequence_strip` | Create an allow-listed VSE strip from a validated local media path |
+| 40 | vse | `remove_sequence_strip` | Remove one named VSE strip from the active scene |
+| 41 | vse | `render_sequence` | Render a bounded VSE frame range to a validated local output path |
+| 42 | physics | `get_physics_state` | Inspect bounded rigid body and cloth state for one object |
+| 43 | physics | `configure_rigid_body` | Configure rigid body simulation settings for one mesh object |
+| 44 | physics | `configure_cloth_simulation` | Configure bounded cloth simulation settings for one mesh object |
+| 45 | physics | `bake_physics_simulation` | Bake a bounded physics cache for the active scene |
+| 46 | physics | `clear_physics_bake` | Clear cached physics simulation data for the active scene |
+| 47 | physics | `get_simulation_state` | Inspect bounded advanced simulation modifiers for one object |
+| 48 | physics | `get_simulation_cache_status` | Inspect bounded physics cache range and bake state for the active scene |
+| 49 | physics | `configure_particle_system` | Configure one bounded particle system on a mesh object |
+| 50 | physics | `configure_force_field` | Configure a bounded force field on an existing object |
+| 51 | physics | `configure_fluid_domain` | Configure a bounded fluid domain modifier baseline on a mesh object |
+| 52 | rigging | `inspect_armature` | Inspect a bounded armature bone hierarchy and pose summary |
+| 53 | rigging | `set_pose_bone_transform` | Set a bounded transform on one named pose bone |
+| 54 | rigging | `configure_bone_constraint` | Create, update, or remove one allow-listed bone constraint |
+| 55 | rigging | `configure_shape_key` | Create, update, or remove one bounded mesh shape key |
+| 56 | rigging | `get_deformation_state` | Inspect bounded deformation modifiers, constraints, and shape keys |
+| 57 | asset | `search_assets` | Search configured asset providers |
+| 58 | asset | `get_provider_metadata` | Get normalized metadata for a provider asset |
+| 59 | asset | `download_asset` | Download a provider asset into the validated local cache |
+| 60 | asset | `extract_asset` | Safely extract a downloaded asset archive |
+| 61 | asset | `import_asset` | Import a locally cached asset into Blender |
+| 62 | asset | `import_glb` | Import a GLB/GLTF file into the scene |
+| 63 | asset | `export_model` | Export a model to a file |
+| 64 | asset | `place_asset` | Place an asset in the scene at a specific position |
+| 65 | launcher | `launch_blender` | Start Blender with integration component active |
+| 66 | launcher | `shutdown_blender` | Gracefully shut down Blender with force termination fallback |
+| 67 | launcher | `get_runtime_status` | Verify true Blender process liveness and readiness |
+| 68 | launcher | `register_executable` | Locate and register the Blender executable path |
+| 69 | job | `submit_task` | Register a background task through the shared job lifecycle |
+| 70 | job | `list_tasks` | List current and retained background task snapshots |
+| 71 | job | `get_capacity_status` | Return background task capacity and available slots |
+| 72 | job | `get_task_status` | Query the progress and status of a background task |
+| 73 | job | `cancel_task` | Cancel a running background task |
+| 74 | config | `get_config` | Retrieve BlenderArwaky configuration settings |
+| 75 | config | `set_config` | Update a configuration setting |
 
 The canonical source is [`taxonomy_dispatcher_constant.py`](modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py). Use `list_commands` rather than hard-coding schemas in an agent integration because the catalog is versioned and may evolve.
 
