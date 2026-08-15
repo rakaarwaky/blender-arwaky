@@ -3,6 +3,7 @@
 Composes 5 capabilities into executable flows.
 Controls sequence and movement, not business calculation.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

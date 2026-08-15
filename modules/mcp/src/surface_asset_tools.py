@@ -22,9 +22,7 @@ class AssetToolsSurface:
     """MCP surface for asset search and download tools."""
 
     @staticmethod
-    def register_asset_tools(
-        mcp, aggregate_factory: Callable[[], IAssetAggregate | None] | None = None
-    ):
+    def register_asset_tools(mcp, aggregate_factory: Callable[[], IAssetAggregate | None] | None = None):
         """Register asset search and download tools with MCP server.
 
         Args:

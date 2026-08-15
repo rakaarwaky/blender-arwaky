@@ -50,6 +50,7 @@ class TestEventIdAndTimestamp:
         """FR-SEC-005: emitted event has an event ID."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.event_id is not None
         assert len(out.event_id) > 0
@@ -58,6 +59,7 @@ class TestEventIdAndTimestamp:
         """FR-SEC-005: emitted event has a timestamp."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.timestamp > 0
 
@@ -65,6 +67,7 @@ class TestEventIdAndTimestamp:
         """FR-SEC-005: each emitted event has a unique ID."""
         cap = _make_emitter()
         import asyncio
+
         e1 = asyncio.run(cap.emit_audit(_make_event()))
         e2 = asyncio.run(cap.emit_audit(_make_event()))
         assert e1.event_id != e2.event_id
@@ -73,6 +76,7 @@ class TestEventIdAndTimestamp:
         """FR-SEC-005: timestamp is within reasonable range of current time."""
         cap = _make_emitter()
         import asyncio
+
         before = time.time()
         out = asyncio.run(cap.emit_audit(_make_event()))
         after = time.time()
@@ -86,6 +90,7 @@ class TestEventFields:
         """FR-SEC-005: violation category is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(violation_category=ViolationCategory.CODE_VIOLATION)))
         assert out.violation_category == ViolationCategory.CODE_VIOLATION
 
@@ -93,6 +98,7 @@ class TestEventFields:
         """FR-SEC-005: operation type is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(operation_type="validate_code")))
         assert out.operation_type == "validate_code"
 
@@ -100,6 +106,7 @@ class TestEventFields:
         """FR-SEC-005: source feature is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(source_feature="gateway")))
         assert out.source_feature == "gateway"
 
@@ -107,6 +114,7 @@ class TestEventFields:
         """FR-SEC-005: severity level is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(severity=AuditSeverity.CRITICAL)))
         assert out.severity == AuditSeverity.CRITICAL
 
@@ -114,6 +122,7 @@ class TestEventFields:
         """FR-SEC-005: correlation identifier is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(correlation_id="trace-12345")))
         assert out.correlation_id == "trace-12345"
 
@@ -121,6 +130,7 @@ class TestEventFields:
         """FR-SEC-005: policy mode is preserved."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(policy_mode="strict")))
         assert out.policy_mode == "strict"
 
@@ -132,6 +142,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: password=xxx in metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"auth": "password=hunter2"})
         out = asyncio.run(cap.emit_audit(event))
         assert "hunter2" not in str(out.target_metadata)
@@ -140,6 +151,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: token=xxx in metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"auth": "token=bearer-xyz"})
         out = asyncio.run(cap.emit_audit(event))
         assert "bearer-xyz" not in str(out.target_metadata)
@@ -148,6 +160,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: api_key=xxx in metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"endpoint": "api_key=sk-abcdefghijklmnop"})
         out = asyncio.run(cap.emit_audit(event))
         assert "sk-abcdefghijklmnop" not in str(out.target_metadata)
@@ -156,6 +169,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: JSON config with secrets is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"config": '{"password": "hunter2"}'})
         out = asyncio.run(cap.emit_audit(event))
         assert "hunter2" not in str(out.target_metadata)
@@ -164,6 +178,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: nested dict with secrets is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"nested": {"pw": "password=hunter2"}})
         out = asyncio.run(cap.emit_audit(event))
         assert "hunter2" not in str(out.target_metadata)
@@ -172,6 +187,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: list values with secrets are redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"items": ["api_key=abc123xyz"]})
         out = asyncio.run(cap.emit_audit(event))
         assert "abc123xyz" not in str(out.target_metadata)
@@ -180,6 +196,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: spaced secret in JSON metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"config": '{"password": "my secret"}'})
         out = asyncio.run(cap.emit_audit(event))
         assert "my secret" not in str(out.target_metadata)
@@ -189,6 +206,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: bearer token in metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"auth": "Bearer eyJhbGciOiJIUzI1NiIs"})
         out = asyncio.run(cap.emit_audit(event))
         assert "eyJhbGciOiJIUzI1NiIs" not in str(out.target_metadata)
@@ -197,6 +215,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: AWS AKIA key in metadata is redacted."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"key": "AKIA1234567890ABCDEF"})
         out = asyncio.run(cap.emit_audit(event))
         assert "AKIA1234567890ABCDEF" not in str(out.target_metadata)
@@ -205,6 +224,7 @@ class TestTargetMetadataRedaction:
         """FR-SEC-005: caller's input event is never mutated."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(target_metadata={"auth": "password=hunter2"})
         asyncio.run(cap.emit_audit(event))
         # Original event still has raw secret
@@ -218,6 +238,7 @@ class TestRedactedReasonRedaction:
         """FR-SEC-005: secrets in redacted_reason are masked."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(redacted_reason="blocked literal api_key=supersecretvalue")
         out = asyncio.run(cap.emit_audit(event))
         assert "supersecretvalue" not in (out.redacted_reason or "")
@@ -226,6 +247,7 @@ class TestRedactedReasonRedaction:
         """FR-SEC-005: missing redacted_reason returns None."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event(redacted_reason=None)
         out = asyncio.run(cap.emit_audit(event))
         assert out.redacted_reason is None
@@ -240,6 +262,7 @@ class TestSinkBehavior:
         mock_sink.deliver = MagicMock()
         cap = _make_emitter(mock_sink)
         import asyncio
+
         asyncio.run(cap.emit_audit(_make_event()))
         assert mock_sink.deliver.called
 
@@ -249,6 +272,7 @@ class TestSinkBehavior:
         mock_sink.deliver.side_effect = RuntimeError("sink broken")
         cap = _make_emitter(mock_sink)
         import asyncio
+
         # Should not raise — contextlib.suppress(Exception) catches it
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.event_id is not None
@@ -257,6 +281,7 @@ class TestSinkBehavior:
         """FR-SEC-005: event returned even without sink."""
         cap = _make_emitter()  # no sink
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.event_id is not None
 
@@ -268,6 +293,7 @@ class TestImmutability:
         """FR-SEC-005: emitted event is a new instance, not the input."""
         cap = _make_emitter()
         import asyncio
+
         event = _make_event()
         out = asyncio.run(cap.emit_audit(event))
         assert out is not event
@@ -276,6 +302,7 @@ class TestImmutability:
         """FR-SEC-005: emitted event has auto-generated ID (not caller-provided)."""
         cap = _make_emitter()
         import asyncio
+
         # SecurityAuditEventVO doesn't take event_id in constructor — it's generated
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert len(out.event_id) == 16  # uuid4 hex[:16]
@@ -298,6 +325,7 @@ class TestAuditableCategories:
         """FR-SEC-005: all auditable categories produce events."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(violation_category=category)))
         assert out.event_id is not None
         assert out.violation_category == category
@@ -306,6 +334,7 @@ class TestAuditableCategories:
         """FR-SEC-005: permission denied security event is auditable."""
         cap = _make_emitter()
         import asyncio
+
         # Permission denied would use a different category or severity
         out = asyncio.run(cap.emit_audit(_make_event(severity=AuditSeverity.ERROR)))
         assert out.event_id is not None
@@ -318,6 +347,7 @@ class TestFallbackWhenSinkUnavailable:
         """FR-SEC-005: fallback produces valid event when sink unavailable."""
         cap = _make_emitter()  # no sink configured
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.event_id is not None
         assert out.timestamp > 0
@@ -326,12 +356,17 @@ class TestFallbackWhenSinkUnavailable:
         """FR-SEC-005: fallback preserves all event fields."""
         cap = _make_emitter()
         import asyncio
-        out = asyncio.run(cap.emit_audit(_make_event(
-            violation_category=ViolationCategory.CODE_VIOLATION,
-            operation_type="validate_code",
-            source_feature="gateway",
-            severity=AuditSeverity.CRITICAL,
-        )))
+
+        out = asyncio.run(
+            cap.emit_audit(
+                _make_event(
+                    violation_category=ViolationCategory.CODE_VIOLATION,
+                    operation_type="validate_code",
+                    source_feature="gateway",
+                    severity=AuditSeverity.CRITICAL,
+                )
+            )
+        )
         assert out.violation_category == ViolationCategory.CODE_VIOLATION
         assert out.operation_type == "validate_code"
         assert out.source_feature == "gateway"
@@ -345,6 +380,7 @@ class TestRateLimiting:
         """FR-SEC-005: multiple events can be emitted."""
         cap = _make_emitter()
         import asyncio
+
         for i in range(5):
             out = asyncio.run(cap.emit_audit(_make_event(operation_type=f"op_{i}")))
             assert out.event_id is not None
@@ -353,6 +389,7 @@ class TestRateLimiting:
         """FR-SEC-005: sequential events have unique IDs."""
         cap = _make_emitter()
         import asyncio
+
         ids = set()
         for _i in range(10):
             out = asyncio.run(cap.emit_audit(_make_event()))
@@ -367,6 +404,7 @@ class TestEdgeCases:
         """FR-SEC-005: empty target metadata is handled."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(target_metadata=None)))
         assert out.event_id is not None
 
@@ -374,6 +412,7 @@ class TestEdgeCases:
         """FR-SEC-005: missing correlation ID is handled."""
         cap = _make_emitter()
         import asyncio
+
         out = asyncio.run(cap.emit_audit(_make_event(correlation_id=None)))
         assert out.event_id is not None
 
@@ -381,6 +420,7 @@ class TestEdgeCases:
         """FR-SEC-005: clock skew may order records oddly (timestamp-based)."""
         cap = _make_emitter()
         import asyncio
+
         e1 = asyncio.run(cap.emit_audit(_make_event()))
         e2 = asyncio.run(cap.emit_audit(_make_event()))
         # Timestamps should be close; ordering depends on wall clock
@@ -391,6 +431,7 @@ class TestEdgeCases:
         """FR-SEC-005: retention purge racing new emission (no local storage)."""
         cap = _make_emitter()
         import asyncio
+
         # Without local storage, purge is not applicable — event still emitted
         out = asyncio.run(cap.emit_audit(_make_event()))
         assert out.event_id is not None
@@ -399,6 +440,7 @@ class TestEdgeCases:
         """FR-SEC-005: redaction failure during emit produces warning."""
         cap = _make_emitter()
         import asyncio
+
         # Sensitive values in metadata are redacted by _redact_sensitive
         # If it fails, the whole value is masked — but _redact_sensitive doesn't raise
         out = asyncio.run(cap.emit_audit(_make_event(target_metadata={"key": "password=secret"})))
@@ -427,6 +469,7 @@ class TestEventImmutabilityAfterEmission:
         mock_sink.deliver = MagicMock(side_effect=lambda e: setattr(e, "mutated", True))
         cap = _make_emitter(mock_sink)
         import asyncio
+
         asyncio.run(cap.emit_audit(_make_event()))
         # The emitted event is a new instance; sink gets the same reference
         # but our _redact_sensitive creates copies, so original fields are safe
@@ -435,6 +478,7 @@ class TestEventImmutabilityAfterEmission:
         """FR-SEC-005: multiple emissions produce independent events."""
         cap = _make_emitter()
         import asyncio
+
         e1 = asyncio.run(cap.emit_audit(_make_event(operation_type="op1")))
         e2 = asyncio.run(cap.emit_audit(_make_event(operation_type="op2")))
         assert e1.operation_type == "op1"

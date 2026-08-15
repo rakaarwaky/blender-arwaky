@@ -16,6 +16,7 @@ import os
 import signal
 import socket
 import time
+from pathlib import Path
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -70,11 +71,12 @@ def process_kill(process_id: int) -> bool:
         return False
 
 
-async def _async_spawn(cmd: list[str]) -> asyncio.subprocess.Process:
+async def _async_spawn(cmd: list[str], env: dict[str, str] | None = None) -> asyncio.subprocess.Process:
     return await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL,
+        env=env,
     )
 
 
@@ -97,24 +99,22 @@ def process_spawn(
     if mode == "headless":
         args += ["--background", "--python-exit-code", "1"]
 
-    args += [
-        "--python",
-        "bridge_startup_script.py",
-        "--",
-        f"--bridge-host={bridge_host}",
-        f"--bridge-port={bridge_port}",
-        f"--protocol-version={protocol_version}",
-    ]
+    startup_script = Path(__file__).resolve().parents[4] / "scripts" / "blender" / "run_server_headless.py"
+    args += ["--python", str(startup_script)]
 
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = None
 
+    child_env = os.environ.copy()
+    child_env["BLENDERMCP_HOST"] = bridge_host
+    child_env["BLENDERMCP_PORT"] = str(bridge_port)
+    child_env["BLENDERMCP_PROTOCOL_VERSION"] = protocol_version
     if loop and loop.is_running():
-        proc = loop.run_until_complete(_async_spawn(args))
+        proc = loop.run_until_complete(_async_spawn(args, env=child_env))
     else:
-        proc = asyncio.run(_async_spawn(args))
+        proc = asyncio.run(_async_spawn(args, env=child_env))
     return proc.pid
 
 

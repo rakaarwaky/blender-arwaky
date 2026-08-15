@@ -33,18 +33,14 @@ def test_capabilities_do_not_import_other_capabilities():
     for cap_file in _CAPABILITIES:
         tree = ast.parse(cap_file.read_text())
         for mod in _imported_module_names(tree):
-            assert "capabilities_" not in mod, (
-                f"{cap_file.name} imports capability module {mod}"
-            )
+            assert "capabilities_" not in mod, f"{cap_file.name} imports capability module {mod}"  # nosec B101
 
 
 @pytest.mark.unit
 def test_agent_does_not_import_capability_modules():
     tree = ast.parse(_AGENT.read_text())
     for mod in _imported_module_names(tree):
-        assert "capabilities_" not in mod, (
-            f"agent orchestrator imports capability module {mod}"
-        )
+        assert "capabilities_" not in mod, f"agent orchestrator imports capability module {mod}"  # nosec B101
 
 
 @pytest.mark.unit
@@ -58,7 +54,7 @@ def test_config_v1_capabilities_exist():
         "capabilities_workspace_resolver.py",
         "capabilities_redaction_rules.py",
     ):
-        assert expected in names
+        assert expected in names  # nosec B101
 
 
 @pytest.mark.unit
@@ -67,11 +63,8 @@ def test_config_orchestrator_implements_all_aggregate_methods():
     IConfigAggregate — no missing or stubbed methods."""
     abstract_methods = IConfigAggregate.__abstractmethods__
     concrete_methods = {
-        m for m, _ in inspect.getmembers(ConfigOrchestrator, predicate=inspect.isfunction)
-        if not m.startswith("_")
+        m for m, _ in inspect.getmembers(ConfigOrchestrator, predicate=inspect.isfunction) if not m.startswith("_")
     }
     # Every ABC method must appear as a concrete method on the orchestrator
     missing = abstract_methods - concrete_methods
-    assert not missing, (
-        f"ConfigOrchestrator does not implement IConfigAggregate methods: {missing}"
-    )
+    assert not missing, f"ConfigOrchestrator does not implement IConfigAggregate methods: {missing}"  # nosec B101

@@ -25,4 +25,3 @@ class JobSchedulerCapability(JobSchedulerProtocol):
         """Submit a download task for background execution."""
         logger.info("Submitting download job for %s / %s to %s", provider, asset_id, cache_path)
         return f"job-{provider}-{asset_id}"
-

@@ -62,9 +62,7 @@ async def polyhaven_search(
 
 async def polyhaven_get_details(connection: object, asset_id: str) -> dict[str, object] | None:
     try:
-        result = await connection.send_command(
-            ActionName("get_polyhaven_asset_details"), {"asset_id": asset_id}
-        )
+        result = await connection.send_command(ActionName("get_polyhaven_asset_details"), {"asset_id": asset_id})
         if isinstance(result, dict) and "error" in result:
             logger.warning("Polyhaven get_asset_details error: %s", result["error"])
             return None

@@ -201,8 +201,11 @@ class TestPIDReuseGuard:
         status_checker.mark_launched(time.time())
 
         # Mock /proc access to raise OSError (permission denied)
-        with patch("os.path.exists", return_value=True), patch("builtins.open", side_effect=OSError("Permission denied")):
-                result = status_checker.check_status(depth=ProbeDepth.LIGHTWEIGHT)
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", side_effect=OSError("Permission denied")),
+        ):
+            result = status_checker.check_status(depth=ProbeDepth.LIGHTWEIGHT)
 
         # Should fall back to RUNNING_READY (not crash)
         assert result.state == RuntimeState.RUNNING_READY

@@ -86,41 +86,49 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             metrics = parse_cleanup_metrics(raw)
 
             if request.dry_run:
-                logger.info("scene_cleanup_dry_run_completed removed=%d preserved=%d",
-                            metrics.removed_count, metrics.preserved_count)
+                logger.info(
+                    "scene_cleanup_dry_run_completed removed=%d preserved=%d",
+                    metrics.removed_count,
+                    metrics.preserved_count,
+                )
 
                 # FR-SCN-002: emit dry-run completed event
                 if self._event_emitter:
                     try:
-                        await self._event_emitter.emit(SceneCleanupDryRunCompletedEvent(
-                            correlation_id=request.correlation_id,
-                            success=SuccessFlag(True),
-                            mode=request.mode,
-                            removable_count=metrics.removed_count,
-                            preserved_count=metrics.preserved_count,
-                            skipped_count=metrics.skipped_count,
-                            message=Prompt("Scene cleanup dry-run completed"),
-                        ))
+                        await self._event_emitter.emit(
+                            SceneCleanupDryRunCompletedEvent(
+                                correlation_id=request.correlation_id,
+                                success=SuccessFlag(True),
+                                mode=request.mode,
+                                removable_count=metrics.removed_count,
+                                preserved_count=metrics.preserved_count,
+                                skipped_count=metrics.skipped_count,
+                                message=Prompt("Scene cleanup dry-run completed"),
+                            )
+                        )
                     except Exception:
                         logger.warning("Failed to emit SceneCleanupDryRunCompletedEvent")
 
                 return self._build_result(request, metrics, "Dry-run completed")
 
-            logger.info("scene_cleanup_completed removed=%d preserved=%d",
-                        metrics.removed_count, metrics.preserved_count)
+            logger.info(
+                "scene_cleanup_completed removed=%d preserved=%d", metrics.removed_count, metrics.preserved_count
+            )
 
             # FR-SCN-002: emit cleanup completed event
             if self._event_emitter:
                 try:
-                    await self._event_emitter.emit(SceneCleanupCompletedEvent(
-                        correlation_id=request.correlation_id,
-                        success=SuccessFlag(True),
-                        mode=request.mode,
-                        removed_count=metrics.removed_count,
-                        preserved_count=metrics.preserved_count,
-                        skipped_count=metrics.skipped_count,
-                        message=Prompt("Scene cleanup completed"),
-                    ))
+                    await self._event_emitter.emit(
+                        SceneCleanupCompletedEvent(
+                            correlation_id=request.correlation_id,
+                            success=SuccessFlag(True),
+                            mode=request.mode,
+                            removed_count=metrics.removed_count,
+                            preserved_count=metrics.preserved_count,
+                            skipped_count=metrics.skipped_count,
+                            message=Prompt("Scene cleanup completed"),
+                        )
+                    )
                 except Exception:
                     logger.warning("Failed to emit SceneCleanupCompletedEvent")
 
@@ -130,14 +138,16 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             logger.exception("Scene cleanup timed out")
             if self._event_emitter:
                 try:
-                    await self._event_emitter.emit(SceneCleanupFailedEvent(
-                        correlation_id=request.correlation_id,
-                        success=SuccessFlag(False),
-                        mode=request.mode,
-                        dry_run=request.dry_run,
-                        error_category=SceneErrorCategory.TIMEOUT,
-                        message=Prompt(f"[{SceneErrorCategory.TIMEOUT.value}] Cleanup timed out"),
-                    ))
+                    await self._event_emitter.emit(
+                        SceneCleanupFailedEvent(
+                            correlation_id=request.correlation_id,
+                            success=SuccessFlag(False),
+                            mode=request.mode,
+                            dry_run=request.dry_run,
+                            error_category=SceneErrorCategory.TIMEOUT,
+                            message=Prompt(f"[{SceneErrorCategory.TIMEOUT.value}] Cleanup timed out"),
+                        )
+                    )
                 except Exception:
                     logger.warning("Failed to emit SceneCleanupFailedEvent on timeout")
             return self._failure(
@@ -148,14 +158,16 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             logger.exception("Scene cleanup connection failed")
             if self._event_emitter:
                 try:
-                    await self._event_emitter.emit(SceneCleanupFailedEvent(
-                        correlation_id=request.correlation_id,
-                        success=SuccessFlag(False),
-                        mode=request.mode,
-                        dry_run=request.dry_run,
-                        error_category=SceneErrorCategory.CONNECTION,
-                        message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Cleanup connection failed"),
-                    ))
+                    await self._event_emitter.emit(
+                        SceneCleanupFailedEvent(
+                            correlation_id=request.correlation_id,
+                            success=SuccessFlag(False),
+                            mode=request.mode,
+                            dry_run=request.dry_run,
+                            error_category=SceneErrorCategory.CONNECTION,
+                            message=Prompt(f"[{SceneErrorCategory.CONNECTION.value}] Cleanup connection failed"),
+                        )
+                    )
                 except Exception:
                     logger.warning("Failed to emit SceneCleanupFailedEvent on connection")
             return self._failure(
@@ -166,14 +178,16 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             logger.exception("Scene cleanup failed")
             if self._event_emitter:
                 try:
-                    await self._event_emitter.emit(SceneCleanupFailedEvent(
-                        correlation_id=request.correlation_id,
-                        success=SuccessFlag(False),
-                        mode=request.mode,
-                        dry_run=request.dry_run,
-                        error_category=SceneErrorCategory.SCENE_STATE,
-                        message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene cleanup failed"),
-                    ))
+                    await self._event_emitter.emit(
+                        SceneCleanupFailedEvent(
+                            correlation_id=request.correlation_id,
+                            success=SuccessFlag(False),
+                            mode=request.mode,
+                            dry_run=request.dry_run,
+                            error_category=SceneErrorCategory.SCENE_STATE,
+                            message=Prompt(f"[{SceneErrorCategory.SCENE_STATE.value}] Scene cleanup failed"),
+                        )
+                    )
                 except Exception:
                     logger.warning("Failed to emit SceneCleanupFailedEvent on generic error")
             return self._failure(
@@ -212,7 +226,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
     async def _execute_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
-        output = result.output if hasattr(result, 'output') else str(result)
+        output = result.output if hasattr(result, "output") else str(result)
         if not isinstance(output, str):
             raise RuntimeError(f"Expected string output, got {type(output).__name__}")
         return output
@@ -234,12 +248,12 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             include_hidden_objects=request.include_hidden_objects,
             correlation_id=request.correlation_id,
             success=SuccessFlag(True),
-            removed_count=getattr(metrics, 'removed_count', ObjectCount(0)),
-            preserved_count=getattr(metrics, 'preserved_count', ObjectCount(0)),
-            skipped_count=getattr(metrics, 'skipped_count', ObjectCount(0)),
-            removed_object_references=getattr(metrics, 'removed_object_references', ()),
-            preserved_object_references=getattr(metrics, 'preserved_object_references', ()),
-            skipped_object_references=getattr(metrics, 'skipped_object_references', ()),
+            removed_count=getattr(metrics, "removed_count", ObjectCount(0)),
+            preserved_count=getattr(metrics, "preserved_count", ObjectCount(0)),
+            skipped_count=getattr(metrics, "skipped_count", ObjectCount(0)),
+            removed_object_references=getattr(metrics, "removed_object_references", ()),
+            preserved_object_references=getattr(metrics, "preserved_object_references", ()),
+            skipped_object_references=getattr(metrics, "skipped_object_references", ()),
             message=Prompt(message),
         )
 

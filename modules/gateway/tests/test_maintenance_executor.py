@@ -30,9 +30,7 @@ def test_reconnect_success_transitions_to_connected():
 
 
 def test_reconnect_failure_transitions_to_failed():
-    executor = MaintenanceExecutor(
-        reconnect_fn=lambda: _FakeOutcome(ConnectionState.FAILED, "connection refused")
-    )
+    executor = MaintenanceExecutor(reconnect_fn=lambda: _FakeOutcome(ConnectionState.FAILED, "connection refused"))
     status = executor.attempt_reconnect()
     assert status.state == ConnectionState.FAILED
     assert status.reconnect_attempts == 1

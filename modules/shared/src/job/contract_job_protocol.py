@@ -3,6 +3,7 @@
 Capability implements this protocol. The Agent layer depends on it.
 FR-JOB-005: Coordinate large downloads as background jobs.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

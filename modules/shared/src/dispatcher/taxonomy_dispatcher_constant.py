@@ -7,6 +7,18 @@ Taxonomy layer: pure constants only — no functions, loops, classes, or I/O.
 from __future__ import annotations
 
 DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
+    "gateway": {
+        "execute_blender_code": {
+            "description": "Execute validated Blender Python code",
+            "parameters": {
+                "code": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Blender Python source code",
+                },
+            },
+        },
+    },
     "scene": {
         "get_scene_info": {
             "description": "Full scene metadata — object count, frame range, resolution, render engine",
@@ -20,22 +32,6 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                     "required": True,
                     "description": "Cleanup scope",
                     "enum": ["all", "objects", "meshes"],
-                },
-            },
-        },
-        "setup_environment": {
-            "description": "Setup HDRI lighting for the scene",
-            "parameters": {
-                "hdri_id": {
-                    "type": "string",
-                    "required": True,
-                    "description": "HDRI asset identifier",
-                },
-                "strength": {
-                    "type": "number",
-                    "required": False,
-                    "description": "Light intensity multiplier",
-                    "default": 1.0,
                 },
             },
         },
@@ -146,6 +142,22 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         },
     },
     "render": {
+        "setup_environment": {
+            "description": "Configure HDRI lighting using a local file resolved by the Asset feature",
+            "parameters": {
+                "hdri_id": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Absolute or project-local path to an already cached .hdr or .exr asset",
+                },
+                "strength": {
+                    "type": "number",
+                    "required": False,
+                    "description": "Environment light strength in the inclusive range 0-10",
+                    "default": 1.0,
+                },
+            },
+        },
         "get_viewport_screenshot": {
             "description": "Capture AI-optimized viewport screenshot",
             "parameters": {
@@ -281,6 +293,11 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         "launch_blender": {
             "description": "Start Blender with integration component active",
             "parameters": {
+                "filepath": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Optional .blend file to open",
+                },
                 "mode": {
                     "type": "string",
                     "required": False,

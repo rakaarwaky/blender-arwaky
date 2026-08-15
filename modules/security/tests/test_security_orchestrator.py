@@ -64,6 +64,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=override_result)
         import asyncio
+
         request = CodeValidationVO(code_text="import os")
         asyncio.run(orchestrator.validate_code(request))
         # Should have emitted POLICY_OVERRIDE event
@@ -80,6 +81,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=override_result)
         import asyncio
+
         asyncio.run(orchestrator.validate_code(CodeValidationVO(code_text="import os")))
         event = mock_emit.emit_audit.call_args[0][0]
         assert event.severity == AuditSeverity.WARNING
@@ -93,6 +95,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=override_result)
         import asyncio
+
         asyncio.run(orchestrator.validate_code(CodeValidationVO(code_text="import os")))
         event = mock_emit.emit_audit.call_args[0][0]
         assert "Code validation disabled by policy" in (event.redacted_reason or "")
@@ -107,6 +110,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=violation_result)
         import asyncio
+
         asyncio.run(orchestrator.validate_code(CodeValidationVO(code_text="import os")))
         # Should have emitted CODE_VIOLATION (not POLICY_OVERRIDE) due to if-not-allowed-or-violations
         event = mock_emit.emit_audit.call_args[0][0]
@@ -121,6 +125,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=normal_result)
         import asyncio
+
         asyncio.run(orchestrator.validate_code(CodeValidationVO(code_text="x=1")))
         # Should not emit any audit event (allowed=True, no violations, no override rule)
         assert not mock_emit.emit_audit.called
@@ -134,6 +139,7 @@ class TestPolicyOverrideAudit:
         )
         orchestrator, mock_emit = _make_orchestrator(validate_code_result=violation_result)
         import asyncio
+
         asyncio.run(orchestrator.validate_code(CodeValidationVO(code_text="import os")))
         event = mock_emit.emit_audit.call_args[0][0]
         assert event.violation_category == ViolationCategory.CODE_VIOLATION
@@ -158,6 +164,7 @@ class TestOrchestratorDelegation:
         import asyncio
 
         from modules.shared.src.security.taxonomy_security_vo import AccessMode, PathValidationVO
+
         asyncio.run(orchestrator.validate_path(PathValidationVO(target_path="/safe/file", access_mode=AccessMode.READ)))
         assert mock_validate_path.validate_path.called
 
@@ -175,6 +182,7 @@ class TestOrchestratorDelegation:
         import asyncio
 
         from modules.shared.src.security.taxonomy_security_vo import RedactionVO
+
         asyncio.run(orchestrator.redact(RedactionVO(text="test")))
         assert mock_redact.redact.called
 
@@ -189,6 +197,7 @@ class TestOrchestratorDelegation:
             emit_audit_cap=mock_emit_audit,
         )
         import asyncio
+
         event = SecurityAuditEventVO(violation_category=ViolationCategory.PATH_TRAVERSAL)
         asyncio.run(orchestrator.emit_audit(event))
         assert mock_emit_audit.emit_audit.called
@@ -201,4 +210,3 @@ class TestRepresentation:
         """SecurityOrchestrator has a repr."""
         orchestrator = SecurityOrchestrator.__new__(SecurityOrchestrator)
         assert "SecurityOrchestrator" in repr(orchestrator)
-

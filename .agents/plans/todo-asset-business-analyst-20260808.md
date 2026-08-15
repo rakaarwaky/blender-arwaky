@@ -1,4 +1,6 @@
 # Plan: asset — Business Analyst
+> **Historical plan notice (2026-08-14):** This 2026-08-08 plan is retained for audit history only. Do not execute its recommendations directly. Use the corresponding `*-20260814-revalidated.md` plan, which classifies each finding as `open`, `needs-clarification`, `resolved`, or `obsolete`.
+
 
 ## Summary
 The asset module implements external asset acquisition (search, download, cache, extract, import) per FR-AST-001..005. Code structure follows AES: 1 agent orchestrator, 5 capabilities, 1 root container. FRD maps cleanly to capabilities: search→`capabilities_asset_search_handler.py`, download→`capabilities_asset_download.py`, extract→`capabilities_asset_extract.py`, import→`capabilities_asset_import.py`, provider metadata→`capabilities_asset_provider.py`. No missing FR coverage. Boundary with object (import handoff) and render (HDRI files) is explicit and respected.

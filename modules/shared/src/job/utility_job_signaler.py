@@ -6,6 +6,7 @@ execution layer. In the current in-memory architecture, this
 logs the signal and confirms dispatch. When a real executor
 integration exists, this function body changes — signature stays.
 """
+
 from __future__ import annotations
 
 import logging

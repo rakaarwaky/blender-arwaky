@@ -36,6 +36,16 @@ class ISettingsLoaderProtocol(ABC):
         ...
 
     @abstractmethod
+    def set_value(
+        self,
+        path: ConfigPath,
+        value: SettingsValue,
+        config_path: ConfigPath | None = None,
+    ) -> SettingsSnapshot:
+        """Validate and atomically persist a typed dotted-path value."""
+        ...
+
+    @abstractmethod
     def get_last_metadata(self) -> ConfigMetadata:
         """Return metadata from the most recent successful load."""
         ...

@@ -2,12 +2,14 @@ import contextlib
 import io
 import json
 import logging
+import math
 import queue
 import socket
 import struct
 import threading
 import time
 from contextlib import redirect_stdout
+from pathlib import Path
 
 import bpy
 
@@ -201,10 +203,21 @@ class BlenderMCPServer:
         # Dispatch table (removed hunyuan/hyper3d handlers)
         handlers = {
             "get_scene_info": self.get_scene_info,
+            "cleanup_scene": self.cleanup_scene,
+            "setup_environment": self.setup_environment,
             "get_object_info": self.get_object_info,
+            "place_asset": self.place_asset,
+            "create_primitive": self.create_primitive,
+            "set_object_transform": self.set_object_transform,
+            "delete_object": self.delete_object,
+            "set_material": self.set_material,
+            "apply_modifier": self.apply_modifier,
+            "import_glb": self.import_glb,
+            "export_model": self.export_model,
             "get_viewport_screenshot": utils.get_viewport_screenshot,
             "render": self.render,
             "execute_code": self.execute_code,
+            "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
             "download_polyhaven_asset": polyhaven.download_polyhaven_asset,
@@ -240,8 +253,82 @@ class BlenderMCPServer:
             "truncated": total_objects > 50,
         }
 
-    def get_object_info(self, name):
-        obj = bpy.data.objects.get(name)
+    def cleanup_scene(self, mode):
+        """Remove scene content according to the validated cleanup mode."""
+        if mode not in {"all", "objects", "meshes"}:
+            raise ValueError(f"Unsupported cleanup mode: {mode}")
+        if mode in {"all", "objects"}:
+            bpy.ops.object.select_all(action="SELECT")
+            bpy.ops.object.delete(use_global=False)
+        else:
+            for obj in list(bpy.data.objects):
+                if obj.type == "MESH":
+                    bpy.data.objects.remove(obj, do_unlink=True)
+        return {"mode": mode, "removed": True}
+
+    def setup_environment(self, hdri_id, strength=1.0):
+        """Configure a local HDRI file as the active World environment.
+
+        ``hdri_id`` is a local, already-available asset reference. Asset
+        acquisition remains owned by the Asset feature; this handler only
+        applies the resolved file in Blender.
+        """
+        hdri_path = Path(str(hdri_id)).expanduser()
+        if not hdri_path.is_file():
+            raise FileNotFoundError(f"HDRI asset not found: {hdri_id}")
+        if hdri_path.suffix.lower() not in {".hdr", ".exr"}:
+            raise ValueError("HDRI asset must use .hdr or .exr format")
+        strength = float(strength)
+        if not math.isfinite(strength) or not 0.0 <= strength <= 10.0:
+            raise ValueError("HDRI strength must be between 0 and 10")
+
+        scene = bpy.context.scene
+        world = scene.world or bpy.data.worlds.new(name="World")
+        scene.world = world
+        world.use_nodes = True
+        nodes = world.node_tree.nodes
+        links = world.node_tree.links
+        nodes.clear()
+        output = nodes.new("ShaderNodeOutputWorld")
+        background = nodes.new("ShaderNodeBackground")
+        environment = nodes.new("ShaderNodeTexEnvironment")
+        environment.image = bpy.data.images.load(str(hdri_path.resolve()), check_existing=True)
+        background.inputs["Strength"].default_value = strength
+        links.new(environment.outputs["Color"], background.inputs["Color"])
+        links.new(background.outputs["Background"], output.inputs["Surface"])
+        return {
+            "hdri_id": str(hdri_path.resolve()),
+            "environment_ref": world.name,
+            "strength": strength,
+        }
+
+    def place_asset(self, asset_id, location=None, rotation=None, scale=None):
+        """Place an existing scene object identified by an exact asset reference."""
+        obj = bpy.data.objects.get(str(asset_id))
+        if obj is None:
+            raise ValueError(f"Asset object not found: {asset_id}")
+        if location is not None:
+            if len(location) != 3 or not all(math.isfinite(float(value)) for value in location):
+                raise ValueError("location must contain three finite numbers")
+            obj.location = tuple(float(value) for value in location)
+        if rotation is not None:
+            if len(rotation) != 3 or not all(math.isfinite(float(value)) for value in rotation):
+                raise ValueError("rotation must contain three finite degree values")
+            obj.rotation_euler = tuple(math.radians(float(value)) for value in rotation)
+        if scale is not None:
+            if len(scale) != 3 or not all(math.isfinite(float(value)) and float(value) != 0.0 for value in scale):
+                raise ValueError("scale must contain three finite non-zero numbers")
+            obj.scale = tuple(float(value) for value in scale)
+        return {
+            "asset_id": str(asset_id),
+            "object_name": obj.name,
+            "location": list(obj.location),
+            "rotation": list(obj.rotation_euler),
+            "scale": list(obj.scale),
+        }
+
+    def get_object_info(self, object_name):
+        obj = bpy.data.objects.get(object_name)
         if not obj:
             return {"error": "Not found"}
         return {
@@ -250,7 +337,106 @@ class BlenderMCPServer:
             "location": list(obj.location),
             "rotation": list(obj.rotation_euler),
             "scale": list(obj.scale),
+            "modifiers": [modifier.name for modifier in obj.modifiers],
+            "materials": [slot.material.name for slot in obj.material_slots if slot.material],
         }
+
+    def create_primitive(self, primitive_type, location=None, scale=None, name=None):
+        """Create a primitive mesh through Blender's public operators."""
+        operation = getattr(bpy.ops.mesh, f"primitive_{str(primitive_type).lower()}_add", None)
+        if operation is None:
+            raise ValueError(f"Unsupported primitive type: {primitive_type}")
+        operation(location=tuple(location or (0, 0, 0)))
+        obj = bpy.context.object
+        if obj is None:
+            raise RuntimeError("Blender did not create an active object")
+        if scale is not None:
+            obj.scale = tuple(scale)
+        if name:
+            obj.name = name
+        return {"name": obj.name, "type": obj.type, "location": list(obj.location), "scale": list(obj.scale)}
+
+    def set_object_transform(self, object_name, location=None, rotation=None, scale=None):
+        """Update object transform; rotation input is expressed in degrees."""
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if location is not None:
+            obj.location = tuple(location)
+        if rotation is not None:
+            import math
+
+            obj.rotation_euler = tuple(math.radians(value) for value in rotation)
+        if scale is not None:
+            obj.scale = tuple(scale)
+        return {
+            "name": obj.name,
+            "location": list(obj.location),
+            "rotation": list(obj.rotation_euler),
+            "scale": list(obj.scale),
+        }
+
+    def delete_object(self, object_name):
+        """Delete a named object from the current scene."""
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        bpy.data.objects.remove(obj, do_unlink=True)
+        return {"name": object_name, "deleted": True}
+
+    def set_material(self, object_name, material_name):
+        """Assign an existing or newly-created material to an object."""
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        material = bpy.data.materials.get(material_name) or bpy.data.materials.new(material_name)
+        if (
+            obj.data
+            and hasattr(obj.data, "materials")
+            and material.name not in [item.name for item in obj.data.materials if item]
+        ):
+            obj.data.materials.append(material)
+        return {"object_name": object_name, "material_name": material.name}
+
+    def apply_modifier(self, object_name, modifier_name):
+        """Apply a named modifier to an object."""
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        modifier = obj.modifiers.get(modifier_name)
+        if modifier is None:
+            raise ValueError(f"Modifier not found: {modifier_name}")
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        bpy.ops.object.modifier_apply(modifier=modifier_name)
+        return {"object_name": object_name, "modifier_name": modifier_name, "applied": True}
+
+    def import_glb(self, file_path, object_name=None):
+        """Import a GLB/GLTF file and return imported object names."""
+        before = {obj.name for obj in bpy.context.scene.objects}
+        bpy.ops.import_scene.gltf(filepath=file_path)
+        imported = [obj for obj in bpy.context.scene.objects if obj.name not in before]
+        if object_name and imported:
+            imported[0].name = object_name
+        return {"file_path": file_path, "objects": [obj.name for obj in imported]}
+
+    def export_model(self, object_name, file_path, export_format="glb"):
+        """Export one selected object using Blender's supported exporter."""
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if export_format == "glb":
+            bpy.ops.export_scene.gltf(filepath=file_path, export_format="GLB", use_selection=True)
+        elif export_format == "fbx":
+            bpy.ops.export_scene.fbx(filepath=file_path, use_selection=True)
+        elif export_format == "obj":
+            bpy.ops.wm.obj_export(filepath=file_path, export_selected_objects=True)
+        else:
+            raise ValueError(f"Unsupported export format: {export_format}")
+        return {"object_name": object_name, "file_path": file_path, "export_format": export_format}
 
     def render(self, output_path, resolution_x=1920, resolution_y=1080):
         """Render the active scene to an image file and return its metadata."""

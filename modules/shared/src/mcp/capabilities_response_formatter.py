@@ -36,8 +36,9 @@ class McpResponseImpl(McpResponseProtocol):
         FR-MCP-003: Every response has tracking ID, unified envelope structure,
         bounded payload size, and masked secrets.
         """
-        # Generate tracking ID if omitted (FR-MCP-002)
-        tid = tracking_id or str(uuid.uuid4())[:8]
+        # Preserve an upstream tracking ID when the caller leaves the argument empty.
+        upstream_tracking_id = result.get("tracking_id") if isinstance(result, dict) else None
+        tid = tracking_id or upstream_tracking_id or str(uuid.uuid4())[:8]
 
         # Build unified envelope
         envelope: dict[str, Any] = {

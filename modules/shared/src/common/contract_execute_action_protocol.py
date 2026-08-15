@@ -11,8 +11,6 @@ class ExecuteActionProtocol(ABC):
     """Entry point interface for executing any BlenderArwaky action."""
 
     @abstractmethod
-    async def execute(
-        self, action: ActionName, args: Details | None = None
-    ) -> Prompt:
+    async def execute(self, action: ActionName, args: Details | None = None) -> Prompt:
         """Dispatch an action to the orchestrator."""
-        pass
+        raise NotImplementedError

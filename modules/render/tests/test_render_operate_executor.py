@@ -71,6 +71,7 @@ class MockSecurityValidator(ValidatePathProtocol):
                 denial_reason="Path denied by security policy",
             )
         from pathlib import Path as _Path
+
         return PathValidationVO(
             target_path=request.target_path,
             access_mode=request.access_mode,
@@ -114,10 +115,10 @@ async def test_fr_rnd_001_capture_viewport_success(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
     result = await viewport_executor.capture_viewport(_viewport_req())
-    assert bool(result.success) is True
-    assert str(result.artifact_path) == "/tmp/shot.png"
-    assert int(result.width) == 1920
-    assert int(result.height) == 1080
+    assert bool(result.success) is True  # nosec B101
+    assert str(result.artifact_path) == "/tmp/shot.png"  # nosec B101 B108
+    assert int(result.width) == 1920  # nosec B101
+    assert int(result.height) == 1080  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -125,7 +126,7 @@ async def test_fr_rnd_001_missing_output_path(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
     result = await viewport_executor.capture_viewport(_viewport_req(output_path=FilePath("")))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -133,7 +134,7 @@ async def test_fr_rnd_001_invalid_view_angle(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
     result = await viewport_executor.capture_viewport(_viewport_req(view_angle="top"))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -141,27 +142,23 @@ async def test_fr_rnd_001_invalid_shading(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
     result = await viewport_executor.capture_viewport(_viewport_req(shading="rainbow"))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_001_invalid_image_format(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
-    result = await viewport_executor.capture_viewport(
-        _viewport_req(image_format=ImageFormat("GIF"))
-    )
-    assert bool(result.success) is False
+    result = await viewport_executor.capture_viewport(_viewport_req(image_format=ImageFormat("GIF")))
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_001_invalid_overwrite_policy(
     viewport_executor: RenderViewportCaptureExecutor,
 ) -> None:
-    result = await viewport_executor.capture_viewport(
-        _viewport_req(overwrite_policy="maybe")
-    )
-    assert bool(result.success) is False
+    result = await viewport_executor.capture_viewport(_viewport_req(overwrite_policy="maybe"))
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -170,14 +167,14 @@ async def test_fr_rnd_001_code_generated(
 ) -> None:
     await viewport_executor.capture_viewport(_viewport_req())
     code = str(viewport_executor._code_executor.captured_code)
-    assert "bpy.ops.render.render(write_still=True)" in code
+    assert "bpy.ops.render.render(write_still=True)" in code  # nosec B101
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_001_execution_failure() -> None:
     bad = RenderViewportCaptureExecutor(code_executor=MockCodeExecutor(fail=True))
     result = await bad.capture_viewport(_viewport_req())
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -186,9 +183,9 @@ async def test_fr_rnd_001_security_delegation(
 ) -> None:
     """FR-RND-001: Verify security validator is called before execution."""
     await viewport_executor.capture_viewport(_viewport_req())
-    assert len(viewport_executor._security_validator._calls) == 1
+    assert len(viewport_executor._security_validator._calls) == 1  # nosec B101
     call = viewport_executor._security_validator._calls[0]
-    assert call.access_mode == AccessMode.WRITE
+    assert call.access_mode == AccessMode.WRITE  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -200,8 +197,8 @@ async def test_fr_rnd_001_security_rejection() -> None:
         security_validator=sec,
     )
     result = await cap.capture_viewport(_viewport_req())
-    assert bool(result.success) is False
-    assert "security_violation" in str(result.message).lower()
+    assert bool(result.success) is False  # nosec B101
+    assert "security_violation" in str(result.message).lower()  # nosec B101
 
 
 # ─── FR-RND-002: Scene render ─────────────────────────────────
@@ -243,9 +240,9 @@ async def test_fr_rnd_002_render_scene_success(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req())
-    assert bool(result.success) is True
-    assert str(result.artifact_path) == "/tmp/render.png"
-    assert float(result.render_time) == 1.5
+    assert bool(result.success) is True  # nosec B101
+    assert str(result.artifact_path) == "/tmp/render.png"  # nosec B101 B108
+    assert float(result.render_time) == 1.5  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -253,7 +250,7 @@ async def test_fr_rnd_002_missing_output_path(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req(output_path=FilePath("")))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -261,7 +258,7 @@ async def test_fr_rnd_002_resolution_too_small(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req(resolution_x=ResolutionX(0)))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -269,7 +266,7 @@ async def test_fr_rnd_002_resolution_too_large(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req(resolution_x=ResolutionX(9000)))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -277,7 +274,7 @@ async def test_fr_rnd_002_samples_out_of_range(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req(samples=RenderSamples(0)))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -285,7 +282,7 @@ async def test_fr_rnd_002_invalid_overwrite_policy(
     scene_executor: RenderSceneImageExecutor,
 ) -> None:
     result = await scene_executor.render_scene(_scene_req(overwrite_policy="maybe"))
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -294,7 +291,7 @@ async def test_fr_rnd_002_invalid_engine_normalized_to_cycles(
 ) -> None:
     await scene_executor.render_scene(_scene_req(render_engine=RenderEngine("INVALID")))
     code = str(scene_executor._code_executor.captured_code)
-    assert "scene.render.engine = 'CYCLES'" in code
+    assert "scene.render.engine = 'CYCLES'" in code  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -303,14 +300,14 @@ async def test_fr_rnd_002_code_generated(
 ) -> None:
     await scene_executor.render_scene(_scene_req())
     code = str(scene_executor._code_executor.captured_code)
-    assert "bpy.ops.render.render(write_still=True)" in code
+    assert "bpy.ops.render.render(write_still=True)" in code  # nosec B101
 
 
 @pytest.mark.asyncio
 async def test_fr_rnd_002_execution_failure() -> None:
     bad = RenderSceneImageExecutor(code_executor=MockCodeExecutor(fail=True))
     result = await bad.render_scene(_scene_req())
-    assert bool(result.success) is False
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -319,9 +316,9 @@ async def test_fr_rnd_002_security_delegation(
 ) -> None:
     """FR-RND-002: Verify security validator is called before render."""
     await scene_executor.render_scene(_scene_req())
-    assert len(scene_executor._security_validator._calls) == 1
+    assert len(scene_executor._security_validator._calls) == 1  # nosec B101
     call = scene_executor._security_validator._calls[0]
-    assert call.access_mode == AccessMode.WRITE
+    assert call.access_mode == AccessMode.WRITE  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -333,8 +330,8 @@ async def test_fr_rnd_002_security_rejection() -> None:
         security_validator=sec,
     )
     result = await cap.render_scene(_scene_req())
-    assert bool(result.success) is False
-    assert "security_violation" in str(result.message).lower()
+    assert bool(result.success) is False  # nosec B101
+    assert "security_violation" in str(result.message).lower()  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -345,8 +342,8 @@ async def test_fr_rnd_001_max_size_too_small(
     result = await viewport_executor.capture_viewport(
         _viewport_req(max_size=32)  # type: ignore[arg-type]
     )
-    assert bool(result.success) is False
-    assert "max_size" in str(result.message).lower()
+    assert bool(result.success) is False  # nosec B101
+    assert "max_size" in str(result.message).lower()  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -357,7 +354,7 @@ async def test_fr_rnd_001_max_size_valid(
     result = await viewport_executor.capture_viewport(
         _viewport_req(max_size=64)  # type: ignore[arg-type]
     )
-    assert bool(result.success) is True
+    assert bool(result.success) is True  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -368,20 +365,20 @@ async def test_fr_rnd_001_max_size_zero_unlimited(
     result = await viewport_executor.capture_viewport(
         _viewport_req(max_size=0)  # type: ignore[arg-type]
     )
-    assert bool(result.success) is True
+    assert bool(result.success) is True  # nosec B101
 
 
 @pytest.mark.asyncio
-async def test_fr_rnd_002_overwrite_policy_reject() -> None:
-    """FR-RND-002: overwrite_policy='reject' rejects when artifact exists."""
+async def test_fr_rnd_002_overwrite_policy_reject(tmp_path) -> None:
+    """FR-RND-002: overwrite_policy='reject' rejects an existing artifact."""
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
     exec_ = RenderSceneImageExecutor(
-        code_executor=MockCodeExecutor(payload={"artifact_path": "/tmp/render.png"}),
+        code_executor=MockCodeExecutor(payload={"artifact_path": str(target)}),
         security_validator=MockSecurityValidator(),
     )
-    # Reject policy with existing artifact path — capability accepts it at validation
-    # (Blender runtime enforces actual overwrite; capability validates format only)
-    result = await exec_.render_scene(_scene_req(overwrite_policy="reject"))
-    assert bool(result.success) is True
+    result = await exec_.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="reject"))
+    assert bool(result.success) is False  # nosec B101
 
 
 @pytest.mark.asyncio
@@ -392,5 +389,55 @@ async def test_fr_rnd_002_overwrite_policy_unique() -> None:
         security_validator=MockSecurityValidator(),
     )
     result = await exec_.render_scene(_scene_req(overwrite_policy="unique"))
-    assert bool(result.success) is True
-    assert "abc123" in str(result.artifact_path)
+    assert bool(result.success) is True  # nosec B101
+    assert "abc123" in str(result.artifact_path)  # nosec B101
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_reject_policy_blocks_existing_file(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    code_executor = MockCodeExecutor(payload={"artifact_path": str(target)})
+    executor = RenderSceneImageExecutor(
+        code_executor=code_executor,
+        security_validator=MockSecurityValidator(),
+    )
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="reject"))
+
+    assert bool(result.success) is False  # nosec B101
+    assert "already exists" in str(result.message)  # nosec B101
+    assert code_executor.captured_code is None  # nosec B101
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_unique_policy_skips_existing_numbered_candidates(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    (tmp_path / "render_1.png").write_bytes(b"existing")
+    security = MockSecurityValidator()
+    executor = RenderSceneImageExecutor(
+        code_executor=MockCodeExecutor(payload={"artifact_path": str(target)}),
+        security_validator=security,
+    )
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="unique"))
+
+    assert bool(result.success) is True  # nosec B101
+    assert security._calls[-1].target_path == str(tmp_path / "render_2.png")  # nosec B101
+    assert "render_2.png" in str(executor._code_executor.captured_code)  # nosec B101
+
+
+@pytest.mark.asyncio
+async def test_fr_rnd_002_unique_policy_has_bounded_collision_scan(tmp_path) -> None:
+    target = tmp_path / "render.png"
+    target.write_bytes(b"existing")
+    for counter in range(1, 1001):
+        (tmp_path / f"render_{counter}.png").write_bytes(b"existing")
+    executor = RenderSceneImageExecutor(code_executor=MockCodeExecutor(), security_validator=MockSecurityValidator())
+
+    result = await executor.render_scene(_scene_req(output_path=FilePath(str(target)), overwrite_policy="unique"))
+
+    assert bool(result.success) is False  # nosec B101
+    assert "unique render output" in str(result.message)  # nosec B101
+    assert executor._code_executor.captured_code is None  # nosec B101

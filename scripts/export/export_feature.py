@@ -71,10 +71,7 @@ def list_modules(modules_dir: Path) -> list[str]:
         src_dir = entry / "src"
         base_dir = src_dir if src_dir.exists() else entry
         try:
-            has_py = any(
-                f.is_file() and not _is_excluded(f)
-                for f in base_dir.rglob("*.py")
-            )
+            has_py = any(f.is_file() and not _is_excluded(f) for f in base_dir.rglob("*.py"))
         except OSError:
             continue
         if has_py:
@@ -91,9 +88,7 @@ def prompt_module(modules: list[str]) -> str:
 
     while True:
         try:
-            choice = input(
-                f"Select a module (1-{len(modules)}) or 'q' to quit: "
-            ).strip()
+            choice = input(f"Select a module (1-{len(modules)}) or 'q' to quit: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nExiting.")
             sys.exit(0)
@@ -132,27 +127,21 @@ def read_version(workspace_root: Path, fallback: str = "0.1.0") -> str:
         try:
             text = pyproject.read_text(encoding="utf-8", errors="replace")
         except OSError as e:
-            print(
-                f"Warning: Could not read {pyproject} ({e}). Defaulting to {fallback}."
-            )
+            print(f"Warning: Could not read {pyproject} ({e}). Defaulting to {fallback}.")
             return fallback
 
         # Prefer proper TOML parsing when available.
         try:
             import tomllib  # Python 3.11+
+
             data = tomllib.loads(text)
-            version = (
-                data.get("project", {}).get("version")
-                or data.get("tool", {}).get("poetry", {}).get("version")
-            )
+            version = data.get("project", {}).get("version") or data.get("tool", {}).get("poetry", {}).get("version")
             if version:
                 return str(version)
         except ModuleNotFoundError:
             pass
         except Exception as e:
-            print(
-                f"Warning: Failed to parse {pyproject} as TOML ({e}); falling back to regex."
-            )
+            print(f"Warning: Failed to parse {pyproject} as TOML ({e}); falling back to regex.")
 
         # Regex fallback: version = "1.2.3" or version = '1.2.3'
         match = re.search(
@@ -171,9 +160,7 @@ def read_version(workspace_root: Path, fallback: str = "0.1.0") -> str:
             if match:
                 return match.group(1)
         except OSError as e:
-            print(
-                f"Warning: Could not read {setup_cfg} ({e}). Defaulting to {fallback}."
-            )
+            print(f"Warning: Could not read {setup_cfg} ({e}). Defaulting to {fallback}.")
 
     return fallback
 
@@ -193,10 +180,7 @@ def index_shared_symbols(shared_src_dir: Path) -> dict[str, list[Path]]:
     symbol_to_files: dict[str, list[Path]] = {}
 
     if not shared_src_dir.exists():
-        print(
-            "Warning: 'modules/shared/src' directory not found. "
-            "Shared dependencies cannot be resolved."
-        )
+        print("Warning: 'modules/shared/src' directory not found. Shared dependencies cannot be resolved.")
         return symbol_to_files
 
     print("Indexing shared module symbols...")
@@ -290,13 +274,13 @@ def _resolve_module_path(
         if found_file is not None:
             resolved.add(found_file)
             # Remaining parts are likely symbols/attributes.
-            for symbol in parts[i + 1:]:
+            for symbol in parts[i + 1 :]:
                 resolved.update(symbol_to_files.get(symbol, []))
             return resolved, None
 
         # If path segment is not found as module/package, assume symbol.
         resolved.update(symbol_to_files.get(part, []))
-        for symbol in parts[i + 1:]:
+        for symbol in parts[i + 1 :]:
             resolved.update(symbol_to_files.get(symbol, []))
         return resolved, None
 
@@ -411,9 +395,7 @@ def _extract_imports_regex(content: str) -> list[tuple[str | None, list[str], in
         re.DOTALL,
     )
     # Pattern for import modules.shared.src...
-    abs_shared_path_regex = re.compile(
-        r"\bmodules\.shared\.src(?:\.[A-Za-z0-9_]+)*\b"
-    )
+    abs_shared_path_regex = re.compile(r"\bmodules\.shared\.src(?:\.[A-Za-z0-9_]+)*\b")
 
     for match in abs_shared_from_regex.finditer(content):
         module = match.group(1)
@@ -437,13 +419,13 @@ def _absolute_shared_parts(module: str) -> list[str] | None:
     if module == "modules.shared.src":
         return []
     if module.startswith("modules.shared.src."):
-        return module[len("modules.shared.src."):].split(".")
+        return module[len("modules.shared.src.") :].split(".")
     if module.startswith("modules.shared."):
-        remainder = module[len("modules.shared."):]
+        remainder = module[len("modules.shared.") :]
         if remainder == "src":
             return []
         if remainder.startswith("src."):
-            return remainder[len("src."):].split(".")
+            return remainder[len("src.") :].split(".")
         return remainder.split(".")
     return None
 
@@ -520,12 +502,10 @@ def _files_for_import(
             drop = level - 1
             if drop > len(package_parts):
                 return set()
-            base_parts = package_parts[:len(package_parts) - drop] if drop else package_parts
+            base_parts = package_parts[: len(package_parts) - drop] if drop else package_parts
 
         module_parts = module.split(".") if module else []
-        return _files_for_shared_parts(
-            base_parts + module_parts, imported_names, shared_src_dir, symbol_to_files
-        )
+        return _files_for_shared_parts(base_parts + module_parts, imported_names, shared_src_dir, symbol_to_files)
 
     # Absolute import.
     if not module:
@@ -561,13 +541,7 @@ def expand_shared_dependencies(
     init_py_resolved: set[Path] = set()
 
     while True:
-        pending = [
-            f
-            for f in all_files
-            if f.suffix == ".py"
-            and f not in scanned
-            and not _is_excluded(f)
-        ]
+        pending = [f for f in all_files if f.suffix == ".py" and f not in scanned and not _is_excluded(f)]
 
         if not pending:
             break
@@ -596,17 +570,12 @@ def expand_shared_dependencies(
                 # by symbol-level filtering, not full transitive expansion.
                 # Detection: module is None, level > 0, all names are lowercase (package dirs)
                 if module is None and level > 0 and len(names) > 1:
-                    is_package_barrel = all(
-                        n == n.lower() and "." not in n
-                        for n in names
-                    )
+                    is_package_barrel = all(n == n.lower() and "." not in n for n in names)
                     if is_package_barrel:
                         continue
 
                 try:
-                    resolved = _files_for_import(
-                        module, names, level, f, shared_src_dir, symbol_to_files
-                    )
+                    resolved = _files_for_import(module, names, level, f, shared_src_dir, symbol_to_files)
 
                     # Check if this import corresponds to a wildcard pattern
                     wc_symbols = None
@@ -625,9 +594,7 @@ def expand_shared_dependencies(
                         for rf in resolved:
                             if rf.name == "__init__.py":
                                 filtered.update(
-                                    _resolve_init_py_imports(
-                                        rf, shared_src_dir, required_symbols=wc_symbols
-                                    )
+                                    _resolve_init_py_imports(rf, shared_src_dir, required_symbols=wc_symbols)
                                 )
                             else:
                                 filtered.add(rf)
@@ -714,11 +681,11 @@ def _extract_init_py_symbols(init_py_path: Path) -> dict[str, list[Path]]:
     i = 0
     while i < len(lines):
         line = lines[i]
-        match = re.match(r'\s*from\s+(\.[a-zA-Z0-9_.]+)\s+import\s+', line)
+        match = re.match(r"\s*from\s+(\.[a-zA-Z0-9_.]+)\s+import\s+", line)
 
         if match:
             module_path_str = match.group(1)  # e.g., ".common.taxonomy_core_vo"
-            symbols_str = line[match.end():]  # rest of line after "import "
+            symbols_str = line[match.end() :]  # rest of line after "import "
 
             # If there's a closing paren, collect until it (multiline import)
             if "(" in symbols_str:
@@ -809,8 +776,8 @@ def _resolve_init_py_imports(
                             rel = str(sf.relative_to(base_dir))
                             module_rel = clean_path.replace(".", "/")
                             if rel.endswith(f"{module_rel}.py") or rel == f"{module_rel}" and sym in required_symbols:
-                                    needed = True
-                                    break
+                                needed = True
+                                break
                         if needed:
                             break
                     if not needed:
@@ -844,9 +811,8 @@ def _resolve_init_py_imports(
 
 def _wildcard_import_pattern() -> re.Pattern[str]:
     """Return compiled pattern for multiline wildcard imports."""
-    return re.compile(
-        r"\bfrom\s+modules\.shared\.(src(?:\.[a-zA-Z0-9_]+)*)\s+import\s+\(([^)]+)\)"
-    )
+    return re.compile(r"\bfrom\s+modules\.shared\.(src(?:\.[a-zA-Z0-9_]+)*)\s+import\s+\(([^)]+)\)")
+
 
 def _relative_path(path: Path, root: Path) -> Path:
     """Return path relative to root if possible."""
@@ -922,9 +888,7 @@ def export_module(
     files_to_export = collect_module_files(module_path, workspace_root)
 
     # Use AST-based transitive resolution for shared dependencies
-    files_to_export = expand_shared_dependencies(
-        files_to_export, shared_src_dir, symbol_to_files
-    )
+    files_to_export = expand_shared_dependencies(files_to_export, shared_src_dir, symbol_to_files)
 
     default_name = f"{selected_module}_v{safe_version}.md"
 
@@ -949,15 +913,15 @@ def export_module(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Export a module into a single consolidated Markdown file."
-    )
+    parser = argparse.ArgumentParser(description="Export a module into a single consolidated Markdown file.")
     parser.add_argument(
-        "--module", "-m",
+        "--module",
+        "-m",
         help="Module name to export (non-interactive mode). Omit for interactive selection.",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output file path (default: .agents/finding/<module>_v<ver>.md).",
     )
     return parser.parse_args()

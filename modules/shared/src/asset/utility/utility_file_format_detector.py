@@ -12,8 +12,8 @@ _MAGIC_SIGNATURES: dict[str, list[bytes]] = {
     "glb": [b"glTF"],
     "gltf": [b"{", b"["],  # JSON-based; check heuristically
     "png": [b"\x89PNG"],
-    "jpg": [b"\xFF\xD8\xFF"],
-    "jpeg": [b"\xFF\xD8\xFF"],
+    "jpg": [b"\xff\xd8\xff"],
+    "jpeg": [b"\xff\xd8\xff"],
     "fbx": [b"FBX"],
     "exr": [b"\x76\x2f\x31\x01"],
 }

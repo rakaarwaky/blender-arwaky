@@ -5,6 +5,7 @@ Repositories emit events through this protocol instead of direct logging.
 
 AES Protocol layer — depends only on Taxonomy.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

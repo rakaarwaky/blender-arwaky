@@ -32,9 +32,7 @@ class AssetProviderConnectionImpl(IAssetProviderConnection):
         return {"action": action, "payload": payload, "provider": str(provider), "status": "sent"}
 
 
-
 class AssetSearchHandler(AssetSearchProtocol):
-
     """Asset search handler with configurable provider list.
 
     FR-AST-001: Unified search across providers. Defaults to Polyhaven and Sketchfab.

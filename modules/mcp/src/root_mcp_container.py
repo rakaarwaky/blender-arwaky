@@ -38,8 +38,6 @@ class McpContainer:
 
         logger.info("Wiring MCP surface module")
 
-
-
         # Create protocol implementations (delegating to owning features)
         self._routing = McpRoutingImpl()
         self._schema = McpResponseImpl()  # schema and response share same implementation for now

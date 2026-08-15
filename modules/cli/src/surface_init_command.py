@@ -10,7 +10,7 @@ def _mask_error(category: str, ref: str, message: str = "Operation failed") -> d
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: object) -> dict[str, object]:
+def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle init command: start Blender with the given file."""
     registry = Registry()
 
@@ -25,7 +25,13 @@ def handle(args: object) -> dict[str, object]:
             return _mask_error(res.category or "launch_failed", res.ref or "cli-500", res.error or "Failed to launch")
         pid = int(res.data.get("pid", 0))
         registry.set_active(filepath, pid, args.port)
-        return {"success": True, "message": res.message, "filepath": filepath, "pid": pid, "port": args.port, "mode": args.mode}
+        return {
+            "success": True,
+            "message": res.message,
+            "filepath": filepath,
+            "pid": pid,
+            "port": args.port,
+            "mode": args.mode,
+        }
     except Exception:
         return _mask_error("unexpected", "cli-500")
-

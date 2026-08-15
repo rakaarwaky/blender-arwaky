@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import (
+    FilePath,
     Prompt,
     PythonCode,
     RenderEngine,
@@ -84,6 +86,10 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
         validation_error = self._validate(normalized)
         if validation_error is not None:
             return self._failure(normalized, validation_error.to_prompt())
+
+        normalized, policy_error = self._apply_output_policy(normalized)
+        if policy_error is not None:
+            return self._failure(normalized, policy_error.to_prompt())
 
         # FR-RND-002: Output destination validated through security before render begins
         try:
@@ -208,6 +214,26 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
             )
 
         return None
+
+    def _apply_output_policy(self, request: RenderSceneVO) -> tuple[RenderSceneVO, RenderError | None]:
+        """Resolve overwrite behavior before security validation and execution."""
+        target = Path(str(request.output_path))
+        if request.overwrite_policy == "reject" and target.exists():
+            return request, RenderError(
+                category=RenderErrorCategory.RENDER_OUTPUT,
+                message=Prompt("Render output already exists and overwrite is rejected"),
+            )
+        if request.overwrite_policy != "unique" or not target.exists():
+            return request, None
+
+        for counter in range(1, 1001):
+            candidate = target.with_name(f"{target.stem}_{counter}{target.suffix}")
+            if not candidate.exists():
+                return replace(request, output_path=FilePath(str(candidate))), None
+        return request, RenderError(
+            category=RenderErrorCategory.RENDER_OUTPUT,
+            message=Prompt("Unable to allocate a unique render output path"),
+        )
 
     async def _validate_security(self, path: str) -> None:
         """Validate output path through security policy (FR-RND-002)."""

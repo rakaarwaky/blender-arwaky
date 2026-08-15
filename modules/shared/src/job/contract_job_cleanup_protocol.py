@@ -1,4 +1,5 @@
 """Job domain — FR-JOB-004: Automatic task record cleanup."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -33,6 +33,8 @@ from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditPr
 from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
 from modules.shared.src.security.utility_security_path import redact_path
 
+from .utility_audit_dispatch import emit_audit_sync
+
 
 class _SignalSender(Protocol):
     """Sends a graceful signal to a process. DI boundary."""
@@ -161,12 +163,13 @@ class ProcessShutdown(ShutdownProtocol):
     def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
         """FR-SEC-005: emit security audit event for shutdown operations."""
         if self._audit_events is not None:
-            self._audit_events.emit_audit(
+            emit_audit_sync(
+                self._audit_events,
                 SecurityAuditEventVO(
                     violation_category=violation,
                     operation_type="shutdown_operation",
                     source_feature="launcher",
                     target_metadata={"reason": redact_path(reason)},
                     severity=AuditSeverity.WARNING,
-                )
+                ),
             )

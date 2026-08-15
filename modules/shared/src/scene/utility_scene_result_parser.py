@@ -93,8 +93,7 @@ def parse_scene_state_summary(raw: Prompt | None) -> SceneStateSummaryVO:
     )
 
     object_type_counts = {
-        ObjectType(str(key)): ObjectCount(int(value))
-        for key, value in object_type_counts_raw.items()
+        ObjectType(str(key)): ObjectCount(int(value)) for key, value in object_type_counts_raw.items()
     }
 
     scene_name = str(data.get("scene_name", ""))

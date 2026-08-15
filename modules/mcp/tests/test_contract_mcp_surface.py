@@ -15,8 +15,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
 from modules.mcp.src.surface_get_config import GetConfigSurface
 from modules.mcp.src.surface_health_check import HealthCheckSurface
@@ -65,12 +63,6 @@ class TestToolRegistryContract:
     def test_registry_surface_has_register_tools(self):
         assert hasattr(ToolRegistrySurface, "register_tools")
         assert callable(ToolRegistrySurface.register_tools)
-
-    @pytest.mark.skip(reason="Scene tools are registered separately; only 5 core tools expected")
-    def test_register_tools_wires_all_required_tools(self):
-        mcp = FakeMCP()
-        ToolRegistrySurface.register_tools(mcp, FAKE_CONTAINER)
-        assert set(mcp.tools.keys()) == REQUIRED_TOOLS
 
     def test_register_tools_registers_core_tools(self):
         """Core tools register; scene tools require code_executor."""

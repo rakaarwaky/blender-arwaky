@@ -102,9 +102,7 @@ class SecurityViolationError(ServerError):
     raised when the validation result indicates a violation.
     """
 
-    def __init__(
-        self, message: ErrorString = DEFAULT_SECURITY_MSG, _details: Details | None = None
-    ) -> None:
+    def __init__(self, message: ErrorString = DEFAULT_SECURITY_MSG, _details: Details | None = None) -> None:
         super().__init__("security_violation", message, _details)
 
 
@@ -234,16 +232,18 @@ class ConnectionClosedError(ServerError):
         super().__init__("connection_closed", "Connection already closed", _details)
 
 
-class BlenderConnectionExhausted(ServerError):
+class BlenderConnectionExhausted(ServerError):  # noqa: N818 - public taxonomy name
     """Raised after all reconnect attempts have been exhausted."""
 
-    def __init__(self, attempts: ReconnectAttempt = DEFAULT_RECONNECT_ATTEMPTS, _details: Details | None = None) -> None:
+    def __init__(
+        self, attempts: ReconnectAttempt = DEFAULT_RECONNECT_ATTEMPTS, _details: Details | None = None
+    ) -> None:
         super().__init__(
             "connection_retries_exhausted", f"All {attempts} reconnect attempts failed", {"attempts": attempts}
         )
 
 
-class BlenderConnectionFailure(ServerError):
+class BlenderConnectionFailure(ServerError):  # noqa: N818 - public taxonomy name
     """Raised when connection is lost or unavailable."""
 
     def __init__(self, message: ErrorString = DEFAULT_BLENDER_CONN_MSG, _details: Details | None = None) -> None:

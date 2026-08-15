@@ -107,7 +107,13 @@ def test_fr_gwy_001_establishes_connection():
 def test_fr_gwy_002_status_reports_connected():
     """Test that connection status reports correct state after establishment."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
+    feat = GatewayOrchestrator(
+        connection=conn,
+        transport=MockTransport(),
+        scene_queue=MockSceneQueue(),
+        code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
+    )
     feat.establish_connection()
     status = feat.get_connection_status()
     assert status.state == ConnectionState.CONNECTED
@@ -199,7 +205,13 @@ def test_gateway_establish_connection_returns_protocol_version():
 def test_gateway_disconnect_idempotent():
     """Test that disconnect is idempotent when already disconnected."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
+    feat = GatewayOrchestrator(
+        connection=conn,
+        transport=MockTransport(),
+        scene_queue=MockSceneQueue(),
+        code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
+    )
     feat.disconnect()
     feat.disconnect()
     assert True
@@ -207,6 +219,7 @@ def test_gateway_disconnect_idempotent():
 
 def test_gateway_failed_connection_reports_state():
     """Test that failed connection state is reported correctly."""
+
     class FailedConnection(ConnectionProtocol):
         def establish_connection(self):
             return ConnectionOutcomeVO(state=ConnectionState.FAILED, error="connection refused")
@@ -222,6 +235,7 @@ def test_gateway_failed_connection_reports_state():
 
 def test_gateway_transport_request_error():
     """Test that transport request with error status is handled."""
+
     class ErrorTransport(TransportProtocol):
         def send_request(self, request: TransportMessageVO) -> TransportOutcomeVO:
             return TransportOutcomeVO(tracking_id=request.tracking_id, status="error", error="timeout")
@@ -235,6 +249,7 @@ def test_gateway_transport_request_error():
 
 def test_gateway_code_execution_with_output():
     """Test that code execution captures output."""
+
     class OutputExecutor(CodeExecutionProtocol):
         def execute_code(self, _request: CodeExecutionVO) -> object:
             from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
@@ -249,6 +264,7 @@ def test_gateway_code_execution_with_output():
 
 def test_gateway_multiple_queue_operations():
     """Test that multiple operations can be enqueued."""
+
     class TrackingQueue(SceneQueueProtocol):
         def __init__(self):
             self.enqueued_count = 0
@@ -276,7 +292,13 @@ def test_gateway_multiple_queue_operations():
 def test_gateway_disconnect_updates_state():
     """Test that disconnect updates maintenance state."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
+    feat = GatewayOrchestrator(
+        connection=conn,
+        transport=MockTransport(),
+        scene_queue=MockSceneQueue(),
+        code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
+    )
 
     feat.establish_connection()
     assert feat.get_connection_status().state == ConnectionState.CONNECTED
@@ -289,7 +311,13 @@ def test_gateway_disconnect_updates_state():
 def test_gateway_reconnect_increments_attempts():
     """Test that reconnect increments attempt counter."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
+    feat = GatewayOrchestrator(
+        connection=conn,
+        transport=MockTransport(),
+        scene_queue=MockSceneQueue(),
+        code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
+    )
 
     status = feat.get_connection_status()
     initial_attempts = status.reconnect_attempts
@@ -302,7 +330,13 @@ def test_gateway_reconnect_increments_attempts():
 def test_gateway_heartbeat_updates_timestamp():
     """Test that heartbeat updates last heartbeat timestamp."""
     conn = MockConnection()
-    feat = GatewayOrchestrator(connection=conn, transport=MockTransport(), scene_queue=MockSceneQueue(), code_executor=MockCodeExecutor(), maintenance=MaintenanceExecutor())
+    feat = GatewayOrchestrator(
+        connection=conn,
+        transport=MockTransport(),
+        scene_queue=MockSceneQueue(),
+        code_executor=MockCodeExecutor(),
+        maintenance=MaintenanceExecutor(),
+    )
 
     feat.establish_connection()
     feat.send_heartbeat()

@@ -94,11 +94,13 @@ class HealthComposer(HealthCompositionProtocol):
             launcher_status = "timeout"
             launcher_probe = self._probe_timeout_seconds * 1000
 
-        subsystems.append(SubsystemHealthVO(
-            name="launcher",
-            status=launcher_status,
-            probe_duration_ms=launcher_probe,
-        ))
+        subsystems.append(
+            SubsystemHealthVO(
+                name="launcher",
+                status=launcher_status,
+                probe_duration_ms=launcher_probe,
+            )
+        )
 
         try:
             gateway_status = await asyncio.wait_for(
@@ -110,11 +112,13 @@ class HealthComposer(HealthCompositionProtocol):
             gateway_status = "timeout"
             gateway_probe = self._probe_timeout_seconds * 1000
 
-        subsystems.append(SubsystemHealthVO(
-            name="gateway",
-            status=gateway_status,
-            probe_duration_ms=gateway_probe,
-        ))
+        subsystems.append(
+            SubsystemHealthVO(
+                name="gateway",
+                status=gateway_status,
+                probe_duration_ms=gateway_probe,
+            )
+        )
 
         config_status = "healthy" if request.config_valid else "unhealthy"
         subsystems.append(SubsystemHealthVO(name="config", status=config_status))

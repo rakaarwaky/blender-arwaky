@@ -31,9 +31,7 @@ class TelemetryEventClassifier(TelemetryClassificationProtocol):
         feature_area: FeatureArea | None = None,
     ) -> ClassificationResult:
         raw = str(action_type)
-        resolved_feature = feature_area or FeatureArea(
-            FEATURE_AREAS.get(raw, "other")
-        )
+        resolved_feature = feature_area or FeatureArea(FEATURE_AREAS.get(raw, "other"))
 
         category_values = {c.value for c in TelemetryCategory}
 

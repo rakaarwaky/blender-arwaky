@@ -1,4 +1,5 @@
 """Render domain — FR-RND-004: Configure HDRI lighting."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
