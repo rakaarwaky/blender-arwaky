@@ -76,6 +76,30 @@ jobs:
       - name: AES naming scan (must be zero violations)
         run: "$RUNNER_TEMP/lint-arwaky-cli naming modules"
 
+  aes-architecture:
+    name: AES architecture (lint-arwaky)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned lint-arwaky-cli
+        env:
+          LINT_ARWAKY_VERSION: v3.6.1
+          LINT_ARWAKY_SHA256: 1dc8f3fe98cfb7b8cfaf7e42635fa94051277f95f096867794727d37b4788550
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/rakaarwaky/lint-arwaky/releases/download/${LINT_ARWAKY_VERSION}/lint-arwaky-cli" \
+            --output "$RUNNER_TEMP/lint-arwaky-cli"
+          printf '%s  %s\n' "$LINT_ARWAKY_SHA256" "$RUNNER_TEMP/lint-arwaky-cli" \
+            | sha256sum --check --status
+          chmod +x "$RUNNER_TEMP/lint-arwaky-cli"
+          "$RUNNER_TEMP/lint-arwaky-cli" version
+
+      - name: AES architecture scan (must be zero violations)
+        run: "$RUNNER_TEMP/lint-arwaky-cli scan ."
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
