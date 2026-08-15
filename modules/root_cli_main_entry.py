@@ -125,7 +125,7 @@ def _build_parser() -> CliArgumentParser:
         prog="blender-arwaky",
         description="BlenderArwaky CLI — FRD feature command surface",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Examples:\n  blender-arwaky status\n  blender-arwaky scene-info --json\n  blender-arwaky run --action get_scene_info --params '{}'",
+        epilog="Examples:\n  blender-arwaky status\n  blender-arwaky scene-info --json\n  blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}'",
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
@@ -135,21 +135,33 @@ def _build_parser() -> CliArgumentParser:
     parser.add_argument("--confirm", action="store_true", help="Confirm destructive action")
     subparsers = parser.add_subparsers(dest="command", title="commands", metavar="COMMAND")
 
-    init_parser = subparsers.add_parser("init", help="Start Blender with a file", description="Start Blender runtime")
+    init_parser = subparsers.add_parser(
+        "init",
+        help="[executable] Start Blender with a file",
+        description="[executable] Start Blender runtime",
+    )
     init_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     init_parser.add_argument("--mode", choices=["gui", "headless"], default="headless", help="Blender mode")
     init_parser.add_argument("--port", type=int, default=9876, help="TCP port for addon")
     _add_common_flags(init_parser)
     _example(init_parser, "blender-arwaky init --filepath scene.blend --mode headless --port 9876")
 
-    run_parser = subparsers.add_parser("run", help="Execute an action on active Blender")
+    run_parser = subparsers.add_parser(
+        "run",
+        help="[executable] Execute an action on active Blender",
+        description="[executable] Execute an action on active Blender",
+    )
     run_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     run_parser.add_argument("--action", required=True, help="Canonical action name")
     run_parser.add_argument("--params", type=str, default="{}", help="JSON object parameters")
     _add_common_flags(run_parser)
-    _example(run_parser, "blender-arwaky run --action get_scene_info --params '{}'")
+    _example(run_parser, "blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}'")
 
-    ss_parser = subparsers.add_parser("screenshot", help="Capture viewport screenshot")
+    ss_parser = subparsers.add_parser(
+        "screenshot",
+        help="[executable] Capture viewport screenshot",
+        description="[executable] Capture viewport screenshot",
+    )
     ss_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     ss_parser.add_argument("--output", required=True, help="Output image path")
     ss_parser.add_argument("--max-size", type=int, default=800, help="Max dimension in pixels")
@@ -160,7 +172,11 @@ def _build_parser() -> CliArgumentParser:
     _add_common_flags(ss_parser)
     _example(ss_parser, "blender-arwaky screenshot --filepath scene.blend --output /tmp/shot.png")
 
-    render_parser = subparsers.add_parser("render", help="Execute full frame render")
+    render_parser = subparsers.add_parser(
+        "render",
+        help="[executable] Execute full frame render",
+        description="[executable] Execute full frame render",
+    )
     render_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     render_parser.add_argument("--output", required=True, help="Output image path")
     render_parser.add_argument("--resolution-x", type=int, default=1920, help="Render width")
@@ -168,13 +184,21 @@ def _build_parser() -> CliArgumentParser:
     _add_common_flags(render_parser)
     _example(render_parser, "blender-arwaky render --filepath scene.blend --output /tmp/render.png")
 
-    close_parser = subparsers.add_parser("close", help="Close active Blender instance")
+    close_parser = subparsers.add_parser(
+        "close",
+        help="[executable] [destructive; requires --confirm] Close active Blender instance",
+        description="[executable] [destructive; requires --confirm] Close active Blender instance",
+    )
     close_parser.add_argument("--filepath", required=True, help="Path to .blend file")
     close_parser.add_argument("--force", action="store_true", help="Force termination fallback")
     _add_common_flags(close_parser)
-    _example(close_parser, "blender-arwaky close --filepath scene.blend --force")
+    _example(close_parser, "blender-arwaky close --filepath scene.blend --force --confirm")
 
-    status_parser = subparsers.add_parser("status", help="Show active Blender status")
+    status_parser = subparsers.add_parser(
+        "status",
+        help="[executable] Show active Blender status",
+        description="[executable] Show active Blender status",
+    )
     _add_common_flags(status_parser)
     _example(status_parser, "blender-arwaky status --json")
 
@@ -185,8 +209,10 @@ def _build_parser() -> CliArgumentParser:
         fields: list[tuple[str, dict[str, object]]],
         example: str,
         availability: str = "executable",
+        destructive: bool = False,
     ) -> None:
-        help_text = f"[{availability}] {description}"
+        safety_text = " [destructive; requires --confirm]" if destructive else ""
+        help_text = f"[{availability}]{safety_text} {description}"
         command_parser = subparsers.add_parser(name, help=help_text, description=help_text)
         for flag, options in fields:
             command_parser.add_argument(flag, **options)
@@ -211,7 +237,8 @@ def _build_parser() -> CliArgumentParser:
         "cleanup_scene",
         "Clean objects or meshes from scene",
         [("--mode", {"choices": ["all", "objects", "meshes"], "required": True})],
-        "blender-arwaky scene-cleanup --mode objects",
+        "blender-arwaky scene-cleanup --mode objects --confirm",
+        destructive=True,
     )
     add_action(
         "set-env",
@@ -281,7 +308,8 @@ def _build_parser() -> CliArgumentParser:
         "delete_object",
         "Delete an object",
         [("--name", {"dest": "object_name", "required": True})],
-        "blender-arwaky delete --name Cube",
+        "blender-arwaky delete --name Cube --confirm",
+        destructive=True,
     )
     add_action(
         "set-material",
@@ -413,7 +441,8 @@ def _build_parser() -> CliArgumentParser:
         "cancel_task",
         "Cancel a background task",
         [("--task-id", {"dest": "task_id", "required": True})],
-        "blender-arwaky cancel-task --task-id task-001",
+        "blender-arwaky cancel-task --task-id task-001 --confirm",
+        destructive=True,
     )
     add_action(
         "config",
@@ -427,7 +456,8 @@ def _build_parser() -> CliArgumentParser:
         "set_config",
         "Update configuration",
         [("--key", {"dest": "key", "required": True}), ("--value", {"dest": "value", "required": True})],
-        "blender-arwaky set-config --key color_policy --value never",
+        "blender-arwaky set-config --key color_policy --value never --confirm",
+        destructive=True,
     )
     add_action(
         "run-code",

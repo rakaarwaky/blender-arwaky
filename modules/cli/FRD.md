@@ -95,7 +95,7 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 | CLI | Arguments | Action Name |
 |-----|-----------|-------------|
 | `init` | `--filepath` (required), `--mode` (gui\|headless), `--port` | `launch_blender` |
-| `close` | `--filepath` (required) | `shutdown_blender` |
+| `close` | `--filepath` (required), `--force` | `shutdown_blender` |
 | `status` | (none) | `get_runtime_status` |
 | `register` | `--path` (optional) | `register_executable` |
 
@@ -105,7 +105,6 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 |-----|-----------|-------------|
 | `scene-info` | (none) | `get_scene_info` |
 | `scene-cleanup` | `--mode` (all\|objects\|meshes) | `cleanup_scene` |
-| `set-env` | `--hdri-id` (required), `--strength` | `setup_environment` |
 
 ### Object
 
@@ -124,6 +123,8 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 |-----|-----------|-------------|
 | `screenshot` | `--filepath`, `--output`, `--max-size`, `--view-angle`, `--shading`, `--no-overlays`, `--focus-object` | `get_viewport_screenshot` |
 | `render` | `--filepath`, `--output`, `--resolution-x`, `--resolution-y` | `render` |
+| `set-env` | `--hdri-id` (required), `--strength` | `setup_environment` |
+| `camera-config` | `--camera`, `--focal-length`, `--sensor-fit`, `--framing-target`, `--set-active`, `--dof`, `--focus-distance`, `--focus-object`, `--aperture`, `--no-create` | `configure_camera` |
 
 ### Import / Export / Asset
 
@@ -132,6 +133,11 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 | `import` | `--file` (required), `--name` | `import_glb` |
 | `export` | `--name` (required), `--output` (required), `--format` | `export_model` |
 | `place-asset` | `--asset-id` (required), `--location`, `--rotation`, `--scale` | `place_asset` |
+| `search-assets` | `--query`, `--provider`, `--asset-type`, `--limit`, `--page-token` | `search_assets` |
+| `asset-metadata` | `--provider` (required), `--asset-id` (required) | `get_provider_metadata` |
+| `download-asset` | `--provider` (required), `--asset-id` (required), `--asset-type` (required), `--cache-dir` (required), `--resolution`, `--overwrite-policy`, `--max-size` | `download_asset` |
+| `extract-asset` | `--artifact` (required), `--destination` (required), `--max-entries`, `--max-size`, `--allow-symlinks` | `extract_asset` |
+| `import-asset` | `--file` (required), `--asset-type` (required), `--collection`, `--normalize-scale`, `--duplicate-policy`, `--format` | `import_asset` |
 
 ### Job
 
@@ -157,11 +163,15 @@ Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run
 
 | CLI | Arguments | Action Name |
 |-----|-----------|-------------|
-| `run` | `--filepath` (required), `--action` (required), `--params` (JSON) | `run.action` |
+| `run` | `--filepath` (required), `--action` (required), `--params` (JSON) | canonical action named by `--action` |
 
-Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in target feature, not CLI.
+Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in the target feature, not CLI.
 
-Availability is surfaced in command help as `executable`, `blocked`, or `unsupported`; a blocked command is never routed as a fake success. `set-env` uses `--hdri-id` as a local path to an already cached `.hdr` or `.exr` file resolved by the Asset feature. `place-asset` uses `--asset-id` as the exact Blender object name produced by an import/asset-resolution step; it does not silently download or resolve a provider asset. `--rotation` is expressed in degrees, while Blender response rotations remain radians where applicable.
+Every command supports `--help`; examples are copy-paste valid against the required argument contract. Root and dedicated help expose availability metadata as `executable`, `blocked`, or `unsupported`; a blocked command is never routed as a fake success. Lifecycle commands expose the same availability metadata as feature commands.
+
+Global output and safety flags are available on every command: `--json`, `--quiet`, `--verbose`, `--color {auto,always,never}`, `--no-progress`, and `--confirm`. Destructive commands explicitly advertise `requires --confirm` in help and examples: `close`, `scene-cleanup`, `delete`, `cancel-task`, and `set-config`.
+
+`set-env` is owned by Render and uses `--hdri-id` as a local path to an already cached `.hdr` or `.exr` file resolved by the Asset feature. `camera-config` mutates the selected Blender camera and supports focal length, sensor fit, active-camera selection, framing/focus targets, and depth of field. `place-asset` uses `--asset-id` as the exact Blender object name produced by an import/asset-resolution step; it does not silently download or resolve a provider asset. `--rotation` is expressed in degrees, while Blender response rotations remain radians where applicable.
 
 `task-status` and `cancel-task` read the shared Job store, which is file-backed and atomically replaced so a new CLI process can observe task state created by another process. `cancel-task` is destructive and requires `--confirm`; not-found, terminal, unsupported cancellation, and race outcomes remain distinct.
 

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from modules.root_cli_main_entry import EXIT_VALIDATION, main
+from modules.root_cli_main_entry import EXIT_VALIDATION, _build_parser, main
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -252,3 +252,25 @@ def test_camera_and_asset_commands_forward_contract_parameters(capsys) -> None:
     assert asset_request.parameters["provider"] == "Polyhaven"  # nosec B101
     assert asset_request.parameters["max_size"] == 1000000  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_help_surface_has_valid_examples_and_safety_metadata() -> None:
+    parser = _build_parser()
+    root_help = parser.format_help()
+    normalized_root_help = " ".join(root_help.split())
+
+    assert "run --filepath scene.blend --action get_scene_info" in normalized_root_help  # nosec B101
+    assert "[executable] Start Blender with a file" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Close active Blender instance" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Cancel a background task" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Update configuration" in normalized_root_help  # nosec B101
+
+    subparsers = next(action for action in parser._actions if isinstance(getattr(action, "choices", None), dict))
+    run_help = subparsers.choices["run"].format_help()
+    close_help = subparsers.choices["close"].format_help()
+    set_config_help = subparsers.choices["set-config"].format_help()
+
+    assert "--filepath FILEPATH" in run_help  # nosec B101
+    assert "run --filepath scene.blend --action get_scene_info" in run_help  # nosec B101
+    assert "requires --confirm" in close_help  # nosec B101
+    assert "requires --confirm" in set_config_help  # nosec B101
