@@ -77,7 +77,11 @@ def resolve_default_config_path(explicit: ConfigPath | None = None) -> ConfigPat
     env_path = os.environ.get("BLENDERMCP_CONFIG_PATH")
     if env_path:
         return ConfigPath(str(env_path))
-    xdg_path = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "blender-arwaky" / DEFAULT_CONFIG_FILENAME
+    xdg_path = (
+        Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+        / "blender-arwaky"
+        / DEFAULT_CONFIG_FILENAME
+    )
     if xdg_path.exists():
         return ConfigPath(str(xdg_path))
     return ConfigPath(str(Path.cwd() / DEFAULT_CONFIG_FILENAME))

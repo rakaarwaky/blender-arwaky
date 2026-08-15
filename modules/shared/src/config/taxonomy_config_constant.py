@@ -121,6 +121,4 @@ SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
 # Default per-user config directory follows XDG Base Directory when
 # XDG_CONFIG_HOME is set; otherwise ~/.config.
 
-XDG_CONFIG_DIR: Path = Path(
-    os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
-) / "blender-arwaky"
+XDG_CONFIG_DIR: Path = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "blender-arwaky"
