@@ -2,9 +2,7 @@
 
 [![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/downloads/) [![Blender 4.2+](https://img.shields.io/badge/Blender-4.2%2B-E87D0D.svg)](https://www.blender.org/download/) [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
 
-**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, and technical artists. A validated dispatcher presents the same catalog through two surfaces: five stable MCP protocol tools and 75 CLI actions exposed once as `kebab-case` commands. MCP/API actions use `snake_case` and are routed through `execute_command`.
-
-The same action contract is used by both surfaces, with shared validation, diagnostics, response handling, and confirmation for destructive operations.
+**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, and technical artists. A validated dispatcher connects MCP and CLI clients to the same action catalog.
 
 > Blender Python execution is powerful and is not a complete security sandbox. Use disposable workspaces, save important `.blend` files, and isolate untrusted workflows.
 

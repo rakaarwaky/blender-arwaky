@@ -1,6 +1,6 @@
 # Contributing to Blender Arwaky
 
-Thank you for contributing. This document is for developers and maintainers. User installation and usage belong in [README.md](README.md); internal architecture, source layout, tests, quality gates, and pull-request rules belong here.
+Thank you for contributing.
 
 ## Prerequisites
 
@@ -19,7 +19,6 @@ git clone https://github.com/rakaarwaky/blender-arwaky.git
 cd blender-arwaky
 uv sync --dev
 pre-commit install
-uv run pytest -q
 ```
 
 Create a feature branch from `develop`:
@@ -54,15 +53,7 @@ Keep public boundaries typed and explicit. Use focused modules for taxonomy, con
 
 Before implementation, determine whether the capability belongs to an existing category. Update the canonical action schema, executor/service implementation, dispatcher routing, CLI generation, MCP action handling, and tests as one change. Update user-facing README content only when the capability changes what users can install or do; update this document or the relevant technical document for internal workflow changes.
 
-For a new action, verify all of the following:
-
-1. The action has one canonical `snake_case` name.
-2. Its CLI command is generated as the corresponding `kebab-case` name.
-3. Parameters have explicit types, requiredness, defaults, and validation.
-4. Mutating or destructive behavior is classified and guarded.
-5. The MCP `execute_command` path and CLI path use the same dispatcher contract.
-6. Unit, integration, and contract tests cover the new behavior.
-7. Help output, catalog discovery, and error envelopes remain consistent.
+For a new action, use the naming table above and verify that parameters have explicit types, requiredness, defaults, and validation. Classify and guard mutating behavior, route both surfaces through the same dispatcher contract, and add unit, integration, or contract coverage. Confirm that help output, catalog discovery, and error envelopes remain consistent.
 
 ## Testing and quality gates
 
