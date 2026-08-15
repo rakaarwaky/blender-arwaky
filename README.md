@@ -2,32 +2,15 @@
 
 [![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/downloads/) [![Blender 4.2+](https://img.shields.io/badge/Blender-4.2%2B-E87D0D.svg)](https://www.blender.org/download/) [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
 
-**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, technical artists, and local CI. It provides one validated dispatcher behind two client surfaces:
+**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, technical artists, and local CI. A validated dispatcher presents the same catalog through two surfaces: five stable MCP protocol tools and 75 CLI actions exposed once as `kebab-case` commands. MCP/API actions use `snake_case` and are routed through `execute_command`.
 
-- **MCP:** five stable protocol tools.
-- **CLI:** 75 canonical actions exposed once as `kebab-case` commands.
-
-The project follows an **Agents → Executors → Services (AES)** architecture. The canonical dispatcher catalog is the source of truth for action names, owners, descriptions, parameters, and routing.
+The project follows an **Agents → Executors → Services (AES)** architecture. The canonical dispatcher catalog is the source of truth for action names, owners, descriptions, parameters, and routing. Shared validation, response envelopes, diagnostics, destructive-action confirmation, and CI architecture gates keep both surfaces aligned.
 
 > Blender Python execution is powerful and is not a complete security sandbox. Use disposable workspaces, save important `.blend` files, and isolate untrusted workflows.
 
-## Current status
-
-| Item | Current status |
-|---|---|
-| MCP protocol surface | 5 stable tools: `execute_command`, `list_commands`, `health_check`, `get_config`, `help` |
-| Canonical action catalog | 75 actions across 15 categories |
-| CLI contract | `blender-arwaky <action-kebab-case> [flags]` |
-| MCP/API action contract | `execute_command(action="action_snake_case", args={...})` |
-| Compatibility | Blender 4.2+; Python 3.10+ |
-| Quality gates | Ruff, Bandit, Pytest, integration contracts, artifact build, Codacy, and `lint-arwaky-cli scan .` |
-| Branch status | Full migration merged into `develop` through PR [#201](https://github.com/rakaarwaky/blender-arwaky/pull/201) |
-
 ## Why use it?
 
-Blender Arwaky favors a small, governed MCP boundary over dozens of independently versioned MCP tools. MCP clients and the CLI submit the same catalog actions, while shared validation, response envelopes, diagnostics, and destructive-action confirmation keep behavior consistent across surfaces.
-
-The project is strongest when you need **deterministic Blender automation, discoverable schemas, CLI/MCP parity, CI-verifiable architecture, and an explicit current scope**. It is not a hosted SaaS product, bundled LLM, or complete wrapper for every Blender operator.
+Blender Arwaky is designed for **deterministic Blender automation, discoverable schemas, CLI/MCP parity, and governed local execution**. It is not a hosted SaaS product, bundled LLM, or complete wrapper for every Blender operator.
 
 ## Installation
 
