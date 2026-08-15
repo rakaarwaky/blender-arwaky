@@ -27,6 +27,8 @@ from modules.plugin.src.taxonomy_plugin_vo import (
     PluginVersion,
 )
 
+from .plugin_runtime_facts import Mpfb2RuntimeFacts, probe_blender_runtime
+
 
 class Mpfb2PluginOperation(PluginOperationProtocol):
     """Provider operation port for an externally installed MPFB 2 add-on."""
@@ -36,10 +38,12 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
         installed: bool = False,
         active: bool = False,
         blender_min_version: BlenderVersion | None = None,
+        blender_version: BlenderVersion | None = None,
     ) -> None:
         self._installed = installed
         self._active = active
         self._blender_min_version = blender_min_version or BlenderVersion("4.2")
+        self._blender_version = blender_version or self._blender_min_version
 
     def manifest(self) -> PluginManifestVO:
         """Return provider metadata without importing MPFB2."""
@@ -71,7 +75,10 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
 
     def health_check(self) -> PluginHealthVO:
         """Return current provider state without executing an operation."""
-        compatible = self._is_compatible(BlenderVersion("4.2"), self._blender_min_version)
+        compatible = self._is_compatible(
+            self._blender_version,
+            self._blender_min_version,
+        )
         return PluginHealthVO(
             plugin_id=PluginId("mpfb2"),
             installed=self._installed,
@@ -129,3 +136,13 @@ def create_provider(
 ) -> Mpfb2PluginOperation:
     """Create the optional MPFB2 provider boundary."""
     return Mpfb2PluginOperation(installed=installed, active=active)
+
+
+def create_runtime_provider(runtime: object | None = None) -> Mpfb2PluginOperation:
+    """Create a provider from a controlled Blender runtime probe."""
+    facts: Mpfb2RuntimeFacts = probe_blender_runtime(runtime)
+    return Mpfb2PluginOperation(
+        installed=facts.installed,
+        active=facts.active,
+        blender_version=facts.blender_version,
+    )

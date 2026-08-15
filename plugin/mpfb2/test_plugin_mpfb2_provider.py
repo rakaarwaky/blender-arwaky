@@ -5,7 +5,8 @@ from modules.plugin.src.taxonomy_plugin_vo import (
     PluginActionName,
     PluginParameterMap,
 )
-from plugin.mpfb2.plugin_entry import Mpfb2PluginOperation
+from plugin.mpfb2.plugin_entry import Mpfb2PluginOperation, create_runtime_provider
+from plugin.mpfb2.plugin_runtime_facts import probe_blender_runtime
 
 
 def test_mpfb2_absent_provider_is_optional() -> None:
@@ -37,6 +38,39 @@ def test_mpfb2_rejects_unsupported_operation() -> None:
 
     assert result.success is False
     assert result.message == "unsupported"
+
+
+def test_runtime_probe_reads_enabled_mpfb2_addon() -> None:
+    class FakeAddons:
+        def keys(self) -> tuple[str, ...]:
+            return ("mpfb", "other_addon")
+
+    class FakePreferences:
+        addons = FakeAddons()
+
+    class FakeContext:
+        preferences = FakePreferences()
+
+    class FakeApp:
+        version = (4, 3, 0)
+
+    class FakeBlender:
+        app = FakeApp()
+        context = FakeContext()
+
+    facts = probe_blender_runtime(FakeBlender())
+    provider = create_runtime_provider(FakeBlender())
+
+    assert facts.installed is True
+    assert facts.active is True
+    assert provider.discover(facts.blender_version).compatible is True
+
+
+def test_runtime_probe_without_blender_is_unavailable() -> None:
+    facts = probe_blender_runtime(object())
+
+    assert facts.installed is False
+    assert facts.active is False
 
 
 def test_mpfb2_reports_incompatible_blender() -> None:
