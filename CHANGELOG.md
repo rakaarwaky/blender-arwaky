@@ -17,6 +17,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Full migration removes the duplicate `execute_code` command vocabulary; `execute_blender_code` is now the sole canonical action and addon wire command.
+- Gateway connection errors use canonical `BlenderConnectionExhaustedError` and `BlenderConnectionFailureError` names without compatibility aliases.
+- MCP/CLI onboarding points to the embedded `help` surface instead of the removed `read_skill_context` path.
 - Pytest discovery and coverage now target the actual `modules/` and `blender_mcp_addon/` source layout.
 - Release and contributor workflows now use the current `develop` branch and repository paths.
 

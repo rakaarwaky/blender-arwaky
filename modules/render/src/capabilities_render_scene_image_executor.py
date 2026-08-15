@@ -112,7 +112,7 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
 
         try:
             code = build_scene_render_code(normalized)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
             metrics = parse_render_result(raw)
 
             event = SceneRenderCompletedEvent(
@@ -265,7 +265,7 @@ class RenderSceneImageExecutor(IRenderSceneImageProtocol):
 
         return result
 
-    async def _execute_code(self, code: PythonCode) -> Prompt:
+    async def _execute_blender_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: RenderSceneVO, message: Prompt) -> RenderSceneVO:

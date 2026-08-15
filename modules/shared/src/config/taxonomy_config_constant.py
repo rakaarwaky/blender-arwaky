@@ -33,7 +33,7 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 # ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
-WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"  # replaces both legacy+product root lookup
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"
 STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 
@@ -97,7 +97,7 @@ MAX_CONFIG_SIZE_BYTES: int = 1024 * 1024  # 1 MiB
 
 # ─── Environment Override Prefix (FR-CFG-001) ───────────────
 
-ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"  # legacy BLENDER_MCP_ prefix removed (v1.7.0 BREAKING)
+ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"
 
 # ─── Redaction Placeholder (FR-CFG-005) ──────────────────────
 
@@ -112,8 +112,7 @@ DEFAULT_POLICY_MODE: str = "strict"
 
 # ─── Sentinel (FR-CFG-002) ──────────────────────────────────
 # Used by the retriever to distinguish "key missing" from a value that
-# happens to be None.  Previously a private module-level `_MISSING` in
-# taxonomy_config_vo; promoted to a public constant for cross-module use.
+# happens to be None.
 
 SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
 

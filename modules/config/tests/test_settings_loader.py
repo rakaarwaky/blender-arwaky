@@ -199,8 +199,8 @@ def test_reserved_keys_not_applied(monkeypatch):
 
 
 @pytest.mark.unit
-def test_legacy_prefix_ignored(monkeypatch):
-    monkeypatch.setenv("BLENDER_MCP_FOO", "1")  # legacy, ignored
+def test_unsupported_prefix_ignored(monkeypatch):
+    monkeypatch.setenv("BLENDER_MCP_FOO", "1")  # unsupported, ignored
     loader = SettingsLoaderCapability()
     snap = loader.load_settings()
     assert "foo" not in snap.get("")

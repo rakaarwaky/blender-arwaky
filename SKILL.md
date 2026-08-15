@@ -1,6 +1,6 @@
 # BlenderArwaky — Skill Guide
 
-Reference for AI agents using BlenderArwaky. Use `read_skill_context(section="...")` to read specific sections.
+Reference for AI agents using BlenderArwaky. Use the MCP `help` tool or `blender-arwaky help` to read usage guidance.
 
 Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`, `addon`, `troubleshooting`.
 
@@ -18,7 +18,7 @@ Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`,
 | `list_commands` | Discover available actions and parameters |
 | `health_check` | Verify Blender connectivity and system health |
 | `get_config` | Retrieve BlenderArwaky configuration settings |
-| `read_skill_context` | Read SKILL.md sections for guidance |
+| `help` | Read embedded MCP and CLI usage guidance |
 
 ### `execute_command`
 

@@ -50,7 +50,7 @@ class IBlenderConnectionProtocol(ABC):
 
         Success: Returns ConnectionStatus with state='connected'
         Failure: Raises ConnectionConfigError, AuthenticationError,
-                 VersionMismatchError, or BlenderConnectionExhausted
+                 VersionMismatchError, or BlenderConnectionExhaustedError
         Event: ConnectionEstablished(host, port, transport_type)
         """
         ...

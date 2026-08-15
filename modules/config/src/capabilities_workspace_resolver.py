@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     """FR-CFG-003: Resolve project workspace directory.
 
-    Resolution order (per FRD minus legacy per Q8):
+    Resolution order (per FRD configuration policy):
       explicit override > env BLENDERMCP_ROOT > settings-file parent >
       marker search > platform config > cwd fallback.
     Result is cached for process lifetime.
@@ -78,7 +78,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
                 self._explicit_override,
             )
 
-        # 2. Environment signal (BLENDERMCP_ROOT only — legacy removed, Q8)
+        # 2. Environment signal (BLENDERMCP_ROOT only)
         env_root = os.environ.get(WORKSPACE_ROOT_ENV)
         if env_root:
             try:

@@ -475,7 +475,7 @@ def _collect_params(args: argparse.Namespace) -> dict[str, object]:
 
 
 def _normalize_result(result: dict[str, object]) -> dict[str, object]:
-    """Normalize legacy surface results to the FRD machine-readable envelope."""
+    """Normalize surface results to the FRD machine-readable envelope."""
     normalized = dict(result)
     if normalized.get("success"):
         normalized.setdefault("data", normalized.get("result"))

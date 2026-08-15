@@ -261,8 +261,7 @@ class BlenderMCPServer:
             "configure_bone_constraint": self.configure_bone_constraint,
             "configure_shape_key": self.configure_shape_key,
             "get_deformation_state": self.get_deformation_state,
-            "execute_code": self.execute_code,
-            "execute_blender_code": self.execute_code,
+            "execute_blender_code": self.execute_blender_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
             "download_polyhaven_asset": polyhaven.download_polyhaven_asset,
@@ -2023,7 +2022,7 @@ class BlenderMCPServer:
             "uv_layer_name": layer.name,
         }
 
-    def execute_code(self, code):
+    def execute_blender_code(self, code):
         out = io.StringIO()
         try:
             with redirect_stdout(out):

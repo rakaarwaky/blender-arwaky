@@ -132,7 +132,7 @@ class CommandTimeoutError(ServerError):
         )
 
 
-# ─── Queue Errors (renamed v2.0.0) ──────────────────────────────
+# ─── Queue Errors ──────────────────────────────────────────────
 
 
 class PendingOpsLimitError(ServerError):
@@ -157,8 +157,7 @@ class PendingOpsLimitError(ServerError):
 class OperationWaitTimeoutError(ServerError):
     """Raised when a queued operation exceeds the configured wait timeout.
 
-    Renamed from QueueTimeoutError in v2.0.0.
-    Error code: 'operation_wait_timeout'
+    Error code: 'operation_wait_timeout'.
     """
 
     def __init__(
@@ -204,8 +203,7 @@ class AuthenticationError(ServerError):
 class VersionMismatchError(ServerError):
     """Raised when server and Blender addon protocol versions are incompatible.
 
-    Renamed from ProtocolVersionMismatchError in v2.0.0.
-    Error code: 'version_mismatch'
+    Error code: 'version_mismatch'.
     """
 
     def __init__(
@@ -283,8 +281,3 @@ class AdapterSurfaceError(ServerError):
 
     def __init__(self, message: ErrorString = DEFAULT_ADAPTER_MSG, _details: Details | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)
-
-
-# Backward-compatible aliases for callers using the pre-v2 taxonomy names.
-BlenderConnectionExhausted = BlenderConnectionExhaustedError
-BlenderConnectionFailure = BlenderConnectionFailureError

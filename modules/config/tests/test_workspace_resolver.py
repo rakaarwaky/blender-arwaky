@@ -1,4 +1,4 @@
-"""T-10: WorkspaceResolverCapability — strategy order, caching, concurrency, legacy regression."""
+"""T-10: WorkspaceResolverCapability — strategy order, caching, and concurrency."""
 
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ def test_env_signal_strategy(monkeypatch):
 
 
 @pytest.mark.unit
-def test_blender_mcp_root_legacy_ignored(monkeypatch):
-    # Q8 regression: legacy BLENDER_MCP_ROOT must NOT be honored
+def test_blender_mcp_root_unsupported_ignored(monkeypatch):
+    # Q8 regression: unsupported BLENDER_MCP_ROOT must NOT be honored
     d = tempfile.mkdtemp()
     monkeypatch.setenv("BLENDER_MCP_ROOT", d)
     monkeypatch.delenv("BLENDERMCP_ROOT", raising=False)

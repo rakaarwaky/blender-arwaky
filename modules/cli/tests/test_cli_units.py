@@ -6,10 +6,8 @@ They establish a pytest baseline for the CLI module without depending on
 the (currently absent) ``modules.shared`` contract/dependency layer that
 the FRD-aligned capability/agent/container code requires.
 
-NOTE: The legacy monolith files (``surface_cli_main``/``surface_cli_commands``
-and their broken intra-module imports) are intentionally NOT exercised here;
-they violate the CLI FRD scope and are tracked as findings in the review
-plan/report.
+These tests intentionally remain dependency-free and cover only the
+stdlib helpers that form the current CLI support surface.
 """
 
 import importlib.util as _importlib_util

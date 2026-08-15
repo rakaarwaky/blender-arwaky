@@ -98,8 +98,8 @@ _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
         mutates_scene=False,
         background_allowed=False,
     ),
-    "execute_code": ServerCommandSpec(
-        name="execute_code",
+    "execute_blender_code": ServerCommandSpec(
+        name="execute_blender_code",
         required_params=("code",),
         optional_params=("timeout_ms",),
         param_types=ServerCommandSpec._make_param_types({"code": "str", "timeout_ms": "int"}),

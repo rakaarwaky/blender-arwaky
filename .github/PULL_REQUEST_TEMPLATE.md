@@ -97,7 +97,7 @@ uv run ruff check modules blender_mcp_addon scripts
 
 - [ ]  I have updated `README.md` (if user-facing change)
 - [ ]  I have updated `AGENT.md` (if agent command change)
-- [x]  I have updated `SKILL.md` (if MCP / CLI tool change)
+- [ ]  I have verified embedded `help` guidance and canonical command catalog (if MCP / CLI tool change)
 - [ ]  I have updated `TEST.md` (if test pattern change)
 - [x]  I have added an entry to `CHANGELOG.md` under `[Unreleased]`
 

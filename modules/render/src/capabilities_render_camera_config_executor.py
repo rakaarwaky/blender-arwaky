@@ -61,7 +61,7 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
 
         try:
             code = build_camera_config_code(request)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
             metrics = parse_camera_config_result(raw)
 
             if not str(metrics.resolved_camera_ref).strip():
@@ -125,7 +125,7 @@ class RenderCameraConfigExecutor(IRenderCameraConfigProtocol):
 
         return None
 
-    async def _execute_code(self, code: PythonCode) -> Prompt:
+    async def _execute_blender_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: CameraConfigVO, message: Prompt) -> CameraConfigVO:

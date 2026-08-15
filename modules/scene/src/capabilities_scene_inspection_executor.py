@@ -55,7 +55,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
         """Retrieve scene state summary."""
         try:
             code = build_inspection_code(request)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
 
             if not isinstance(raw, str):
                 return SceneInspectionVO(
@@ -131,7 +131,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
-    async def _execute_code(self, code: PythonCode) -> str:
+    async def _execute_blender_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
         return result.output if hasattr(result, "output") else str(result)

@@ -83,7 +83,7 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
 
         try:
             code = build_hdri_config_code(normalized)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
             metrics = parse_hdri_config_result(raw)
 
             if not str(metrics.environment_ref).strip():
@@ -171,7 +171,7 @@ class RenderHdriConfigExecutor(IRenderHdriConfigProtocol):
         if not result.allowed:
             raise Exception(result.denial_reason or "Path validation denied by security policy")
 
-    async def _execute_code(self, code: PythonCode) -> Prompt:
+    async def _execute_blender_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: HdriConfigVO, message: Prompt) -> HdriConfigVO:

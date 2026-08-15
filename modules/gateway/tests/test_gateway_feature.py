@@ -67,7 +67,7 @@ class MockSceneQueue(SceneQueueProtocol):
 class MockCodeExecutor(CodeExecutionProtocol):
     """Mock code executor for testing."""
 
-    def execute_code(self, _request: CodeExecutionVO) -> object:
+    def execute_blender_code(self, _request: CodeExecutionVO) -> object:
         from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
 
         return CodeExecutionOutcomeVO(status="success", output="hello")
@@ -181,14 +181,14 @@ def test_fr_gwy_004_get_queue_status():
 # ─── FR-GWY-005: Execute Raw Python Code ──────────────────────────────────
 
 
-def test_fr_gwy_005_execute_code():
+def test_fr_gwy_005_execute_blender_code():
     """Test that code execution succeeds with security validation."""
     feat = _make_orchestrator()
     request = CodeExecutionVO(
         tracking_id=str(uuid.uuid4()),
         code="print('hello')",
     )
-    result = feat.execute_code(request)
+    result = feat.execute_blender_code(request)
     assert result.status == "success"
 
 
@@ -251,14 +251,14 @@ def test_gateway_code_execution_with_output():
     """Test that code execution captures output."""
 
     class OutputExecutor(CodeExecutionProtocol):
-        def execute_code(self, _request: CodeExecutionVO) -> object:
+        def execute_blender_code(self, _request: CodeExecutionVO) -> object:
             from modules.shared.src.gateway.taxonomy_gateway_vo import CodeExecutionOutcomeVO
 
             return CodeExecutionOutcomeVO(status="success", output="42")
 
     feat = _make_orchestrator(code_executor=OutputExecutor())
     request = CodeExecutionVO(tracking_id=str(uuid.uuid4()), code="1 + 41")
-    result = feat.execute_code(request)
+    result = feat.execute_blender_code(request)
     assert result.output == "42"
 
 

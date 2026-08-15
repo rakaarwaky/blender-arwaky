@@ -40,8 +40,8 @@ All features.
 - **Description**: Load from all sources, apply precedence, validate merged result, expose single immutable snapshot
 - **Input**: Optional settings location override, optional runtime override mapping
 - **Output**: Immutable settings snapshot
-- **Rules**: Precedence: runtime overrides > environment > file > built-in defaults. Safe parsing only — no arbitrary object instantiation. UTF-8 encoding. Missing file → falls back to env+defaults (never fatal). Default path `<cwd>/config.yaml` when no explicit path and `BLENDERMCP_CONFIG_PATH` unset. Policy: strict (default) or permissive (opt-in). First load thread-safe (double-checked locking). Malformed content → ConfigError (strict) or warning+fallback (permissive). Schema violation → ValidationError (strict) or warning (permissive). Schema = Python-native mapping `SETTINGS_SCHEMA`; unknown keys warn, type/required violations error. Env values converted: bool-like→bool, int-like→int, float-like→float, null-like→empty, else string. Env values scalar-only (no list/map parsing). Prefix: `BLENDERMCP_` only — legacy `BLENDER_MCP_` ignored (v1.7.0 BREAKING). Snapshot immutable after load. Reload atomic under sync. Failed load never exposes partial state. Failed reload retains previous valid snapshot unless strict requires failure. Max source size: 1 MiB (`MAX_CONFIG_SIZE_BYTES`); oversized → ConfigError (strict) or skip file+warning (permissive, gated by `BLENDERMCP_STRICT`). Secrets never echoed in metadata/logs/diagnostics.
-- **Edge Cases**: Missing/malformed/empty file, permission denied, duplicate keys, unsupported tags, oversized, non-UTF-8, env conflict, legacy prefix, schema unavailable, secret values, symlinked location, location pointing to directory
+- **Rules**: Precedence: runtime overrides > environment > file > built-in defaults. Safe parsing only — no arbitrary object instantiation. UTF-8 encoding. Missing file → falls back to env+defaults (never fatal). Default path `<cwd>/config.yaml` when no explicit path and `BLENDERMCP_CONFIG_PATH` unset. Policy: strict (default) or permissive (opt-in). First load thread-safe (double-checked locking). Malformed content → ConfigError (strict) or warning+fallback (permissive). Schema violation → ValidationError (strict) or warning (permissive). Schema = Python-native mapping `SETTINGS_SCHEMA`; unknown keys warn, type/required violations error. Env values converted: bool-like→bool, int-like→int, float-like→float, null-like→empty, else string. Env values scalar-only (no list/map parsing). Prefix: `BLENDERMCP_` only; other prefixes are ignored. Snapshot immutable after load. Reload atomic under sync. Failed load never exposes partial state. Failed reload retains previous valid snapshot unless strict requires failure. Max source size: 1 MiB (`MAX_CONFIG_SIZE_BYTES`); oversized → ConfigError (strict) or skip file+warning (permissive, gated by `BLENDERMCP_STRICT`). Secrets never echoed in metadata/logs/diagnostics.
+- **Edge Cases**: Missing/malformed/empty file, permission denied, duplicate keys, unsupported tags, oversized, non-UTF-8, env conflict, unsupported prefix, schema unavailable, secret values, symlinked location, location pointing to directory
 - **Error Handling**: ConfigError (missing/unreadable/malformed), ValidationError (schema violation), LoadError (oversized/unsafe), permissive fallback warnings
 
 ### FR-CFG-002: Retrieve Settings Values
@@ -77,7 +77,7 @@ All features.
 - **Input**: None
 - **Output**: Settings metadata (source, exists, overrides, parse_warnings, validation_warnings)
 - **Rules**: Must include exactly: `source`, `exists`, `overrides` (env overrides only — excludes caller-scoped runtime overrides), `parse_warnings`, `validation_warnings`. No secret values. No raw settings content by default. Override names may be listed; sensitive values redacted. Safe for diagnostics, CLI, and MCP responses. Reflects current active snapshot. Never mutates state.
-- **Edge Cases**: Settings file missing, legacy overrides, sensitive override values, validation warnings present, permissive fallback, reload in progress, metadata before first load, oversized warning list
+- **Edge Cases**: Settings file missing, unsupported overrides, sensitive override values, validation warnings present, permissive fallback, reload in progress, metadata before first load, oversized warning list
 - **Error Handling**: Partial metadata when details unavailable; redaction failure → omit affected field
 
 ### FR-CFG-005: Provide Redaction Rules
@@ -114,7 +114,7 @@ Payloads: category, source summary, override count, warning count, policy mode, 
 | workspace_directory | Project root for file ops | Resolved via deterministic strategies |
 | sensitive_key_list | Keys treated as secret | Common token/key/password/credential patterns |
 | env_override_prefix | Env var prefix recognized | BLENDERMCP_ |
-| legacy_env_fallback | Accept BLENDER_MCP_ prefix | Disabled (v1.7.0 BREAKING) |
+| unsupported_env_prefix | Accept only BLENDERMCP_ prefix | Other prefixes ignored |
 | policy_mode | strict/permissive | strict |
 | max_settings_size | Max source size | 1 MiB |
 | default_values_source | Built-in defaults | Feature-defined safe defaults |
@@ -129,7 +129,7 @@ Payloads: category, source summary, override count, warning count, policy mode, 
 - [ ] Unsafe content rejected without object instantiation
 - [ ] Max 1 MiB enforced
 - [ ] Env values scalar-only (no list/map parsing)
-- [ ] Legacy BLENDER_MCP_ prefix ignored
+- [ ] Unsupported BLENDER_MCP_ prefix ignored
 - [ ] Concurrent first access loads once
 - [ ] Reload atomic; failed reload retains previous snapshot
 - [ ] Immutable snapshot returned on retrieve
