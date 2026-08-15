@@ -153,40 +153,6 @@ def _schema_arg_options(name: str, spec: dict[str, object]) -> dict[str, object]
     return options
 
 
-def _snake_to_kebab(value: str) -> str:
-    """Convert canonical MCP/API names to their CLI command spelling."""
-    return value.replace("_", "-")
-
-
-def _schema_arg_options(name: str, spec: dict[str, object]) -> dict[str, object]:
-    """Build argparse options from one canonical action parameter schema."""
-    options: dict[str, object] = {
-        "dest": name,
-        "help": str(spec.get("description", name.replace("_", " "))),
-    }
-    if spec.get("required"):
-        options["required"] = True
-    if "enum" in spec:
-        options["choices"] = list(spec["enum"])
-    parameter_type = str(spec.get("type", "string"))
-    if parameter_type == "boolean":
-        options["action"] = "store_true"
-        options["default"] = None
-    elif parameter_type == "integer":
-        options["type"] = int
-    elif parameter_type == "number":
-        options["type"] = float
-    elif parameter_type == "array[number]":
-        options["nargs"] = 3
-        options["type"] = float
-        options["metavar"] = ("X", "Y", "Z")
-    elif parameter_type == "array[string]":
-        options["action"] = "append"
-    elif parameter_type == "any":
-        options["type"] = str
-    return options
-
-
 def _build_parser() -> CliArgumentParser:
     """Build one CLI command for every canonical dispatcher action."""
     from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
