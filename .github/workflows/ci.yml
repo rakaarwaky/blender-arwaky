@@ -71,9 +71,7 @@ jobs:
             | sha256sum --check --status
           chmod +x "$RUNNER_TEMP/lint-arwaky-cli"
           "$RUNNER_TEMP/lint-arwaky-cli" version
-      - name: AES naming sub-check (must be zero violations)
-        run: "$RUNNER_TEMP/lint-arwaky-cli naming modules"
-      - name: AES architecture sub-check (must be zero violations)
+      - name: AES full architecture scan (must be zero violations)
         run: "$RUNNER_TEMP/lint-arwaky-cli scan ."
 
   test:
