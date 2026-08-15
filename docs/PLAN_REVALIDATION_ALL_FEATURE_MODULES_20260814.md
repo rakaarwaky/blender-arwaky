@@ -45,8 +45,8 @@ The required `.agents/rules/README.md` index is still absent. This remains a doc
 
 ## References
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- [`PRD.md`](PRD.md)
-- [`RULES_AES.md`](.agents/rules/RULES_AES.md)
-- [`Original plans`](.agents/plans/)
+- [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+- [`PRD.md`](../PRD.md)
+- [`RULES_AES.md`](../.agents/rules/RULES_AES.md)
+- [`Original plans`](../.agents/plans/)
 - [`Evidence ledger`](PLAN_REVALIDATION_EVIDENCE_20260814.md)

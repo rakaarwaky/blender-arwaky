@@ -32,8 +32,8 @@ The revised plans are the only safe execution source. First resolve all `needs-c
 
 ## References
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- [`PRD.md`](PRD.md)
-- [`RULES_AES.md`](.agents/rules/RULES_AES.md)
+- [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+- [`PRD.md`](../PRD.md)
+- [`RULES_AES.md`](../.agents/rules/RULES_AES.md)
 - [`PLAN_REVALIDATION_ALL_FEATURE_MODULES_20260814.md`](PLAN_REVALIDATION_ALL_FEATURE_MODULES_20260814.md)
-- [`Revalidated plans`](.agents/plans/)
+- [`Revalidated plans`](../.agents/plans/)
