@@ -115,7 +115,7 @@ jobs:
 
       - name: Run cross-feature contract tests
         run: >-
-          uv run pytest -q --tb=short
+          uv run pytest --no-cov -q --tb=short
           modules/cli/tests/test_cli_dispatch_integration.py
           modules/cli/tests/test_cli_frd_subcommands.py
           modules/mcp/tests/test_issue198_runtime.py

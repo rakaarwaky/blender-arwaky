@@ -19,6 +19,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Removed test lint violations without changing HTTP adapter keyword contracts or pytest fixture discovery.
+- Removed the obsolete pytest.ini shadow so pyproject pytest-cov settings and coverage artifacts are applied consistently in local and remote CI.
 
 ## [1.7.0] - 2026-07-XX
 
