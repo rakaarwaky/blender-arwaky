@@ -79,7 +79,7 @@ class CliActionRouter:
         if action_name in self._ASSET_ACTIONS:
             return self._execute_asset(action_name, params)
 
-        wire_action = "execute_code" if action_name == "execute_blender_code" else action_name
+        wire_action = action_name
         with BlenderSocketClient(port=Registry().get_port()) as client:
             response = client.send_command(wire_action, params)
         if response.get("status") != "success":

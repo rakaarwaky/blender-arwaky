@@ -47,7 +47,7 @@ def test_apply_env_overrides_basic():
         "BLENDERMCP_BLENDER.PORT": "9999",
         "BLENDERMCP_SERVER.TRANSPORT": "ws",
         "BLENDERMCP_CONFIG_PATH": "/x",  # reserved, skipped
-        "BLENDER_MCP_OLD": "1",  # legacy, not matched
+        "BLENDER_MCP_OLD": "1",  # unsupported, not matched
     }
     result, count = apply_env_overrides(config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",))
     assert result["blender"]["port"] == 9999

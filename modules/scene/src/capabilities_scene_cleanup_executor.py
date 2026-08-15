@@ -82,7 +82,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
             )
             code = build_cleanup_code(policy, request.dry_run)
 
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
             metrics = parse_cleanup_metrics(raw)
 
             if request.dry_run:
@@ -223,7 +223,7 @@ class SceneCleanupExecutor(ISceneCleanupProtocol):
 
         return None
 
-    async def _execute_code(self, code: PythonCode) -> str:
+    async def _execute_blender_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
         output = result.output if hasattr(result, "output") else str(result)

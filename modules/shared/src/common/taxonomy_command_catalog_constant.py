@@ -143,7 +143,7 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
     # Infrastructure
     "execute_blender_code": {
         "description": "Execute arbitrary Python code in Blender",
-        "capability": "BlenderPort.execute_code",
+        "capability": "BlenderPort.execute_blender_code",
         "parameters": {"code": "The Python code to execute"},
         "domain": "infrastructure",
         "returns": "Execution output string",

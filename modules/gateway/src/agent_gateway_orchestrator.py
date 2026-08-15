@@ -124,10 +124,10 @@ class GatewayOrchestrator(IGatewayAggregate):
         """FR-GWY-004: Get queue status."""
         return self._scene_queue.get_queue_status()
 
-    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
+    def execute_blender_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         """FR-GWY-005: Execute raw Python code."""
         logger.debug("Executing code: tracking_id=%s", request.tracking_id)
-        return self._code_executor.execute_code(request)
+        return self._code_executor.execute_blender_code(request)
 
     # \u2500\u2500 Block 3: Dunder Methods, Factories & Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 

@@ -100,7 +100,7 @@ class Registry(IRegistryProtocol):
         if not self._state.active_entity:
             return CliResultVo(
                 success=False,
-                error="No active Blender instance. Run: blender-arwaky init --filepath <path>",
+                error="No active Blender instance. Run: blender-arwaky launch-blender --filepath <path>",
                 category="state",
                 ref="cli-409",
             )

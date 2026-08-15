@@ -32,7 +32,7 @@ Kelima, action render belum tersedia pada dispatch table addon. Handler `render`
 
 ## Action CLI yang Tervalidasi
 
-Action yang tervalidasi secara langsung adalah `get_scene_info`, `get_object_info`, dan `render`. Action `execute_code` bukan action CLI resmi pada katalog dispatcher saat ini; action tersebut adalah command TCP addon legacy dan sengaja ditolak CLI dengan `validation_error`.
+Action yang tervalidasi secara langsung adalah `get_scene_info`, `get_object_info`, dan `render`. Action `execute_blender_code` adalah canonical dispatcher action dan diakses melalui CLI `execute-blender-code` serta MCP `execute_command`.
 
 ## Verifikasi Regresi
 

@@ -22,7 +22,7 @@ def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]
 
     try:
         with BlenderSocketClient(port=port) as client:
-            client.send_command("execute_code", {"code": "import bpy\nbpy.ops.wm.save_mainfile()"})
+            client.send_command("execute_blender_code", {"code": "import bpy\nbpy.ops.wm.save_mainfile()"})
     except Exception:
         save_failed = True
 

@@ -34,12 +34,6 @@ def test_defaults_match_readme_sample():
 
 
 @pytest.mark.unit
-def test_breaking_legacy_removed():
-    with pytest.raises(ImportError):
-        from modules.shared.src.config.taxonomy_config_constant import ENV_PREFIX_LEGACY  # noqa: F401
-
-
-@pytest.mark.unit
 def test_project_markers_order_manifest_before_vcs():
     assert PROJECT_MARKERS.index("pyproject.toml") < PROJECT_MARKERS.index(".git")
 

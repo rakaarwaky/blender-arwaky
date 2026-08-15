@@ -84,7 +84,7 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         try:
             start_time = time.perf_counter()
             code = build_viewport_capture_code(request)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
             artifact_path, width, height, resolved_format = parse_artifact_result(raw)
             duration_ms = DurationMs(round((time.perf_counter() - start_time) * 1000.0, 1))
 
@@ -179,7 +179,7 @@ class RenderViewportCaptureExecutor(IRenderViewportCaptureProtocol):
         if not result.allowed:
             raise Exception(result.denial_reason or "Path validation denied by security policy")
 
-    async def _execute_code(self, code: PythonCode) -> Prompt:
+    async def _execute_blender_code(self, code: PythonCode) -> Prompt:
         return await self._code_executor.execute_python(code)
 
     def _failure(self, request: ViewportCaptureVO, message: Prompt) -> ViewportCaptureVO:

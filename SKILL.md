@@ -1,6 +1,6 @@
 # BlenderArwaky — Skill Guide
 
-Reference for AI agents using BlenderArwaky. Use `read_skill_context(section="...")` to read specific sections.
+Reference for AI agents using BlenderArwaky. Use the MCP `help` tool or `blender-arwaky help` to read usage guidance.
 
 Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`, `addon`, `troubleshooting`.
 
@@ -18,7 +18,7 @@ Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`,
 | `list_commands` | Discover available actions and parameters |
 | `health_check` | Verify Blender connectivity and system health |
 | `get_config` | Retrieve BlenderArwaky configuration settings |
-| `read_skill_context` | Read SKILL.md sections for guidance |
+| `help` | Read embedded MCP and CLI usage guidance |
 
 ### `execute_command`
 
@@ -45,67 +45,62 @@ Setiap aksi punya sub-command sendiri dengan argument khusus:
 
 **Launcher**
 ```
-blender-arwaky init --filepath <path> [--mode gui|headless] [--port <port>]
-blender-arwaky close --filepath <path>
-blender-arwaky status
-blender-arwaky register [--path <path>]
+blender-arwaky launch-blender --filepath <path> [--mode interface|headless] [--port <port>]
+blender-arwaky shutdown-blender [--force]
+blender-arwaky get-runtime-status
+blender-arwaky register-executable [--path <path>]
 ```
 
 **Scene**
 ```
-blender-arwaky scene-info
-blender-arwaky scene-cleanup --mode all|objects|meshes
-blender-arwaky set-env --hdri-id <id> [--strength <float>]
+blender-arwaky get-scene-info
+blender-arwaky cleanup-scene --mode all|objects|meshes
+blender-arwaky setup-environment --hdri-id <id> [--strength <float>]
 ```
 
 **Object**
 ```
-blender-arwaky object-info --name <object_name>
-blender-arwaky create --type SPHERE|CUBE|CYLINDER|PLANE|CONE|TORUS [--location x,y,z] [--scale x,y,z] [--name <name>]
-blender-arwaky set-transform --name <object_name> [--location x,y,z] [--rotation x,y,z] [--scale x,y,z]
-blender-arwaky delete --name <object_name>
+blender-arwaky get-object-info --object-name <object_name>
+blender-arwaky create-primitive --primitive-type SPHERE|CUBE|CYLINDER|PLANE|CONE|TORUS [--location X Y Z] [--scale X Y Z] [--name <name>]
+blender-arwaky set-object-transform --object-name <object_name> [--location X Y Z] [--rotation X Y Z] [--scale X Y Z]
+blender-arwaky delete-object --object-name <object_name>
 blender-arwaky set-material --name <object_name> --material <material_name>
 blender-arwaky apply-modifier --name <object_name> --modifier <modifier_name>
 ```
 
 **Viewport & Render**
 ```
-blender-arwaky screenshot --filepath <path> --output <path> [--max-size <px>] [--view-angle PERSPECTIVE|TOP|FRONT|SIDE] [--shading WIREFRAME|SOLID|MATERIAL|RENDERED] [--no-overlays] [--focus-object <name>]
-blender-arwaky render --filepath <path> --output <path> [--resolution-x <px>] [--resolution-y <px>]
+blender-arwaky get-viewport-screenshot --output <path> [--max-size <px>] [--view-angle PERSPECTIVE|TOP|FRONT|SIDE] [--shading-mode WIREFRAME|SOLID|MATERIAL|RENDERED] [--show-overlays]
+blender-arwaky render --output <path> [--resolution-x <px>] [--resolution-y <px>]
 ```
 
 **Import / Export / Asset**
 ```
-blender-arwaky import --file <path> [--name <object_name>]
-blender-arwaky export --name <object_name> --output <path> [--format glb|fbx|obj]
+blender-arwaky import-glb --file-path <path> [--object-name <object_name>]
+blender-arwaky export-model --object-name <object_name> --file-path <path> [--export-format glb|fbx|obj]
 blender-arwaky place-asset --asset-id <id> [--location x,y,z] [--rotation x,y,z] [--scale x,y,z]
 ```
 
 **Job**
 ```
-blender-arwaky task-status --task-id <id>
+blender-arwaky get-task-status --task-id <id>
 blender-arwaky cancel-task --task-id <id>
 ```
 
 **Config**
 ```
-blender-arwaky config [--key <key>]
+blender-arwaky get-config [--key <key>]
 blender-arwaky set-config --key <key> --value <value>
 ```
 
 **Code Execution**
 ```
-blender-arwaky run-code --code '<python code>'
-```
-
-**Universal fallback** (untuk aksi yang belum punya sub-command)
-```
-blender-arwaky run --filepath <path> --action <action_name> [--params '<json>']
+blender-arwaky execute-blender-code --code '<python code>'
 ```
 
 ### MCP
 
-Semua aksi via `execute_command(action="<action_name>", args={...})` — action name adalah shared identifier antara CLI dan MCP.
+CLI memakai command kebab-case satu-per-tool; MCP memakai `execute_command(action="<action_name>", args={...})` dengan action snake_case. Keduanya dipetakan dari catalog yang sama.
 
 ### Parameter Details
 
@@ -135,7 +130,7 @@ Semua aksi via `execute_command(action="<action_name>", args={...})` — action 
 | `set_config` | `key`, `value` | Update config setting |
 | `execute_blender_code` | `code` | Run Python in Blender |
 
-Shared identifier: CLI `--action` = MCP `action`.
+Shared identifier: CLI kebab-case command maps to MCP snake_case action.
 
 ### Screenshot Parameters
 
@@ -151,7 +146,7 @@ Shared identifier: CLI `--action` = MCP `action`.
 
 ## Section: workflows
 
-All workflows use `execute_command(action=..., args=...)` for both MCP and CLI (`blender-arwaky run --action <action_name> --params '<json>'`).
+MCP workflows use `execute_command(action=..., args=...)`; CLI workflows use `blender-arwaky <action-name> [flags]`.
 
 ### Scene Discovery
 

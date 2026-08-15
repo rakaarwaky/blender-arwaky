@@ -87,7 +87,7 @@ class CodeExecutionAdapter(ICodeExecutionProtocol):
         try:
             result = await asyncio.wait_for(
                 self._connection.send_command(
-                    action="execute_code",
+                    action="execute_blender_code",
                     params={"code": code},
                     request_id=request_id,
                     timeout_ms=self._default_timeout_ms,
@@ -154,7 +154,7 @@ class CodeExecutionExecutor(CodeExecutionProtocol):
         self._max_output_bytes: int = max_output_bytes
         self._execution_timeout_seconds: float = execution_timeout_seconds
 
-    def execute_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
+    def execute_blender_code(self, request: CodeExecutionVO) -> CodeExecutionOutcomeVO:
         if self._security_policy is None:
             return CodeExecutionOutcomeVO(
                 status="error",

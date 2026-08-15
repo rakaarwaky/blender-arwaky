@@ -19,7 +19,6 @@ from modules.cli.src import (
     surface_close_command,
     surface_init_command,
     surface_render_command,
-    surface_run_command,
     surface_screenshot_command,
     surface_status_command,
 )
@@ -120,12 +119,54 @@ def _add_vector(parser: argparse.ArgumentParser, flag: str, dest: str, help_text
     parser.add_argument(flag, dest=dest, nargs=3, type=float, metavar=("X", "Y", "Z"), help=help_text)
 
 
+def _snake_to_kebab(value: str) -> str:
+    """Convert canonical MCP/API names to their CLI command spelling."""
+    return value.replace("_", "-")
+
+
+def _schema_arg_options(name: str, spec: dict[str, object]) -> dict[str, object]:
+    """Build argparse options from one canonical action parameter schema."""
+    options: dict[str, object] = {
+        "dest": name,
+        "help": str(spec.get("description", name.replace("_", " "))),
+    }
+    if spec.get("required"):
+        options["required"] = True
+    if "enum" in spec:
+        options["choices"] = list(spec["enum"])
+    parameter_type = str(spec.get("type", "string"))
+    if parameter_type == "boolean":
+        options["action"] = "store_true"
+        options["default"] = None
+    elif parameter_type == "integer":
+        options["type"] = int
+    elif parameter_type == "number":
+        options["type"] = float
+    elif parameter_type == "array[number]":
+        options["nargs"] = 3
+        options["type"] = float
+        options["metavar"] = ("X", "Y", "Z")
+    elif parameter_type == "array[string]":
+        options["action"] = "append"
+    elif parameter_type == "any":
+        options["type"] = str
+    return options
+
+
 def _build_parser() -> CliArgumentParser:
+    """Build one CLI command for every canonical dispatcher action."""
+    from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
+
     parser = CliArgumentParser(
         prog="blender-arwaky",
-        description="BlenderArwaky CLI — FRD feature command surface",
+        description="BlenderArwaky CLI — canonical action command surface",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Examples:\n  blender-arwaky status\n  blender-arwaky scene-info --json\n  blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}'",
+        epilog=(
+            "Examples:\\n"
+            "  blender-arwaky get-scene-info --json\\n"
+            "  blender-arwaky create-primitive --primitive-type CUBE --name DemoCube\\n"
+            "  blender-arwaky execute-blender-code --code 'print(bpy.context.scene.name)'"
+        ),
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--quiet", action="store_true", help="Suppress non-error output")
@@ -133,339 +174,35 @@ def _build_parser() -> CliArgumentParser:
     parser.add_argument("--color", choices=["auto", "always", "never"], default="auto", help="Color policy")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress hints")
     parser.add_argument("--confirm", action="store_true", help="Confirm destructive action")
-    subparsers = parser.add_subparsers(dest="command", title="commands", metavar="COMMAND")
+    subparsers = parser.add_subparsers(dest="command", title="canonical actions", metavar="ACTION", required=True)
 
-    init_parser = subparsers.add_parser(
-        "init",
-        help="[executable] Start Blender with a file",
-        description="[executable] Start Blender runtime",
-    )
-    init_parser.add_argument("--filepath", required=True, help="Path to .blend file")
-    init_parser.add_argument("--mode", choices=["gui", "headless"], default="headless", help="Blender mode")
-    init_parser.add_argument("--port", type=int, default=9876, help="TCP port for addon")
-    _add_common_flags(init_parser)
-    _example(init_parser, "blender-arwaky init --filepath scene.blend --mode headless --port 9876")
-
-    run_parser = subparsers.add_parser(
-        "run",
-        help="[executable] Execute an action on active Blender",
-        description="[executable] Execute an action on active Blender",
-    )
-    run_parser.add_argument("--filepath", required=True, help="Path to .blend file")
-    run_parser.add_argument("--action", required=True, help="Canonical action name")
-    run_parser.add_argument("--params", type=str, default="{}", help="JSON object parameters")
-    _add_common_flags(run_parser)
-    _example(run_parser, "blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}'")
-
-    ss_parser = subparsers.add_parser(
-        "screenshot",
-        help="[executable] Capture viewport screenshot",
-        description="[executable] Capture viewport screenshot",
-    )
-    ss_parser.add_argument("--filepath", required=True, help="Path to .blend file")
-    ss_parser.add_argument("--output", required=True, help="Output image path")
-    ss_parser.add_argument("--max-size", type=int, default=800, help="Max dimension in pixels")
-    ss_parser.add_argument("--view-angle", choices=["PERSPECTIVE", "TOP", "FRONT", "SIDE"], default="PERSPECTIVE")
-    ss_parser.add_argument("--shading", choices=["WIREFRAME", "SOLID", "MATERIAL", "RENDERED"], default="MATERIAL")
-    ss_parser.add_argument("--no-overlays", action="store_true", help="Hide overlays")
-    ss_parser.add_argument("--focus-object", help="Object name to frame")
-    _add_common_flags(ss_parser)
-    _example(ss_parser, "blender-arwaky screenshot --filepath scene.blend --output /tmp/shot.png")
-
-    render_parser = subparsers.add_parser(
-        "render",
-        help="[executable] Execute full frame render",
-        description="[executable] Execute full frame render",
-    )
-    render_parser.add_argument("--filepath", required=True, help="Path to .blend file")
-    render_parser.add_argument("--output", required=True, help="Output image path")
-    render_parser.add_argument("--resolution-x", type=int, default=1920, help="Render width")
-    render_parser.add_argument("--resolution-y", type=int, default=1080, help="Render height")
-    _add_common_flags(render_parser)
-    _example(render_parser, "blender-arwaky render --filepath scene.blend --output /tmp/render.png")
-
-    close_parser = subparsers.add_parser(
-        "close",
-        help="[executable] [destructive; requires --confirm] Close active Blender instance",
-        description="[executable] [destructive; requires --confirm] Close active Blender instance",
-    )
-    close_parser.add_argument("--filepath", required=True, help="Path to .blend file")
-    close_parser.add_argument("--force", action="store_true", help="Force termination fallback")
-    _add_common_flags(close_parser)
-    _example(close_parser, "blender-arwaky close --filepath scene.blend --force --confirm")
-
-    status_parser = subparsers.add_parser(
-        "status",
-        help="[executable] Show active Blender status",
-        description="[executable] Show active Blender status",
-    )
-    _add_common_flags(status_parser)
-    _example(status_parser, "blender-arwaky status --json")
-
-    def add_action(
-        name: str,
-        action: str,
-        description: str,
-        fields: list[tuple[str, dict[str, object]]],
-        example: str,
-        availability: str = "executable",
-        destructive: bool = False,
-    ) -> None:
-        safety_text = " [destructive; requires --confirm]" if destructive else ""
-        help_text = f"[{availability}]{safety_text} {description}"
-        command_parser = subparsers.add_parser(name, help=help_text, description=help_text)
-        for flag, options in fields:
-            command_parser.add_argument(flag, **options)
-        command_parser.set_defaults(
-            action_name=action,
-            action_availability=availability,
-            parameter_fields=[str(options.get("dest", flag.lstrip("-").replace("-", "_"))) for flag, options in fields],
-        )
-        _add_common_flags(command_parser)
-        _example(command_parser, example)
-
-    add_action(
-        "register",
-        "register_executable",
-        "Register Blender executable",
-        [("--path", {"dest": "path", "help": "Blender executable path"})],
-        "blender-arwaky register --path /usr/bin/blender",
-    )
-    add_action("scene-info", "get_scene_info", "Inspect current scene", [], "blender-arwaky scene-info --json")
-    add_action(
-        "scene-cleanup",
-        "cleanup_scene",
-        "Clean objects or meshes from scene",
-        [("--mode", {"choices": ["all", "objects", "meshes"], "required": True})],
-        "blender-arwaky scene-cleanup --mode objects --confirm",
-        destructive=True,
-    )
-    add_action(
-        "set-env",
-        "setup_environment",
-        "Configure scene HDRI environment",
-        [("--hdri-id", {"dest": "hdri_id", "required": True}), ("--strength", {"type": float, "default": None})],
-        "blender-arwaky set-env --hdri-id studio.hdr --strength 1.0",
-    )
-    add_action(
-        "camera-config",
-        "configure_camera",
-        "Configure Blender camera",
-        [
-            ("--camera", {"dest": "camera_ref"}),
-            ("--focal-length", {"dest": "focal_length", "type": float}),
-            ("--sensor-fit", {"dest": "sensor_fit", "choices": ["AUTO", "HORIZONTAL", "VERTICAL"]}),
-            ("--framing-target", {"dest": "framing_target"}),
-            ("--set-active", {"dest": "set_active", "action": "store_true"}),
-            ("--dof", {"dest": "depth_of_field_enabled", "action": "store_true"}),
-            ("--focus-distance", {"dest": "focus_distance", "type": float}),
-            ("--focus-object", {"dest": "focus_object"}),
-            ("--aperture", {"dest": "aperture", "type": float}),
-            ("--no-create", {"dest": "create_if_missing", "action": "store_false"}),
-        ],
-        "blender-arwaky camera-config --focal-length 50 --set-active",
-    )
-    add_action(
-        "object-info",
-        "get_object_info",
-        "Inspect an object",
-        [("--name", {"dest": "object_name", "required": True})],
-        "blender-arwaky object-info --name Cube",
-    )
-    add_action(
-        "create",
-        "create_primitive",
-        "Create a primitive object",
-        [
-            (
-                "--type",
-                {
-                    "dest": "primitive_type",
-                    "choices": ["SPHERE", "CUBE", "CYLINDER", "PLANE", "CONE", "TORUS"],
-                    "required": True,
-                },
-            ),
-            ("--location", {"dest": "location", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--scale", {"dest": "scale", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--name", {"dest": "name"}),
-        ],
-        "blender-arwaky create --type CUBE --name Cube",
-    )
-    add_action(
-        "set-transform",
-        "set_object_transform",
-        "Set object transform",
-        [
-            ("--name", {"dest": "object_name", "required": True}),
-            ("--location", {"dest": "location", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--rotation", {"dest": "rotation", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--scale", {"dest": "scale", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-        ],
-        "blender-arwaky set-transform --name Cube --location 1 2 3",
-    )
-    add_action(
-        "delete",
-        "delete_object",
-        "Delete an object",
-        [("--name", {"dest": "object_name", "required": True})],
-        "blender-arwaky delete --name Cube --confirm",
-        destructive=True,
-    )
-    add_action(
-        "set-material",
-        "set_material",
-        "Assign a material",
-        [
-            ("--name", {"dest": "object_name", "required": True}),
-            ("--material", {"dest": "material_name", "required": True}),
-        ],
-        "blender-arwaky set-material --name Cube --material Matte",
-    )
-    add_action(
-        "apply-modifier",
-        "apply_modifier",
-        "Apply an object modifier",
-        [
-            ("--name", {"dest": "object_name", "required": True}),
-            ("--modifier", {"dest": "modifier_name", "required": True}),
-        ],
-        "blender-arwaky apply-modifier --name Cube --modifier Bevel",
-    )
-    add_action(
-        "import",
-        "import_glb",
-        "Import a GLB/GLTF file",
-        [("--file", {"dest": "file_path", "required": True}), ("--name", {"dest": "object_name"})],
-        "blender-arwaky import --file asset.glb --name Asset",
-    )
-    add_action(
-        "export",
-        "export_model",
-        "Export an object",
-        [
-            ("--name", {"dest": "object_name", "required": True}),
-            ("--output", {"dest": "file_path", "required": True}),
-            ("--format", {"dest": "export_format", "choices": ["glb", "fbx", "obj"], "default": None}),
-        ],
-        "blender-arwaky export --name Cube --output cube.glb --format glb",
-    )
-    add_action(
-        "place-asset",
-        "place_asset",
-        "Place an asset",
-        [
-            ("--asset-id", {"dest": "asset_id", "required": True}),
-            ("--location", {"dest": "location", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--rotation", {"dest": "rotation", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-            ("--scale", {"dest": "scale", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
-        ],
-        "blender-arwaky place-asset --asset-id asset-001",
-    )
-    add_action(
-        "search-assets",
-        "search_assets",
-        "Search configured asset providers",
-        [
-            ("--query", {"dest": "query", "default": "curated"}),
-            ("--provider", {"dest": "providers", "action": "append"}),
-            ("--asset-type", {"dest": "asset_type_filter"}),
-            ("--limit", {"dest": "limit", "type": int}),
-            ("--page-token", {"dest": "page_token"}),
-        ],
-        "blender-arwaky search-assets --query chair --provider Polyhaven",
-    )
-    add_action(
-        "asset-metadata",
-        "get_provider_metadata",
-        "Read provider asset metadata",
-        [
-            ("--provider", {"dest": "provider", "required": True}),
-            ("--asset-id", {"dest": "asset_id", "required": True}),
-        ],
-        "blender-arwaky asset-metadata --provider Polyhaven --asset-id chair",
-    )
-    add_action(
-        "download-asset",
-        "download_asset",
-        "Download an asset to the validated cache",
-        [
-            ("--provider", {"dest": "provider", "required": True}),
-            ("--asset-id", {"dest": "asset_id", "required": True}),
-            ("--asset-type", {"dest": "asset_type", "required": True}),
-            ("--cache-dir", {"dest": "cache_dir", "required": True}),
-            ("--resolution", {"dest": "resolution"}),
-            (
-                "--overwrite-policy",
-                {"dest": "overwrite_policy", "choices": ["reuse", "overwrite", "unique"], "default": None},
-            ),
-            ("--max-size", {"dest": "max_size", "type": int}),
-        ],
-        "blender-arwaky download-asset --provider Polyhaven --asset-id chair --asset-type model --cache-dir .cache/assets",
-    )
-    add_action(
-        "extract-asset",
-        "extract_asset",
-        "Safely extract a downloaded asset archive",
-        [
-            ("--artifact", {"dest": "artifact_path", "required": True}),
-            ("--destination", {"dest": "destination", "required": True}),
-            ("--max-entries", {"dest": "max_entries", "type": int}),
-            ("--max-size", {"dest": "max_extracted_size", "type": int}),
-            ("--allow-symlinks", {"dest": "allow_symlinks", "action": "store_true"}),
-        ],
-        "blender-arwaky extract-asset --artifact model.zip --destination .cache/extracted",
-    )
-    add_action(
-        "import-asset",
-        "import_asset",
-        "Import a local cached asset into Blender",
-        [
-            ("--file", {"dest": "file_path", "required": True}),
-            ("--asset-type", {"dest": "asset_type", "required": True}),
-            ("--collection", {"dest": "target_collection"}),
-            ("--normalize-scale", {"dest": "scale_normalization", "action": "store_true"}),
-            ("--duplicate-policy", {"dest": "duplicate_policy", "default": None}),
-            ("--format", {"dest": "format_hint"}),
-        ],
-        "blender-arwaky import-asset --file model.glb --asset-type model",
-    )
-    add_action(
-        "task-status",
-        "get_task_status",
-        "Show background task status",
-        [("--task-id", {"dest": "task_id", "required": True})],
-        "blender-arwaky task-status --task-id task-001",
-    )
-    add_action(
-        "cancel-task",
-        "cancel_task",
-        "Cancel a background task",
-        [("--task-id", {"dest": "task_id", "required": True})],
-        "blender-arwaky cancel-task --task-id task-001 --confirm",
-        destructive=True,
-    )
-    add_action(
-        "config",
-        "get_config",
-        "Read configuration",
-        [("--key", {"dest": "key"})],
-        "blender-arwaky config --key default_output_format",
-    )
-    add_action(
-        "set-config",
-        "set_config",
-        "Update configuration",
-        [("--key", {"dest": "key", "required": True}), ("--value", {"dest": "value", "required": True})],
-        "blender-arwaky set-config --key color_policy --value never --confirm",
-        destructive=True,
-    )
-    add_action(
-        "run-code",
-        "execute_blender_code",
-        "Execute validated Blender code",
-        [("--code", {"dest": "code", "required": True})],
-        "blender-arwaky run-code --code 'print(bpy.context.scene.name)'",
-    )
+    for owner, actions in DISPATCHER_ACTION_SCHEMAS.items():
+        for action_name, schema in actions.items():
+            description = str(schema.get("description", action_name.replace("_", " ")))
+            command_parser = subparsers.add_parser(
+                _snake_to_kebab(action_name),
+                help=f"[{owner}] {description}",
+                description=f"[{owner}] {description}",
+            )
+            parameters = schema.get("parameters", {})
+            if "filepath" not in parameters:
+                command_parser.add_argument(
+                    "--filepath",
+                    help="Path to the active .blend file or runtime session",
+                    default=argparse.SUPPRESS,
+                )
+            for parameter_name, parameter_spec in parameters.items():
+                command_parser.add_argument(
+                    f"--{_snake_to_kebab(parameter_name)}",
+                    **_schema_arg_options(parameter_name, parameter_spec),
+                )
+            command_parser.set_defaults(
+                action_name=action_name,
+                action_availability="executable",
+                parameter_fields=list(parameters.keys()),
+            )
+            _add_common_flags(command_parser)
+            _example(command_parser, f"blender-arwaky {_snake_to_kebab(action_name)} --help")
     return parser
 
 
@@ -475,7 +212,7 @@ def _collect_params(args: argparse.Namespace) -> dict[str, object]:
 
 
 def _normalize_result(result: dict[str, object]) -> dict[str, object]:
-    """Normalize legacy surface results to the FRD machine-readable envelope."""
+    """Normalize surface results to the FRD machine-readable envelope."""
     normalized = dict(result)
     if normalized.get("success"):
         normalized.setdefault("data", normalized.get("result"))
@@ -561,77 +298,20 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
             return EXIT_UNEXPECTED
 
     try:
-        if args.command == "init":
-            if dispatcher is not None:
-                mode = "interface" if args.mode == "gui" else args.mode
-                result = surface_action_command.handle(
-                    "launch_blender",
-                    {"filepath": args.filepath, "mode": mode, "port": args.port},
-                    args,
-                    dispatcher,
-                )
-                if result.get("success") and isinstance(result.get("result"), dict):
-                    from modules.shared.src.cli.capabilities_cli_registry import Registry
-
-                    process_id = result["result"].get("process_id") or 0
-                    Registry().set_active(args.filepath, process_id, args.port)
-            else:
-                result = surface_init_command.handle(args, dispatcher)
-        elif args.command == "run":
-            try:
-                args.params = json.loads(args.params)
-            except json.JSONDecodeError:
-                result = {
-                    "success": False,
-                    "error": "Invalid JSON parameters",
-                    "category": "validation_error",
-                    "ref": "cli-400",
-                }
-            else:
-                result = surface_run_command.handle(args, dispatcher)
-        elif args.command == "screenshot":
-            if dispatcher is not None:
-                result = surface_action_command.handle(
-                    "get_viewport_screenshot",
-                    {
-                        "filepath": args.output,
-                        "max_size": args.max_size,
-                        "view_angle": args.view_angle,
-                        "shading_mode": args.shading,
-                        "show_overlays": not args.no_overlays,
-                        "focus_object": args.focus_object,
-                    },
-                    args,
-                    dispatcher,
-                )
-            else:
-                result = surface_screenshot_command.handle(args, dispatcher)
-        elif args.command == "render":
-            if dispatcher is not None:
-                result = surface_action_command.handle(
-                    "render",
-                    {"output_path": args.output, "resolution_x": args.resolution_x, "resolution_y": args.resolution_y},
-                    args,
-                    dispatcher,
-                )
-            else:
-                result = surface_render_command.handle(args, dispatcher)
-        elif args.command == "close":
-            if dispatcher is not None:
-                result = surface_action_command.handle("shutdown_blender", {"force": args.force}, args, dispatcher)
-                if result.get("success"):
-                    from modules.shared.src.cli.capabilities_cli_registry import Registry
-
-                    Registry().clear()
-            else:
-                result = surface_close_command.handle(args, dispatcher)
-        elif args.command == "status":
-            if dispatcher is not None:
-                result = surface_action_command.handle("get_runtime_status", {}, args, dispatcher)
-            else:
-                result = surface_status_command.handle(args, dispatcher)
+        action_name = args.action_name
+        params = _collect_params(args)
+        if action_name == "launch_blender" and dispatcher is None:
+            result = surface_init_command.handle(args, dispatcher)
+        elif action_name == "get_viewport_screenshot" and dispatcher is None:
+            result = surface_screenshot_command.handle(args, dispatcher)
+        elif action_name == "render" and dispatcher is None:
+            result = surface_render_command.handle(args, dispatcher)
+        elif action_name == "shutdown_blender" and dispatcher is None:
+            result = surface_close_command.handle(args, dispatcher)
+        elif action_name == "get_runtime_status" and dispatcher is None:
+            result = surface_status_command.handle(args, dispatcher)
         else:
-            result = surface_action_command.handle(args.action_name, _collect_params(args), args, dispatcher)
+            result = surface_action_command.handle(action_name, params, args, dispatcher)
     except Exception:
         logger.exception("Unexpected CLI error")
         result = {"success": False, "error": "Unexpected error", "category": "unexpected", "ref": "cli-500"}

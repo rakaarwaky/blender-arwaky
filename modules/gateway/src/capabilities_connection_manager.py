@@ -39,8 +39,8 @@ from modules.shared.src.gateway.taxonomy_gateway_constant import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     AuthenticationError,
-    BlenderConnectionExhausted,
-    BlenderConnectionFailure,
+    BlenderConnectionExhaustedError,
+    BlenderConnectionFailureError,
     ConnectionClosedError,
     ConnectionConfigError,
     TransportParseError,
@@ -162,9 +162,9 @@ class BlenderConnection(IBlenderConnectionProtocol):
                     await asyncio.sleep(delay)
 
         self._state = ConnectionState.FAILED
-        raise BlenderConnectionExhausted(
+        raise BlenderConnectionExhaustedError(
             attempts=max_attempts,
-            details={"host": self._host, "port": self._port},
+            _details={"host": self._host, "port": self._port},
         )
 
     async def disconnect(self) -> None:
@@ -210,7 +210,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
             response = await self._receive_response(timeout_ms)
             resp_dict = json.loads(response.decode("utf-8"))
             if resp_dict.get("status") == "error":
-                raise BlenderConnectionFailure(
+                raise BlenderConnectionFailureError(
                     message=resp_dict.get("message", "Command failed"),
                     _details={"action": action},
                 )
@@ -224,7 +224,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         except Exception as e:
             if isinstance(e, (AuthenticationError, VersionMismatchError)):
                 raise
-            raise BlenderConnectionFailure(
+            raise BlenderConnectionFailureError(
                 message=f"Command '{action}' failed: {e}",
                 _details={"action": action},
             ) from e
@@ -254,7 +254,7 @@ class BlenderConnection(IBlenderConnectionProtocol):
         except asyncio.TimeoutError:
             raise ConnectionConfigError(
                 message=f"Connection to {self._host}:{self._port} timed out",
-                details={"host": self._host, "port": self._port},
+                _details={"host": self._host, "port": self._port},
             ) from None
 
     async def _perform_handshake(self, config: ConnectionConfig) -> None:
@@ -493,9 +493,9 @@ class ConnectionExecutor(ConnectionProtocol):
             self._safe_close_socket(sock)
             self._state = ConnectionState.FAILED
             logger.error("Connection failed: %s", e)
-            raise BlenderConnectionFailure(
+            raise BlenderConnectionFailureError(
                 message=f"Connection to {self._config.host}:{self._config.port} failed: {e}",
-                details={"host": self._config.host, "port": self._config.port},
+                _details={"host": self._config.host, "port": self._config.port},
             ) from e
 
     def disconnect(self) -> None:
