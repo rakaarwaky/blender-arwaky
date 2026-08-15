@@ -35,6 +35,53 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                 },
             },
         },
+        "list_scene_objects": {
+            "description": "List scene objects with optional visibility and type filters",
+            "parameters": {
+                "include_hidden": {
+                    "type": "boolean",
+                    "required": False,
+                    "default": False,
+                },
+                "object_type": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Optional Blender object type filter",
+                },
+                "limit": {
+                    "type": "integer",
+                    "required": False,
+                    "default": 100,
+                },
+            },
+        },
+        "get_object_hierarchy": {
+            "description": "Inspect parent-child hierarchy for one object or the scene roots",
+            "parameters": {
+                "object_name": {
+                    "type": "string",
+                    "required": False,
+                },
+                "include_hidden": {
+                    "type": "boolean",
+                    "required": False,
+                    "default": False,
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "required": False,
+                    "default": 32,
+                },
+            },
+        },
+        "undo": {
+            "description": "Undo the most recent Blender edit operation",
+            "parameters": {},
+        },
+        "redo": {
+            "description": "Redo the most recently undone Blender edit operation",
+            "parameters": {},
+        },
     },
     "object": {
         "get_object_info": {
@@ -122,6 +169,70 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                     "type": "string",
                     "required": True,
                     "description": "Name of the material to assign",
+                },
+            },
+        },
+        "create_material": {
+            "description": "Create or reuse a PBR material",
+            "parameters": {
+                "material_name": {
+                    "type": "string",
+                    "required": True,
+                },
+                "base_color": {
+                    "type": "array[number]",
+                    "required": False,
+                    "description": "RGBA color channels in the range 0-1",
+                    "default": [0.8, 0.8, 0.8, 1.0],
+                },
+                "metallic": {
+                    "type": "number",
+                    "required": False,
+                    "default": 0.0,
+                },
+                "roughness": {
+                    "type": "number",
+                    "required": False,
+                    "default": 0.5,
+                },
+                "reuse_existing": {
+                    "type": "boolean",
+                    "required": False,
+                    "default": True,
+                },
+            },
+        },
+        "set_material_properties": {
+            "description": "Update PBR properties of an existing material",
+            "parameters": {
+                "material_name": {
+                    "type": "string",
+                    "required": True,
+                },
+                "base_color": {
+                    "type": "array[number]",
+                    "required": False,
+                },
+                "metallic": {
+                    "type": "number",
+                    "required": False,
+                },
+                "roughness": {
+                    "type": "number",
+                    "required": False,
+                },
+            },
+        },
+        "set_material_texture": {
+            "description": "Assign a local image texture to a material base color",
+            "parameters": {
+                "material_name": {
+                    "type": "string",
+                    "required": True,
+                },
+                "file_path": {
+                    "type": "string",
+                    "required": True,
                 },
             },
         },
@@ -238,6 +349,39 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                     "required": False,
                     "description": "Render height in pixels",
                     "default": 1080,
+                },
+            },
+        },
+        "set_render_settings": {
+            "description": "Configure bounded scene render settings without rendering",
+            "parameters": {
+                "engine": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Blender render engine identifier",
+                },
+                "resolution_x": {
+                    "type": "integer",
+                    "required": False,
+                    "default": 1920,
+                },
+                "resolution_y": {
+                    "type": "integer",
+                    "required": False,
+                    "default": 1080,
+                },
+                "resolution_percentage": {
+                    "type": "integer",
+                    "required": False,
+                    "default": 100,
+                },
+                "samples": {
+                    "type": "integer",
+                    "required": False,
+                },
+                "use_transparent": {
+                    "type": "boolean",
+                    "required": False,
                 },
             },
         },
@@ -411,6 +555,31 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         },
     },
     "job": {
+        "submit_task": {
+            "description": "Register a background task through the shared job lifecycle",
+            "parameters": {
+                "operation_type": {
+                    "type": "string",
+                    "required": True,
+                },
+                "correlation_id": {
+                    "type": "string",
+                    "required": False,
+                },
+                "metadata": {
+                    "type": "any",
+                    "required": False,
+                },
+            },
+        },
+        "list_tasks": {
+            "description": "List current and retained background task snapshots",
+            "parameters": {},
+        },
+        "get_capacity_status": {
+            "description": "Return background task capacity and available slots",
+            "parameters": {},
+        },
         "get_task_status": {
             "description": "Query the progress and status of a background task",
             "parameters": {

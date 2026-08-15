@@ -50,6 +50,27 @@ dispatcher, higher-level workflow/agent orchestration layers.
 - **Edge Cases**: Scene already empty, only camera/light/protected remaining, linked/instanced/multi-user objects, active camera, locked/protected/hidden objects, children, constraint targets, large scene, timeout, partial deletion failure, missing confirmation, dry-run with no removable objects
 - **Error Handling**: Scene state error; protection error; validation error; confirmation error; delegated deletion error; timeout error; connection error
 
+### FR-SCN-003: List Scene Objects
+
+- **Description**: Return a bounded, deterministic list of scene object summaries.
+- **Input**: Optional `include_hidden`, `object_type`, and bounded `limit`.
+- **Output**: Object summaries with name, type, parent, collections, visibility, location, total matching count, and truncation flag.
+- **Rules**: Read-only and idempotent. Hidden objects are excluded by default. Type filters are normalized to uppercase. The response is bounded to 1–1000 objects and ordered by Blender scene order; the server must report truncation instead of silently implying completeness.
+
+### FR-SCN-004: Inspect Object Hierarchy
+
+- **Description**: Return parent-child hierarchy for one named object or all visible scene roots.
+- **Input**: Optional `object_name`, `include_hidden`, and `max_depth`.
+- **Output**: Tree nodes containing object name, type, children, root count, and truncation markers.
+- **Rules**: Read-only, deterministic child ordering by name, bounded depth 1–64, safe handling of missing object references, and no cyclic serialization.
+
+### FR-SCN-005: Blender History Navigation
+
+- **Description**: Request undo or redo of the most recent Blender edit operation.
+- **Input**: No parameters.
+- **Output**: Operation and explicit status. `finished` means Blender accepted the operation; `unavailable` means the current context cannot execute the editor history operator.
+- **Rules**: Never synthesize success. UI context may execute the operation; Blender background context may return `unavailable` because editor undo/redo polling requires an initialized editor context. Destructive callers must inspect the status and retain confirmation semantics.
+
 ## Boundary: Scene vs Object
 
 Scene: bulk ops, scene-wide inspection, preservation policy, cleanup filtering, dry-run, reporting, protected object policy decisions. Object: single-object technical ops, deletion execution, ref resolution, low-level constraints, hierarchy handling per scene policy, linked/instanced safety at execution level. Scene decides what should happen; object executes the technical deletion safely.
@@ -102,4 +123,7 @@ Payloads: operation type, success, summary counts, dry-run indicator, error cate
 - [ ] Protected objects respected without override
 - [ ] Missing confirmation → confirmation error
 - [ ] Partial failure reported clearly
+- [ ] Scene object listing is bounded, filtered, deterministic, and reports truncation
+- [ ] Hierarchy inspection handles roots, missing refs, hidden objects, depth limits, and no cycles
+- [ ] Undo/redo reports `unavailable` explicitly when Blender context cannot poll the editor operator
 - [ ] No overlap: object (single ops), render (execution), asset (import), job (tracking)

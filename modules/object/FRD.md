@@ -69,6 +69,27 @@ dispatcher, scene (delegates individual deletions during bulk cleanup).
 - **Edge Cases**: Not found, object type without slots, invalid color/out-of-range values, missing name, slot conflict, linked shared material, unsupported shading model, material limit
 - **Error Handling**: Not found error; validation error; material assignment error
 
+### FR-OBJ-008: Create or Reuse Material
+
+- **Description**: Create or reuse a named Principled BSDF material without assigning it to an object.
+- **Input**: Material name, optional RGBA base color, metallic, roughness, and reuse policy.
+- **Output**: Material reference, created flag, and effective PBR values.
+- **Rules**: Name is required. Color channels and PBR scalar values are finite and bounded to 0–1. Existing material is reused only when requested. The handler must not silently replace an existing material when reuse is disabled.
+
+### FR-OBJ-009: Set Material Properties
+
+- **Description**: Update only the supplied Principled BSDF properties of an existing material.
+- **Input**: Material name and optional base color, metallic, and roughness.
+- **Output**: Effective material properties after update.
+- **Rules**: Missing material is a validation/not-found failure. Omitted fields remain unchanged. Values are validated before mutation. Shared materials are intentionally updated by name and callers must account for all users.
+
+### FR-OBJ-010: Set Material Texture
+
+- **Description**: Attach a local image texture to the Principled BSDF base color input.
+- **Input**: Existing material name and local image file path.
+- **Output**: Material reference, resolved path, and texture node name.
+- **Rules**: The file must exist and be resolved by the security path policy before transport. The image is loaded with Blender's existing-image reuse behavior. Provider downloads remain outside this core object action.
+
 ### FR-OBJ-005: Manage Modifiers
 
 - **Description**: Add/configure/remove modifiers on object
@@ -151,6 +172,9 @@ Payloads: category, object ref + name, operation summary, tracking ID, duration,
 - [ ] Set transform: absolute + relative modes; omitted components preserved
 - [ ] Locked channel → transform lock error; non-finite → validation error
 - [ ] Assign PBR material: reuse if exists, create if not, create slot if none
+- [ ] Create material validates name, RGBA, metallic, roughness, and reuse policy
+- [ ] Set material properties preserves omitted fields and rejects out-of-range values
+- [ ] Set material texture rejects missing paths and returns resolved texture node metadata
 - [ ] Out-of-range values → validation error; shared material not modified unless allowed
 - [ ] Add/configure/remove modifier; destructive apply requires confirmation
 - [ ] Incompatible type → modifier compatibility error

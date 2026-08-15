@@ -25,7 +25,14 @@ from modules.shared.src.common.taxonomy_core_vo import (
     SearchQuery,
 )
 from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
-from modules.shared.src.job.taxonomy_job_vo import CancellationReason, CancelTaskCommand
+from modules.shared.src.job.taxonomy_job_vo import (
+    CancellationReason,
+    CancelTaskCommand,
+    CorrelationId,
+    CreateTaskCommand,
+    OperationType,
+    TaskMetadata,
+)
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     BridgeEndpointVO,
     LauncherConfigVO,
@@ -65,7 +72,7 @@ class CliActionRouter:
     def execute_action(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
         if action_name in self._LAUNCHER_ACTIONS:
             return self._execute_launcher(action_name, params)
-        if action_name in {"get_task_status", "cancel_task"}:
+        if action_name in {"submit_task", "list_tasks", "get_capacity_status", "get_task_status", "cancel_task"}:
             return self._execute_job(action_name, params)
         if action_name in {"get_config", "set_config"}:
             return self._execute_config(action_name, params)
@@ -119,6 +126,33 @@ class CliActionRouter:
         return asdict(result)
 
     def _execute_job(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
+        if action_name == "submit_task":
+            operation_type = str(params.get("operation_type", "")).strip()
+            if not operation_type:
+                raise ValueError("operation_type is required")
+            raw_metadata = params.get("metadata")
+            metadata = None
+            if raw_metadata is not None:
+                if not isinstance(raw_metadata, dict):
+                    raise ValueError("metadata must be an object")
+                metadata = TaskMetadata({str(key): str(value) for key, value in raw_metadata.items()})
+            correlation = str(params.get("correlation_id", "")).strip()
+            result = self._job.submit_task(
+                CreateTaskCommand(
+                    operation_type=OperationType(operation_type),
+                    correlation_id=CorrelationId(correlation) if correlation else None,
+                    metadata=metadata,
+                )
+            )
+            return asdict(result)
+
+        if action_name == "list_tasks":
+            snapshots = self._job.list_tasks()
+            return {"tasks": [asdict(snapshot) for snapshot in snapshots], "count": len(snapshots)}
+
+        if action_name == "get_capacity_status":
+            return asdict(self._job.get_capacity_status())
+
         task_id = JobId(str(params.get("task_id", "")))
         if not str(task_id).strip():
             raise ValueError("task_id is required")

@@ -74,9 +74,30 @@ dispatcher, asset, render, gateway — any feature executing long-running tracke
 - **Description**: Limit concurrent active background tasks; job feature = only path to background execution
 - **Input**: Task creation request against current capacity
 - **Output**: Capacity decision (accepted or capacity error + active count)
-- **Rules**: Max concurrent count from config. Capacity counts active (pending + running) per configured policy. Atomic with task creation (no race past limit). Limit reached → capacity error. Terminal tasks don't count. Capacity reclaimed automatically on terminal. Domain features must not create/track/run background tasks outside job. Unregistered background work flagged through missing correlation. Capacity status observable (active count, limit, available slots). Rejection never creates partial/orphan records. Error includes active count for caller retry. Stale running → timed out → releases capacity slot.
+- **Rules**: Max concurrent count from config. Capacity counts active (pending + running) per configured policy. Atomic with task creation (no race past limit). Limit reached → capacity error. Terminal tasks don't count. Capacity reclaimed automatically on terminal. Domain features must not create/track/run background tasks outside job. Capacity status observable (active count, limit, available slots). Rejection never creates partial/orphan records. Error includes active count for caller retry. Stale running → timed out → releases capacity slot.
 - **Edge Cases**: Limit at submission, two submissions racing for final slot, capacity freed during submission, terminal failing to release capacity, stale running occupying indefinitely, miscount after restart with persisted records, runtime config change, burst after release
 - **Error Handling**: Capacity error with active count context; rejected submission no partial record; capacity leak suspect → diagnostic warning
+
+### FR-JOB-006: Submit Task Through Public Action
+
+- **Description**: Expose the existing aggregate task creation flow through the canonical dispatcher action.
+- **Input**: Required operation type, optional correlation ID, and optional non-sensitive metadata object.
+- **Output**: Canonical pending task snapshot.
+- **Rules**: Submission must call `JobOrchestrator.submit_task`; capacity is evaluated before record creation. Metadata is normalized to string values and sanitized by the repository. The action registers a task only; it does not pretend to execute the operation. Actual executors must start/update/complete/fail the task through the same aggregate.
+
+### FR-JOB-007: List Task Snapshots
+
+- **Description**: Return pending, running, and retained terminal task snapshots from the shared repository.
+- **Input**: No parameters in Wave 1.
+- **Output**: Bounded task array and count.
+- **Rules**: Read-only. Pending, running, and terminal records are combined with stable ID deduplication. The action never creates, transitions, or purges records. Sensitive metadata remains sanitized by the job repository.
+
+### FR-JOB-008: Read Capacity Status
+
+- **Description**: Return active count, configured limit, and available background slots.
+- **Input**: No parameters.
+- **Output**: Capacity status read model.
+- **Rules**: Read-only and derived from the same lifecycle repository used by submit_task. It must not reserve a slot or mutate task state.
 
 ## Error Categories
 
@@ -120,6 +141,9 @@ Payloads: category, task ID, operation type, state before/after, progress %, cor
 - [ ] No backward transitions; terminal immutable
 - [ ] Concurrent transitions → first valid wins
 - [ ] Unknown ID → task not found error
+- [ ] Public submit_task action uses capacity check before record creation and returns pending snapshot
+- [ ] list_tasks includes pending, running, and terminal records without duplicate IDs
+- [ ] get_capacity_status is read-only and reflects shared repository capacity
 - [ ] Status snapshot consistent, read-only, never mutates
 - [ ] Progress 0–100, monotonic default
 - [ ] Result ref only after completed; error detail only after failed + sanitized

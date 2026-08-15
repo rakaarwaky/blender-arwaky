@@ -48,6 +48,9 @@ class IJobAggregate(ABC):
     def get_task_status(self, job_id: JobId) -> JobStatusSnapshot: ...
 
     @abstractmethod
+    def list_tasks(self) -> tuple[JobStatusSnapshot, ...]: ...
+
+    @abstractmethod
     def cleanup_expired_tasks(self) -> CleanupSummary: ...
 
     @abstractmethod

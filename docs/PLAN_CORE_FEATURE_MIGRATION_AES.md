@@ -77,12 +77,22 @@ Extend `scene`, `object`, `render`, and `job` before adding new feature folders:
 
 | Capability | Owning module | Initial actions |
 |---|---|---|
-| Scene graph and history | `modules/scene` | `list_scene_objects`, `get_object_hierarchy`, `list_datablocks`, `undo`, `redo` |
+| Scene graph and history | `modules/scene` | `list_scene_objects`, `get_object_hierarchy`, `undo`, `redo` |
 | Material authoring | `modules/object` | `create_material`, `set_material_properties`, `set_material_texture` |
-| Render configuration | `modules/render` | `set_render_engine`, `set_render_quality`, `set_render_output` |
-| Task lifecycle | `modules/job` | `submit_task`, `list_tasks`, `get_task_status`, `cancel_task` |
+| Render configuration | `modules/render` | `set_render_settings` |
+| Task lifecycle | `modules/job` | `submit_task`, `list_tasks`, `get_capacity_status`, `get_task_status`, `cancel_task` |
 
 **Exit criteria:** existing FRDs are updated; no duplicate ownership is introduced; existing tests remain green; action schemas are canonical.
+
+#### Wave 1 implementation status
+
+| Area | Status | Verification |
+|---|---|---|
+| Scene object listing and hierarchy | Implemented in addon runtime and dispatcher catalog | Blender 4.0.2 background smoke passed with bounded filtering and parent-child tree output |
+| Undo/redo | Implemented with explicit context-aware result | UI/editor context may return `finished`; background context returns `unavailable` rather than fake success |
+| Material authoring | Implemented for Principled BSDF create/update/local texture assignment | Blender background smoke passed for create, PBR update, assignment, and validation path |
+| Render settings | Implemented with engine enum and dimension/sample/percentage bounds | Blender background smoke passed at 640×480, 50%, samples 8, transparent film |
+| Job lifecycle | Implemented through shared JobOrchestrator and repository; no private store | Unit, persistence, dispatcher, and CLI contract tests passed |
 
 ### Wave 2 — Geometry and time domains
 
@@ -147,7 +157,7 @@ git diff --check
 uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
 ```
 
-The acceptance baseline is the current green suite of 1031 tests and at least 60% coverage. New capability work must add tests and must not introduce runtime artifacts such as `coverage.xml`, `registry.json`, or `launcher_state.json` into commits. Blender smoke tests must verify registration, runtime readiness, at least one successful mutation, structured error behavior, and clean shutdown for each new domain that touches Blender.
+The acceptance baseline is the current green suite of 1035 tests and at least 60% coverage. New capability work must add tests and must not introduce runtime artifacts such as `coverage.xml`, `registry.json`, or `launcher_state.json` into commits. Blender smoke tests must verify registration, runtime readiness, at least one successful mutation, structured error behavior, and clean shutdown for each new domain that touches Blender.
 
 ## Definition of done
 

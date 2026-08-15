@@ -30,12 +30,12 @@ Asset-provider availability depends on the configured provider and its credentia
 | Area | Current capability | Boundary to understand |
 |---|---|---|
 | MCP | Five stable tools: `execute_command`, `list_commands`, `health_check`, `get_config`, `help` | Feature actions are not exposed as dozens of separate MCP tools; they are dispatched through `execute_command`. |
-| Scene | Inspect scene metadata and clean objects or meshes | Advanced scene graph policies and large-scene summarization are not the current core contract. |
-| Objects | Inspect objects, create primitives, transform, delete, assign materials, apply modifiers | The primitive/action catalog is intentionally finite; it is not a complete wrapper for every Blender operator. |
-| Render | Configure camera, set an HDRI environment from a resolved local asset, capture viewport screenshots, render a frame | Background render orchestration and capability packs are not presented as complete current features. |
+| Scene | Inspect scene metadata, list/filter objects, inspect hierarchy, clean objects or meshes, and request undo/redo | Undo/redo may return an explicit unavailable status when Blender runs without an editor context. |
+| Objects | Inspect objects, create primitives, transform, delete, assign materials, create/update PBR materials, attach local textures, and apply modifiers | The primitive/material action catalog is intentionally finite; it is not a complete wrapper for every Blender operator. |
+| Render | Configure camera, set render settings, set an HDRI environment from a resolved local asset, capture viewport screenshots, and render a frame | Background render orchestration and capability packs are not presented as complete current features. |
 | Assets | Search providers, read metadata, download to validated cache, safely extract, import, export, and place assets | Provider credentials, network access, archive limits, and local paths still apply. |
 | Launcher | Locate/register Blender, launch, inspect runtime readiness, and shut down | The launcher manages the runtime boundary; it does not replace Blender installation or process supervision for every deployment. |
-| Jobs | Query and cancel background tasks | Job integration is available for defined flows; it is not a general distributed queue. |
+| Jobs | Submit, list, inspect, cancel, and read capacity for shared background tasks | Job integration is available for defined flows; it is not a general distributed queue or automatic executor for every action. |
 | Configuration | Read and update configuration through the dispatcher | Secrets are redacted; configuration policy and environment naming remain authoritative. |
 | Code execution | Execute validated Blender Python through the gateway path | This is a powerful capability, not a security sandbox. Save important work and review policies before enabling it. |
 
@@ -149,17 +149,17 @@ The five-tool registry and embedded help contract are defined in [`surface_tool_
 
 ## Canonical action catalog
 
-The current dispatcher catalog contains **29 actions across eight owners**. The number refers to canonical actions, not the number of MCP tools.
+The current dispatcher catalog contains **40 actions across eight owners**. The number refers to canonical actions, not the number of MCP tools. Wave 1 adds bounded scene object listing and hierarchy inspection, explicit history navigation status, PBR material authoring, render settings configuration, and shared job submission/list/capacity actions.
 
 | Owner | Actions |
 |---|---|
 | Gateway | `execute_blender_code` |
-| Scene | `get_scene_info`, `cleanup_scene` |
-| Object | `get_object_info`, `create_primitive`, `set_object_transform`, `delete_object`, `set_material`, `apply_modifier` |
-| Render | `configure_camera`, `setup_environment`, `get_viewport_screenshot`, `render` |
+| Scene | `get_scene_info`, `cleanup_scene`, `list_scene_objects`, `get_object_hierarchy`, `undo`, `redo` |
+| Object | `get_object_info`, `create_primitive`, `set_object_transform`, `delete_object`, `set_material`, `create_material`, `set_material_properties`, `set_material_texture`, `apply_modifier` |
+| Render | `configure_camera`, `setup_environment`, `get_viewport_screenshot`, `render`, `set_render_settings` |
 | Asset | `search_assets`, `get_provider_metadata`, `download_asset`, `extract_asset`, `import_asset`, `import_glb`, `export_model`, `place_asset` |
 | Launcher | `launch_blender`, `shutdown_blender`, `get_runtime_status`, `register_executable` |
-| Job | `get_task_status`, `cancel_task` |
+| Job | `submit_task`, `list_tasks`, `get_capacity_status`, `get_task_status`, `cancel_task` |
 | Config | `get_config`, `set_config` |
 
 The canonical source is [`taxonomy_dispatcher_constant.py`](modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py). Use `list_commands` rather than hard-coding schemas in an agent integration because the catalog is versioned and may evolve.
@@ -287,7 +287,7 @@ The following comparison is intentionally about **trade-offs**, not a ranking. C
 
 | Project | Public MCP shape | Installation / runtime model | Safety and governance posture | Where it is stronger than Blender Arwaky | Where Blender Arwaky is stronger or different |
 |---|---|---|---|---|---|
-| **Blender Arwaky** | **5 stable MCP tools** plus **29 canonical actions** dispatched through `execute_command` | Source checkout with `uv`; Blender addon package built to `dist/blender_mcp_addon.zip`; stdio MCP server plus local addon bridge | Shared validation/redaction, explicit confirmation for destructive CLI commands, bounded responses, health/config/help surfaces; arbitrary Blender Python is still powerful and not a full sandbox | — | Contract-first catalog, small stable MCP boundary, same actions through MCP and CLI, explicit runtime diagnostics, and a focused automation core |
+| **Blender Arwaky** | **5 stable MCP tools** plus **40 canonical actions** dispatched through `execute_command` | Source checkout with `uv`; Blender addon package built to `dist/blender_mcp_addon.zip`; stdio MCP server plus local addon bridge | Shared validation/redaction, explicit confirmation for destructive CLI commands, bounded responses, health/config/help surfaces; arbitrary Blender Python is still powerful and not a full sandbox | — | Contract-first catalog, small stable MCP boundary, same actions through MCP and CLI, explicit runtime diagnostics, and a focused automation core |
 | [BlenderMCP by ahujasid][2] | Feature-oriented MCP integration with scene/object/material tools, screenshots, arbitrary Python, and asset/3D-generation integrations described in its README | `uvx`/Python server plus Blender addon; supports Claude, Cursor, VS Code, and other clients | The README explicitly warns that arbitrary Python execution is powerful and dangerous; it also documents optional telemetry and external provider credentials | Larger public community footprint, more mature consumer onboarding, and more integrations such as Poly Haven, Sketchfab, Hunyuan3D, and Hyper3D described in its README | Smaller protocol surface and stronger emphasis on canonical schemas, CLI parity, and explicit contract governance rather than feature breadth |
 | [Blender MCP Server by djeada][4] | Large named-tool surface covering scene/object/material/render/export, Python execution, undo/redo, and asynchronous jobs; its README advertises 27 tools across 7 namespaces | Python package with editable install, built addon ZIP, stdio MCP server, and direct bridge helpers | Documents safe mode, project-root file restrictions, tool whitelist, script-root restrictions, module blocklists, and automatic undo for many mutations | Broader named coverage, async job controls, script library, headless-oriented workflows, and more explicit per-tool safety controls | Smaller stable MCP boundary and a more centralized action catalog; current scope is intentionally narrower and does not claim complete physics, VSE, Geometry Nodes, or VRM coverage |
 | [Blender MCP by sandraschi][5] | Its README advertises 48+ MCP tools; the repository page summarizes 41 portmanteau tools and 150+ operations, spanning mesh, VSE, Geometry Nodes, VRM, Gaussian splats, and more | `.mcpb` packaging for Claude Desktop, headless Blender by default, optional live bridge, dashboard, Docker/native options | Documents a broad operational surface with optional bridge, packaging, monitoring, and multiple execution modes; the exact security guarantees vary by mode and configuration | Much broader capability coverage, `.mcpb` distribution, headless-first workflows, web dashboard, and future-facing capability packs | More focused contract surface, fewer moving parts, CLI/MCP action parity, and clearer current non-goals for teams that prefer controlled scope |

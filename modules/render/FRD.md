@@ -67,6 +67,15 @@ dispatcher.
 - **Edge Cases**: HDRI not found, download failed, unsupported format, existing environment conflict, strength out of range, rotation overflow, missing scene world, linked world data, provider failure, cache unavailable, file outside allowed directory, node incompatibility
 - **Error Handling**: Asset not found (delegated); provider error (delegated); validation error; environment state error; security violation (file path validation)
 
+### FR-RND-005: Configure Render Settings
+
+- **Description**: Update bounded scene render settings without starting a render.
+- **Input**: Optional engine, resolution width/height, resolution percentage, sample count, and transparent-film flag.
+- **Output**: Effective engine, dimensions, percentage, transparency, and available engine-specific sample value.
+- **Rules**: Dimensions are bounded to 1–16384 pixels, percentage to 1–100, and samples to 1–65536. Requested engine must exist in Blender's runtime enum. Omitted fields retain their current values except documented defaults supplied by the action schema. The action does not write an image and does not download assets. Engine-specific sample settings degrade gracefully when the active engine does not expose them.
+- **Edge Cases**: Unsupported engine, invalid bounds, engine without sample property, background context, render settings changed concurrently.
+- **Error Handling**: Validation error for invalid bounds or engine; render state error for unavailable scene settings.
+
 ## Boundary: Render vs Object
 
 Render: camera-specific (lens, focal length, framing, active camera, depth of field, sensor fit). Object: generic transform (location, rotation, scale on any object type including cameras). Higher layers compose both without duplication.
@@ -127,6 +136,7 @@ Payloads: category, operation summary, tracking ID, duration, error category, ta
 - [ ] Canceled background = best-effort
 - [ ] Stats: duration, resolution, samples, engine, denoising
 - [ ] Camera: lens, framing, active designation, DoF
+- [ ] Render settings: engine validation, resolution/percentage/sample bounds, transparency
 - [ ] Camera resolution deterministic (explicit → active → first)
 - [ ] Locked camera respected; generic transform not duplicated
 - [ ] HDRI lighting uses asset feature for download (never direct)

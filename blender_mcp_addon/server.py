@@ -204,6 +204,10 @@ class BlenderMCPServer:
         handlers = {
             "get_scene_info": self.get_scene_info,
             "cleanup_scene": self.cleanup_scene,
+            "list_scene_objects": self.list_scene_objects,
+            "get_object_hierarchy": self.get_object_hierarchy,
+            "undo": self.undo,
+            "redo": self.redo,
             "setup_environment": self.setup_environment,
             "configure_camera": self.configure_camera,
             "get_object_info": self.get_object_info,
@@ -212,12 +216,16 @@ class BlenderMCPServer:
             "set_object_transform": self.set_object_transform,
             "delete_object": self.delete_object,
             "set_material": self.set_material,
+            "create_material": self.create_material,
+            "set_material_properties": self.set_material_properties,
+            "set_material_texture": self.set_material_texture,
             "apply_modifier": self.apply_modifier,
             "import_glb": self.import_glb,
             "import_asset": self.import_asset,
             "export_model": self.export_model,
             "get_viewport_screenshot": utils.get_viewport_screenshot,
             "render": self.render,
+            "set_render_settings": self.set_render_settings,
             "execute_code": self.execute_code,
             "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
@@ -267,6 +275,115 @@ class BlenderMCPServer:
                 if obj.type == "MESH":
                     bpy.data.objects.remove(obj, do_unlink=True)
         return {"mode": mode, "removed": True}
+
+    def list_scene_objects(self, include_hidden=False, object_type=None, limit=100):
+        """List bounded structured object summaries from the active scene."""
+        limit = int(limit)
+        if not 1 <= limit <= 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        requested_type = str(object_type).upper() if object_type else None
+        objects = []
+        for obj in bpy.context.scene.objects:
+            if not include_hidden and obj.hide_get():
+                continue
+            if requested_type and obj.type != requested_type:
+                continue
+            objects.append(
+                {
+                    "name": obj.name,
+                    "type": obj.type,
+                    "parent": obj.parent.name if obj.parent else None,
+                    "collections": [collection.name for collection in obj.users_collection],
+                    "visible": not obj.hide_get(),
+                    "location": list(obj.location),
+                }
+            )
+            if len(objects) >= limit:
+                break
+        total_matching = sum(
+            1
+            for obj in bpy.context.scene.objects
+            if (include_hidden or not obj.hide_get()) and (not requested_type or obj.type == requested_type)
+        )
+        return {
+            "objects": objects,
+            "count": len(objects),
+            "total_matching": total_matching,
+            "truncated": total_matching > len(objects),
+            "include_hidden": bool(include_hidden),
+            "object_type": requested_type,
+        }
+
+    def get_object_hierarchy(self, object_name=None, include_hidden=False, max_depth=32):
+        """Return a bounded parent-child hierarchy for one object or scene roots."""
+        max_depth = int(max_depth)
+        if not 1 <= max_depth <= 64:
+            raise ValueError("max_depth must be between 1 and 64")
+
+        def visible(obj):
+            return bool(include_hidden) or not obj.hide_get()
+
+        def node(obj, depth):
+            item = {"name": obj.name, "type": obj.type, "children": []}
+            if depth >= max_depth:
+                item["truncated"] = bool(obj.children)
+                return item
+            for child in sorted(obj.children, key=lambda value: value.name):
+                if visible(child):
+                    item["children"].append(node(child, depth + 1))
+            return item
+
+        if object_name:
+            root = bpy.data.objects.get(str(object_name))
+            if root is None:
+                raise ValueError(f"Object not found: {object_name}")
+            roots = [root] if visible(root) else []
+        else:
+            roots = sorted(
+                [obj for obj in bpy.context.scene.objects if obj.parent is None and visible(obj)],
+                key=lambda value: value.name,
+            )
+        return {
+            "roots": [node(root, 0) for root in roots],
+            "root_count": len(roots),
+            "object_name": str(object_name) if object_name else None,
+            "include_hidden": bool(include_hidden),
+            "max_depth": max_depth,
+        }
+
+    def undo(self):
+        """Undo the most recent Blender edit operation."""
+        try:
+            result = bpy.ops.ed.undo()
+        except RuntimeError as error:
+            if not bpy.app.background:
+                raise
+            try:
+                bpy.ops.ed.undo_push(message="Blender Arwaky")
+                result = bpy.ops.ed.undo()
+            except RuntimeError as background_error:
+                return {
+                    "operation": "undo",
+                    "status": "unavailable",
+                    "reason": "background_context",
+                    "message": str(background_error or error),
+                }
+        return {"operation": "undo", "status": "finished" if "FINISHED" in result else str(result)}
+
+    def redo(self):
+        """Redo the most recently undone Blender edit operation."""
+        try:
+            result = bpy.ops.ed.redo()
+        except RuntimeError as error:
+            if not bpy.app.background:
+                raise
+            return {
+                "operation": "redo",
+                "status": "unavailable",
+                "reason": "background_context",
+                "message": str(error),
+            }
+        return {"operation": "redo", "status": "finished" if "FINISHED" in result else str(result)}
 
     def setup_environment(self, hdri_id, strength=1.0):
         """Configure a local HDRI file as the active World environment.
@@ -474,6 +591,103 @@ class BlenderMCPServer:
             obj.data.materials.append(material)
         return {"object_name": object_name, "material_name": material.name}
 
+    @staticmethod
+    def _validate_rgba(base_color):
+        """Validate and normalize an RGB/RGBA color in Blender's 0-1 range."""
+        if base_color is None:
+            return None
+        values = [float(value) for value in base_color]
+        if len(values) == 3:
+            values.append(1.0)
+        if len(values) != 4 or not all(math.isfinite(value) and 0.0 <= value <= 1.0 for value in values):
+            raise ValueError("base_color must contain 3 or 4 finite channels in the range 0-1")
+        return values
+
+    @staticmethod
+    def _principled_material(material):
+        material.use_nodes = True
+        node = material.node_tree.nodes.get("Principled BSDF")
+        if node is None:
+            raise RuntimeError(f"Material has no Principled BSDF node: {material.name}")
+        return node
+
+    def create_material(
+        self,
+        material_name,
+        base_color=None,
+        metallic=0.0,
+        roughness=0.5,
+        reuse_existing=True,
+    ):
+        """Create or reuse a bounded Principled BSDF material."""
+        name = str(material_name).strip()
+        if not name:
+            raise ValueError("material_name is required")
+        metallic = float(metallic)
+        roughness = float(roughness)
+        if not 0.0 <= metallic <= 1.0 or not math.isfinite(metallic):
+            raise ValueError("metallic must be between 0 and 1")
+        if not 0.0 <= roughness <= 1.0 or not math.isfinite(roughness):
+            raise ValueError("roughness must be between 0 and 1")
+        color = self._validate_rgba(base_color if base_color is not None else [0.8, 0.8, 0.8, 1.0])
+        material = bpy.data.materials.get(name)
+        created = material is None
+        if material is not None and not reuse_existing:
+            raise ValueError(f"Material already exists: {name}")
+        if material is None:
+            material = bpy.data.materials.new(name=name)
+        node = self._principled_material(material)
+        node.inputs["Base Color"].default_value = color
+        node.inputs["Metallic"].default_value = metallic
+        node.inputs["Roughness"].default_value = roughness
+        return {
+            "material_name": material.name,
+            "created": created,
+            "base_color": list(node.inputs["Base Color"].default_value),
+            "metallic": float(node.inputs["Metallic"].default_value),
+            "roughness": float(node.inputs["Roughness"].default_value),
+        }
+
+    def set_material_properties(self, material_name, base_color=None, metallic=None, roughness=None):
+        """Update supplied Principled BSDF properties without changing omitted values."""
+        material = bpy.data.materials.get(str(material_name))
+        if material is None:
+            raise ValueError(f"Material not found: {material_name}")
+        node = self._principled_material(material)
+        if base_color is not None:
+            node.inputs["Base Color"].default_value = self._validate_rgba(base_color)
+        for key, raw_value in (("Metallic", metallic), ("Roughness", roughness)):
+            if raw_value is not None:
+                value = float(raw_value)
+                if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                    raise ValueError(f"{key.lower()} must be between 0 and 1")
+                node.inputs[key].default_value = value
+        return {
+            "material_name": material.name,
+            "base_color": list(node.inputs["Base Color"].default_value),
+            "metallic": float(node.inputs["Metallic"].default_value),
+            "roughness": float(node.inputs["Roughness"].default_value),
+        }
+
+    def set_material_texture(self, material_name, file_path):
+        """Attach a local image texture to a material's base color input."""
+        material = bpy.data.materials.get(str(material_name))
+        if material is None:
+            raise ValueError(f"Material not found: {material_name}")
+        path = Path(str(file_path)).expanduser()
+        if not path.is_file():
+            raise FileNotFoundError(f"Texture file not found: {file_path}")
+        node = self._principled_material(material)
+        image = bpy.data.images.load(str(path.resolve()), check_existing=True)
+        texture = material.node_tree.nodes.new("ShaderNodeTexImage")
+        texture.image = image
+        material.node_tree.links.new(texture.outputs["Color"], node.inputs["Base Color"])
+        return {
+            "material_name": material.name,
+            "file_path": str(path.resolve()),
+            "texture_node": texture.name,
+        }
+
     def apply_modifier(self, object_name, modifier_name):
         """Apply a named modifier to an object."""
         obj = bpy.data.objects.get(object_name)
@@ -582,6 +796,55 @@ class BlenderMCPServer:
                 previous_resolution
             )
             scene.render.filepath = previous_filepath
+
+    def set_render_settings(
+        self,
+        engine=None,
+        resolution_x=1920,
+        resolution_y=1080,
+        resolution_percentage=100,
+        samples=None,
+        use_transparent=None,
+    ):
+        """Apply bounded scene render settings and return the effective values."""
+        scene = bpy.context.scene
+        resolution_x = int(resolution_x)
+        resolution_y = int(resolution_y)
+        resolution_percentage = int(resolution_percentage)
+        if not 1 <= resolution_x <= 16384 or not 1 <= resolution_y <= 16384:
+            raise ValueError("resolution dimensions must be between 1 and 16384")
+        if not 1 <= resolution_percentage <= 100:
+            raise ValueError("resolution_percentage must be between 1 and 100")
+        if engine:
+            engine = str(engine).upper()
+            valid_engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+            if engine not in valid_engines:
+                raise ValueError(f"Unsupported render engine: {engine}")
+            scene.render.engine = engine
+        scene.render.resolution_x = resolution_x
+        scene.render.resolution_y = resolution_y
+        scene.render.resolution_percentage = resolution_percentage
+        if samples is not None:
+            samples = int(samples)
+            if not 1 <= samples <= 65536:
+                raise ValueError("samples must be between 1 and 65536")
+            if hasattr(scene, "cycles"):
+                scene.cycles.samples = samples
+            eevee = getattr(scene, "eevee", None)
+            if eevee is not None and hasattr(eevee, "taa_render_samples"):
+                eevee.taa_render_samples = samples
+        if use_transparent is not None:
+            scene.render.film_transparent = bool(use_transparent)
+        result = {
+            "engine": scene.render.engine,
+            "resolution_x": scene.render.resolution_x,
+            "resolution_y": scene.render.resolution_y,
+            "resolution_percentage": scene.render.resolution_percentage,
+            "use_transparent": scene.render.film_transparent,
+        }
+        if hasattr(scene, "cycles"):
+            result["cycles_samples"] = scene.cycles.samples
+        return result
 
     def execute_code(self, code):
         out = io.StringIO()

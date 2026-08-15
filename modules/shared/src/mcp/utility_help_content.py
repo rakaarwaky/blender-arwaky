@@ -58,6 +58,10 @@ _EMBEDDED_SECTIONS: dict[str, str] = {
         "Examples:\n"
         'MCP: execute_command(action="create_primitive", args={"primitive_type": "CUBE", "name": "DemoCube"}).\n'
         'MCP: execute_command(action="configure_camera", args={"focal_length": 50, "set_active": true}).\n'
+        'MCP: execute_command(action="list_scene_objects", args={"object_type": "MESH", "limit": 20}).\n'
+        'MCP: execute_command(action="create_material", args={"material_name": "BlueMetal", "base_color": [0.05, 0.2, 0.8, 1], "metallic": 0.8}).\n'
+        'MCP: execute_command(action="set_render_settings", args={"resolution_x": 1920, "resolution_y": 1080, "samples": 64}).\n'
+        'MCP: execute_command(action="submit_task", args={"operation_type": "render", "metadata": {"scene": "demo"}}).\n'
         "CLI: `uv run blender-arwaky camera-config --focal-length 50 --set-active`.\n"
         "CLI: `uv run blender-arwaky search-assets --query chair --provider Polyhaven --json`.\n"
         "CLI: `uv run blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}' --json`."

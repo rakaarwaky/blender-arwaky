@@ -16,9 +16,11 @@ from modules.job.src.capabilities_job_resolver import JobCleanupResolver
 from modules.shared.src.common.taxonomy_core_vo import Timestamp
 from modules.shared.src.job.taxonomy_job_error import CapacityError
 from modules.shared.src.job.taxonomy_job_vo import (
+    CompleteTaskCommand,
     CreateTaskCommand,
     JobPolicy,
     OperationType,
+    ProgressMessage,
 )
 
 
@@ -97,3 +99,24 @@ def test_orchestrator_cleanup_times_out_stale_running_task() -> None:
     assert summary.reclaimed_capacity == 1  # nosec B101
     assert lifecycle.get_record(created.job_id).state == "TIMED_OUT"  # nosec B101
     assert lifecycle.active_count() == 0  # nosec B101
+
+
+def test_orchestrator_lists_active_and_terminal_tasks() -> None:
+    """Public task listing combines active and retained terminal records."""
+    orchestrator, lifecycle = _build_orchestrator(policy=JobPolicy(max_active=4), now=1000.0)
+    active = orchestrator.submit_task(CreateTaskCommand(operation_type=OperationType("render")))
+    lifecycle.start_task(active.job_id)
+    terminal = orchestrator.submit_task(CreateTaskCommand(operation_type=OperationType("scene")))
+    lifecycle.start_task(terminal.job_id)
+    orchestrator.complete_task(
+        CompleteTaskCommand(
+            job_id=terminal.job_id,
+            summary=ProgressMessage("done"),
+        )
+    )
+
+    snapshots = orchestrator.list_tasks()
+
+    assert {snapshot.job_id for snapshot in snapshots} == {active.job_id, terminal.job_id}  # nosec B101
+    assert any(snapshot.job_id == active.job_id and not snapshot.is_terminal for snapshot in snapshots)  # nosec B101
+    assert any(snapshot.job_id == terminal.job_id and snapshot.is_terminal for snapshot in snapshots)  # nosec B101

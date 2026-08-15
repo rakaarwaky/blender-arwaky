@@ -212,6 +212,10 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         with self._lock:
             return self._get_or_raise(job_id).to_snapshot()
 
+    def list_pending(self) -> tuple[JobStatusSnapshot, ...]:
+        with self._lock:
+            return tuple(r.to_snapshot() for r in self._records.values() if r.state == JOB_STATE_PENDING)
+
     def list_terminal(self) -> tuple[JobStatusSnapshot, ...]:
         with self._lock:
             return tuple(r.to_snapshot() for r in self._records.values() if r.state in TERMINAL_JOB_STATES)
@@ -376,6 +380,11 @@ class JsonFileJobLifecycleRepository(InMemoryJobLifecycleRepository):
         with self._persistence_lock:
             self._refresh_from_disk()
             return super().get_record(job_id)
+
+    def list_pending(self) -> tuple[JobStatusSnapshot, ...]:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            return super().list_pending()
 
     def list_terminal(self) -> tuple[JobStatusSnapshot, ...]:
         with self._persistence_lock:
