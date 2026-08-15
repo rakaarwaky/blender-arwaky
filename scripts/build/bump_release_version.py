@@ -10,13 +10,11 @@ Usage:
 The script assumes a clean working tree on the default branch with push
 permissions configured.
 """
-import os
+
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
-
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
@@ -24,7 +22,6 @@ PYPROJECT_PATH = PROJECT_ROOT / "pyproject.toml"
 MANIFEST_PATH = PROJECT_ROOT / "blender_mcp_addon" / "blender_manifest.toml"
 ADDON_BUILDER = SCRIPT_DIR / "build_addon_package.py"
 DIST_ZIP = PROJECT_ROOT / "dist" / "blender_mcp_addon.zip"
-ROOT_ZIP = PROJECT_ROOT / "blender_mcp_addon.zip"
 
 
 def bump_version(current_version: str) -> str:
@@ -96,17 +93,13 @@ def main() -> None:
     else:
         print(f"{MANIFEST_PATH.name} not found, skipping manifest bump")
 
-    # Build addon ZIP and mirror to repository root for legacy consumers
+    # Build the canonical addon ZIP under dist/ for release workflows
     build_res = run_command([sys.executable, str(ADDON_BUILDER)])
     if build_res.returncode != 0:
         print("Error: Failed to build addon ZIP")
         sys.exit(1)
 
-    if DIST_ZIP.exists():
-        shutil.copy2(DIST_ZIP, ROOT_ZIP)
-        print(f"Copied built addon to repository root: {ROOT_ZIP}")
-        run_command(["git", "add", str(ROOT_ZIP)])
-    else:
+    if not DIST_ZIP.exists():
         print(f"Warning: Built zip file not found in {DIST_ZIP.parent}")
 
     # Git commit + tag + push

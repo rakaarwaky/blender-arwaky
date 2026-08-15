@@ -42,13 +42,26 @@ from .utility_audit_dispatch import emit_audit_sync
 class _ProcessSpawner(Protocol):
     """Spawns Blender; returns a process id. DI boundary."""
 
-    def __call__(self, executable: str, mode: str, readiness_timeout_seconds: float) -> int: ...
+    def __call__(
+        self,
+        executable: str,
+        mode: str,
+        readiness_timeout_seconds: float,
+        bridge_host: str,
+        bridge_port: int,
+    ) -> int: ...
 
 
 class _ReadinessProbe(Protocol):
     """Probes bridge readiness; returns True when ready. DI boundary."""
 
-    def __call__(self, process_id: int, timeout_seconds: float) -> bool: ...
+    def __call__(
+        self,
+        process_id: int,
+        bridge_host: str,
+        bridge_port: int,
+        timeout_seconds: float,
+    ) -> bool: ...
 
 
 class ProcessLauncher(LaunchProtocol):
@@ -102,11 +115,7 @@ class ProcessLauncher(LaunchProtocol):
         start = time.monotonic()
         try:
             mode_str = mode.value if hasattr(mode, "value") else str(mode)
-            try:
-                pid = self._spawner(executable, mode_str, timeout, endpoint.host, endpoint.port)
-            except TypeError:
-                # Backward-compatible injected test seam with the original 3-argument contract.
-                pid = self._spawner(executable, mode_str, timeout)
+            pid = self._spawner(executable, mode_str, timeout, endpoint.host, endpoint.port)
         except Exception as exc:
             self._emit_security_audit(ViolationCategory.UNAUTHORIZED_ACCESS, str(exc))
             self._emit(
@@ -116,11 +125,7 @@ class ProcessLauncher(LaunchProtocol):
 
         ready = False
         if self._probe is not None:
-            try:
-                ready = self._probe(pid, endpoint.host, endpoint.port, timeout)
-            except TypeError:
-                # Backward-compatible injected test seam with the original 2-argument contract.
-                ready = self._probe(pid, timeout)
+            ready = self._probe(pid, endpoint.host, endpoint.port, timeout)
 
         duration_ms = (time.monotonic() - start) * 1000.0
         if not ready:

@@ -154,10 +154,6 @@ class PendingOpsLimitError(ServerError):
         )
 
 
-# Backward compatibility alias
-TooManyPendingOperationsError = PendingOpsLimitError
-
-
 class OperationWaitTimeoutError(ServerError):
     """Raised when a queued operation exceeds the configured wait timeout.
 
@@ -287,9 +283,3 @@ class AdapterSurfaceError(ServerError):
 
     def __init__(self, message: ErrorString = DEFAULT_ADAPTER_MSG, _details: Details | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)
-
-
-# ─── Backward-compatible aliases ────────────────────────────────
-
-ProviderError = GatewayProviderError
-ValidationError = GatewayValidationError

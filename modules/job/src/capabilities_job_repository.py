@@ -44,8 +44,8 @@ from modules.shared.src.job.taxonomy_job_constant import (
 from modules.shared.src.job.taxonomy_job_entity import JobRecord
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
+    JobValidationError,
     TaskNotFoundError,
-    ValidationError,
 )
 from modules.shared.src.job.taxonomy_job_event import JobEvent
 from modules.shared.src.job.taxonomy_job_vo import (
@@ -105,7 +105,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
         operation = sanitize_operation_type(str(command.operation_type))
         if not str(operation).strip():
-            raise ValidationError(ErrorString("operation_type is required"))
+            raise JobValidationError(ErrorString("operation_type is required"))
 
         metadata = redact_metadata(command.metadata)
 
@@ -134,7 +134,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         progress_value = float(command.progress)
 
         if progress_value < 0.0 or progress_value > 100.0:
-            raise ValidationError(ErrorString("progress must be between 0 and 100"))
+            raise JobValidationError(ErrorString("progress must be between 0 and 100"))
 
         message = sanitize_progress_message(str(command.message) if command.message else None)
 
@@ -145,7 +145,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
                 raise InvalidStateTransitionError(str(record.state), "PROGRESS")
 
             if progress_value < float(record.progress):
-                raise ValidationError(ErrorString("progress must be monotonic"))
+                raise JobValidationError(ErrorString("progress must be monotonic"))
 
             if (
                 record.last_progress_at is not None
@@ -177,7 +177,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
         error = sanitize_error(command.error_message)
         if not str(error).strip():
-            raise ValidationError(ErrorString("error_message is required"))
+            raise JobValidationError(ErrorString("error_message is required"))
 
         category: ErrorCategory | None = None
         if command.error_category:

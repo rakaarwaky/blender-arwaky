@@ -32,11 +32,11 @@ from modules.shared.src.gateway.contract_transport_protocol import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     CommandTimeoutError,
+    GatewayProviderError,
+    GatewayValidationError,
     PayloadLimitError,
-    ProviderError,
     TimeoutError,
     TransportParseError,
-    ValidationError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
     CommandDispatched,
@@ -83,7 +83,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         get_command_spec(action)
         try:
             validate_command_args(action, params)
-        except ValidationError:
+        except GatewayValidationError:
             raise
         effective_timeout = effective_command_timeout_ms(action, timeout_ms)
         timeout_s = effective_timeout / 1000.0
@@ -113,14 +113,14 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         except asyncio.TimeoutError:
             logger.warning("Command %s timed out after %.1fms", action, timeout_s * 1000)
             raise CommandTimeoutError(action=action, timeout_ms=effective_timeout) from None
-        except ValidationError:
+        except GatewayValidationError:
             raise
-        except ProviderError:
+        except GatewayProviderError:
             raise
         except Exception as exc:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.error("Command %s failed: %s", action, exc)
-            raise ProviderError(
+            raise GatewayProviderError(
                 message=f"Command '{action}' failed: {exc}",
                 details={"action": action},
             ) from None
@@ -175,7 +175,7 @@ class TransportExecutor(TransportProtocol):
             raise
         except Exception as e:
             logger.error("Transport error: %s", e)
-            raise ProviderError(
+            raise GatewayProviderError(
                 message=f"Transport failed: {e}",
                 details={"tracking_id": request.tracking_id},
             ) from e

@@ -45,7 +45,7 @@ class IOperationQueueProtocol(ABC):
     async def enqueue(self, operation: QueuedOperation) -> int:
         """Add operation to queue. Returns current queue depth.
 
-        Raises TooManyPendingOperationsError if max_depth exceeded.
+        Raises PendingOpsLimitError if max_depth exceeded.
         Emits ItemEnqueued event on success.
         """
         ...

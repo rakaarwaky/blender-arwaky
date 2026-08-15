@@ -68,8 +68,3 @@ class RecordCountError(JobError):
         super().__init__(message)
         self.max_records = max_records
         self.current_records = current_records
-
-
-# ─── Backward-compatible aliases ────────────────────────────────
-
-ValidationError = JobValidationError

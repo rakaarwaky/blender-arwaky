@@ -197,9 +197,3 @@ def effective_command_timeout_ms(command: str, requested_timeout_ms: float | Non
             code="validation_error",
         )
     return requested_timeout_ms
-
-
-def get_command_schema(command: str) -> list[str]:
-    """Get allowed parameters for a command (legacy alias)."""
-    spec = get_command_spec(command)
-    return list(spec.required_params) + list(spec.optional_params)

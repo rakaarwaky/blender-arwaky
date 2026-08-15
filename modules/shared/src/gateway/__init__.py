@@ -49,13 +49,11 @@ __all__ = [
     "ConnectionProtocol",
     "ConnectionState",
     "ConnectionStatusVO",
-    "ExecutionError",
     "GatewayError",
     "GatewayExecutionError",
     "GatewayProviderError",
     "GatewayValidationError",
     "PayloadLimitError",
-    "ProviderError",
     "ProtocolVersionMismatchError",
     "QueueStatusVO",
     "SceneOperationOutcomeVO",
@@ -69,10 +67,4 @@ __all__ = [
     "TransportParseError",
     "TransportProtocol",
     "TransportType",
-    "ValidationError",
 ]
-
-# Backward-compatible aliases — prefer Gateway* variants
-ValidationError = GatewayValidationError
-ProviderError = GatewayProviderError
-ExecutionError = GatewayExecutionError

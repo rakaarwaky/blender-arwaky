@@ -183,7 +183,7 @@ class CodeValidator(ValidateCodeProtocol):
                     functions.add(construct)
             return frozenset(modules), frozenset(functions)
 
-        # Defaults (preserved for backward compatibility)
+        # Secure defaults apply when no explicit policy is configured.
         return (
             frozenset(
                 {

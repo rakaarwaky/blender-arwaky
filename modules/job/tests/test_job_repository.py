@@ -31,8 +31,8 @@ from modules.shared.src.job.taxonomy_job_constant import (
 )
 from modules.shared.src.job.taxonomy_job_error import (
     InvalidStateTransitionError,
+    JobValidationError,
     TaskNotFoundError,
-    ValidationError,
 )
 from modules.shared.src.job.taxonomy_job_vo import (
     CancellationReason,
@@ -336,7 +336,7 @@ def test_fr_job_002_progress_out_of_range_rejected(repo: InMemoryJobLifecycleRep
     repo.start_task(created.job_id)
 
     # Progress > 100 should fail
-    with pytest.raises(ValidationError):
+    with pytest.raises(JobValidationError):
         repo.update_progress(
             ProgressUpdateCommand(
                 job_id=created.job_id,
@@ -345,7 +345,7 @@ def test_fr_job_002_progress_out_of_range_rejected(repo: InMemoryJobLifecycleRep
         )
 
     # Progress < 0 should fail
-    with pytest.raises(ValidationError):
+    with pytest.raises(JobValidationError):
         repo.update_progress(
             ProgressUpdateCommand(
                 job_id=created.job_id,
@@ -369,7 +369,7 @@ def test_fr_job_002_progress_monotonic(repo: InMemoryJobLifecycleRepository) -> 
     )
 
     # Second update to 40% should fail — not monotonic
-    with pytest.raises(ValidationError):
+    with pytest.raises(JobValidationError):
         repo.update_progress(
             ProgressUpdateCommand(
                 job_id=created.job_id,
