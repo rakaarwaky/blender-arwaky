@@ -251,6 +251,11 @@ class BlenderMCPServer:
             "configure_cloth_simulation": self.configure_cloth_simulation,
             "bake_physics_simulation": self.bake_physics_simulation,
             "clear_physics_bake": self.clear_physics_bake,
+            "get_simulation_state": self.get_simulation_state,
+            "get_simulation_cache_status": self.get_simulation_cache_status,
+            "configure_particle_system": self.configure_particle_system,
+            "configure_force_field": self.configure_force_field,
+            "configure_fluid_domain": self.configure_fluid_domain,
             "execute_code": self.execute_code,
             "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
@@ -1204,6 +1209,268 @@ class BlenderMCPServer:
         """Clear all active scene physics cache data through Blender."""
         bpy.ops.ptcache.free_bake_all()
         return {"object_name": None, "changed": True, "operation": "clear_physics_bake"}
+
+    def get_simulation_state(self, object_name):
+        """Inspect bounded particle, force-field, and fluid modifier state."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        particles = []
+        for particle_system in list(obj.particle_systems)[:16]:
+            settings = particle_system.settings
+            particles.append(
+                {
+                    "name": particle_system.name,
+                    "count": settings.count,
+                    "frame_start": settings.frame_start,
+                    "frame_end": settings.frame_end,
+                    "lifetime": settings.lifetime,
+                    "physics_type": settings.physics_type,
+                }
+            )
+        effector = (
+            obj
+            if obj.field is not None
+            else next((item for item in bpy.data.objects if item.get("arwaky_force_target") == obj.name), None)
+        )
+        field = effector.field if effector is not None else None
+        fluid_modifier = next((item for item in obj.modifiers if item.type == "FLUID"), None)
+        domain = fluid_modifier.domain_settings if fluid_modifier else None
+        return {
+            "object_name": obj.name,
+            "particle_systems": particles,
+            "force_field_enabled": field is not None and field.type != "NONE",
+            "force_field_type": field.type if field is not None and field.type != "NONE" else None,
+            "force_field_strength": field.strength if field is not None and field.type != "NONE" else None,
+            "fluid_domain_enabled": domain is not None,
+            "fluid_domain_type": domain.domain_type if domain else None,
+            "fluid_resolution": domain.resolution_max if domain else None,
+            "fluid_cache_type": domain.cache_type if domain else None,
+        }
+
+    def get_simulation_cache_status(self):
+        """Inspect bounded cache state without creating a task registry."""
+        scene = bpy.context.scene
+        caches = []
+        for obj in list(bpy.data.objects)[:1000]:
+            for modifier in list(obj.modifiers)[:32]:
+                if modifier.type not in {"CLOTH", "FLUID"}:
+                    continue
+                point_cache = getattr(modifier, "point_cache", None)
+                domain = getattr(modifier, "domain_settings", None)
+                caches.append(
+                    {
+                        "object_name": obj.name,
+                        "modifier_name": modifier.name,
+                        "modifier_type": modifier.type,
+                        "is_baked": bool(getattr(point_cache, "is_baked", False)) if point_cache else False,
+                        "cache_frame_start": getattr(domain, "cache_frame_start", None)
+                        if domain
+                        else getattr(point_cache, "frame_start", None),
+                        "cache_frame_end": getattr(domain, "cache_frame_end", None)
+                        if domain
+                        else getattr(point_cache, "frame_end", None),
+                    }
+                )
+        return {
+            "frame_start": scene.frame_start,
+            "frame_end": scene.frame_end,
+            "current_frame": scene.frame_current,
+            "cache_states": caches[:100],
+        }
+
+    def configure_particle_system(
+        self,
+        object_name,
+        enabled,
+        count=1000,
+        frame_start=1,
+        frame_end=200,
+        lifetime=50.0,
+        physics_type="NEWTON",
+    ):
+        """Configure one bounded particle system on a mesh object."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError("Particle systems require a mesh object")
+        count = int(count)
+        frame_start = self._bounded_wave_three_frame(frame_start)
+        frame_end = self._bounded_wave_three_frame(frame_end)
+        lifetime = float(lifetime)
+        physics_type = str(physics_type).upper()
+        if not 1 <= count <= 1_000_000:
+            raise ValueError("count must be between 1 and 1000000")
+        if frame_end <= frame_start:
+            raise ValueError("frame_end must be greater than frame_start")
+        if not math.isfinite(lifetime) or not 0.1 <= lifetime <= 100000.0:
+            raise ValueError("lifetime must be between 0.1 and 100000")
+        if physics_type not in {"NEWTON", "KEYED", "BOIDS", "FLUID"}:
+            raise ValueError(f"Unsupported particle physics type: {physics_type}")
+        changed = False
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if bool(enabled):
+            if len(obj.particle_systems) == 0:
+                bpy.ops.object.particle_system_add()
+                changed = True
+            particle_system = obj.particle_systems[-1]
+            settings = particle_system.settings
+            if (
+                settings.count,
+                settings.frame_start,
+                settings.frame_end,
+                settings.lifetime,
+                settings.physics_type,
+            ) != (count, frame_start, frame_end, lifetime, physics_type):
+                changed = True
+            settings.count = count
+            settings.frame_start = frame_start
+            settings.frame_end = frame_end
+            settings.lifetime = lifetime
+            settings.physics_type = physics_type
+            return {
+                "object_name": obj.name,
+                "changed": changed,
+                "operation": "configure_particle_system",
+                "particle_system_name": particle_system.name,
+            }
+        if len(obj.particle_systems) > 0:
+            bpy.ops.object.particle_system_remove()
+            changed = True
+        return {
+            "object_name": obj.name,
+            "changed": changed,
+            "operation": "configure_particle_system",
+            "particle_system_name": None,
+        }
+
+    def configure_force_field(
+        self,
+        object_name,
+        enabled,
+        field_type="FORCE",
+        strength=1.0,
+        noise=0.0,
+    ):
+        """Configure a bounded force field on an existing object."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        field_type = str(field_type).upper()
+        strength = float(strength)
+        noise = float(noise)
+        if field_type not in {"FORCE", "WIND", "VORTEX", "MAGNET", "TURBULENCE"}:
+            raise ValueError(f"Unsupported force field type: {field_type}")
+        if not math.isfinite(strength) or not -1.0e6 <= strength <= 1.0e6:
+            raise ValueError("strength must be between -1000000 and 1000000")
+        if not math.isfinite(noise) or not 0.0 <= noise <= 1.0e6:
+            raise ValueError("noise must be between 0 and 1000000")
+        effector = (
+            obj
+            if obj.field is not None
+            else next((item for item in bpy.data.objects if item.get("arwaky_force_target") == obj.name), None)
+        )
+        if bool(enabled):
+            changed = False
+            if effector is None or effector.field is None:
+                bpy.ops.object.effector_add(type=field_type, location=obj.location)
+                effector = bpy.context.object
+                effector.name = f"{obj.name}_ForceField"
+                effector["arwaky_force_target"] = obj.name
+                changed = True
+            field = effector.field
+            previous = (field.type, field.strength, field.noise)
+            field.type = field_type
+            field.strength = strength
+            field.noise = noise
+            changed = changed or previous != (field.type, field.strength, field.noise)
+            return {
+                "object_name": obj.name,
+                "changed": changed,
+                "operation": "configure_force_field",
+                "force_field_type": field.type,
+                "effector_name": effector.name,
+            }
+        if effector is None or effector.field is None:
+            return {
+                "object_name": obj.name,
+                "changed": False,
+                "operation": "configure_force_field",
+                "force_field_type": None,
+            }
+        if effector is not obj and effector.get("arwaky_force_target") == obj.name:
+            bpy.data.objects.remove(effector, do_unlink=True)
+            return {
+                "object_name": obj.name,
+                "changed": True,
+                "operation": "configure_force_field",
+                "force_field_type": None,
+            }
+        previous = (effector.field.type, effector.field.strength, effector.field.noise)
+        effector.field.type = "NONE"
+        return {
+            "object_name": obj.name,
+            "changed": previous[0] != "NONE",
+            "operation": "configure_force_field",
+            "force_field_type": None,
+        }
+
+    def configure_fluid_domain(
+        self,
+        object_name,
+        enabled,
+        domain_type="LIQUID",
+        resolution=64,
+        cache_type="REPLAY",
+    ):
+        """Configure a bounded fluid domain modifier baseline."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError("Fluid domains require a mesh object")
+        domain_type = str(domain_type).upper()
+        cache_type = str(cache_type).upper()
+        resolution = int(resolution)
+        if domain_type not in {"LIQUID", "GAS"}:
+            raise ValueError(f"Unsupported fluid domain type: {domain_type}")
+        if not 4 <= resolution <= 512:
+            raise ValueError("resolution must be between 4 and 512")
+        if cache_type not in {"REPLAY", "MODULAR", "FINAL"}:
+            raise ValueError(f"Unsupported fluid cache type: {cache_type}")
+        modifier = next((item for item in obj.modifiers if item.type == "FLUID"), None)
+        changed = False
+        if bool(enabled):
+            if modifier is None:
+                modifier = obj.modifiers.new(name="Fluid", type="FLUID")
+                changed = True
+            modifier.fluid_type = "DOMAIN"
+            domain = modifier.domain_settings
+            if domain is None:
+                raise RuntimeError("Blender did not initialize fluid domain settings")
+            previous = (domain.domain_type, domain.resolution_max, domain.cache_type)
+            domain.domain_type = domain_type
+            domain.resolution_max = resolution
+            domain.cache_type = cache_type
+            changed = changed or previous != (domain.domain_type, domain.resolution_max, domain.cache_type)
+            return {
+                "object_name": obj.name,
+                "changed": changed,
+                "operation": "configure_fluid_domain",
+                "fluid_domain_type": domain.domain_type,
+            }
+        if modifier is not None:
+            obj.modifiers.remove(modifier)
+            changed = True
+        return {
+            "object_name": obj.name,
+            "changed": changed,
+            "operation": "configure_fluid_domain",
+            "fluid_domain_type": None,
+        }
 
     @staticmethod
     def _bounded_wave_two_limit(value):

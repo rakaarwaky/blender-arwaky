@@ -138,6 +138,30 @@ Long-running compositor, VSE, and physics operations must use `modules/job`; no 
 
 Wave 3 keeps the five-tool MCP surface unchanged. Sequence rendering and physics baking carry explicit `background_eligibility_flag`, `long_running_flag`, bounded timeouts, and destructive/risk metadata so the shared dispatcher/job path can coordinate them without domain-specific registries. Fluid, particle, and force-field packs remain future scope rather than speculative actions.
 
+### Wave 4 — Advanced simulation controls
+
+Wave 4 extends the existing `modules/physics` contract instead of creating a second simulation module. The scope is limited to real Blender data and operator behavior:
+
+| Capability | Canonical actions | Boundary |
+|---|---|---|
+| Simulation state and cache | `get_simulation_state`, `get_simulation_cache_status` | Read-only, bounded summaries; no private progress store |
+| Particle systems | `configure_particle_system` | One object, bounded count/frame/lifetime, explicit physics type allow-list |
+| Force fields | `configure_force_field` | Existing object or explicit Blender effector creation, bounded type/strength/noise |
+| Fluid domain baseline | `configure_fluid_domain` | Domain modifier setup and bounded resolution/cache mode; full solver orchestration remains future work |
+
+Wave 4 does not add a new MCP tool, external solver/provider integration, dashboard, or speculative fluid bake action. Every mutation remains a canonical action routed through the existing dispatcher and Blender gateway; any future long-running bake extension must reuse `modules/job`.
+
+#### Wave 4 implementation status
+
+| Capability | Implemented actions | Verification |
+|---|---|---|
+| Simulation state and cache | `get_simulation_state`, `get_simulation_cache_status` | Contract/unit tests and Blender 4.0.2 smoke: particle, force-field, fluid modifier, and cache summaries |
+| Particle systems | `configure_particle_system` | Bounds and physics-type allow-list tests; Blender smoke: create, inspect, and disable a NEWTON system |
+| Force fields | `configure_force_field` | Bounds and type tests; Blender smoke: create a WIND effector bound to a mesh and remove it safely |
+| Fluid domain baseline | `configure_fluid_domain` | Bounds and enum tests; Blender smoke: configure LIQUID domain at resolution 32 and disable it |
+
+Wave 4 preserves the five-tool MCP surface and adds no private simulation registry. Fluid bake, external solvers, and progress/cancellation orchestration remain intentionally outside this wave.
+
 ## Porting method
 
 For each candidate implementation, maintain a small migration record containing the upstream URL, commit SHA, source file, license disposition, behavior being retained, Arwaky contract receiving it, and tests added. Porting proceeds in this order:

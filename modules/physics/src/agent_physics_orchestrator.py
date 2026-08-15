@@ -38,3 +38,43 @@ class PhysicsOrchestrator:
 
     async def clear_bake(self):
         return await self._executor.clear_bake()
+
+    async def get_simulation_state(self, object_name: str):
+        return await self._executor.get_simulation_state(object_name)
+
+    async def get_simulation_cache_status(self):
+        return await self._executor.get_simulation_cache_status()
+
+    async def configure_particle_system(
+        self,
+        object_name: str,
+        enabled: bool,
+        count: int = 1000,
+        frame_start: int = 1,
+        frame_end: int = 200,
+        lifetime: float = 50.0,
+        physics_type: str = "NEWTON",
+    ):
+        return await self._executor.configure_particle_system(
+            object_name, enabled, count, frame_start, frame_end, lifetime, physics_type
+        )
+
+    async def configure_force_field(
+        self,
+        object_name: str,
+        enabled: bool,
+        field_type: str = "FORCE",
+        strength: float = 1.0,
+        noise: float = 0.0,
+    ):
+        return await self._executor.configure_force_field(object_name, enabled, field_type, strength, noise)
+
+    async def configure_fluid_domain(
+        self,
+        object_name: str,
+        enabled: bool,
+        domain_type: str = "LIQUID",
+        resolution: int = 64,
+        cache_type: str = "REPLAY",
+    ):
+        return await self._executor.configure_fluid_domain(object_name, enabled, domain_type, resolution, cache_type)

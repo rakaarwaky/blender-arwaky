@@ -619,6 +619,56 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             "parameters": {},
             "metadata": {"destructive_flag": True, "risk_level": "high"},
         },
+        "get_simulation_state": {
+            "description": "Inspect bounded advanced simulation modifiers for one object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+            },
+        },
+        "get_simulation_cache_status": {
+            "description": "Inspect bounded physics cache range and bake state for the active scene",
+            "parameters": {},
+        },
+        "configure_particle_system": {
+            "description": "Configure one bounded particle system on a mesh object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "count": {"type": "integer", "required": False},
+                "frame_start": {"type": "integer", "required": False},
+                "frame_end": {"type": "integer", "required": False},
+                "lifetime": {"type": "number", "required": False},
+                "physics_type": {
+                    "type": "string",
+                    "required": False,
+                    "enum": ["NEWTON", "KEYED", "BOIDS", "FLUID"],
+                },
+            },
+        },
+        "configure_force_field": {
+            "description": "Configure a bounded force field on an existing object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "field_type": {
+                    "type": "string",
+                    "required": False,
+                    "enum": ["FORCE", "WIND", "VORTEX", "MAGNET", "TURBULENCE"],
+                },
+                "strength": {"type": "number", "required": False},
+                "noise": {"type": "number", "required": False},
+            },
+        },
+        "configure_fluid_domain": {
+            "description": "Configure a bounded fluid domain modifier baseline on a mesh object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "enabled": {"type": "boolean", "required": True},
+                "domain_type": {"type": "string", "required": False, "enum": ["LIQUID", "GAS"]},
+                "resolution": {"type": "integer", "required": False},
+                "cache_type": {"type": "string", "required": False, "enum": ["REPLAY", "MODULAR", "FINAL"]},
+            },
+        },
     },
     "asset": {
         "search_assets": {
