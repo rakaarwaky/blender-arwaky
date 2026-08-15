@@ -202,15 +202,15 @@ Current core scope is deterministic Blender automation. LLM providers, local Oll
 
 The matrix below uses values and capabilities stated in each project's current public repository or official documentation. `√` means documented support, `×` means explicitly unavailable or outside the project's stated scope, and `?` means unknown or not published. Numeric values are kept only where the source publishes them. Counts are not perfectly equivalent because projects may expose one tool per operation or group many operations behind one tool.
 
-| Project | MCP tools | Actions | Operations | Namespaces | CLI actions | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Blender Arwaky** | 5 | 75 | 75 | 15 | 75 | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
-| [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
-| [Blender MCP Server by djeada][3] | 27 | ? | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
-| [Blender MCP by sandraschi][4] | 41* | ? | 150+ | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | √ | √ | ? |
-| [Blender Lab MCP Server][2] | ? | ? | ? | ? | √ | 5.1+ | ? | √ | ? | ? | ? | ? | ? | √ | ? | ? | ? | × |
+| Project | MCP tools | Actions / operations | Namespaces | CLI actions | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Blender Arwaky** | 5 | 75 | 15 | 75 | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
+| [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
+| [Blender MCP Server by djeada][3] | 27 | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
+| [Blender MCP by sandraschi][4] | 41* | 150+ | ? | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | ? | ? |
+| [Blender Lab MCP Server][2] | ? | ? | ? | ? | √ | 5.1+ | ? | √ | ? | ? | ? | ? | √ | ? | ? | ? | × |
 
-* The sandraschi repository headline states 41 portmanteau tools and 150+ operations; another README section states 48+ MCP tools. The published values are shown as reported, not normalized.
+* The sandraschi repository headline states 41 portmanteau tools and 150+ operations; another README section states 48+ MCP tools. The published values are shown as reported, not normalized. `MCP tools` and `Actions / operations` remain separate because they measure interface entries versus grouped operations.
 
 ## Contributing
 
