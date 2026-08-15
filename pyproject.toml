@@ -87,7 +87,7 @@ line-ending = "auto"
 # ─── Pytest configuration ───────────────────────────────────────────────────
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["modules", "blender_mcp_addon"]
+testpaths = ["modules", "blender_mcp_addon", "plugin"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

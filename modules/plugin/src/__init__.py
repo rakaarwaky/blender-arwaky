@@ -1,8 +1,6 @@
-"""Global plugin framework for optional Blender providers."""
+"""AES plugin feature module exports."""
 
-from .contract_plugin_protocol import PluginContract
-from .registry_plugin_catalog import PluginCatalog
-from .schema_plugin_manifest import PluginManifest
-from .schema_plugin_result import PluginResult
+from .contract_plugin_aggregate import PluginAggregate
+from .root_plugin_container import PluginContainer
 
-__all__ = ["PluginCatalog", "PluginContract", "PluginManifest", "PluginResult"]
+__all__ = ["PluginAggregate", "PluginContainer"]

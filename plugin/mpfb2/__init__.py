@@ -1,5 +1,5 @@
-"""Optional MPFB 2 plugin provider for Blender Arwaky."""
+"""Optional MPFB 2 provider for Blender Arwaky."""
 
-from .plugin_entry import create_provider
+from .plugin_entry import Mpfb2PluginOperation, create_provider
 
-__all__ = ["create_provider"]
+__all__ = ["Mpfb2PluginOperation", "create_provider"]

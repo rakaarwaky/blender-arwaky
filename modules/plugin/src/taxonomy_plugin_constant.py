@@ -1,0 +1,12 @@
+"""Compile-time constants for plugin lifecycle and result categories."""
+
+PLUGIN_PROVIDER_TYPE_BLENDER_ADDON = "blender_addon"
+PLUGIN_STATUS_AVAILABLE = "available"
+PLUGIN_STATUS_UNAVAILABLE = "unavailable"
+PLUGIN_STATUS_INCOMPATIBLE = "incompatible"
+PLUGIN_STATUS_UNSUPPORTED = "unsupported"
+PLUGIN_STATUS_FAILED = "failed"
+PLUGIN_STATUS_SUCCESS = "success"
+PLUGIN_STATUS_NOT_FOUND = "not_found"
+PLUGIN_ACTION_DISCOVER = "plugin.discover"
+PLUGIN_ACTION_HEALTH_CHECK = "plugin.health_check"
