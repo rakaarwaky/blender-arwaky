@@ -26,9 +26,9 @@ async def test_mcp_response_recursively_redacts_sensitive_values() -> None:
 
     response = await container.response.format_response(
         {
-            "token": "secret-token",
+            "token": "fixture-token-value",
             "nested": {"file_path": "/home/ubuntu/private.glb", "safe": "visible"},
-            "items": [{"api_key": "secret-key", "name": "asset"}],
+            "items": [{"api_key": "fixture-api-value", "name": "asset"}],
         },
         ToolName("execute_command"),
         RequestId("trace-198"),
