@@ -1,0 +1,11 @@
+id: mpfb2
+name: MPFB 2
+version: 2.0.17
+provider_type: blender_addon
+blender_min_version: "4.2"
+entry_point: plugin_entry:create_provider
+capabilities:
+  - id: character.create
+    version: 1
+    parameters:
+      - base
