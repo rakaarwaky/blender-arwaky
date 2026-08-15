@@ -28,7 +28,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         self._policy_mode = policy_mode
         self._escape_enabled = escape_enabled
 
-# ─── Block 2: Protocol Method Implementation ──────────────
+    # ─── Block 2: Protocol Method Implementation ──────────────
 
     def get_value(
         self,
@@ -61,7 +61,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         """Retrieve float value. Returns default on type mismatch. Int coerced."""
         return self._typed(snapshot, path, float, default, coerce_int=True)
 
-# ─── Block 3: Typed Helper ─────────────────────────────────
+    # ─── Block 3: Typed Helper ─────────────────────────────────
 
     def _typed(
         self,
@@ -92,9 +92,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         if self._policy_mode == POLICY_MODE_STRICT:
             # Sanitize path — use only final segment to avoid leaking structure
             safe_ref = path.rsplit(".", maxsplit=1)[-1] if "." in path else path
-            raise ConfigTypeError(
-                ErrorString(f"{safe_ref}: expected {expected.__name__}, got {type(raw).__name__}")
-            )
+            raise ConfigTypeError(ErrorString(f"{safe_ref}: expected {expected.__name__}, got {type(raw).__name__}"))
         return default
 
     def __repr__(self) -> str:

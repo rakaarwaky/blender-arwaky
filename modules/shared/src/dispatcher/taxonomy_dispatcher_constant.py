@@ -7,6 +7,18 @@ Taxonomy layer: pure constants only — no functions, loops, classes, or I/O.
 from __future__ import annotations
 
 DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
+    "gateway": {
+        "execute_blender_code": {
+            "description": "Execute validated Blender Python code",
+            "parameters": {
+                "code": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Blender Python source code",
+                },
+            },
+        },
+    },
     "scene": {
         "get_scene_info": {
             "description": "Full scene metadata — object count, frame range, resolution, render engine",
@@ -20,22 +32,6 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                     "required": True,
                     "description": "Cleanup scope",
                     "enum": ["all", "objects", "meshes"],
-                },
-            },
-        },
-        "setup_environment": {
-            "description": "Setup HDRI lighting for the scene",
-            "parameters": {
-                "hdri_id": {
-                    "type": "string",
-                    "required": True,
-                    "description": "HDRI asset identifier",
-                },
-                "strength": {
-                    "type": "number",
-                    "required": False,
-                    "description": "Light intensity multiplier",
-                    "default": 1.0,
                 },
             },
         },
@@ -146,6 +142,42 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         },
     },
     "render": {
+        "configure_camera": {
+            "description": "Configure a Blender camera and optional depth of field",
+            "parameters": {
+                "camera_ref": {"type": "string", "required": False},
+                "focal_length": {"type": "number", "required": False, "default": 50.0},
+                "sensor_fit": {
+                    "type": "string",
+                    "required": False,
+                    "enum": ["AUTO", "HORIZONTAL", "VERTICAL"],
+                    "default": "AUTO",
+                },
+                "framing_target": {"type": "string", "required": False},
+                "set_active": {"type": "boolean", "required": False, "default": False},
+                "depth_of_field_enabled": {"type": "boolean", "required": False, "default": False},
+                "focus_distance": {"type": "number", "required": False},
+                "focus_object": {"type": "string", "required": False},
+                "aperture": {"type": "number", "required": False, "default": 2.8},
+                "create_if_missing": {"type": "boolean", "required": False, "default": True},
+            },
+        },
+        "setup_environment": {
+            "description": "Configure HDRI lighting using a local file resolved by the Asset feature",
+            "parameters": {
+                "hdri_id": {
+                    "type": "string",
+                    "required": True,
+                    "description": "Absolute or project-local path to an already cached .hdr or .exr asset",
+                },
+                "strength": {
+                    "type": "number",
+                    "required": False,
+                    "description": "Environment light strength in the inclusive range 0-10",
+                    "default": 1.0,
+                },
+            },
+        },
         "get_viewport_screenshot": {
             "description": "Capture AI-optimized viewport screenshot",
             "parameters": {
@@ -211,6 +243,57 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         },
     },
     "asset": {
+        "search_assets": {
+            "description": "Search configured asset providers",
+            "parameters": {
+                "query": {"type": "string", "required": False, "default": "curated"},
+                "providers": {"type": "array[string]", "required": False},
+                "asset_type_filter": {"type": "string", "required": False},
+                "limit": {"type": "integer", "required": False},
+                "page_token": {"type": "string", "required": False},
+            },
+        },
+        "get_provider_metadata": {
+            "description": "Get normalized metadata for a provider asset",
+            "parameters": {
+                "provider": {"type": "string", "required": True},
+                "asset_id": {"type": "string", "required": True},
+            },
+        },
+        "download_asset": {
+            "description": "Download a provider asset into the validated local cache",
+            "parameters": {
+                "provider": {"type": "string", "required": True},
+                "asset_id": {"type": "string", "required": True},
+                "asset_type": {"type": "string", "required": True},
+                "cache_dir": {"type": "string", "required": True},
+                "resolution": {"type": "string", "required": False},
+                "overwrite_policy": {"type": "string", "required": False, "default": "reuse"},
+                "max_size": {"type": "integer", "required": False},
+                "background": {"type": "boolean", "required": False, "default": False},
+            },
+        },
+        "extract_asset": {
+            "description": "Safely extract a downloaded asset archive",
+            "parameters": {
+                "artifact_path": {"type": "string", "required": True},
+                "destination": {"type": "string", "required": True},
+                "max_entries": {"type": "integer", "required": False},
+                "max_extracted_size": {"type": "integer", "required": False},
+                "allow_symlinks": {"type": "boolean", "required": False, "default": False},
+            },
+        },
+        "import_asset": {
+            "description": "Import a locally cached asset into Blender",
+            "parameters": {
+                "file_path": {"type": "string", "required": True},
+                "asset_type": {"type": "string", "required": True},
+                "target_collection": {"type": "string", "required": False},
+                "scale_normalization": {"type": "boolean", "required": False, "default": False},
+                "duplicate_policy": {"type": "string", "required": False, "default": "rename"},
+                "format_hint": {"type": "string", "required": False},
+            },
+        },
         "import_glb": {
             "description": "Import a GLB/GLTF file into the scene",
             "parameters": {
@@ -281,6 +364,11 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
         "launch_blender": {
             "description": "Start Blender with integration component active",
             "parameters": {
+                "filepath": {
+                    "type": "string",
+                    "required": False,
+                    "description": "Optional .blend file to open",
+                },
                 "mode": {
                     "type": "string",
                     "required": False,

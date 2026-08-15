@@ -135,6 +135,8 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
             return DispatchErrorCategory.TIMEOUT
         if "Timeout" in str(error).lower():
             return DispatchErrorCategory.TIMEOUT
+        if "blocked" in str(error).lower() or "Blocked" in error_type:
+            return DispatchErrorCategory.BLOCKED
         if "Connection" in error_type or "connection" in str(error).lower():
             return DispatchErrorCategory.CONNECTION
         if "NotFound" in error_type or "not found" in str(error).lower():

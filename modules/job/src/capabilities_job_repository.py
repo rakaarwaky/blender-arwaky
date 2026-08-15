@@ -4,11 +4,17 @@
 Owns in-memory task records. Enforces state machine.
 All transitions atomic and thread-safe.
 """
+
 from __future__ import annotations
 
+import contextlib
+import json
 import logging
+import os
+import tempfile
 import threading
 from collections.abc import Callable
+from pathlib import Path
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ErrorString,
@@ -46,12 +52,14 @@ from modules.shared.src.job.taxonomy_job_vo import (
     ActiveCount,
     CancellationReason,
     CompleteTaskCommand,
+    CorrelationId,
     CreateTaskCommand,
     DeletedCount,
     ErrorCategory,
     FailTaskCommand,
     JobPolicy,
     JobStatusSnapshot,
+    OperationType,
     ProgressMessage,
     ProgressUpdateCommand,
     ResultUrl,
@@ -128,9 +136,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         if progress_value < 0.0 or progress_value > 100.0:
             raise ValidationError(ErrorString("progress must be between 0 and 100"))
 
-        message = sanitize_progress_message(
-            str(command.message) if command.message else None
-        )
+        message = sanitize_progress_message(str(command.message) if command.message else None)
 
         with self._lock:
             record = self._get_or_raise(command.job_id)
@@ -143,8 +149,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
             if (
                 record.last_progress_at is not None
-                and (float(now) - float(record.last_progress_at))
-                < self._policy.progress_throttle_seconds
+                and (float(now) - float(record.last_progress_at)) < self._policy.progress_throttle_seconds
                 and progress_value < 100.0
             ):
                 return record.to_snapshot()
@@ -159,9 +164,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         return snapshot
 
     def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
-        summary = sanitize_progress_message(
-            str(command.summary) if command.summary else None
-        )
+        summary = sanitize_progress_message(str(command.summary) if command.summary else None)
         snapshot = self._transition(
             command.job_id,
             JOB_STATE_COMPLETED,
@@ -211,19 +214,11 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
 
     def list_terminal(self) -> tuple[JobStatusSnapshot, ...]:
         with self._lock:
-            return tuple(
-                r.to_snapshot()
-                for r in self._records.values()
-                if r.state in TERMINAL_JOB_STATES
-            )
+            return tuple(r.to_snapshot() for r in self._records.values() if r.state in TERMINAL_JOB_STATES)
 
     def list_running(self) -> tuple[JobStatusSnapshot, ...]:
         with self._lock:
-            return tuple(
-                r.to_snapshot()
-                for r in self._records.values()
-                if r.state == JOB_STATE_RUNNING
-            )
+            return tuple(r.to_snapshot() for r in self._records.values() if r.state == JOB_STATE_RUNNING)
 
     def delete_records(self, job_ids: tuple[JobId, ...]) -> DeletedCount:
         with self._lock:
@@ -241,10 +236,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
     # ─── Block 3: Dunder Methods, Factories, and Private Helpers ─────────────
 
     def __repr__(self) -> str:
-        return (
-            f"<InMemoryJobLifecycleRepository "
-            f"records={len(self._records)} active={self._active_count}>"
-        )
+        return f"<InMemoryJobLifecycleRepository records={len(self._records)} active={self._active_count}>"
 
     def _now(self) -> Timestamp:
         return Timestamp(float(self._clock()))
@@ -309,3 +301,174 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
             correlation_id=snapshot.correlation_id,
         )
         self._event_publisher.emit(event)
+
+
+class JsonFileJobLifecycleRepository(InMemoryJobLifecycleRepository):
+    """Atomic JSON-backed Job repository for CLI/process boundary access.
+
+    The JSON file stores sanitized public snapshots only. Reads refresh from
+    disk before lookup and writes use temp-file plus ``os.replace`` so a second
+    CLI process never observes a partial document.
+    """
+
+    def __init__(
+        self,
+        policy: JobPolicy,
+        clock: Callable[[], Timestamp],
+        event_publisher: IJobEventPublisher,
+        storage_path: str | os.PathLike[str],
+    ) -> None:
+        super().__init__(policy=policy, clock=clock, event_publisher=event_publisher)
+        self._storage_path = Path(storage_path)
+        self._persistence_lock = threading.RLock()
+        self._refresh_from_disk()
+
+    def create_task(self, command: CreateTaskCommand) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().create_task(command)
+            self._persist()
+            return snapshot
+
+    def start_task(self, job_id: JobId) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().start_task(job_id)
+            self._persist()
+            return snapshot
+
+    def update_progress(self, command: ProgressUpdateCommand) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().update_progress(command)
+            self._persist()
+            return snapshot
+
+    def complete_task(self, command: CompleteTaskCommand) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().complete_task(command)
+            self._persist()
+            return snapshot
+
+    def fail_task(self, command: FailTaskCommand) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().fail_task(command)
+            self._persist()
+            return snapshot
+
+    def apply_cancel(self, job_id: JobId, reason: CancellationReason | None) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().apply_cancel(job_id, reason)
+            self._persist()
+            return snapshot
+
+    def apply_timeout(self, job_id: JobId) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            snapshot = super().apply_timeout(job_id)
+            self._persist()
+            return snapshot
+
+    def get_record(self, job_id: JobId) -> JobStatusSnapshot:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            return super().get_record(job_id)
+
+    def list_terminal(self) -> tuple[JobStatusSnapshot, ...]:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            return super().list_terminal()
+
+    def list_running(self) -> tuple[JobStatusSnapshot, ...]:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            return super().list_running()
+
+    def active_count(self) -> ActiveCount:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            return super().active_count()
+
+    def delete_records(self, job_ids: tuple[JobId, ...]) -> DeletedCount:
+        with self._persistence_lock:
+            self._refresh_from_disk()
+            deleted = super().delete_records(job_ids)
+            self._persist()
+            return deleted
+
+    def _refresh_from_disk(self) -> None:
+        if not self._storage_path.is_file():
+            return
+        try:
+            payload = json.loads(self._storage_path.read_text(encoding="utf-8"))
+            records = payload.get("records", []) if isinstance(payload, dict) else []
+            if not isinstance(records, list):
+                return
+            with self._lock:
+                self._records = {
+                    str(item["job_id"]): self._record_from_dict(item) for item in records if isinstance(item, dict)
+                }
+                self._active_count = int(count_active(self._records, self._policy))
+        except (OSError, ValueError, TypeError, KeyError):
+            logger.warning("Ignoring corrupt job store: %s", self._storage_path)
+
+    def _persist(self) -> None:
+        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._lock:
+            payload = {
+                "version": 1,
+                "records": [self._snapshot_to_dict(record.to_snapshot()) for record in self._records.values()],
+            }
+        fd, temporary = tempfile.mkstemp(dir=str(self._storage_path.parent), suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, sort_keys=True)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self._storage_path)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary)
+            raise
+
+    @staticmethod
+    def _snapshot_to_dict(snapshot: JobStatusSnapshot) -> dict[str, object]:
+        return {
+            "job_id": str(snapshot.job_id),
+            "state": str(snapshot.state),
+            "operation_type": str(snapshot.operation_type),
+            "created_at": float(snapshot.created_at),
+            "updated_at": float(snapshot.updated_at),
+            "progress": float(snapshot.progress),
+            "progress_message": str(snapshot.progress_message) if snapshot.progress_message is not None else None,
+            "result_url": str(snapshot.result_url) if snapshot.result_url is not None else None,
+            "error": str(snapshot.error) if snapshot.error is not None else None,
+            "error_category": str(snapshot.error_category) if snapshot.error_category is not None else None,
+            "correlation_id": str(snapshot.correlation_id) if snapshot.correlation_id is not None else None,
+            "started_at": float(snapshot.started_at) if snapshot.started_at is not None else None,
+            "finished_at": float(snapshot.finished_at) if snapshot.finished_at is not None else None,
+            "metadata": list(snapshot.metadata),
+        }
+
+    @staticmethod
+    def _record_from_dict(data: dict[str, object]) -> JobRecord:
+        metadata = data.get("metadata", [])
+        return JobRecord(
+            job_id=JobId(str(data["job_id"])),
+            operation_type=OperationType(str(data.get("operation_type", "unknown"))),
+            created_at=Timestamp(float(data.get("created_at", 0.0))),
+            updated_at=Timestamp(float(data.get("updated_at", 0.0))),
+            correlation_id=CorrelationId(str(data["correlation_id"])) if data.get("correlation_id") else None,
+            metadata=dict(metadata) if isinstance(metadata, list) else {},
+            state=JobState(str(data.get("state", JOB_STATE_PENDING))),
+            progress=Progress(float(data.get("progress", 0.0))),
+            progress_message=ProgressMessage(str(data["progress_message"])) if data.get("progress_message") else None,
+            result_url=ResultUrl(str(data["result_url"])) if data.get("result_url") else None,
+            error=ErrorString(str(data["error"])) if data.get("error") else None,
+            error_category=ErrorCategory(str(data["error_category"])) if data.get("error_category") else None,
+            started_at=Timestamp(float(data["started_at"])) if data.get("started_at") is not None else None,
+            finished_at=Timestamp(float(data["finished_at"])) if data.get("finished_at") is not None else None,
+        )

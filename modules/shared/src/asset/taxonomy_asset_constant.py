@@ -58,4 +58,3 @@ SUPPORTED_EXPORT_FORMATS: Final[tuple[str, ...]] = (
     "OBJ",
     "STL",
 )
-

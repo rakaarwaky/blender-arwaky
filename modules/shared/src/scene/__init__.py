@@ -64,7 +64,6 @@ __all__ = [
     "ISceneAggregate",
     "ISceneCleanupProtocol",
     "ISceneInspectionProtocol",
-
     # Constants
     "CHILD_POLICY_DELETE",
     "CHILD_POLICY_DETACH",
@@ -101,17 +100,14 @@ __all__ = [
     "VALID_CLEANUP_MODES",
     "VALID_DEPENDENT_HANDLING_POLICIES",
     "VALID_DETAIL_LEVELS",
-
     # Errors
     "SceneError",
     "SceneErrorCategory",
-
     # Events
     "SceneCleanupCompletedEvent",
     "SceneCleanupDryRunCompletedEvent",
     "SceneCleanupFailedEvent",
     "SceneInspectionCompletedEvent",
-
     # VOs
     "CameraInfoVO",
     "CollectionSummaryVO",

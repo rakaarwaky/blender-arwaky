@@ -8,6 +8,12 @@ from __future__ import annotations
 
 import logging
 
+from modules.asset.src.root_asset_container import create_asset_container
+from modules.cli.src.capabilities_cli_action_router import CliActionRouter
+from modules.config.src.root_config_container import ConfigContainer
+from modules.launcher.src.root_launcher_container import create_launcher_feature
+from modules.mcp.src.capabilities_schema_provider import McpSchemaImpl
+from modules.security.src.root_security_container import create_security_feature
 from modules.shared.src.mcp.capabilities_response_formatter import McpResponseImpl
 from modules.shared.src.mcp.capabilities_routing_proxy import McpRoutingImpl
 from modules.shared.src.mcp.contract_mcp_protocol import (
@@ -29,6 +35,7 @@ class McpContainer:
         self._routing: McpRoutingProtocol | None = None
         self._schema: McpSchemaProtocol | None = None
         self._response: McpResponseProtocol | None = None
+        self._asset = None
         self._wired: bool = False
 
     def wire(self) -> None:
@@ -38,12 +45,26 @@ class McpContainer:
 
         logger.info("Wiring MCP surface module")
 
+        # Create protocol implementations backed by canonical feature contracts.
+        schema = McpSchemaImpl()
+        action_router = CliActionRouter(create_launcher_feature())
+        self._routing = McpRoutingImpl(schema=schema, action_router=action_router)
+        security = create_security_feature()
 
+        async def redact_text(text: str) -> str:
+            from modules.shared.src.security.taxonomy_security_vo import RedactionVO
 
-        # Create protocol implementations (delegating to owning features)
-        self._routing = McpRoutingImpl()
-        self._schema = McpResponseImpl()  # schema and response share same implementation for now
-        self._response = McpResponseImpl()
+            result = await security.redact(RedactionVO(text=text))
+            return "[REDACTION_FAILED]" if result.failed else result.redacted_text
+
+        catalog_version = schema.catalog_version()
+        self._schema = schema
+        self._response = McpResponseImpl(catalog_version=catalog_version, redaction_policy=redact_text)
+        self._asset = create_asset_container(
+            security_validator=security,
+            security_supervisor=security,
+            config_getter=ConfigContainer().build(),
+        ).get_orchestrator()
 
         self._wired = True
         logger.info("MCP surface module wired successfully")
@@ -59,6 +80,12 @@ class McpContainer:
         if not self._wired or self._schema is None:
             raise RuntimeError("McpContainer not wired — call wire() first")
         return self._schema
+
+    @property
+    def asset(self):
+        if not self._wired or self._asset is None:
+            raise RuntimeError("McpContainer not wired — call wire() first")
+        return self._asset
 
     @property
     def response(self) -> McpResponseProtocol:

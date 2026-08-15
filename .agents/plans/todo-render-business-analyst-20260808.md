@@ -1,4 +1,6 @@
 # Plan: render — Business Analyst
+> **Historical plan notice (2026-08-14):** This 2026-08-08 plan is retained for audit history only. Do not execute its recommendations directly. Use the corresponding `*-20260814-revalidated.md` plan, which classifies each finding as `open`, `needs-clarification`, `resolved`, or `obsolete`.
+
 
 ## Summary
 The render module implements image production and camera optics per FR-RND-001..005. AES structure: 1 agent orchestrator, 4 capabilities, 1 root container. FRD-to-code traceability is strong. Naming conventions compliant. Found 3 risk areas requiring attention. No AES violations found.

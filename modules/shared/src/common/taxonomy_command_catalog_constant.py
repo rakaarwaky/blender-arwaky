@@ -23,13 +23,13 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
         "returns": "CleanupSceneResponseIO",
     },
     "setup_environment": {
-        "description": "Setup scene environment (HDRI, lighting)",
-        "capability": "SceneOperateProtocol.setup_environment",
+        "description": "Configure HDRI lighting from an already cached local file",
+        "capability": "RenderOperateProtocol.configure_hdri",
         "parameters": {
-            "hdri_id": "HDR image identifier from polyhaven",
+            "hdri_id": "Local path to an already cached .hdr or .exr asset",
             "strength": "Environment light strength",
         },
-        "domain": "scene",
+        "domain": "render",
         "returns": "SetupEnvironmentResponseIO",
     },
     # Object Domain
@@ -44,7 +44,7 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
         "description": "Place an imported asset into the scene",
         "capability": "ObjectOperateProtocol.place_asset",
         "parameters": {
-            "asset_id": "Asset identifier",
+            "asset_id": "Exact Blender object name resolved from an imported asset",
             "location": "[x, y, z] coordinates",
             "rotation": "[x, y, z] Euler angles",
             "scale": "[x, y, z] scale factors",

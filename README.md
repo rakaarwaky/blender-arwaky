@@ -69,8 +69,8 @@ modules/
 ├── telemetry/      ← Usage analytics (FRD: modules/telemetry/FRD.md)
 ├── job/            ← Job tracking (FRD: modules/job/FRD.md)
 ├── cli/            ← Standalone CLI (FRD: modules/cli/FRD.md)
-├── root_mcp_entry.py
-└── root_cli_entry.py
+├── root_mcp_main_entry.py
+└── root_cli_main_entry.py
 ```
 
 ## Available Scripts
@@ -79,9 +79,10 @@ modules/
 |---------|-------------|
 | `uv run blender-mcp` | Start MCP server |
 | `uv run blender-arwaky` | Run standalone CLI |
-| `uv run pytest` | Run tests (455+) |
+| `uv run pytest` | Run the full 1029-test suite |
 | `uv run pytest -m unit` | Unit tests only |
-| `uv run ruff check .` | Lint code |
+| `uv run ruff check modules blender_mcp_addon scripts` | Lint code |
+| `bash scripts/ci.sh` | Run all local quality and build gates |
 | `lint-arwaky-cli scan .` | AES architecture compliance |
 
 ## Configuration
@@ -105,6 +106,8 @@ server:
 | `BLENDERMCP_STRICT` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
 
 ## Testing
+
+The canonical local verification command is `bash scripts/ci.sh`. It runs Ruff, Python syntax compilation, the full pytest suite, addon ZIP verification, and Python distribution builds.
 
 ```bash
 uv run pytest              # Full suite

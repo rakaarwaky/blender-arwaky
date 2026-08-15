@@ -10,6 +10,7 @@ from the security module per PRD data flow diagram (Security -->|path validation
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
 from modules.shared.src.launcher.contract_launcher_operate_aggregate import (
@@ -64,7 +65,8 @@ class LauncherContainer:
         security_policy: SecurityPolicyVO | None = None,
     ) -> None:
         self._config = config or LauncherConfigVO()
-        self._state_path = state_path
+        default_state_path = Path(__file__).resolve().parents[3] / "launcher_state.json"
+        self._state_path = state_path or str(default_state_path)
         self._security_policy = security_policy or SecurityPolicyVO()
         self._orchestrator: LauncherOrchestrator | None = None
         self._wired: bool = False
@@ -104,13 +106,18 @@ class LauncherContainer:
             config_provider=lambda: self._config,
             command_runner=lambda args, timeout=5.0: process_version_check(args, timeout),
             path_validator=self._path_validator,
+            persist_cap=persist_cap,
         )
 
         launch_cap: LaunchProtocol = ProcessLauncher(
-            executable_resolver=lambda: self._config.executable_path,
+            executable_resolver=lambda: self._resolve_persisted_executable(persist_cap),
             status_protocol=status_cap,
-            spawner=lambda executable, mode, _timeout: process_spawn(executable, mode),
-            readiness_probe=lambda pid, timeout: process_probe_readiness(pid, timeout),
+            spawner=lambda executable, mode, _timeout, host="localhost", port=9876: process_spawn(
+                executable, mode, bridge_host=host, bridge_port=port
+            ),
+            readiness_probe=lambda pid, host="localhost", port=9876, timeout=30.0: process_probe_readiness(
+                pid, bridge_host=host, bridge_port=port, timeout_seconds=timeout
+            ),
             audit_event_sink=self._audit_emitter,
         )
 
@@ -137,6 +144,12 @@ class LauncherContainer:
     def _resolve_persisted_pid(self, persist_cap: PersistStateProtocol) -> int | None:
         state = persist_cap.load()
         return state.process_id if state is not None else None
+
+    def _resolve_persisted_executable(self, persist_cap: PersistStateProtocol) -> str | None:
+        if self._config.executable_path:
+            return self._config.executable_path
+        state = persist_cap.load()
+        return state.executable_path if state is not None and state.executable_path else None
 
     @property
     def agent(self) -> ILauncherOperateAggregate:

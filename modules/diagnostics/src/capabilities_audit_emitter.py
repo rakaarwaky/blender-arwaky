@@ -26,8 +26,7 @@ logger = logging.getLogger(__name__)
 class _AuditSink:
     """Protocol for delivering audit events to observability (DI boundary)."""
 
-    def deliver(self, event: AuditRecordVO) -> None:
-        ...
+    def deliver(self, event: AuditRecordVO) -> None: ...
 
 
 class AuditEmitter(AuditEmissionProtocol):

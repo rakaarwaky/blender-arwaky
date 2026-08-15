@@ -1,4 +1,5 @@
 """Render domain — FR-RND-003: Configure camera."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

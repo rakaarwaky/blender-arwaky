@@ -91,6 +91,7 @@ class LoggingPolicy(LoggingPolicyProtocol):
         count = 0
         for pattern_str in REDACTION_SENSITIVE_PATTERNS:
             import re
+
             pattern = re.compile(pattern_str)
             if pattern.search(message):
                 count += 1
@@ -99,6 +100,7 @@ class LoggingPolicy(LoggingPolicyProtocol):
                 if isinstance(val, str):
                     for pattern_str in REDACTION_SENSITIVE_PATTERNS:
                         import re
+
                         pattern = re.compile(pattern_str)
                         if pattern.search(val):
                             count += 1

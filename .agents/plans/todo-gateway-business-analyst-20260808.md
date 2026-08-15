@@ -1,4 +1,6 @@
 # Plan: gateway — Business Analyst
+> **Historical plan notice (2026-08-14):** This 2026-08-08 plan is retained for audit history only. Do not execute its recommendations directly. Use the corresponding `*-20260814-revalidated.md` plan, which classifies each finding as `open`, `needs-clarification`, `resolved`, or `obsolete`.
+
 
 ## Summary
 The gateway module implements Blender transport authority: connection lifecycle, handshake, protocol compatibility, reconnection, message framing, payload limits, scene operation scheduling, raw command and code transport. AES structure: 1 agent orchestrator, 6 capabilities, 1 root container. FRD-to-code traceability is strong. No violations found.

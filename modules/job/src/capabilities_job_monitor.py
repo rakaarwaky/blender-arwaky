@@ -4,6 +4,7 @@
 Projects raw snapshots into consumer-safe read models.
 Applies redaction, visibility rules, and applicability flags.
 """
+
 from __future__ import annotations
 
 from modules.shared.src.job.contract_job_monitor_protocol import IJobMonitor

@@ -122,13 +122,20 @@ class AssetImportCapability(AssetImportProtocol):
             file_path, asset_type, target_collection, scale_normalization, duplicate_policy, format_hint
         )
 
-        # Transport through gateway
-        try:
-            if self.gateway_client is not None:
-                result = await self.gateway_client.execute_command(import_command)
-            else:
-                result = {"object_names": [], "asset_name": Path(file_path).stem, "license_summary": None}
+        # Transport through gateway; never claim import success without a real Blender boundary.
+        if self.gateway_client is None:
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": "Blender gateway is not configured; import_asset is unavailable in this process",
+                "error": "gateway_unavailable",
+                "error_summary": "Blender gateway is not configured",
+            }
 
+        try:
+            result = await self.gateway_client.execute_command(import_command)
             res_dict = {
                 "success": True,
                 "object_names": result.get("object_names", []),

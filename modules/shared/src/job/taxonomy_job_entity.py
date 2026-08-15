@@ -1,5 +1,6 @@
 # modules/shared/src/job/taxonomy_job_entity.py
 """Job domain entity — stateful domain concept with identity."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

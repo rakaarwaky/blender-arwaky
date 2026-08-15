@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from typing import Protocol
+from urllib.parse import unquote
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -61,6 +62,10 @@ class PathValidator(ValidatePathProtocol):
                 denial_reason="Empty path",
                 audit_metadata={"rule": "empty_path"},
             )
+
+        # Decode URL-escaped separators/dots before traversal detection.
+        # This prevents encoded paths from bypassing the segment check.
+        target = unquote(target)
 
         # Check for path traversal BEFORE normalization
         if ".." in target.replace("\\", "/").split("/"):
@@ -132,11 +137,18 @@ class PathValidator(ValidatePathProtocol):
     def validate_path_sync(self, request: PathValidationVO) -> PathValidationVO:
         """Synchronous wrapper for async validate_path (for use in sync contexts)."""
         import asyncio
+        from concurrent.futures import ThreadPoolExecutor
 
         try:
-            return asyncio.get_event_loop().run_until_complete(self.validate_path(request))
+            asyncio.get_running_loop()
         except RuntimeError:
             return asyncio.run(self.validate_path(request))
+
+        # A synchronous caller may still be running inside an event loop.
+        # Execute the coroutine in a short-lived worker loop instead of
+        # nesting or reusing the active loop.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, self.validate_path(request)).result()
 
     def __repr__(self) -> str:
         return "PathValidator()"

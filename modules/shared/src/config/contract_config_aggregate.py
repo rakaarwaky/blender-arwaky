@@ -68,6 +68,11 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
+    def set_config(self, path: ConfigPath, value: SettingsValue) -> SettingsSnapshot:
+        """Atomically persist a typed value and return the new snapshot."""
+        ...
+
+    @abstractmethod
     def has(self, path: ConfigPath) -> bool:
         """Check if a dot-separated path exists in the current snapshot."""
         ...

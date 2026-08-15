@@ -39,6 +39,7 @@ def test_parse_env_value_scalar(raw, expected):
 
 # ─── apply_env_overrides ─────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_apply_env_overrides_basic():
     config = {"blender": {"host": "localhost"}}
@@ -48,9 +49,7 @@ def test_apply_env_overrides_basic():
         "BLENDERMCP_CONFIG_PATH": "/x",  # reserved, skipped
         "BLENDER_MCP_OLD": "1",  # legacy, not matched
     }
-    result, count = apply_env_overrides(
-        config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",)
-    )
+    result, count = apply_env_overrides(config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",))
     assert result["blender"]["port"] == 9999
     assert result["server"]["transport"] == "ws"
     assert "config_path" not in result
@@ -72,14 +71,13 @@ def test_apply_env_overrides_deterministic_and_no_mutation():
 @pytest.mark.unit
 def test_apply_env_overrides_introduces_new_keys():
     config: dict = {}
-    result, count = apply_env_overrides(
-        config, {"BLENDERMCP_NEW.KEY": "v"}, "BLENDERMCP_", ()
-    )
+    result, count = apply_env_overrides(config, {"BLENDERMCP_NEW.KEY": "v"}, "BLENDERMCP_", ())
     assert result["new"]["key"] == "v"
     assert count == 1
 
 
 # ─── load_yaml_safe ──────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_load_yaml_safe_valid():
@@ -139,11 +137,10 @@ def test_load_yaml_safe_utf16_raises():
 
 # ─── validate_settings_schema ───────────────────────────────
 
+
 @pytest.mark.unit
 def test_schema_unknown_key_warning():
-    errors, warnings = validate_settings_schema(
-        {"unknown": 1}, {"unknown": {"type": "int", "required": False}}
-    )
+    errors, warnings = validate_settings_schema({"unknown": 1}, {"unknown": {"type": "int", "required": False}})
     # 'unknown' IS in schema here; test real unknown:
     errors, warnings = validate_settings_schema({"foo": 1}, {})
     assert any("foo" in w for w in warnings)
@@ -173,6 +170,7 @@ def test_schema_clean_passes():
 
 # ─── parse_settings_path ─────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_parse_settings_path_basic():
     assert parse_settings_path("a.b", False) == ("a", "b")
@@ -195,6 +193,7 @@ def test_parse_settings_path_empty():
 
 
 # ─── deep_merge / set_nested ─────────────────────────────────
+
 
 @pytest.mark.unit
 def test_deep_merge_dicts():
@@ -219,6 +218,7 @@ def test_set_nested_value_creates_intermediates():
 
 
 # ─── resolve_default_config_path ─────────────────────────────
+
 
 @pytest.mark.unit
 def test_resolve_default_config_path_explicit(monkeypatch):

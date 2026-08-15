@@ -35,6 +35,8 @@ async def sketchfab_search(
             ActionName("search_sketchfab_models"),
             {"query": str(query), "count": 20, "downloadable": True},
         )
+        if result.get("error"):
+            raise ProviderError(f"[{result.get('error')}] {result.get('message', 'Sketchfab request failed')}")
         items = [
             AssetMetadataItem(
                 id=AssetId(model.get("uid", "")),
@@ -58,9 +60,7 @@ async def sketchfab_search(
 
 async def sketchfab_get_details(connection: object, asset_id: str) -> dict | None:
     try:
-        result = await connection.send_command(
-            ActionName("get_sketchfab_model_preview"), {"uid": asset_id}
-        )
+        result = await connection.send_command(ActionName("get_sketchfab_model_preview"), {"uid": asset_id})
         if isinstance(result, dict) and "error" in result:
             logger.warning("Sketchfab get_asset_details error: %s", result["error"])
             return None

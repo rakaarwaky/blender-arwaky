@@ -87,7 +87,7 @@ line-ending = "auto"
 # ─── Pytest configuration ───────────────────────────────────────────────────
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["tests"]
+testpaths = ["modules", "blender_mcp_addon"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -106,7 +106,7 @@ markers = [
     "unit: Pure logic tests, no external dependencies",
     "integration: Layer interaction tests with real DI, mocked I/O",
     "functional: End-to-end command flows within project boundaries",
-    "addon: Blender addon tests using bpy mock (tests/addon/)",
+    "addon: Blender addon tests using bpy mock",
     "slow: Tests that take >1s to run",
     "asyncio: Async test marker (pytest-asyncio)",
 ]
@@ -114,7 +114,7 @@ asyncio_mode = "auto"
 
 # ─── Coverage configuration ────────────────────────────────────────────────
 [tool.coverage.run]
-source = ["src", "modules", "blender_mcp_addon"]
+source = ["modules", "blender_mcp_addon"]
 branch = true
 parallel = true
 omit = [

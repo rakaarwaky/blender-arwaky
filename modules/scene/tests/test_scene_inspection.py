@@ -271,7 +271,9 @@ async def test_fr_scn_001_non_string_result_returns_empty_summary():
 @pytest.mark.asyncio
 async def test_fr_scn_001_json_parse_error_returns_empty_state():
     """Test that malformed JSON returns error state."""
-    executor = SceneInspectionExecutor(_make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0}))
+    executor = SceneInspectionExecutor(
+        _make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0})
+    )
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
@@ -490,24 +492,28 @@ async def test_fr_scn_002_cleanup_preserves_cameras_and_lights():
 @pytest.mark.asyncio
 async def test_fr_scn_001_inspection_message_on_success():
     """Test that successful inspection includes message."""
-    executor = SceneInspectionExecutor(_make_executor(inspection_result={
-        "scene_name": "Scene",
-        "total_object_count": 0,
-        "visible_object_count": 0,
-        "hidden_object_count": 0,
-        "object_type_counts": {},
-        "cameras": [],
-        "lights": [],
-        "active_camera_name": "",
-        "active_object_name": "",
-        "render_engine": "CYCLES",
-        "resolution_x": 1920,
-        "resolution_y": 1080,
-        "frame_start": 1,
-        "frame_end": 250,
-        "unit_system": "METRIC",
-        "collections": [],
-    }))
+    executor = SceneInspectionExecutor(
+        _make_executor(
+            inspection_result={
+                "scene_name": "Scene",
+                "total_object_count": 0,
+                "visible_object_count": 0,
+                "hidden_object_count": 0,
+                "object_type_counts": {},
+                "cameras": [],
+                "lights": [],
+                "active_camera_name": "",
+                "active_object_name": "",
+                "render_engine": "CYCLES",
+                "resolution_x": 1920,
+                "resolution_y": 1080,
+                "frame_start": 1,
+                "frame_end": 250,
+                "unit_system": "METRIC",
+                "collections": [],
+            }
+        )
+    )
     request = SceneInspectionVO()
     result = await executor.get_scene_info(request)
 
@@ -560,7 +566,9 @@ async def test_scene_cleanup_executor_no_code_executor_raises():
 @pytest.mark.asyncio
 async def test_fr_scn_001_inspection_with_all_fields():
     """Test inspection request preserves all input fields."""
-    executor = SceneInspectionExecutor(_make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0}))
+    executor = SceneInspectionExecutor(
+        _make_executor(inspection_result={"scene_name": "Scene", "total_object_count": 0})
+    )
     request = SceneInspectionVO(
         detail_level="detailed",
         include_hidden_objects=True,

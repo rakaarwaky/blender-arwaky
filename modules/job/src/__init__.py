@@ -2,6 +2,7 @@
 
 5 FRs → 5 protocols → 5 capabilities → 1 agent → 1 root.
 """
+
 from .agent_job_orchestrator import JobOrchestrator
 from .capabilities_job_checker import JobCapacityChecker
 from .capabilities_job_evaluator import JobCancellationEvaluator

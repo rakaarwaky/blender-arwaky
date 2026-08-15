@@ -1,4 +1,6 @@
 # Plan: telemetry — Business Analyst
+> **Historical plan notice (2026-08-14):** This 2026-08-08 plan is retained for audit history only. Do not execute its recommendations directly. Use the corresponding `*-20260814-revalidated.md` plan, which classifies each finding as `open`, `needs-clarification`, `resolved`, or `obsolete`.
+
 
 ## Summary
 The telemetry module implements consent-aware recording, classification, enrichment, and session management per FR-TLM-001..004. Key gaps include schema versioning enforcement, missing transmission stub (backend integration placeholder), and backpressure metrics exposure via diagnostics.

@@ -36,12 +36,12 @@ CONNECTION_STATE_CLOSED: str = "closed"
 
 DEFAULT_EXECUTION_TIMEOUT_MS: float = 30_000.0  # 30 seconds (binary: 1k=1024)
 DEFAULT_EXECUTION_TIMEOUT_SECONDS: float = 30.0  # 30 seconds (seconds variant for container)
-DEFAULT_COMMAND_TIMEOUT_MS: float = 5_000.0     # 5 seconds
-MAX_CODE_PAYLOAD_BYTES: int = 1_048_576          # 1 MB (1k = 1024)
-MAX_EXECUTION_OUTPUT_BYTES: int = 10_240         # ~10 KB output limit (used by executor)
-DEFAULT_MAX_OUTPUT_BYTES: int = 10_240           # ~10 KB output limit (used by container)
-MAX_COMMAND_RESPONSE_BYTES: int = 1_048_576      # 1 MB command response
-DEFAULT_MAX_PAYLOAD_BYTES: int = 10_485_760      # 10 MB default max payload (binary: 1k=1024)
+DEFAULT_COMMAND_TIMEOUT_MS: float = 5_000.0  # 5 seconds
+MAX_CODE_PAYLOAD_BYTES: int = 1_048_576  # 1 MB (1k = 1024)
+MAX_EXECUTION_OUTPUT_BYTES: int = 10_240  # ~10 KB output limit (used by executor)
+DEFAULT_MAX_OUTPUT_BYTES: int = 10_240  # ~10 KB output limit (used by container)
+MAX_COMMAND_RESPONSE_BYTES: int = 1_048_576  # 1 MB command response
+DEFAULT_MAX_PAYLOAD_BYTES: int = 10_485_760  # 10 MB default max payload (binary: 1k=1024)
 
 # ============================================================
 # Queue Defaults
@@ -54,7 +54,7 @@ DEFAULT_QUEUE_WAIT_TIMEOUT_MS: float = 10_000.0  # 10 seconds target
 # Task Defaults
 # ============================================================
 
-DEFAULT_TASK_RETENTION_SECONDS: float = 600.0    # 10 minutes
+DEFAULT_TASK_RETENTION_SECONDS: float = 600.0  # 10 minutes
 
 # ============================================================
 # Transport Types

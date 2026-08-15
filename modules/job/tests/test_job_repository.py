@@ -244,11 +244,13 @@ def test_fr_job_001_metadata_redacted(repo: InMemoryJobLifecycleRepository) -> N
     cmd = CreateTaskCommand(
         operation_type=OperationType("render"),
         correlation_id=CorrelationId("req-123"),
-        metadata=TaskMetadata({
-            "api_key": "secret-key-abc",
-            "safe_field": "public value",
-            "token": "jwt-token-xyz",
-        }),
+        metadata=TaskMetadata(
+            {
+                "api_key": "secret-key-abc",
+                "safe_field": "public value",
+                "token": "jwt-token-xyz",
+            }
+        ),
     )
     snapshot = repo.create_task(cmd)
 
@@ -284,9 +286,7 @@ def test_fr_job_001_all_terminal_states_imutable(repo: InMemoryJobLifecycleRepos
     for terminal_state_try in [JOB_STATE_COMPLETED, JOB_STATE_FAILED]:
         try:
             if terminal_state_try == JOB_STATE_FAILED:
-                repo.fail_task(FailTaskCommand(
-                    job_id=created.job_id, error_message=ErrorString("fail")
-                ))
+                repo.fail_task(FailTaskCommand(job_id=created.job_id, error_message=ErrorString("fail")))
             else:
                 repo.start_task(created.job_id)
         except InvalidStateTransitionError:
@@ -337,17 +337,21 @@ def test_fr_job_002_progress_out_of_range_rejected(repo: InMemoryJobLifecycleRep
 
     # Progress > 100 should fail
     with pytest.raises(ValidationError):
-        repo.update_progress(ProgressUpdateCommand(
-            job_id=created.job_id,
-            progress=Progress(101.0),
-        ))
+        repo.update_progress(
+            ProgressUpdateCommand(
+                job_id=created.job_id,
+                progress=Progress(101.0),
+            )
+        )
 
     # Progress < 0 should fail
     with pytest.raises(ValidationError):
-        repo.update_progress(ProgressUpdateCommand(
-            job_id=created.job_id,
-            progress=Progress(-1.0),
-        ))
+        repo.update_progress(
+            ProgressUpdateCommand(
+                job_id=created.job_id,
+                progress=Progress(-1.0),
+            )
+        )
 
 
 def test_fr_job_002_progress_monotonic(repo: InMemoryJobLifecycleRepository) -> None:
@@ -357,17 +361,21 @@ def test_fr_job_002_progress_monotonic(repo: InMemoryJobLifecycleRepository) -> 
     repo.start_task(created.job_id)
 
     # First update to 50%
-    repo.update_progress(ProgressUpdateCommand(
-        job_id=created.job_id,
-        progress=Progress(50.0),
-    ))
+    repo.update_progress(
+        ProgressUpdateCommand(
+            job_id=created.job_id,
+            progress=Progress(50.0),
+        )
+    )
 
     # Second update to 40% should fail — not monotonic
     with pytest.raises(ValidationError):
-        repo.update_progress(ProgressUpdateCommand(
-            job_id=created.job_id,
-            progress=Progress(40.0),
-        ))
+        repo.update_progress(
+            ProgressUpdateCommand(
+                job_id=created.job_id,
+                progress=Progress(40.0),
+            )
+        )
 
 
 def test_fr_job_002_result_visible_only_after_completed(repo: InMemoryJobLifecycleRepository) -> None:

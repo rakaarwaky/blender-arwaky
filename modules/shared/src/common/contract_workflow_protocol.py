@@ -12,5 +12,9 @@ class WorkflowProtocol(ABC):
 
     @abstractmethod
     async def create_basic_scene(self, prompt: Prompt) -> SuccessFlag:
-        """Create a basic scene."""
-        pass
+        """Create a basic scene.
+
+        Concrete workflow implementations must provide the orchestration logic;
+        the protocol intentionally has no executable fallback behavior.
+        """
+        raise NotImplementedError

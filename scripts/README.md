@@ -73,4 +73,4 @@ blender-mcp --help
 - **Cross-platform:** Prefer Python stdlib over `os.system` or shell-isms.
   Detect platform with `sys.platform` and use `pathlib.Path` for I/O.
 - **No business logic:** Scripts orchestrate the project; domain code lives
-  under `src/`.
+  under `modules/` and the Blender runtime addon lives under `blender_mcp_addon/`.

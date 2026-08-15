@@ -1,7 +1,6 @@
 # modules/shared/src/job/utility_job_sanitizer.py
-"""Job sanitization utilities — stateless standalone functions.
+"""Job sanitization utilities — stateless standalone functions."""
 
-"""
 from __future__ import annotations
 
 import re
@@ -21,10 +20,19 @@ from .taxonomy_job_constant import (
 from .taxonomy_job_vo import CancellationReason, ErrorCategory, OperationType, ProgressMessage
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-_SENSITIVE_KEYS = frozenset({
-    "password", "token", "secret", "api_key", "auth",
-    "credential", "authorization", "session", "cookie",
-})
+_SENSITIVE_KEYS = frozenset(
+    {
+        "password",
+        "token",
+        "secret",
+        "api_key",
+        "auth",
+        "credential",
+        "authorization",
+        "session",
+        "cookie",
+    }
+)
 _REDACTED_PLACEHOLDER = "[REDACTED]"
 
 

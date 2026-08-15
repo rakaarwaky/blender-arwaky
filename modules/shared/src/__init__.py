@@ -532,9 +532,7 @@ __all__ = [
     "EVENT_TYPE_ERROR",
     "create_asset_id",
     "create_object_id",
-
     "create_provider_name",
-
     "SceneCleanupVO",
     "SceneInspectionVO",
     "PlaceAssetProtocol",
@@ -553,7 +551,6 @@ __all__ = [
     "WorkflowProtocol",
     "ExecuteActionProtocol",
     "CommandCatalogProtocol",
-
     "TelemetryClassificationProtocol",
     "TelemetryEnrichmentProtocol",
     "TelemetryRecordingProtocol",

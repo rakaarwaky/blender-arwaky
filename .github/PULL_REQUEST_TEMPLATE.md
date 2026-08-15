@@ -88,10 +88,9 @@ Key improvements include:
 
 ```bash
 # Commands run to verify
-uv run pytest tests/modules/test_security.py -v
-uv run pytest tests/modules/test_security_archive.py -v
-uv run ruff check src/modules/security/
-uv run mypy src/modules/security/
+bash scripts/ci.sh
+uv run pytest modules/security/tests -v
+uv run ruff check modules blender_mcp_addon scripts
 ```
 
 ## Documentation

@@ -96,9 +96,7 @@ class TelemetryOrchestrator(ITelemetryAggregate):
             if not bool(consent):
                 return
 
-            session_id = self._session_manager.get_session_id(
-                EnabledFlag(bool(consent))
-            )
+            session_id = self._session_manager.get_session_id(EnabledFlag(bool(consent)))
             if session_id is None:
                 return
 
@@ -111,8 +109,6 @@ class TelemetryOrchestrator(ITelemetryAggregate):
                 duration_bucket=duration_bucket,
             )
 
-            self._recorder.record_event(
-                draft, EnabledFlag(bool(consent))
-            )
+            self._recorder.record_event(draft, EnabledFlag(bool(consent)))
         except Exception:
             logger.debug("Telemetry recording skipped due to internal failure")

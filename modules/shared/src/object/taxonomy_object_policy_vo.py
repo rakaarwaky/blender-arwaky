@@ -13,39 +13,39 @@ from ..common.taxonomy_core_vo import (
 class NamingPolicy(Enum):
     """Rule for handling duplicate or requested object names."""
 
-    REJECT = auto()           # Reject duplicate name
-    UNIQUE_SUFFIX = auto()    # Automatically generate unique suffix
-    OVERWRITE = auto()        # Overwrite existing object when explicitly allowed
+    REJECT = auto()  # Reject duplicate name
+    UNIQUE_SUFFIX = auto()  # Automatically generate unique suffix
+    OVERWRITE = auto()  # Overwrite existing object when explicitly allowed
 
 
 class DeletionPolicy(Enum):
     """Rule for handling children, dependents, and protected objects during deletion."""
 
-    DELETE_HIERARCHY = auto()      # Delete object with all children
-    DETACH_CHILDREN = auto()       # Remove object but detach children
-    REJECT_DEPENDENTS = auto()     # Reject deletion when dependents exist
+    DELETE_HIERARCHY = auto()  # Delete object with all children
+    DETACH_CHILDREN = auto()  # Remove object but detach children
+    REJECT_DEPENDENTS = auto()  # Reject deletion when dependents exist
 
 
 class TransformMode(Enum):
     """Transform update mode for set transform operations."""
 
-    ABSOLUTE = auto()   # Set to absolute values
-    RELATIVE = auto()   # Add delta to existing values
+    ABSOLUTE = auto()  # Set to absolute values
+    RELATIVE = auto()  # Add delta to existing values
 
 
 class MaterialReusePolicy(Enum):
     """Rule for material creation and reuse."""
 
-    REUSE_EXISTING = auto()   # Reuse material if name exists
-    CREATE_NEW = auto()       # Always create new material
+    REUSE_EXISTING = auto()  # Reuse material if name exists
+    CREATE_NEW = auto()  # Always create new material
 
 
 class ModifierAction(Enum):
     """Supported modifier actions."""
 
-    ADD = auto()           # Add new modifier
-    UPDATE = auto()        # Update existing modifier
-    REMOVE = auto()        # Remove modifier
+    ADD = auto()  # Add new modifier
+    UPDATE = auto()  # Update existing modifier
+    REMOVE = auto()  # Remove modifier
     APPLY_DESTRUCTIVE = auto()  # Apply modifier destructively
 
 

@@ -44,6 +44,7 @@ DEFAULT_CLEANUP_RESULT: dict[str, Any] = {
 
 # ─── Mock Code Executor ──────────────────────────────────────
 
+
 class MockCodeExecutor:
     """Mock code executor implementing ICodeExecutionProtocol for testing scene operations."""
 
@@ -62,6 +63,7 @@ class MockCodeExecutor:
 
 
 # ─── Fixture Helpers ─────────────────────────────────────────
+
 
 def _make_executor(
     inspection_result: dict | None = None,
@@ -108,6 +110,7 @@ def _make_json_executor(
 
 
 # ─── Pytest Fixtures ─────────────────────────────────────────
+
 
 @pytest.fixture
 def mock_code_executor() -> MockCodeExecutor:

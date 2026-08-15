@@ -1,5 +1,6 @@
 # modules/shared/src/job/taxonomy_job_error.py
 """Job domain errors."""
+
 from __future__ import annotations
 
 from ..common.taxonomy_core_vo import ErrorString, JobId, JobState
@@ -18,9 +19,7 @@ class CapacityError(JobError):
     """Raised when background capacity is exceeded."""
 
     def __init__(self, max_active: ActiveCount, current_active: ActiveCount) -> None:
-        message = ErrorString(
-            f"Background capacity exceeded: {current_active}/{max_active} active tasks"
-        )
+        message = ErrorString(f"Background capacity exceeded: {current_active}/{max_active} active tasks")
         super().__init__(message)
         self.max_active = max_active
         self.current_active = current_active
@@ -65,9 +64,7 @@ class RecordCountError(JobError):
     """Raised when record count exceeds limits."""
 
     def __init__(self, max_records: ActiveCount, current_records: ActiveCount) -> None:
-        message = ErrorString(
-            f"Record count exceeded: {current_records}/{max_records} records"
-        )
+        message = ErrorString(f"Record count exceeded: {current_records}/{max_records} records")
         super().__init__(message)
         self.max_records = max_records
         self.current_records = current_records
@@ -76,4 +73,3 @@ class RecordCountError(JobError):
 # ─── Backward-compatible aliases ────────────────────────────────
 
 ValidationError = JobValidationError
-

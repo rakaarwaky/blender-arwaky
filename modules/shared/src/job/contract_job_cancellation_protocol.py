@@ -1,4 +1,5 @@
 """Job domain — FR-JOB-003: Cancel a task."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

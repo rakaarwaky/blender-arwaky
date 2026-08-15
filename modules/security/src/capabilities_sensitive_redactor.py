@@ -48,7 +48,7 @@ class SensitiveRedactor(RedactSensitiveProtocol):
             for key in all_keys:
                 # Case-insensitive quoted-key aware matching
                 pattern = rf'((["\']?)(?i:{re.escape(key)})\2\s*[:=]\s*)' + KV_VALUE
-                text, count = re.subn(pattern, r'\1[REDACTED]', text)
+                text, count = re.subn(pattern, r"\1[REDACTED]", text)
                 redacted_count += count
 
             if len(text) > 10_000:

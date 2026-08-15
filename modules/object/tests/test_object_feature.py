@@ -120,7 +120,9 @@ async def test_fr_obj_001_zero_scale_rejected_with_validation_error():
 async def test_fr_obj_001_object_not_found_raises():
     # FR-OBJ-001: object not found should raise ObjectNotFoundError
     # Need two ValueError responses: one for initial get, one for fallback pattern match
-    ex = FakeBlenderExecutor(responses=[ValueError("Object not found in scene."), ValueError("Object not found in scene.")])
+    ex = FakeBlenderExecutor(
+        responses=[ValueError("Object not found in scene."), ValueError("Object not found in scene.")]
+    )
     cap = PlaceAssetExecutor(ex)
     try:
         await cap.place_asset(PlaceAssetVO(asset_id="asset_1", object_name=ObjectName("Missing")))
@@ -151,7 +153,9 @@ async def test_fr_obj_001_place_with_rotation():
 
 async def test_fr_obj_001_no_selected_objects_raises():
     # FR-OBJ-001: no object_name and no selected objects should raise ObjectNotFoundError
-    ex = FakeBlenderExecutor(responses=[])  # Empty responses queue -> returns True, but we need to simulate no selection
+    ex = FakeBlenderExecutor(
+        responses=[]
+    )  # Empty responses queue -> returns True, but we need to simulate no selection
     cap = PlaceAssetExecutor(ex)
     try:
         await cap.place_asset(PlaceAssetVO(asset_id="asset_1"))  # No object_name
