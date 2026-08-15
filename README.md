@@ -200,16 +200,29 @@ Current core scope is deterministic Blender automation. LLM providers, local Oll
 
 ## Comparison with other Blender MCP projects
 
-This is a trade-off summary, not a ranking. Tool counts are self-reported and are not directly comparable because projects may expose one tool per operation or group many operations behind one tool.
+The comparison below uses only values and capabilities stated in each project's current public repository or official documentation. `✓` means documented support, `✗` means not documented as supported, and `—` means the source does not publish a comparable value. Counts are not perfectly equivalent because projects may expose one tool per operation or group many operations behind one tool.
 
-| Project | Stronger than Blender Arwaky | Blender Arwaky stronger or different |
-|---|---|---|
-| [BlenderMCP by ahujasid][1] | Larger public adoption, simpler `uvx` onboarding, Poly Haven, Sketchfab, Hunyuan3D, and Hyper3D integrations | A stable five-tool MCP boundary, one shared action contract, CLI parity, and explicit validation |
-| [Blender MCP Server by djeada][3] | 27 named tools across 7 namespaces, async jobs, script library, headless workflows, and detailed runtime controls | One shared contract for 75 actions, unified CLI/MCP behavior, and consistent discovery and validation |
-| [Blender MCP by sandraschi][4] | `.mcpb`, headless-first execution, dashboard, Docker/native options, and broader specialized coverage such as VRM, VSE, Geometry Nodes, and Gaussian splats | Smaller five-tool protocol boundary, 75 discoverable actions, CLI/MCP parity, and clearly stated scope boundaries |
-| [Blender Lab MCP Server][2] | Official Blender provenance, Blender 5.1+ integration, and natural-language access to Blender's Python API/documentation | Blender 4.2+ declared compatibility, structured action catalog, CLI, shared validation/redaction, health/config/help, and explicit confirmation boundaries |
+### Measurable surface
 
-Choose Blender Arwaky for governed, deterministic automation with a stable contract. Choose a broader competitor when you need specialized capability breadth, a polished `.mcpb` installer, dashboard, or headless workflows that are outside Arwaky's current core scope.
+| Project | MCP tools | Catalog/actions | Published operations | Categories/namespaces | CLI surface | `.mcpb` | Minimum Blender |
+|---|---:|---:|---:|---:|---:|---:|---|
+| **Blender Arwaky** | 5 | 75 | 75 | 15 | ✓ 75 | ✗ | 4.2+ |
+| [BlenderMCP by ahujasid][1] | — | — | — | — | ✗ | ✗ | — |
+| [Blender MCP Server by djeada][3] | 27 | — | — | 7 | ✗ | ✗ | — |
+| [Blender MCP by sandraschi][4] | 41* | — | 150+ | — | ✗ | ✓ | — |
+| [Blender Lab MCP Server][2] | — | — | — | — | ✗ | ✓ | 5.1+ |
+
+### Documented capabilities
+
+| Project | Headless mode | Live addon/bridge | Dashboard | Async jobs | Asset integration | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Documented safety controls |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Blender Arwaky** | — | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✓ |
+| [BlenderMCP by ahujasid][1] | — | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| [Blender MCP Server by djeada][3] | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| [Blender MCP by sandraschi][4] | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| [Blender Lab MCP Server][2] | — | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
+
+* The sandraschi repository headline states 41 portmanteau tools and 150+ operations; another README section states 48+ MCP tools. The published values are shown as reported, not normalized.
 
 ## Contributing
 
