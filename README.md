@@ -5,10 +5,6 @@
 [![Blender 4.2+](https://img.shields.io/badge/Blender-4.2%2B-E87D0D.svg)](https://www.blender.org/download/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
 
-> **A predictable control plane for Blender—not a bag of prompt-shaped tools.**
->
-> Blender Arwaky connects Blender to MCP-compatible AI agents through a small, stable [MCP](https://modelcontextprotocol.io/) surface [1] and a shared canonical action catalog. The goal is not to expose every Blender operation as another tool. The goal is to make agent-driven Blender automation **discoverable, validated, observable, and repeatable**.
-
 Blender Arwaky is an open-source Blender MCP addon and automation runtime for developers, technical artists, and agentic coding workflows. It supports scene inspection, object operations, camera and rendering workflows, asset pipelines, launcher lifecycle, background jobs, configuration, and validated Blender Python execution through the same dispatcher used by MCP and CLI clients.
 
 ## Why Blender Arwaky?
