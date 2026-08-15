@@ -137,11 +137,18 @@ class PathValidator(ValidatePathProtocol):
     def validate_path_sync(self, request: PathValidationVO) -> PathValidationVO:
         """Synchronous wrapper for async validate_path (for use in sync contexts)."""
         import asyncio
+        from concurrent.futures import ThreadPoolExecutor
 
         try:
-            return asyncio.get_event_loop().run_until_complete(self.validate_path(request))
+            asyncio.get_running_loop()
         except RuntimeError:
             return asyncio.run(self.validate_path(request))
+
+        # A synchronous caller may still be running inside an event loop.
+        # Execute the coroutine in a short-lived worker loop instead of
+        # nesting or reusing the active loop.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, self.validate_path(request)).result()
 
     def __repr__(self) -> str:
         return "PathValidator()"
