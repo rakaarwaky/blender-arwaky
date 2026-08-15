@@ -205,6 +205,7 @@ class BlenderMCPServer:
             "get_scene_info": self.get_scene_info,
             "cleanup_scene": self.cleanup_scene,
             "setup_environment": self.setup_environment,
+            "configure_camera": self.configure_camera,
             "get_object_info": self.get_object_info,
             "place_asset": self.place_asset,
             "create_primitive": self.create_primitive,
@@ -213,6 +214,7 @@ class BlenderMCPServer:
             "set_material": self.set_material,
             "apply_modifier": self.apply_modifier,
             "import_glb": self.import_glb,
+            "import_asset": self.import_asset,
             "export_model": self.export_model,
             "get_viewport_screenshot": utils.get_viewport_screenshot,
             "render": self.render,
@@ -300,6 +302,80 @@ class BlenderMCPServer:
             "hdri_id": str(hdri_path.resolve()),
             "environment_ref": world.name,
             "strength": strength,
+        }
+
+    def configure_camera(
+        self,
+        camera_ref=None,
+        focal_length=50.0,
+        sensor_fit="AUTO",
+        framing_target=None,
+        set_active=False,
+        depth_of_field_enabled=False,
+        focus_distance=None,
+        focus_object=None,
+        aperture=2.8,
+        create_if_missing=True,
+    ):
+        """Configure a real Blender camera according to FR-RND-003."""
+        focal_length = float(focal_length)
+        aperture = float(aperture)
+        if not math.isfinite(focal_length) or not 1.0 <= focal_length <= 500.0:
+            raise ValueError("focal_length must be between 1 and 500")
+        if sensor_fit not in {"AUTO", "HORIZONTAL", "VERTICAL"}:
+            raise ValueError(f"Unsupported sensor_fit: {sensor_fit}")
+        if not math.isfinite(aperture) or aperture <= 0.0:
+            raise ValueError("aperture must be a positive finite number")
+
+        scene = bpy.context.scene
+        camera = bpy.data.objects.get(str(camera_ref)) if camera_ref else scene.camera
+        if camera is None:
+            if not create_if_missing:
+                raise ValueError("Camera not found and create_if_missing is false")
+            camera_data = bpy.data.cameras.new("Camera")
+            camera = bpy.data.objects.new("Camera", camera_data)
+            scene.collection.objects.link(camera)
+        if camera.type != "CAMERA":
+            raise ValueError(f"Object is not a camera: {camera.name}")
+
+        camera.data.lens = focal_length
+        camera.data.sensor_fit = sensor_fit
+        camera.data.dof.use_dof = bool(depth_of_field_enabled)
+        camera.data.dof.aperture_fstop = aperture
+
+        if focus_distance is not None:
+            focus_distance = float(focus_distance)
+            if not math.isfinite(focus_distance) or focus_distance <= 0.0:
+                raise ValueError("focus_distance must be positive and finite")
+            camera.data.dof.focus_distance = focus_distance
+
+        if focus_object:
+            target = bpy.data.objects.get(str(focus_object))
+            if target is None:
+                raise ValueError(f"Focus object not found: {focus_object}")
+            camera.data.dof.focus_object = target
+
+        if framing_target:
+            target = bpy.data.objects.get(str(framing_target))
+            if target is None:
+                raise ValueError(f"Framing target not found: {framing_target}")
+            direction = target.location - camera.location
+            if direction.length == 0:
+                raise ValueError("Framing target must not share the camera location")
+            camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+
+        if set_active:
+            scene.camera = camera
+
+        return {
+            "camera_ref": camera.name,
+            "focal_length": camera.data.lens,
+            "sensor_fit": camera.data.sensor_fit,
+            "active": scene.camera == camera,
+            "depth_of_field_enabled": camera.data.dof.use_dof,
+            "focus_distance": camera.data.dof.focus_distance,
+            "focus_object": camera.data.dof.focus_object.name if camera.data.dof.focus_object else None,
+            "aperture": camera.data.dof.aperture_fstop,
         }
 
     def place_asset(self, asset_id, location=None, rotation=None, scale=None):
@@ -410,6 +486,53 @@ class BlenderMCPServer:
         obj.select_set(True)
         bpy.ops.object.modifier_apply(modifier=modifier_name)
         return {"object_name": object_name, "modifier_name": modifier_name, "applied": True}
+
+    def import_asset(
+        self,
+        file_path,
+        asset_type="model",
+        target_collection=None,
+        scale_normalization=False,
+        duplicate_policy="rename",
+        format_hint=None,
+    ):
+        """Import a cached asset and return canonical Blender object references."""
+        path = Path(str(file_path)).expanduser()
+        if not path.is_file():
+            raise FileNotFoundError(f"Asset file not found: {file_path}")
+        before = {obj.name for obj in bpy.context.scene.objects}
+        suffix = (format_hint or path.suffix).lower().lstrip(".")
+        if suffix in {"glb", "gltf"}:
+            bpy.ops.import_scene.gltf(filepath=str(path))
+        elif suffix == "obj":
+            bpy.ops.wm.obj_import(filepath=str(path))
+        elif suffix == "fbx":
+            bpy.ops.import_scene.fbx(filepath=str(path))
+        else:
+            raise ValueError(f"Unsupported asset import format: {suffix or asset_type}")
+        imported = [obj for obj in bpy.context.scene.objects if obj.name not in before]
+        if target_collection:
+            collection = bpy.data.collections.get(str(target_collection)) or bpy.data.collections.new(
+                str(target_collection)
+            )
+            if collection.name not in [item.name for item in bpy.context.scene.collection.children]:
+                bpy.context.scene.collection.children.link(collection)
+            for obj in imported:
+                for old_collection in list(obj.users_collection):
+                    old_collection.objects.unlink(obj)
+                collection.objects.link(obj)
+        if scale_normalization:
+            for obj in imported:
+                obj.scale = (1.0, 1.0, 1.0)
+        if duplicate_policy == "reject" and any(obj.name in before for obj in imported):
+            raise ValueError("Duplicate asset import rejected")
+        return {
+            "file_path": str(path),
+            "asset_type": str(asset_type),
+            "objects": [obj.name for obj in imported],
+            "collection": target_collection,
+            "duplicate_policy": duplicate_policy,
+        }
 
     def import_glb(self, file_path, object_name=None):
         """Import a GLB/GLTF file and return imported object names."""

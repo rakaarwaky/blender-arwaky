@@ -1,11 +1,6 @@
-"""MCP Tool: Asset operations — search and download via IAssetAggregate.
+"""MCP surface for real Asset aggregate search and download workflows."""
 
-FR-AST-001: Search Assets Across Providers — search tool registered with MCP server
-FR-AST-002: Download Asset to Cache — download tool delegates to aggregate
-FR-MCP-001: Expose MCP Tools — asset tools registered with MCP server
-FR-MCP-002: Route Tool Calls — delegates to IAssetAggregate through aggregate factory
-FR-MCP-003: Format MCP Responses — returns structured result from aggregate
-"""
+from __future__ import annotations
 
 import json
 import logging
@@ -13,40 +8,40 @@ from collections.abc import Callable
 
 from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
 from modules.shared.src.asset.taxonomy_asset_vo import AssetDownloadCacheVO
-from modules.shared.src.common.taxonomy_core_vo import SearchQuery, StringList
+from modules.shared.src.common.taxonomy_core_vo import RequestId, SearchQuery, StringList, ToolName
+from modules.shared.src.mcp.contract_mcp_protocol import McpResponseProtocol
 
 logger = logging.getLogger("BlenderMCPServer")
 
 
 class AssetToolsSurface:
-    """MCP surface for asset search and download tools."""
+    """MCP surface for Asset aggregate search and download."""
 
     @staticmethod
-    def register_asset_tools(mcp, aggregate_factory: Callable[[], IAssetAggregate | None] | None = None):
-        """Register asset search and download tools with MCP server.
-
-        Args:
-            mcp: MCP server instance
-            aggregate_factory: Optional factory that returns IAssetAggregate.
-        """
-        aggregate: IAssetAggregate | None = None
-        if aggregate_factory is not None:
-            aggregate = aggregate_factory()
-
+    def register_asset_tools(
+        mcp,
+        aggregate_factory: Callable[[], IAssetAggregate | None] | None = None,
+        response_formatter: McpResponseProtocol | None = None,
+    ):
+        """Register Asset tools with explicit aggregate and response dependencies."""
+        aggregate: IAssetAggregate | None = aggregate_factory() if aggregate_factory is not None else None
         if aggregate is None:
             return
 
+        async def format_tool_result(tool_name: str, result: object, error_category: str | None = None) -> str:
+            if response_formatter is None:
+                return json.dumps(result, default=str)
+            envelope = await response_formatter.format_response(
+                result,
+                ToolName(tool_name),
+                RequestId(""),
+                error_category=error_category,
+            )
+            return json.dumps(envelope, default=str)
+
         @mcp.tool()
         async def search_assets(query: str, providers_json: str = "[]") -> str:
-            """Search for 3D assets across configured providers.
-
-            Args:
-                query: Search text (e.g. 'wooden table', 'sci-fi helmet')
-                providers_json: JSON array of provider names to filter (default: all)
-
-            Returns:
-                JSON string with matching assets including id, name, type, provider, thumbnail.
-            """
+            """Search for 3D assets across configured providers."""
             try:
                 provider_list: list[str] | None = None
                 if providers_json:
@@ -57,45 +52,35 @@ class AssetToolsSurface:
                     query=SearchQuery(query),
                     providers=StringList(provider_list) if provider_list else None,
                 )
-                return json.dumps(
-                    [
-                        {
-                            "id": a.id,
-                            "name": a.name,
-                            "type": a.type,
-                            "provider": a.provider,
-                            "thumbnail_url": a.thumbnail_url,
-                        }
-                        for a in results
-                    ],
-                    default=str,
+                return await format_tool_result(
+                    "search_assets",
+                    {
+                        "assets": [
+                            {
+                                "id": a.id,
+                                "name": a.name,
+                                "type": a.type,
+                                "provider": a.provider,
+                                "thumbnail_url": a.thumbnail_url,
+                            }
+                            for a in results
+                        ],
+                        "total": len(results),
+                    },
                 )
-            except Exception as e:
-                logger.error("search_assets failed: %s", e, exc_info=True)
-                return json.dumps({"error": str(e), "success": False})
+            except Exception as exc:
+                logger.error("search_assets failed: %s", exc, exc_info=True)
+                return await format_tool_result("search_assets", {"error": str(exc)}, "execution")
 
         @mcp.tool()
         async def download_asset(request_json: str) -> str:
-            """Download an asset to the local cache directory.
-
-            Args:
-                request_json: JSON string with AssetDownloadCacheVO fields:
-                    - provider: provider name (e.g. 'polyhaven')
-                    - asset_id: asset identifier
-                    - asset_type: type (e.g. 'texture', 'model', 'hdr')
-                    - cache_dir: local cache directory path
-                    - resolution: optional resolution preference
-                    - overwrite_policy: 'reuse' or 'overwrite' (default: 'reuse')
-                    - max_size: optional max download size in bytes
-
-            Returns:
-                JSON string with download result including file_path, cached status.
-            """
+            """Download an asset to the validated local cache directory."""
             try:
                 request_data = json.loads(request_json) if request_json else {}
                 vo = AssetDownloadCacheVO(**request_data)
                 result = await aggregate.download_to_cache(vo)
-                return json.dumps(
+                return await format_tool_result(
+                    "download_asset",
                     {
                         "success": bool(result.success),
                         "file_path": result.file_path,
@@ -104,8 +89,7 @@ class AssetToolsSurface:
                         "integrity_ok": result.integrity_ok,
                         "message": result.message,
                     },
-                    default=str,
                 )
-            except Exception as e:
-                logger.error("download_asset failed: %s", e, exc_info=True)
-                return json.dumps({"error": str(e), "success": False})
+            except Exception as exc:
+                logger.error("download_asset failed: %s", exc, exc_info=True)
+                return await format_tool_result("download_asset", {"error": str(exc)}, "execution")

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import RequestId, ToolName
@@ -21,8 +22,15 @@ class McpResponseImpl(McpResponseProtocol):
 
     MAX_RESPONSE_SIZE: int = 1_000_000  # 1MB default
 
-    def __init__(self, max_size: int = MAX_RESPONSE_SIZE) -> None:
+    def __init__(
+        self,
+        max_size: int = MAX_RESPONSE_SIZE,
+        catalog_version: str = "unknown",
+        redaction_policy: Callable[[str], Awaitable[str]] | None = None,
+    ) -> None:
         self._max_size = max_size
+        self._catalog_version = catalog_version
+        self._redaction_policy = redaction_policy
 
     async def format_response(
         self,
@@ -71,14 +79,38 @@ class McpResponseImpl(McpResponseProtocol):
         return envelope
 
     async def mask_secrets(self, response: dict[str, Any]) -> dict[str, Any]:
-        """Redact secrets/tokens/credentials/paths from response.
+        """Recursively redact sensitive keys and values before transmission."""
+        sensitive_keys = {
+            "token",
+            "secret",
+            "password",
+            "credential",
+            "api_key",
+            "authorization",
+            "auth_token",
+            "path",
+            "file_path",
+            "code",
+            "prompt",
+        }
 
-        FR-MCP-003: Secrets masked via security policy before any response leaves.
-        Masking failure → suppress fragment, not expose.
-        """
-        # Placeholder for security policy integration.
-        # In production, integrate with actual redaction patterns.
-        return response
+        async def redact(value: Any, key: str | None = None) -> Any:
+            if key and any(pattern in key.lower() for pattern in sensitive_keys):
+                return "[REDACTED]"
+            if isinstance(value, dict):
+                return {
+                    str(item_key): await redact(item_value, str(item_key)) for item_key, item_value in value.items()
+                }
+            if isinstance(value, list):
+                return [await redact(item) for item in value]
+            if isinstance(value, tuple):
+                return [await redact(item) for item in value]
+            if isinstance(value, str) and self._redaction_policy is not None:
+                return await self._redaction_policy(value)
+            return value
+
+        result = await redact(response)
+        return result if isinstance(result, dict) else {"data": result}
 
     def _truncate_response(self, _envelope: dict[str, Any], tool_name: ToolName, tid: RequestId) -> dict[str, Any]:
         """Truncate oversized response per FR-MCP-003 strategy."""
@@ -90,10 +122,9 @@ class McpResponseImpl(McpResponseProtocol):
             "error_category": None,
             "message": "Response truncated due to size limit",
             "warnings": [],
-            "metadata": {"protocol_version": "1.0"},
+            "metadata": {"protocol_version": "1.0", "catalog_version": self._catalog_version},
         }
 
     async def _get_catalog_version(self) -> str:
-        """Get dispatcher catalog version."""
-        # Placeholder — should come from dispatcher contract
-        return "unknown"
+        """Return the deterministic dispatcher catalog version supplied at wiring."""
+        return self._catalog_version

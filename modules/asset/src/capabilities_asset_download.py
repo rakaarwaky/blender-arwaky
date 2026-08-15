@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol
+from modules.shared.src.asset.contract_asset_provider_connection_protocol import IAssetProviderConnection
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
     AssetType,
@@ -50,6 +51,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         security_validator: ValidatePathProtocol | None = None,
         job_scheduler: JobSchedulerProtocol | None = None,
         config_aggregate: IConfigAggregate | None = None,
+        provider_connection: IAssetProviderConnection | None = None,
     ) -> None:
         """Initialize with dependencies.
 
@@ -61,6 +63,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         self.security_validator = security_validator
         self.job_scheduler = job_scheduler
         self.config_aggregate = config_aggregate
+        self.provider_connection = provider_connection
         self._cache_dir: FilePath = FilePath("")
         self._max_size: MaxSize | None = None
         self._overwrite_policy: DuplicatePolicy = DuplicatePolicy("reuse")
@@ -187,7 +190,7 @@ class AssetDownloadCapability(AssetDownloadProtocol):
 
         # Perform synchronous download
         try:
-            file_path = await self._perform_download(provider, asset_id, cached_path)
+            file_path = await self._perform_download(provider, asset_id, asset_type, cached_path)
             return {
                 "success": True,
                 "file_path": file_path,
@@ -336,28 +339,42 @@ class AssetDownloadCapability(AssetDownloadProtocol):
         task_ref = await self.job_scheduler.submit_download(provider, asset_id, cache_path)
         return task_ref
 
-    async def _perform_download(self, provider: ProviderName, asset_id: AssetId, cache_path: str) -> str:
-        """Perform actual download via provider adapter with atomic write.
+    async def _perform_download(
+        self,
+        provider: ProviderName,
+        asset_id: AssetId,
+        asset_type: AssetType,
+        cache_path: str,
+    ) -> str:
+        """Perform an actual provider download into the atomic cache path."""
+        if self.provider_connection is None:
+            raise ProviderError("Asset provider connection is not configured")
 
-        FR-AST-002: Writes to a temporary file first, then atomically
-        renames to final path via os.replace(). This ensures that a crash
-        mid-download never leaves a partial/corrupt cache file visible
-        to the reuse path. Provider adapter delegates the actual network
-        transfer; this method handles the local write pattern only.
-        """
-        dest_dir = os.path.dirname(cache_path)
-        os.makedirs(dest_dir, exist_ok=True)
-        tmp_path = f"{cache_path}.tmp"
-        try:
-            # Delegate actual network transfer to provider adapter.
-            # Until the adapter is wired, write a placeholder file.
-            with open(tmp_path, "w") as f:
-                f.write(f"mock-{provider}-{asset_id}")
-            os.replace(tmp_path, cache_path)
-        except Exception:
-            # Clean up temp file on failure — no partial cache side-effect.
-            import pathlib
+        provider_name = str(provider).lower()
+        if provider_name == "sketchfab":
+            action = "download_sketchfab_model"
+            identifier_key = "uid"
+        elif provider_name == "polyhaven":
+            action = "download_polyhaven_asset"
+            identifier_key = "asset_id"
+        else:
+            raise ProviderError(f"Unsupported asset provider: {provider}")
 
-            pathlib.Path(tmp_path).unlink(missing_ok=True)
-            raise
+        response = await self.provider_connection.send_command(
+            action,
+            {
+                identifier_key: str(asset_id),
+                "asset_type": str(asset_type),
+                "destination_path": cache_path,
+                "max_size": int(self._max_size) if self._max_size is not None else None,
+            },
+            provider=provider,
+        )
+        if response.get("error") or response.get("success") is not True:
+            category = response.get("error", "provider_error")
+            message = response.get("message", "Provider download failed")
+            raise ProviderError(f"[{category}] {message}")
+        resolved_path = str(response.get("path", cache_path))
+        if resolved_path != cache_path:
+            raise ProviderError("Provider returned an unexpected cache path")
         return cache_path

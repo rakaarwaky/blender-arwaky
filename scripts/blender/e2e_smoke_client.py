@@ -79,6 +79,24 @@ with BlenderSocketClient(port=port, timeout=10.0) as client:
             {"hdri_id": str(hdri_output), "strength": 1.25},
         ),
     )
+    camera_response = expect_success(
+        "configure_camera",
+        client.send_command(
+            "configure_camera",
+            {
+                "focal_length": 55.0,
+                "sensor_fit": "AUTO",
+                "set_active": True,
+                "depth_of_field_enabled": True,
+                "focus_object": "E2ECube",
+                "aperture": 2.8,
+            },
+        ),
+    )
+    camera_result = camera_response.get("result", {})
+    if camera_result.get("focal_length") != 55.0 or not camera_result.get("active"):
+        raise RuntimeError(f"camera configuration mismatch: {camera_response}")
+    print("PASS camera configuration")
     expect_success(
         "export_model",
         client.send_command(
@@ -96,6 +114,17 @@ with BlenderSocketClient(port=port, timeout=10.0) as client:
             {"file_path": str(export_output), "object_name": "ImportedCube"},
         ),
     )
+    import_asset_response = expect_success(
+        "import_asset",
+        client.send_command(
+            "import_asset",
+            {"file_path": str(export_output), "asset_type": "model", "format_hint": "glb"},
+        ),
+    )
+    imported_asset_objects = import_asset_response.get("result", {}).get("objects", [])
+    if not imported_asset_objects:
+        raise RuntimeError(f"import_asset returned no objects: {import_asset_response}")
+    print("PASS import_asset")
     expect_success(
         "render",
         client.send_command(
@@ -115,5 +144,10 @@ with BlenderSocketClient(port=port, timeout=10.0) as client:
     )
     expect_success("delete_object", client.send_command("delete_object", {"object_name": "E2ECube"}))
     expect_success("delete_imported_object", client.send_command("delete_object", {"object_name": "ImportedCube"}))
+    for object_name in imported_asset_objects:
+        expect_success(
+            f"delete_asset_object:{object_name}",
+            client.send_command("delete_object", {"object_name": object_name}),
+        )
     expect_success("cleanup_scene", client.send_command("cleanup_scene", {"mode": "meshes"}))
 print("PASS close client")

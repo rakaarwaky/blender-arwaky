@@ -20,6 +20,7 @@ from .capabilities_asset_download import AssetDownloadCapability
 from .capabilities_asset_extract import AssetExtractCapability
 from .capabilities_asset_import import AssetImportCapability
 from .capabilities_asset_provider import AssetProviderMetadataCapability
+from .capabilities_asset_provider_connection import AssetProviderConnectionImpl
 from .capabilities_asset_search_handler import AssetSearchHandler
 from .root_asset_container import AssetContainer, create_asset_container
 
@@ -29,6 +30,7 @@ __all__ = [
     "AssetExtractCapability",
     "AssetImportCapability",
     "AssetProviderMetadataCapability",
+    "AssetProviderConnectionImpl",
     "AssetSearchHandler",
     "AssetContainer",
     "create_asset_container",

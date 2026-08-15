@@ -10,6 +10,7 @@ import logging
 import threading
 from typing import TYPE_CHECKING
 
+from modules.asset.src.capabilities_asset_provider_connection import AssetProviderConnectionImpl
 from modules.shared.src.asset.contract_asset_provider_connection_protocol import (
     IAssetProviderConnection,
 )
@@ -88,6 +89,7 @@ class AssetContainer:
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,
                 config_aggregate=self._config_getter,
+                provider_connection=self._connection,
             )
             extract = AssetExtractCapability(
                 security_supervisor=self._security_supervisor,
@@ -119,7 +121,21 @@ class AssetContainer:
 
 
 def create_asset_container(
-    connection: IAssetProviderConnection,
+    connection: IAssetProviderConnection | None = None,
+    security_validator: object | None = None,
+    security_supervisor: object | None = None,
+    job_scheduler: object | None = None,
+    config_getter: object | None = None,
+    gateway_client: object | None = None,
     event_publisher: object | None = None,
 ) -> AssetContainer:
-    return AssetContainer(connection=connection, event_publisher=event_publisher)
+    """Create an asset container with production defaults and explicit dependencies."""
+    return AssetContainer(
+        connection=connection or AssetProviderConnectionImpl(),
+        security_validator=security_validator,
+        security_supervisor=security_supervisor,
+        job_scheduler=job_scheduler,
+        config_getter=config_getter,
+        gateway_client=gateway_client,
+        event_publisher=event_publisher,
+    )

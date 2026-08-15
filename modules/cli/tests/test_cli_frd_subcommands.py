@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from modules.root_cli_main_entry import EXIT_VALIDATION, main
+from modules.root_cli_main_entry import EXIT_VALIDATION, _build_parser, main
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
@@ -200,3 +200,77 @@ def test_config_and_set_config_map_typed_json(capsys) -> None:
     assert dispatcher.requests[-1].parameters == {"key": "blender.port", "value": "9999"}  # nosec B101
     assert dispatcher.requests[-1].confirmation_flag is True  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_camera_and_asset_commands_forward_contract_parameters(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+
+    assert (
+        main(
+            [
+                "--json",
+                "camera-config",
+                "--focal-length",
+                "55",
+                "--sensor-fit",
+                "AUTO",
+                "--set-active",
+                "--dof",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+    camera_request = dispatcher.requests[-1]
+    assert camera_request.action_name == "configure_camera"  # nosec B101
+    assert camera_request.parameters["focal_length"] == 55.0  # nosec B101
+    assert camera_request.parameters["set_active"] is True  # nosec B101
+
+    assert (
+        main(
+            [
+                "--json",
+                "download-asset",
+                "--provider",
+                "Polyhaven",
+                "--asset-id",
+                "chair",
+                "--asset-type",
+                "model",
+                "--cache-dir",
+                ".cache/assets",
+                "--max-size",
+                "1000000",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )  # nosec B101
+    asset_request = dispatcher.requests[-1]
+    assert asset_request.action_name == "download_asset"  # nosec B101
+    assert asset_request.parameters["provider"] == "Polyhaven"  # nosec B101
+    assert asset_request.parameters["max_size"] == 1000000  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_help_surface_has_valid_examples_and_safety_metadata() -> None:
+    parser = _build_parser()
+    root_help = parser.format_help()
+    normalized_root_help = " ".join(root_help.split())
+
+    assert "run --filepath scene.blend --action get_scene_info" in normalized_root_help  # nosec B101
+    assert "[executable] Start Blender with a file" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Close active Blender instance" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Cancel a background task" in normalized_root_help  # nosec B101
+    assert "[executable] [destructive; requires --confirm] Update configuration" in normalized_root_help  # nosec B101
+
+    subparsers = next(action for action in parser._actions if isinstance(getattr(action, "choices", None), dict))
+    run_help = subparsers.choices["run"].format_help()
+    close_help = subparsers.choices["close"].format_help()
+    set_config_help = subparsers.choices["set-config"].format_help()
+
+    assert "--filepath FILEPATH" in run_help  # nosec B101
+    assert "run --filepath scene.blend --action get_scene_info" in run_help  # nosec B101
+    assert "requires --confirm" in close_help  # nosec B101
+    assert "requires --confirm" in set_config_help  # nosec B101
