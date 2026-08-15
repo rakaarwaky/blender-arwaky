@@ -6,6 +6,8 @@ Taxonomy layer: pure constants only — no functions, loops, classes, or I/O.
 
 from __future__ import annotations
 
+from .taxonomy_plugin_action_constant import PLUGIN_ACTION_SCHEMAS
+
 DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
     "gateway": {
         "execute_blender_code": {
@@ -964,4 +966,5 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             },
         },
     },
+    "plugin": PLUGIN_ACTION_SCHEMAS,
 }

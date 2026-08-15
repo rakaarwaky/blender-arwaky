@@ -17,6 +17,10 @@ PluginParameterMap = NewType("PluginParameterMap", dict[str, object])
 PluginIdList = NewType("PluginIdList", tuple[PluginId, ...])
 PluginCapabilityList = NewType("PluginCapabilityList", tuple[PluginCapabilityId, ...])
 PluginMessage = NewType("PluginMessage", str)
+PluginSourceUrl = NewType("PluginSourceUrl", str)
+PluginSha256 = NewType("PluginSha256", str)
+PluginCachePath = NewType("PluginCachePath", str)
+PluginInstallPath = NewType("PluginInstallPath", str)
 
 
 @dataclass(frozen=True)
@@ -70,4 +74,27 @@ class PluginRegistrationVO:
 
     plugin_id: PluginId
     registered: bool
+    message: PluginMessage
+
+
+@dataclass(frozen=True)
+class PluginPackageRequestVO:
+    """Validated package lifecycle request."""
+
+    plugin_id: PluginId
+    source_url: PluginSourceUrl
+    sha256: PluginSha256
+    cache_path: PluginCachePath
+    install_path: PluginInstallPath
+
+
+@dataclass(frozen=True)
+class PluginPackageResultVO:
+    """Normalized package lifecycle result."""
+
+    plugin_id: PluginId
+    operation: PluginActionName
+    success: bool
+    package_path: PluginCachePath
+    install_path: PluginInstallPath
     message: PluginMessage

@@ -21,7 +21,7 @@ Business logic, process lifecycle, connection logic, command validation, setting
 
 ## Depends On
 
-dispatcher (action execution + catalog), launcher (process control), diagnostics (health + status), config (settings), job (task status), security policy (redaction).
+dispatcher (action execution + catalog), launcher (process control), diagnostics (health + status), config (settings), job (task status), plugin (optional provider package lifecycle), security policy (redaction).
 
 ## Provides To
 
@@ -167,6 +167,11 @@ The CLI exposes every canonical action exactly once using kebab-case. MCP keeps 
 | `cancel-task` | `--task-id` **required** | `cancel_task` | `job` |
 | `get-config` | `--key` | `get_config` | `config` |
 | `set-config` | `--key` **required**, `--value` **required** | `set_config` | `config` |
+| `list-plugins` | — | `list_plugins` | `plugin` |
+| `download-plugin` | `--plugin-id` **required**, `--source-url` **required**, `--sha256` **required**, `--cache-path` **required** | `download_plugin` | `plugin` |
+| `verify-plugin` | `--plugin-id` **required**, `--sha256` **required**, `--cache-path` **required** | `verify_plugin` | `plugin` |
+| `install-plugin` | `--plugin-id` **required**, `--sha256` **required**, `--cache-path` **required**, `--install-path` **required** | `install_plugin` | `plugin` |
+| `remove-plugin` | `--plugin-id` **required**, `--install-path` **required**, `--confirm` | `remove_plugin` | `plugin` |
 
 Every command supports `--help`, `--json`, `--quiet`, `--verbose`, `--color`, `--no-progress`, and `--confirm`. The `--confirm` flag is enforced by the action contract for destructive operations.
 
@@ -181,6 +186,7 @@ Action parameters are typed from the same schema consumed by MCP `list_commands`
 ## Error Categories
 
 - **Owned**: validation error (surface-level arg problems), configuration error (settings unavailable), blocked (contract not executable), unsupported (runtime mode/capability unavailable)
+- Plugin package actions delegate HTTPS, digest, archive, and filesystem safety decisions to the plugin aggregate; CLI only validates flag shape and renders the normalized result.
 - **Displayed but unowned**: not_found, capacity, timeout, security_violation, connection, state, task — pass through from owning features with CLI remediation hints attached (hints carry no logic authority)
 - `not_found` must never be used for a known-but-blocked or known-but-unsupported command.
 

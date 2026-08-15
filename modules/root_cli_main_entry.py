@@ -265,6 +265,7 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
             from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
             from modules.job.src.root_job_container import create_job_feature
             from modules.launcher.src.root_launcher_container import LauncherConfigVO, LauncherContainer
+            from modules.plugin.src.root_plugin_container import PluginContainer
             from modules.security.src.root_security_container import create_security_feature
 
             launcher_container = LauncherContainer(config=LauncherConfigVO())
@@ -282,6 +283,7 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
                 config=config,
                 security=security,
                 asset=asset,
+                plugin=PluginContainer(),
             )
             dispatcher_container = DispatcherContainer(launcher_action_router=action_router)
             dispatcher_container.wire()

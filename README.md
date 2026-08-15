@@ -86,7 +86,7 @@ uv run blender-arwaky get-runtime-status --json
 
 ## Canonical action catalog
 
-The catalog below lists every valid CLI action and its action-specific parameters. Names use CLI `kebab-case`; MCP/API clients use the corresponding `snake_case` action name. Common flags are documented separately below the table.
+The catalog below lists every valid CLI action and its action-specific parameters. Names use CLI `kebab-case`; MCP/API clients use the corresponding `snake_case` action name. Common flags are documented separately below the table. Optional Blender-Python providers are managed through the same catalog; they are not imported or executed implicitly.
 
 | No. | Category | Action | Parameters | Description |
 |---:|---|---|---|---|
@@ -165,6 +165,11 @@ The catalog below lists every valid CLI action and its action-specific parameter
 | 73 | job | `cancel-task` | `--task-id` (string; required) | Cancel a running background task |
 | 74 | config | `get-config` | `--key` (string) | Retrieve BlenderArwaky configuration settings |
 | 75 | config | `set-config` | `--key` (string; required)<br>`--value` (value; required) | Update a configuration setting |
+| 76 | plugin | `list-plugins` | <none> | List registered optional providers and their runtime capability metadata |
+| 77 | plugin | `download-plugin` | `--plugin-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download a plugin package over HTTPS into the local cache |
+| 78 | plugin | `verify-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify SHA-256 and ZIP safety before installation |
+| 79 | plugin | `install-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--install-path` (absolute path; required) | Verify and atomically install an optional plugin package |
+| 80 | plugin | `remove-plugin` | `--plugin-id` (string; required)<br>`--install-path` (absolute path; required)<br>`--confirm` (global; required for destructive actions) | Remove one explicitly selected installed plugin directory |
 
 ## Global and common flags
 
@@ -181,6 +186,18 @@ These flags are available across the CLI surface and are intentionally kept outs
 | `--filepath` | Select the active `.blend` file or runtime session where applicable. |
 
 Use `blender-arwaky <action-kebab-case> --help` for the complete help of one action. Global flags control output, runtime context, or confirmation; the Parameters column contains only flags declared by that action's own schema.
+
+### Optional plugin packages
+
+Plugin packages are optional and are never required for the core runtime. For a provider such as MPFB2, obtain a release archive and its published SHA-256 digest from the provider's official release channel, then run the following controlled sequence:
+
+```bash
+uv run blender-arwaky download-plugin --plugin-id mpfb2 --source-url https://example.org/mpfb2.zip --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip
+uv run blender-arwaky verify-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip
+uv run blender-arwaky install-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --install-path /absolute/plugins/mpfb2
+```
+
+The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, and atomic installation. Installation places provider files on disk; provider-specific Blender operations remain explicitly mapped actions and require a compatible Blender environment with the provider enabled.
 
 ## Configuration
 
@@ -204,7 +221,7 @@ The matrix below uses values and capabilities stated in each project's current p
 
 | Project | MCP tools | Actions / operations | Namespaces | CLI | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Blender Arwaky** | 5 | 75 | 15 | √ | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
+| **Blender Arwaky** | 5 | 80 | 16 | √ | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
 | [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
 | [Blender MCP Server by djeada][3] | 27 | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
 | [Blender MCP by sandraschi][4] | 41* | 150+ | ? | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | ? | ? |
