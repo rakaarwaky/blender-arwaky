@@ -88,94 +88,95 @@ Present failures as categorized, actionable guidance. Never display secrets.
 
 ## Command Mapping
 
-Setiap aksi punya CLI sub-command sendiri dengan argument khusus. Universal `run --action` sebagai fallback untuk aksi yang belum punya sub-command.
+The CLI exposes every canonical action exactly once using kebab-case. MCP keeps the same action names in snake_case. Both surfaces are generated from the shared dispatcher catalog; no duplicate fallback or shortcut alias is part of the public surface.
 
-### Launcher
+| CLI command | Parameters | MCP action | Owner |
+|---|---|---|---|
+| `execute-blender-code` | `--code` **required** | `execute_blender_code` | `gateway` |
+| `get-scene-info` | — | `get_scene_info` | `scene` |
+| `cleanup-scene` | `--mode` **required** | `cleanup_scene` | `scene` |
+| `list-scene-objects` | `--include-hidden`, `--object-type`, `--limit` | `list_scene_objects` | `scene` |
+| `get-object-hierarchy` | `--object-name`, `--include-hidden`, `--max-depth` | `get_object_hierarchy` | `scene` |
+| `undo` | — | `undo` | `scene` |
+| `redo` | — | `redo` | `scene` |
+| `get-object-info` | `--object-name` **required** | `get_object_info` | `object` |
+| `create-primitive` | `--primitive-type` **required**, `--location`, `--scale`, `--name` | `create_primitive` | `object` |
+| `set-object-transform` | `--object-name` **required**, `--location`, `--rotation`, `--scale` | `set_object_transform` | `object` |
+| `delete-object` | `--object-name` **required** | `delete_object` | `object` |
+| `set-material` | `--object-name` **required**, `--material-name` **required** | `set_material` | `object` |
+| `create-material` | `--material-name` **required**, `--base-color`, `--metallic`, `--roughness`, `--reuse-existing` | `create_material` | `object` |
+| `set-material-properties` | `--material-name` **required**, `--base-color`, `--metallic`, `--roughness` | `set_material_properties` | `object` |
+| `set-material-texture` | `--material-name` **required**, `--file-path` **required** | `set_material_texture` | `object` |
+| `apply-modifier` | `--object-name` **required**, `--modifier-name` **required** | `apply_modifier` | `object` |
+| `inspect-geometry-node-group` | `--node-group-name` **required** | `inspect_geometry_node_group` | `geometry_nodes` |
+| `create-geometry-node-group` | `--node-group-name` **required**, `--object-name` | `create_geometry_node_group` | `geometry_nodes` |
+| `set-geometry-node-link` | `--node-group-name` **required**, `--from-node` **required**, `--from-socket` **required**, `--to-node` **required**, `--to-socket` **required** | `set_geometry_node_link` | `geometry_nodes` |
+| `set-geometry-node-modifier` | `--object-name` **required**, `--node-group-name` **required** | `set_geometry_node_modifier` | `geometry_nodes` |
+| `get-animation-state` | `--object-name` **required**, `--limit` | `get_animation_state` | `animation` |
+| `insert-object-keyframe` | `--object-name` **required**, `--frame` **required**, `--data-path` **required**, `--index` | `insert_object_keyframe` | `animation` |
+| `set-timeline-range` | `--frame-start` **required**, `--frame-end` **required**, `--current-frame` | `set_timeline_range` | `animation` |
+| `list-object-keyframes` | `--object-name` **required**, `--limit` | `list_object_keyframes` | `animation` |
+| `get-mesh-statistics` | `--object-name` **required** | `get_mesh_statistics` | `mesh` |
+| `validate-mesh` | `--object-name` **required**, `--limit` | `validate_mesh` | `mesh` |
+| `perform-mesh-edit-operation` | `--object-name` **required**, `--operation` **required** | `perform_mesh_edit_operation` | `mesh` |
+| `ensure-mesh-uv-layer` | `--object-name` **required**, `--uv-layer-name` | `ensure_mesh_uv_layer` | `mesh` |
+| `configure-camera` | `--camera-ref`, `--focal-length`, `--sensor-fit`, `--framing-target`, `--set-active`, `--depth-of-field-enabled`, `--focus-distance`, `--focus-object`, `--aperture`, `--create-if-missing` | `configure_camera` | `render` |
+| `setup-environment` | `--hdri-id` **required**, `--strength` | `setup_environment` | `render` |
+| `get-viewport-screenshot` | `--filepath`, `--max-size`, `--view-angle`, `--shading-mode`, `--show-overlays`, `--focus-object` | `get_viewport_screenshot` | `render` |
+| `render` | `--output-path` **required**, `--resolution-x`, `--resolution-y` | `render` | `render` |
+| `set-render-settings` | `--engine`, `--resolution-x`, `--resolution-y`, `--resolution-percentage`, `--samples`, `--use-transparent` | `set_render_settings` | `render` |
+| `inspect-compositor-nodes` | `--limit` | `inspect_compositor_nodes` | `compositor` |
+| `configure-compositor` | `--use-nodes` **required** | `configure_compositor` | `compositor` |
+| `create-compositor-node` | `--node-type` **required**, `--node-name` | `create_compositor_node` | `compositor` |
+| `set-compositor-link` | `--from-node` **required**, `--from-socket` **required**, `--to-node` **required**, `--to-socket` **required** | `set_compositor_link` | `compositor` |
+| `inspect-sequence-editor` | `--limit` | `inspect_sequence_editor` | `vse` |
+| `create-sequence-strip` | `--strip-type` **required**, `--strip-name` **required**, `--filepath`, `--channel` **required**, `--frame-start` **required**, `--frame-end` | `create_sequence_strip` | `vse` |
+| `remove-sequence-strip` | `--strip-name` **required** | `remove_sequence_strip` | `vse` |
+| `render-sequence` | `--output-path` **required**, `--frame-start`, `--frame-end` | `render_sequence` | `vse` |
+| `get-physics-state` | `--object-name` **required** | `get_physics_state` | `physics` |
+| `configure-rigid-body` | `--object-name` **required**, `--enabled` **required**, `--body-type`, `--mass`, `--kinematic` | `configure_rigid_body` | `physics` |
+| `configure-cloth-simulation` | `--object-name` **required**, `--enabled` **required**, `--quality`, `--pin-group` | `configure_cloth_simulation` | `physics` |
+| `bake-physics-simulation` | `--frame-start`, `--frame-end` | `bake_physics_simulation` | `physics` |
+| `clear-physics-bake` | — | `clear_physics_bake` | `physics` |
+| `get-simulation-state` | `--object-name` **required** | `get_simulation_state` | `physics` |
+| `get-simulation-cache-status` | — | `get_simulation_cache_status` | `physics` |
+| `configure-particle-system` | `--object-name` **required**, `--enabled` **required**, `--count`, `--frame-start`, `--frame-end`, `--lifetime`, `--physics-type` | `configure_particle_system` | `physics` |
+| `configure-force-field` | `--object-name` **required**, `--enabled` **required**, `--field-type`, `--strength`, `--noise` | `configure_force_field` | `physics` |
+| `configure-fluid-domain` | `--object-name` **required**, `--enabled` **required**, `--domain-type`, `--resolution`, `--cache-type` | `configure_fluid_domain` | `physics` |
+| `inspect-armature` | `--object-name` **required**, `--limit` | `inspect_armature` | `rigging` |
+| `set-pose-bone-transform` | `--armature-name` **required**, `--bone-name` **required**, `--location`, `--rotation-euler`, `--scale` | `set_pose_bone_transform` | `rigging` |
+| `configure-bone-constraint` | `--armature-name` **required**, `--bone-name` **required**, `--constraint-type` **required**, `--enabled` **required**, `--constraint-name`, `--target-object`, `--subtarget` | `configure_bone_constraint` | `rigging` |
+| `configure-shape-key` | `--object-name` **required**, `--shape-key-name` **required**, `--enabled` **required**, `--value`, `--slider-min`, `--slider-max` | `configure_shape_key` | `rigging` |
+| `get-deformation-state` | `--object-name` **required** | `get_deformation_state` | `rigging` |
+| `search-assets` | `--query`, `--providers`, `--asset-type-filter`, `--limit`, `--page-token` | `search_assets` | `asset` |
+| `get-provider-metadata` | `--provider` **required**, `--asset-id` **required** | `get_provider_metadata` | `asset` |
+| `download-asset` | `--provider` **required**, `--asset-id` **required**, `--asset-type` **required**, `--cache-dir` **required**, `--resolution`, `--overwrite-policy`, `--max-size`, `--background` | `download_asset` | `asset` |
+| `extract-asset` | `--artifact-path` **required**, `--destination` **required**, `--max-entries`, `--max-extracted-size`, `--allow-symlinks` | `extract_asset` | `asset` |
+| `import-asset` | `--file-path` **required**, `--asset-type` **required**, `--target-collection`, `--scale-normalization`, `--duplicate-policy`, `--format-hint` | `import_asset` | `asset` |
+| `import-glb` | `--file-path` **required**, `--object-name` | `import_glb` | `asset` |
+| `export-model` | `--object-name` **required**, `--file-path` **required**, `--export-format` | `export_model` | `asset` |
+| `place-asset` | `--asset-id` **required**, `--location`, `--rotation`, `--scale` | `place_asset` | `asset` |
+| `launch-blender` | `--filepath`, `--mode`, `--port` | `launch_blender` | `launcher` |
+| `shutdown-blender` | `--force` | `shutdown_blender` | `launcher` |
+| `get-runtime-status` | — | `get_runtime_status` | `launcher` |
+| `register-executable` | `--path` | `register_executable` | `launcher` |
+| `submit-task` | `--operation-type` **required**, `--correlation-id`, `--metadata` | `submit_task` | `job` |
+| `list-tasks` | — | `list_tasks` | `job` |
+| `get-capacity-status` | — | `get_capacity_status` | `job` |
+| `get-task-status` | `--task-id` **required** | `get_task_status` | `job` |
+| `cancel-task` | `--task-id` **required** | `cancel_task` | `job` |
+| `get-config` | `--key` | `get_config` | `config` |
+| `set-config` | `--key` **required**, `--value` **required** | `set_config` | `config` |
 
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `init` | `--filepath` (required), `--mode` (gui\|headless), `--port` | `launch_blender` |
-| `close` | `--filepath` (required), `--force` | `shutdown_blender` |
-| `status` | (none) | `get_runtime_status` |
-| `register` | `--path` (optional) | `register_executable` |
+Every command supports `--help`, `--json`, `--quiet`, `--verbose`, `--color`, `--no-progress`, and `--confirm`. The `--confirm` flag is enforced by the action contract for destructive operations.
 
-### Scene
+The command form is:
 
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `scene-info` | (none) | `get_scene_info` |
-| `scene-cleanup` | `--mode` (all\|objects\|meshes) | `cleanup_scene` |
+```text
+blender-arwaky <action-name> [typed flags]
+```
 
-### Object
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `object-info` | `--name` (required) | `get_object_info` |
-| `create` | `--type` (required), `--location`, `--scale`, `--name` | `create_primitive` |
-| `set-transform` | `--name` (required), `--location`, `--rotation`, `--scale` | `set_object_transform` |
-| `delete` | `--name` (required) | `delete_object` |
-| `set-material` | `--name` (required), `--material` (required) | `set_material` |
-| `apply-modifier` | `--name` (required), `--modifier` (required) | `apply_modifier` |
-
-### Viewport & Render
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `screenshot` | `--filepath`, `--output`, `--max-size`, `--view-angle`, `--shading`, `--no-overlays`, `--focus-object` | `get_viewport_screenshot` |
-| `render` | `--filepath`, `--output`, `--resolution-x`, `--resolution-y` | `render` |
-| `set-env` | `--hdri-id` (required), `--strength` | `setup_environment` |
-| `camera-config` | `--camera`, `--focal-length`, `--sensor-fit`, `--framing-target`, `--set-active`, `--dof`, `--focus-distance`, `--focus-object`, `--aperture`, `--no-create` | `configure_camera` |
-
-### Import / Export / Asset
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `import` | `--file` (required), `--name` | `import_glb` |
-| `export` | `--name` (required), `--output` (required), `--format` | `export_model` |
-| `place-asset` | `--asset-id` (required), `--location`, `--rotation`, `--scale` | `place_asset` |
-| `search-assets` | `--query`, `--provider`, `--asset-type`, `--limit`, `--page-token` | `search_assets` |
-| `asset-metadata` | `--provider` (required), `--asset-id` (required) | `get_provider_metadata` |
-| `download-asset` | `--provider` (required), `--asset-id` (required), `--asset-type` (required), `--cache-dir` (required), `--resolution`, `--overwrite-policy`, `--max-size` | `download_asset` |
-| `extract-asset` | `--artifact` (required), `--destination` (required), `--max-entries`, `--max-size`, `--allow-symlinks` | `extract_asset` |
-| `import-asset` | `--file` (required), `--asset-type` (required), `--collection`, `--normalize-scale`, `--duplicate-policy`, `--format` | `import_asset` |
-
-### Job
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `task-status` | `--task-id` (required) | `get_task_status` |
-| `cancel-task` | `--task-id` (required) | `cancel_task` |
-
-### Config
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `config` | `--key` (optional) | `get_config` |
-| `set-config` | `--key` (required), `--value` (required) | `set_config` |
-
-### Code Execution
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `run-code` | `--code` (required) | `execute_blender_code` |
-
-### Universal Fallback
-
-| CLI | Arguments | Action Name |
-|-----|-----------|-------------|
-| `run` | `--filepath` (required), `--action` (required), `--params` (JSON) | canonical action named by `--action` |
-
-Mapping rules: 1 CLI sub-command = 1 action name = 1 aggregate call. The action name is the shared identifier between CLI and MCP (`execute_command(action=...)`). Adding a capability means adding a row — semantics live in the target feature, not CLI.
-
-Every command supports `--help`; examples are copy-paste valid against the required argument contract. Root and dedicated help expose availability metadata as `executable`, `blocked`, or `unsupported`; a blocked command is never routed as a fake success. Lifecycle commands expose the same availability metadata as feature commands.
-
-Global output and safety flags are available on every command: `--json`, `--quiet`, `--verbose`, `--color {auto,always,never}`, `--no-progress`, and `--confirm`. Destructive commands explicitly advertise `requires --confirm` in help and examples: `close`, `scene-cleanup`, `delete`, `cancel-task`, and `set-config`.
-
-`set-env` is owned by Render and uses `--hdri-id` as a local path to an already cached `.hdr` or `.exr` file resolved by the Asset feature. `camera-config` mutates the selected Blender camera and supports focal length, sensor fit, active-camera selection, framing/focus targets, and depth of field. `place-asset` uses `--asset-id` as the exact Blender object name produced by an import/asset-resolution step; it does not silently download or resolve a provider asset. `--rotation` is expressed in degrees, while Blender response rotations remain radians where applicable.
-
-`task-status` and `cancel-task` read the shared Job store, which is file-backed and atomically replaced so a new CLI process can observe task state created by another process. `cancel-task` is destructive and requires `--confirm`; not-found, terminal, unsupported cancellation, and race outcomes remain distinct.
-
-`set-config --value` accepts JSON scalar/array/object syntax; unquoted JSON strings are treated as strings. Config writes are schema-validated and atomically persisted. Secret-like keys are rejected for mutation, and `config` output is recursively redacted.
+Action parameters are typed from the same schema consumed by MCP `list_commands`; CLI uses kebab-case flags while MCP uses snake_case object keys.
 
 ## Error Categories
 

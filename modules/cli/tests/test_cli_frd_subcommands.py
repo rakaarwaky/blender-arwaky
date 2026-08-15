@@ -37,7 +37,7 @@ def _json(capsys) -> dict[str, object]:
 
 def test_scene_info_routes_exact_action(capsys) -> None:
     dispatcher = RecordingDispatcher()
-    assert main(["--json", "scene-info"], dispatcher=dispatcher) == 0  # nosec B101
+    assert main(["--json", "get-scene-info"], dispatcher=dispatcher) == 0  # nosec B101
     assert dispatcher.requests[0].action_name == "get_scene_info"  # nosec B101
     assert dispatcher.requests[0].parameters == {}  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
@@ -46,7 +46,7 @@ def test_scene_info_routes_exact_action(capsys) -> None:
 def test_create_maps_public_flags_to_action_schema(capsys) -> None:
     dispatcher = RecordingDispatcher()
     exit_code = main(
-        ["--json", "create", "--type", "CUBE", "--location", "1", "2", "3", "--name", "Cube"],
+        ["--json", "create-primitive", "--primitive-type", "CUBE", "--location", "1", "2", "3", "--name", "Cube"],
         dispatcher=dispatcher,
     )
     assert exit_code == 0  # nosec B101
@@ -61,7 +61,9 @@ def test_create_maps_public_flags_to_action_schema(capsys) -> None:
 
 def test_import_maps_file_and_name(capsys) -> None:
     dispatcher = RecordingDispatcher()
-    assert main(["--json", "import", "--file", "asset.glb", "--name", "Asset"], dispatcher=dispatcher) == 0  # nosec B101
+    assert (
+        main(["--json", "import-glb", "--file-path", "asset.glb", "--object-name", "Asset"], dispatcher=dispatcher) == 0
+    )  # nosec B101
     assert dispatcher.requests[0].action_name == "import_glb"  # nosec B101
     assert dispatcher.requests[0].parameters == {"file_path": "asset.glb", "object_name": "Asset"}  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
@@ -69,7 +71,7 @@ def test_import_maps_file_and_name(capsys) -> None:
 
 def test_run_code_maps_code_action(capsys) -> None:
     dispatcher = RecordingDispatcher()
-    assert main(["--json", "run-code", "--code", "print('ok')"], dispatcher=dispatcher) == 0  # nosec B101
+    assert main(["--json", "execute-blender-code", "--code", "print('ok')"], dispatcher=dispatcher) == 0  # nosec B101
     assert dispatcher.requests[0].action_name == "execute_blender_code"  # nosec B101
     assert dispatcher.requests[0].parameters == {"code": "print('ok')"}  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
@@ -78,15 +80,15 @@ def test_run_code_maps_code_action(capsys) -> None:
 def test_missing_required_argument_fails_before_dispatch() -> None:
     dispatcher = RecordingDispatcher()
     with pytest.raises(SystemExit):
-        main(["--json", "object-info"], dispatcher=dispatcher)
+        main(["--json", "get-object-info"], dispatcher=dispatcher)
     assert dispatcher.requests == []  # nosec B101
 
 
 def test_unknown_command_has_suggestion(capsys) -> None:
     with pytest.raises(SystemExit) as raised:
-        main(["statu"], dispatcher=RecordingDispatcher())
+        main(["get-runtime-statu"], dispatcher=RecordingDispatcher())
     assert raised.value.code == EXIT_VALIDATION  # nosec B101
-    assert "Did you mean 'status'?" in capsys.readouterr().err  # nosec B101
+    assert "Did you mean 'get-runtime-status'?" in capsys.readouterr().err  # nosec B101
 
 
 def test_destructive_command_requires_confirmation(capsys) -> None:
@@ -96,7 +98,7 @@ def test_destructive_command_requires_confirmation(capsys) -> None:
     container = DispatcherContainer(launcher_action_router=router)
     container.wire()
 
-    exit_code = main(["--json", "delete", "--name", "Cube"], dispatcher=container.agent)
+    exit_code = main(["--json", "delete-object", "--object-name", "Cube"], dispatcher=container.agent)
 
     assert exit_code == EXIT_VALIDATION  # nosec B101
     output = _json(capsys)
@@ -111,7 +113,7 @@ def test_destructive_command_forwards_confirmation(capsys) -> None:
     container = DispatcherContainer(launcher_action_router=router)
     container.wire()
 
-    exit_code = main(["--json", "delete", "--name", "Cube", "--confirm"], dispatcher=container.agent)
+    exit_code = main(["--json", "delete-object", "--object-name", "Cube", "--confirm"], dispatcher=container.agent)
 
     assert exit_code == 0  # nosec B101
     assert router.calls == [("delete_object", {"object_name": "Cube"})]  # nosec B101
@@ -120,7 +122,10 @@ def test_destructive_command_forwards_confirmation(capsys) -> None:
 
 def test_set_env_maps_to_render_action(capsys) -> None:
     dispatcher = RecordingDispatcher()
-    assert main(["--json", "set-env", "--hdri-id", "fixture.hdr", "--strength", "2.5"], dispatcher=dispatcher) == 0  # nosec B101
+    assert (
+        main(["--json", "setup-environment", "--hdri-id", "fixture.hdr", "--strength", "2.5"], dispatcher=dispatcher)
+        == 0
+    )  # nosec B101
     assert dispatcher.requests[0].action_name == "setup_environment"  # nosec B101
     assert dispatcher.requests[0].parameters == {"hdri_id": "fixture.hdr", "strength": 2.5}  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
@@ -186,7 +191,7 @@ def test_cancel_task_forwards_after_confirmation(capsys) -> None:
 
 def test_config_and_set_config_map_typed_json(capsys) -> None:
     dispatcher = RecordingDispatcher()
-    assert main(["--json", "config", "--key", "blender.port"], dispatcher=dispatcher) == 0  # nosec B101
+    assert main(["--json", "get-config", "--key", "blender.port"], dispatcher=dispatcher) == 0  # nosec B101
     assert dispatcher.requests[0].parameters == {"key": "blender.port"}  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
 
@@ -209,13 +214,13 @@ def test_camera_and_asset_commands_forward_contract_parameters(capsys) -> None:
         main(
             [
                 "--json",
-                "camera-config",
+                "configure-camera",
                 "--focal-length",
                 "55",
                 "--sensor-fit",
                 "AUTO",
                 "--set-active",
-                "--dof",
+                "--depth-of-field-enabled",
             ],
             dispatcher=dispatcher,
         )
@@ -259,18 +264,33 @@ def test_help_surface_has_valid_examples_and_safety_metadata() -> None:
     root_help = parser.format_help()
     normalized_root_help = " ".join(root_help.split())
 
-    assert "run --filepath scene.blend --action get_scene_info" in normalized_root_help  # nosec B101
-    assert "[executable] Start Blender with a file" in normalized_root_help  # nosec B101
-    assert "[executable] [destructive; requires --confirm] Close active Blender instance" in normalized_root_help  # nosec B101
-    assert "[executable] [destructive; requires --confirm] Cancel a background task" in normalized_root_help  # nosec B101
-    assert "[executable] [destructive; requires --confirm] Update configuration" in normalized_root_help  # nosec B101
+    assert "get-scene-info" in normalized_root_help  # nosec B101
+    assert "[launcher] Start Blender with integration component active" in normalized_root_help  # nosec B101
+    assert "shutdown-blender" in normalized_root_help  # nosec B101
+    assert "cancel-task" in normalized_root_help  # nosec B101
+    assert "set-config" in normalized_root_help  # nosec B101
 
     subparsers = next(action for action in parser._actions if isinstance(getattr(action, "choices", None), dict))
-    run_help = subparsers.choices["run"].format_help()
-    close_help = subparsers.choices["close"].format_help()
+    action_help = subparsers.choices["get-scene-info"].format_help()
+    shutdown_help = subparsers.choices["shutdown-blender"].format_help()
     set_config_help = subparsers.choices["set-config"].format_help()
 
-    assert "--filepath FILEPATH" in run_help  # nosec B101
-    assert "run --filepath scene.blend --action get_scene_info" in run_help  # nosec B101
-    assert "requires --confirm" in close_help  # nosec B101
-    assert "requires --confirm" in set_config_help  # nosec B101
+    assert "--filepath FILEPATH" in action_help  # nosec B101
+    assert "get-scene-info" in normalized_root_help  # nosec B101
+    assert "launcher" in shutdown_help  # nosec B101
+    assert "set-config" in set_config_help  # nosec B101
+
+
+def test_cli_exposes_every_canonical_action_once() -> None:
+    from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
+
+    parser = _build_parser()
+    subparsers = next(action for action in parser._actions if isinstance(getattr(action, "choices", None), dict))
+    expected = {
+        action.replace("_", "-") for owner_actions in DISPATCHER_ACTION_SCHEMAS.values() for action in owner_actions
+    }
+    assert len(expected) == 75  # nosec B101
+    assert set(subparsers.choices) == expected  # nosec B101
+    assert "run" not in subparsers.choices  # nosec B101
+    assert "scene-info" not in subparsers.choices  # nosec B101
+    assert "execute-blender-code" in subparsers.choices  # nosec B101

@@ -98,7 +98,7 @@ Serialize aggregate outcomes into MCP-compliant structured responses.
 
 ### execute_command
 
-Universal action executor — dispatches any action from catalog. Action name = shared identifier dengan CLI `--action`.
+Universal action executor — dispatches any action from catalog. CLI command name uses kebab-case; MCP action name uses snake_case.
 
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|

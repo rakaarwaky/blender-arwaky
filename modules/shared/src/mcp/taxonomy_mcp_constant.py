@@ -33,10 +33,10 @@ _EMBEDDED_SECTIONS: dict[str, str] = {
         "CLI usage:\n"
         "- Start the server: `uv run blender-mcp`.\n"
         "- Inspect the CLI: `uv run blender-arwaky --help`.\n"
-        "- Run any action generically: `uv run blender-arwaky run --filepath scene.blend --action <action> --params '{...}'`.\n"
-        "- Use dedicated action commands shown by `uv run blender-arwaky --help`.\n"
+        "- Run each canonical action directly: `uv run blender-arwaky <action-name> [flags]`.\n"
+        "- Inspect per-action flags with `uv run blender-arwaky <action-name> --help`.\n"
         "- Add `--json` for machine-readable output and `--confirm` for destructive actions.\n"
-        "The CLI and MCP submit the same canonical action names to the dispatcher."
+        "CLI commands use kebab-case; MCP actions use snake_case and map one-to-one through the catalog."
     ),
     "actions": (
         "Canonical actions are grouped by owner in list_commands. Each action is available "
@@ -73,9 +73,9 @@ _EMBEDDED_SECTIONS: dict[str, str] = {
         'MCP: execute_command(action="create_material", args={"material_name": "BlueMetal", "base_color": [0.05, 0.2, 0.8, 1], "metallic": 0.8}).\n'
         'MCP: execute_command(action="set_render_settings", args={"resolution_x": 1920, "resolution_y": 1080, "samples": 64}).\n'
         'MCP: execute_command(action="submit_task", args={"operation_type": "render", "metadata": {"scene": "demo"}}).\n'
-        "CLI: `uv run blender-arwaky camera-config --focal-length 50 --set-active`.\n"
+        "CLI: `uv run blender-arwaky configure-camera --focal-length 50 --set-active`.\n"
         "CLI: `uv run blender-arwaky search-assets --query chair --provider Polyhaven --json`.\n"
-        "CLI: `uv run blender-arwaky run --filepath scene.blend --action get_scene_info --params '{}' --json`."
+        "CLI: `uv run blender-arwaky get-scene-info --json`."
     ),
 }
 

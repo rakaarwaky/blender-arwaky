@@ -149,18 +149,25 @@ The five-tool registry and embedded help contract are defined in [`surface_tool_
 
 ## Canonical action catalog
 
-The current dispatcher catalog contains **40 actions across eight owners**. The number refers to canonical actions, not the number of MCP tools. Wave 1 adds bounded scene object listing and hierarchy inspection, explicit history navigation status, PBR material authoring, render settings configuration, and shared job submission/list/capacity actions.
+The current dispatcher catalog contains **75 canonical actions across 15 owners**. The number refers to feature/tool actions, not the five MCP protocol tools. Every one of these canonical actions is exposed once by the CLI using a kebab-case command and by MCP using its snake_case action name.
 
-| Owner | Actions |
-|---|---|
-| Gateway | `execute_blender_code` |
-| Scene | `get_scene_info`, `cleanup_scene`, `list_scene_objects`, `get_object_hierarchy`, `undo`, `redo` |
-| Object | `get_object_info`, `create_primitive`, `set_object_transform`, `delete_object`, `set_material`, `create_material`, `set_material_properties`, `set_material_texture`, `apply_modifier` |
-| Render | `configure_camera`, `setup_environment`, `get_viewport_screenshot`, `render`, `set_render_settings` |
-| Asset | `search_assets`, `get_provider_metadata`, `download_asset`, `extract_asset`, `import_asset`, `import_glb`, `export_model`, `place_asset` |
-| Launcher | `launch_blender`, `shutdown_blender`, `get_runtime_status`, `register_executable` |
-| Job | `submit_task`, `list_tasks`, `get_capacity_status`, `get_task_status`, `cancel_task` |
-| Config | `get_config`, `set_config` |
+| Owner | Count | Actions |
+|---|---:|---|
+| Gateway | 1 | `execute_blender_code` |
+| Scene | 6 | `get_scene_info`, `cleanup_scene`, `list_scene_objects`, `get_object_hierarchy`, `undo`, `redo` |
+| Object | 9 | `get_object_info`, `create_primitive`, `set_object_transform`, `delete_object`, `set_material`, `create_material`, `set_material_properties`, `set_material_texture`, `apply_modifier` |
+| Geometry Nodes | 4 | `inspect_geometry_node_group`, `create_geometry_node_group`, `set_geometry_node_link`, `set_geometry_node_modifier` |
+| Animation | 4 | `get_animation_state`, `insert_object_keyframe`, `set_timeline_range`, `list_object_keyframes` |
+| Mesh | 4 | `get_mesh_statistics`, `validate_mesh`, `perform_mesh_edit_operation`, `ensure_mesh_uv_layer` |
+| Render | 5 | `configure_camera`, `setup_environment`, `get_viewport_screenshot`, `render`, `set_render_settings` |
+| Compositor | 4 | `inspect_compositor_nodes`, `configure_compositor`, `create_compositor_node`, `set_compositor_link` |
+| VSE | 4 | `inspect_sequence_editor`, `create_sequence_strip`, `remove_sequence_strip`, `render_sequence` |
+| Physics | 10 | `get_physics_state`, `configure_rigid_body`, `configure_cloth_simulation`, `bake_physics_simulation`, `clear_physics_bake`, `get_simulation_state`, `get_simulation_cache_status`, `configure_particle_system`, `configure_force_field`, `configure_fluid_domain` |
+| Rigging | 5 | `inspect_armature`, `set_pose_bone_transform`, `configure_bone_constraint`, `configure_shape_key`, `get_deformation_state` |
+| Asset | 8 | `search_assets`, `get_provider_metadata`, `download_asset`, `extract_asset`, `import_asset`, `import_glb`, `export_model`, `place_asset` |
+| Launcher | 4 | `launch_blender`, `shutdown_blender`, `get_runtime_status`, `register_executable` |
+| Job | 5 | `submit_task`, `list_tasks`, `get_capacity_status`, `get_task_status`, `cancel_task` |
+| Config | 2 | `get_config`, `set_config` |
 
 The canonical source is [`taxonomy_dispatcher_constant.py`](modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py). Use `list_commands` rather than hard-coding schemas in an agent integration because the catalog is versioned and may evolve.
 
@@ -172,44 +179,26 @@ The CLI is useful for local automation, CI checks, scripts, and debugging withou
 uv run blender-arwaky --help
 ```
 
-### Generic action execution
+### Canonical action commands
 
-The generic `run` command submits a canonical action directly:
-
-```bash
-uv run blender-arwaky run \
-  --filepath /absolute/path/to/scene.blend \
-  --action get_scene_info \
-  --params '{}' \
-  --json
-```
-
-For a mutating action:
-
-```bash
-uv run blender-arwaky run \
-  --filepath /absolute/path/to/scene.blend \
-  --action create_primitive \
-  --params '{"primitive_type":"CUBE","name":"DemoCube"}' \
-  --json
-```
+Every canonical action is exposed exactly once as a kebab-case CLI command. Use `blender-arwaky <action> --help` to inspect its typed flags.
 
 ### Useful dedicated commands
 
 | Command | Example |
 |---|---|
-| Start Blender | `uv run blender-arwaky init --filepath scene.blend --mode headless --port 9876` |
-| Runtime status | `uv run blender-arwaky status --json` |
-| Scene inspection | `uv run blender-arwaky scene-info --json` |
-| Object creation | `uv run blender-arwaky create --type CUBE --name DemoCube` |
-| Camera setup | `uv run blender-arwaky camera-config --focal-length 50 --set-active` |
-| Screenshot | `uv run blender-arwaky screenshot --filepath scene.blend --output /tmp/scene.png` |
-| Render | `uv run blender-arwaky render --filepath scene.blend --output /tmp/render.png` |
+| Start Blender | `uv run blender-arwaky launch-blender --filepath scene.blend --mode headless --port 9876` |
+| Runtime status | `uv run blender-arwaky get-runtime-status --json` |
+| Scene inspection | `uv run blender-arwaky get-scene-info --json` |
+| Object creation | `uv run blender-arwaky create-primitive --primitive-type CUBE --name DemoCube` |
+| Camera setup | `uv run blender-arwaky configure-camera --focal-length 50 --set-active` |
+| Screenshot | `uv run blender-arwaky get-viewport-screenshot --filepath /tmp/scene.png` |
+| Render | `uv run blender-arwaky render --output-path /tmp/render.png` |
 | Asset search | `uv run blender-arwaky search-assets --query chair --provider Polyhaven --json` |
 | Asset download | `uv run blender-arwaky download-asset --provider Polyhaven --asset-id chair --asset-type model --cache-dir .cache/assets` |
-| Job status | `uv run blender-arwaky task-status --task-id task-001 --json` |
-| Read config | `uv run blender-arwaky config --key default_output_format --json` |
-| Validated code | `uv run blender-arwaky run-code --code 'print(bpy.context.scene.name)' --json` |
+| Job status | `uv run blender-arwaky get-task-status --task-id task-001 --json` |
+| Read config | `uv run blender-arwaky get-config --key default_output_format --json` |
+| Validated code | `uv run blender-arwaky execute-blender-code --code 'print(bpy.context.scene.name)' --json` |
 
 Common output and safety flags are available on the root command and dedicated commands:
 
@@ -249,7 +238,7 @@ Useful configuration controls include:
 | `BLENDERMCP_SERVER.TRANSPORT` | Override the configured server transport. |
 | `BLENDERMCP_STRICT` | Enable strict enforcement for configuration validation and size/path policies. |
 
-Use `get_config` or `uv run blender-arwaky config --json` to inspect redacted settings. Do not place credentials in `config.yaml` or commit local configuration files.
+Use `get_config` or `uv run blender-arwaky get-config --json` to inspect redacted settings. Do not place credentials in `config.yaml` or commit local configuration files.
 
 ## Security model
 
@@ -287,7 +276,7 @@ The following comparison is intentionally about **trade-offs**, not a ranking. C
 
 | Project | Public MCP shape | Installation / runtime model | Safety and governance posture | Where it is stronger than Blender Arwaky | Where Blender Arwaky is stronger or different |
 |---|---|---|---|---|---|
-| **Blender Arwaky** | **5 stable MCP tools** plus **40 canonical actions** dispatched through `execute_command` | Source checkout with `uv`; Blender addon package built to `dist/blender_mcp_addon.zip`; stdio MCP server plus local addon bridge | Shared validation/redaction, explicit confirmation for destructive CLI commands, bounded responses, health/config/help surfaces; arbitrary Blender Python is still powerful and not a full sandbox | — | Contract-first catalog, small stable MCP boundary, same actions through MCP and CLI, explicit runtime diagnostics, and a focused automation core |
+| **Blender Arwaky** | **5 stable MCP tools** plus **75 canonical actions** dispatched through `execute_command` | Source checkout with `uv`; Blender addon package built to `dist/blender_mcp_addon.zip`; stdio MCP server plus local addon bridge | Shared validation/redaction, explicit confirmation for destructive CLI commands, bounded responses, health/config/help surfaces; arbitrary Blender Python is still powerful and not a full sandbox | — | Contract-first catalog, small stable MCP boundary, same actions through MCP and CLI, explicit runtime diagnostics, and a focused automation core |
 | [BlenderMCP by ahujasid][2] | Feature-oriented MCP integration with scene/object/material tools, screenshots, arbitrary Python, and asset/3D-generation integrations described in its README | `uvx`/Python server plus Blender addon; supports Claude, Cursor, VS Code, and other clients | The README explicitly warns that arbitrary Python execution is powerful and dangerous; it also documents optional telemetry and external provider credentials | Larger public community footprint, more mature consumer onboarding, and more integrations such as Poly Haven, Sketchfab, Hunyuan3D, and Hyper3D described in its README | Smaller protocol surface and stronger emphasis on canonical schemas, CLI parity, and explicit contract governance rather than feature breadth |
 | [Blender MCP Server by djeada][4] | Large named-tool surface covering scene/object/material/render/export, Python execution, undo/redo, and asynchronous jobs; its README advertises 27 tools across 7 namespaces | Python package with editable install, built addon ZIP, stdio MCP server, and direct bridge helpers | Documents safe mode, project-root file restrictions, tool whitelist, script-root restrictions, module blocklists, and automatic undo for many mutations | Broader named coverage, async job controls, script library, headless-oriented workflows, and more explicit per-tool safety controls | Smaller stable MCP boundary and a more centralized action catalog; current scope is intentionally narrower and does not claim complete physics, VSE, Geometry Nodes, or VRM coverage |
 | [Blender MCP by sandraschi][5] | Its README advertises 48+ MCP tools; the repository page summarizes 41 portmanteau tools and 150+ operations, spanning mesh, VSE, Geometry Nodes, VRM, Gaussian splats, and more | `.mcpb` packaging for Claude Desktop, headless Blender by default, optional live bridge, dashboard, Docker/native options | Documents a broad operational surface with optional bridge, packaging, monitoring, and multiple execution modes; the exact security guarantees vary by mode and configuration | Much broader capability coverage, `.mcpb` distribution, headless-first workflows, web dashboard, and future-facing capability packs | More focused contract surface, fewer moving parts, CLI/MCP action parity, and clearer current non-goals for teams that prefer controlled scope |
