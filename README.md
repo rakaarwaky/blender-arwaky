@@ -84,113 +84,103 @@ uv run blender-arwaky render --output-path /tmp/render.png
 uv run blender-arwaky get-runtime-status --json
 ```
 
-## CLI flag model
-
-The CLI has three flag layers. **Common flags** are available across actions; **action flags** are generated from each action schema; and some parameter names are reused by related actions without becoming a separate category-level interface.
-
-| Layer | Flags or examples | Applies to |
-|---|---|---|
-| Common output and safety flags | `--json`, `--quiet`, `--verbose`, `--color`, `--no-progress`, `--confirm` | All actions |
-| Runtime context | `--filepath` | Actions that do not define their own `filepath` parameter |
-| Action-specific flags | `--primitive-type`, `--material-name`, `--frame-start`, `--node-group-name`, `--task-id` | Only the action whose schema declares the parameter |
-
-Common flags control presentation and operator confirmation; they do not change the Blender operation itself. Action flags are typed from the schema, so a boolean becomes a switch, an integer or number is parsed accordingly, enumerated values are restricted, and vector values accept three components.
-
-There is **no separate inherited flag set for each category**. Categories organize the catalog. However, several parameter names are intentionally reused where the concepts overlap:
-
-| Reused parameter family | Typical actions |
-|---|---|
-| `--object-name` | Scene, object, mesh, physics, rigging, asset actions |
-| `--location`, `--rotation`, `--scale` | Primitive, transform, pose, and placement actions |
-| `--frame-start`, `--frame-end` | Timeline, VSE, particle, and physics actions |
-| `--resolution-x`, `--resolution-y` | Render actions |
-| `--file-path`, `--filepath`, `--output-path` | Texture, asset, launcher, screenshot, render, and export actions |
-| `--provider`, `--asset-id`, `--asset-type` | Asset provider and import actions |
-| `--task-id` | Background task status and cancellation actions |
-
-The same flag name is validated separately by each action schema. Use `blender-arwaky <action> --help` for the authoritative flags of one action, and `list_commands` or `help` through MCP for the corresponding API contract.
-
 ## Canonical action catalog
 
-The catalog below lists the available CLI actions in `kebab-case`. MCP/API clients use the corresponding `snake_case` action name.
+The catalog below lists every valid CLI action and its action-specific parameters. Names use CLI `kebab-case`; MCP/API clients use the corresponding `snake_case` action name. Common flags are documented separately below the table.
 
-| No. | Category | Action | Description |
-|---:|---|---|---|
-| 1 | gateway | `execute-blender-code` | Execute validated Blender Python code |
-| 2 | scene | `get-scene-info` | Full scene metadata — object count, frame range, resolution, render engine |
-| 3 | scene | `cleanup-scene` | Remove objects from scene by mode |
-| 4 | scene | `list-scene-objects` | List scene objects with optional visibility and type filters |
-| 5 | scene | `get-object-hierarchy` | Inspect parent-child hierarchy for one object or the scene roots |
-| 6 | scene | `undo` | Undo the most recent Blender edit operation |
-| 7 | scene | `redo` | Redo the most recently undone Blender edit operation |
-| 8 | object | `get-object-info` | Get details of a specific object — location, rotation, scale, modifiers, materials |
-| 9 | object | `create-primitive` | Create a new primitive mesh object |
-| 10 | object | `set-object-transform` | Update object transform — location, rotation, or scale |
-| 11 | object | `delete-object` | Remove an object from the scene |
-| 12 | object | `set-material` | Assign a material to an object |
-| 13 | object | `create-material` | Create or reuse a PBR material |
-| 14 | object | `set-material-properties` | Update PBR properties of an existing material |
-| 15 | object | `set-material-texture` | Assign a local image texture to a material base color |
-| 16 | object | `apply-modifier` | Apply a modifier on an object |
-| 17 | geometry_nodes | `inspect-geometry-node-group` | Inspect a bounded Geometry Nodes group |
-| 18 | geometry_nodes | `create-geometry-node-group` | Create a Geometry Nodes group |
-| 19 | geometry_nodes | `set-geometry-node-link` | Create a validated Geometry Nodes link |
-| 20 | geometry_nodes | `set-geometry-node-modifier` | Configure a Geometry Nodes modifier |
-| 21 | animation | `get-animation-state` | Inspect bounded animation state |
-| 22 | animation | `insert-object-keyframe` | Insert a keyframe for an object data path |
-| 23 | animation | `set-timeline-range` | Set the scene timeline range and current frame |
-| 24 | animation | `list-object-keyframes` | List keyframes for an object |
-| 25 | mesh | `get-mesh-statistics` | Return bounded mesh statistics |
-| 26 | mesh | `validate-mesh` | Validate mesh structure and bounded quality conditions |
-| 27 | mesh | `perform-mesh-edit-operation` | Perform an allow-listed mesh edit operation |
-| 28 | mesh | `ensure-mesh-uv-layer` | Ensure a named UV layer exists |
-| 29 | render | `configure-camera` | Configure a Blender camera and optional depth of field |
-| 30 | render | `setup-environment` | Configure HDRI lighting using a resolved local asset |
-| 31 | render | `get-viewport-screenshot` | Capture an AI-optimized viewport screenshot |
-| 32 | render | `render` | Execute a full frame render |
-| 33 | render | `set-render-settings` | Configure bounded scene render settings without rendering |
-| 34 | compositor | `inspect-compositor-nodes` | Inspect a bounded compositor node graph |
-| 35 | compositor | `configure-compositor` | Enable or disable compositor nodes |
-| 36 | compositor | `create-compositor-node` | Create an allow-listed compositor node |
-| 37 | compositor | `set-compositor-link` | Create a validated compositor node link |
-| 38 | vse | `inspect-sequence-editor` | Inspect bounded VSE strips and channels |
-| 39 | vse | `create-sequence-strip` | Create an allow-listed VSE strip from a validated path |
-| 40 | vse | `remove-sequence-strip` | Remove a named VSE strip |
-| 41 | vse | `render-sequence` | Render a bounded VSE frame range |
-| 42 | physics | `get-physics-state` | Inspect bounded rigid body and cloth state |
-| 43 | physics | `configure-rigid-body` | Configure rigid body simulation settings |
-| 44 | physics | `configure-cloth-simulation` | Configure bounded cloth simulation settings |
-| 45 | physics | `bake-physics-simulation` | Bake a bounded physics cache |
-| 46 | physics | `clear-physics-bake` | Clear cached physics simulation data |
-| 47 | physics | `get-simulation-state` | Inspect bounded advanced simulation modifiers |
-| 48 | physics | `get-simulation-cache-status` | Inspect physics cache range and bake state |
-| 49 | physics | `configure-particle-system` | Configure a bounded particle system |
-| 50 | physics | `configure-force-field` | Configure a bounded force field |
-| 51 | physics | `configure-fluid-domain` | Configure a bounded fluid domain baseline |
-| 52 | rigging | `inspect-armature` | Inspect an armature bone hierarchy and pose summary |
-| 53 | rigging | `set-pose-bone-transform` | Set a transform on a named pose bone |
-| 54 | rigging | `configure-bone-constraint` | Create, update, or remove an allow-listed bone constraint |
-| 55 | rigging | `configure-shape-key` | Create, update, or remove a bounded mesh shape key |
-| 56 | rigging | `get-deformation-state` | Inspect deformation modifiers, constraints, and shape keys |
-| 57 | asset | `search-assets` | Search configured asset providers |
-| 58 | asset | `get-provider-metadata` | Get normalized metadata for a provider asset |
-| 59 | asset | `download-asset` | Download a provider asset into the validated local cache |
-| 60 | asset | `extract-asset` | Safely extract a downloaded asset archive |
-| 61 | asset | `import-asset` | Import a locally cached asset into Blender |
-| 62 | asset | `import-glb` | Import a GLB/GLTF file into the scene |
-| 63 | asset | `export-model` | Export a model to a file |
-| 64 | asset | `place-asset` | Place an asset in the scene at a specific position |
-| 65 | launcher | `launch-blender` | Start Blender with the integration component active |
-| 66 | launcher | `shutdown-blender` | Gracefully shut down Blender with force fallback |
-| 67 | launcher | `get-runtime-status` | Verify Blender process liveness and readiness |
-| 68 | launcher | `register-executable` | Locate and register the Blender executable |
-| 69 | job | `submit-task` | Register a background task through the shared job lifecycle |
-| 70 | job | `list-tasks` | List current and retained background task snapshots |
-| 71 | job | `get-capacity-status` | Return background task capacity and available slots |
-| 72 | job | `get-task-status` | Query the progress and status of a background task |
-| 73 | job | `cancel-task` | Cancel a running background task |
-| 74 | config | `get-config` | Retrieve Blender Arwaky configuration settings |
-| 75 | config | `set-config` | Update a configuration setting |
+| No. | Category | Action | Parameters | Description |
+|---:|---|---|---|---|
+| 1 | gateway | `execute-blender-code` | `--code` (string; required) | Execute validated Blender Python code |
+| 2 | scene | `get-scene-info` | <none> | Full scene metadata — object count, frame range, resolution, render engine |
+| 3 | scene | `cleanup-scene` | `--mode` (string; required; values: all, objects, meshes) | Remove objects from scene by mode |
+| 4 | scene | `list-scene-objects` | `--include-hidden` (bool)<br>`--object-type` (string)<br>`--limit` (int) | List scene objects with optional visibility and type filters |
+| 5 | scene | `get-object-hierarchy` | `--object-name` (string)<br>`--include-hidden` (bool)<br>`--max-depth` (int) | Inspect parent-child hierarchy for one object or the scene roots |
+| 6 | scene | `undo` | <none> | Undo the most recent Blender edit operation |
+| 7 | scene | `redo` | <none> | Redo the most recently undone Blender edit operation |
+| 8 | object | `get-object-info` | `--object-name` (string; required) | Get details of a specific object — location, rotation, scale, modifiers, materials |
+| 9 | object | `create-primitive` | `--primitive-type` (string; required; values: SPHERE, CUBE, CYLINDER, PLANE, CONE, TORUS)<br>`--location` (number[3])<br>`--scale` (number[3])<br>`--name` (string) | Create a new primitive mesh object |
+| 10 | object | `set-object-transform` | `--object-name` (string; required)<br>`--location` (number[3])<br>`--rotation` (number[3])<br>`--scale` (number[3]) | Update object transform — location, rotation, or scale |
+| 11 | object | `delete-object` | `--object-name` (string; required) | Remove an object from the scene |
+| 12 | object | `set-material` | `--object-name` (string; required)<br>`--material-name` (string; required) | Assign a material to an object |
+| 13 | object | `create-material` | `--material-name` (string; required)<br>`--base-color` (number[3])<br>`--metallic` (number)<br>`--roughness` (number)<br>`--reuse-existing` (bool) | Create or reuse a PBR material |
+| 14 | object | `set-material-properties` | `--material-name` (string; required)<br>`--base-color` (number[3])<br>`--metallic` (number)<br>`--roughness` (number) | Update PBR properties of an existing material |
+| 15 | object | `set-material-texture` | `--material-name` (string; required)<br>`--file-path` (string; required) | Assign a local image texture to a material base color |
+| 16 | object | `apply-modifier` | `--object-name` (string; required)<br>`--modifier-name` (string; required) | Apply a modifier on an object |
+| 17 | geometry_nodes | `inspect-geometry-node-group` | `--node-group-name` (string; required) | Inspect a Geometry Nodes group with bounded node, socket, and link metadata |
+| 18 | geometry_nodes | `create-geometry-node-group` | `--node-group-name` (string; required)<br>`--object-name` (string) | Create or reuse a Geometry Nodes group and optionally bind it to an object modifier |
+| 19 | geometry_nodes | `set-geometry-node-link` | `--node-group-name` (string; required)<br>`--from-node` (string; required)<br>`--from-socket` (string; required)<br>`--to-node` (string; required)<br>`--to-socket` (string; required) | Create a validated link between sockets in a Geometry Nodes group |
+| 20 | geometry_nodes | `set-geometry-node-modifier` | `--object-name` (string; required)<br>`--node-group-name` (string; required) | Bind an existing Geometry Nodes group to an object modifier |
+| 21 | animation | `get-animation-state` | `--object-name` (string; required)<br>`--limit` (int) | Inspect an object's bounded animation action, frame range, and F-curves |
+| 22 | animation | `insert-object-keyframe` | `--object-name` (string; required)<br>`--frame` (int; required)<br>`--data-path` (string; required; values: location, rotation_euler, scale)<br>`--index` (int) | Insert a bounded keyframe for an object's location, rotation, or scale |
+| 23 | animation | `set-timeline-range` | `--frame-start` (int; required)<br>`--frame-end` (int; required)<br>`--current-frame` (int) | Set the scene timeline frame range with bounded integer values |
+| 24 | animation | `list-object-keyframes` | `--object-name` (string; required)<br>`--limit` (int) | List an object's bounded F-curve keyframe points |
+| 25 | mesh | `get-mesh-statistics` | `--object-name` (string; required) | Inspect bounded mesh vertex, edge, polygon, normal, and UV statistics |
+| 26 | mesh | `validate-mesh` | `--object-name` (string; required)<br>`--limit` (int) | Run bounded mesh validation for loose, degenerate, and non-manifold geometry |
+| 27 | mesh | `perform-mesh-edit-operation` | `--object-name` (string; required)<br>`--operation` (string; required; values: recalculate_normals, triangulate, remove_doubles) | Perform one bounded edit-mode-independent mesh cleanup operation |
+| 28 | mesh | `ensure-mesh-uv-layer` | `--object-name` (string; required)<br>`--uv-layer-name` (string) | Create or reuse a named UV layer on a mesh object |
+| 29 | render | `configure-camera` | `--camera-ref` (string)<br>`--focal-length` (number)<br>`--sensor-fit` (string; values: AUTO, HORIZONTAL, VERTICAL)<br>`--framing-target` (string)<br>`--set-active` (bool)<br>`--depth-of-field-enabled` (bool)<br>`--focus-distance` (number)<br>`--focus-object` (string)<br>`--aperture` (number)<br>`--create-if-missing` (bool) | Configure a Blender camera and optional depth of field |
+| 30 | render | `setup-environment` | `--hdri-id` (string; required)<br>`--strength` (number) | Configure HDRI lighting using a local file resolved by the Asset feature |
+| 31 | render | `get-viewport-screenshot` | `--filepath` (string)<br>`--max-size` (int)<br>`--view-angle` (string; values: PERSPECTIVE, TOP, FRONT, SIDE)<br>`--shading-mode` (string; values: WIREFRAME, SOLID, MATERIAL, RENDERED)<br>`--show-overlays` (bool)<br>`--focus-object` (string) | Capture AI-optimized viewport screenshot |
+| 32 | render | `render` | `--output-path` (string; required)<br>`--resolution-x` (int)<br>`--resolution-y` (int) | Execute a full frame render |
+| 33 | render | `set-render-settings` | `--engine` (string)<br>`--resolution-x` (int)<br>`--resolution-y` (int)<br>`--resolution-percentage` (int)<br>`--samples` (int)<br>`--use-transparent` (bool) | Configure bounded scene render settings without rendering |
+| 34 | compositor | `inspect-compositor-nodes` | `--limit` (int) | Inspect a bounded compositor node graph for the active scene |
+| 35 | compositor | `configure-compositor` | `--use-nodes` (bool; required) | Enable or disable compositor nodes for the active scene |
+| 36 | compositor | `create-compositor-node` | `--node-type` (string; required; values: CompositorNodeRGB, CompositorNodeMixRGB, CompositorNodeBlur, CompositorNodeComposite, CompositorNodeViewer)<br>`--node-name` (string) | Create one allow-listed compositor node in the active scene |
+| 37 | compositor | `set-compositor-link` | `--from-node` (string; required)<br>`--from-socket` (string; required)<br>`--to-node` (string; required)<br>`--to-socket` (string; required) | Create a validated link between compositor node sockets |
+| 38 | vse | `inspect-sequence-editor` | `--limit` (int) | Inspect bounded VSE strips and channels for the active scene |
+| 39 | vse | `create-sequence-strip` | `--strip-type` (string; required; values: COLOR, IMAGE, MOVIE, SOUND)<br>`--strip-name` (string; required)<br>`--filepath` (string)<br>`--channel` (int; required)<br>`--frame-start` (int; required)<br>`--frame-end` (int) | Create an allow-listed VSE strip from a validated local media path |
+| 40 | vse | `remove-sequence-strip` | `--strip-name` (string; required) | Remove one named VSE strip from the active scene |
+| 41 | vse | `render-sequence` | `--output-path` (string; required)<br>`--frame-start` (int)<br>`--frame-end` (int) | Render a bounded VSE frame range to a validated local output path |
+| 42 | physics | `get-physics-state` | `--object-name` (string; required) | Inspect bounded rigid body and cloth state for one object |
+| 43 | physics | `configure-rigid-body` | `--object-name` (string; required)<br>`--enabled` (bool; required)<br>`--body-type` (string; values: ACTIVE, PASSIVE)<br>`--mass` (number)<br>`--kinematic` (bool) | Configure rigid body simulation settings for one mesh object |
+| 44 | physics | `configure-cloth-simulation` | `--object-name` (string; required)<br>`--enabled` (bool; required)<br>`--quality` (int)<br>`--pin-group` (string) | Configure bounded cloth simulation settings for one mesh object |
+| 45 | physics | `bake-physics-simulation` | `--frame-start` (int)<br>`--frame-end` (int) | Bake a bounded physics cache for the active scene |
+| 46 | physics | `clear-physics-bake` | <none> | Clear cached physics simulation data for the active scene |
+| 47 | physics | `get-simulation-state` | `--object-name` (string; required) | Inspect bounded advanced simulation modifiers for one object |
+| 48 | physics | `get-simulation-cache-status` | <none> | Inspect bounded physics cache range and bake state for the active scene |
+| 49 | physics | `configure-particle-system` | `--object-name` (string; required)<br>`--enabled` (bool; required)<br>`--count` (int)<br>`--frame-start` (int)<br>`--frame-end` (int)<br>`--lifetime` (number)<br>`--physics-type` (string; values: NEWTON, KEYED, BOIDS, FLUID) | Configure one bounded particle system on a mesh object |
+| 50 | physics | `configure-force-field` | `--object-name` (string; required)<br>`--enabled` (bool; required)<br>`--field-type` (string; values: FORCE, WIND, VORTEX, MAGNET, TURBULENCE)<br>`--strength` (number)<br>`--noise` (number) | Configure a bounded force field on an existing object |
+| 51 | physics | `configure-fluid-domain` | `--object-name` (string; required)<br>`--enabled` (bool; required)<br>`--domain-type` (string; values: LIQUID, GAS)<br>`--resolution` (int)<br>`--cache-type` (string; values: REPLAY, MODULAR, FINAL) | Configure a bounded fluid domain modifier baseline on a mesh object |
+| 52 | rigging | `inspect-armature` | `--object-name` (string; required)<br>`--limit` (int) | Inspect a bounded armature bone hierarchy and pose summary |
+| 53 | rigging | `set-pose-bone-transform` | `--armature-name` (string; required)<br>`--bone-name` (string; required)<br>`--location` (number[3])<br>`--rotation-euler` (number[3])<br>`--scale` (number[3]) | Set a bounded transform on one named pose bone |
+| 54 | rigging | `configure-bone-constraint` | `--armature-name` (string; required)<br>`--bone-name` (string; required)<br>`--constraint-type` (string; required; values: COPY_LOCATION, COPY_ROTATION, LIMIT_LOCATION, LIMIT_ROTATION)<br>`--enabled` (bool; required)<br>`--constraint-name` (string)<br>`--target-object` (string)<br>`--subtarget` (string) | Create, update, or remove one allow-listed bone constraint |
+| 55 | rigging | `configure-shape-key` | `--object-name` (string; required)<br>`--shape-key-name` (string; required)<br>`--enabled` (bool; required)<br>`--value` (number)<br>`--slider-min` (number)<br>`--slider-max` (number) | Create, update, or remove one bounded mesh shape key |
+| 56 | rigging | `get-deformation-state` | `--object-name` (string; required) | Inspect bounded deformation modifiers, constraints, and shape keys |
+| 57 | asset | `search-assets` | `--query` (string)<br>`--providers` (string[])<br>`--asset-type-filter` (string)<br>`--limit` (int)<br>`--page-token` (string) | Search configured asset providers |
+| 58 | asset | `get-provider-metadata` | `--provider` (string; required)<br>`--asset-id` (string; required) | Get normalized metadata for a provider asset |
+| 59 | asset | `download-asset` | `--provider` (string; required)<br>`--asset-id` (string; required)<br>`--asset-type` (string; required)<br>`--cache-dir` (string; required)<br>`--resolution` (string)<br>`--overwrite-policy` (string)<br>`--max-size` (int)<br>`--background` (bool) | Download a provider asset into the validated local cache |
+| 60 | asset | `extract-asset` | `--artifact-path` (string; required)<br>`--destination` (string; required)<br>`--max-entries` (int)<br>`--max-extracted-size` (int)<br>`--allow-symlinks` (bool) | Safely extract a downloaded asset archive |
+| 61 | asset | `import-asset` | `--file-path` (string; required)<br>`--asset-type` (string; required)<br>`--target-collection` (string)<br>`--scale-normalization` (bool)<br>`--duplicate-policy` (string)<br>`--format-hint` (string) | Import a locally cached asset into Blender |
+| 62 | asset | `import-glb` | `--file-path` (string; required)<br>`--object-name` (string) | Import a GLB/GLTF file into the scene |
+| 63 | asset | `export-model` | `--object-name` (string; required)<br>`--file-path` (string; required)<br>`--export-format` (string; values: glb, fbx, obj) | Export a model to a file |
+| 64 | asset | `place-asset` | `--asset-id` (string; required)<br>`--location` (number[3])<br>`--rotation` (number[3])<br>`--scale` (number[3]) | Place an asset in the scene at a specific position |
+| 65 | launcher | `launch-blender` | `--filepath` (string)<br>`--mode` (string; values: interface, headless)<br>`--port` (int) | Start Blender with integration component active |
+| 66 | launcher | `shutdown-blender` | `--force` (bool) | Gracefully shut down Blender with force termination fallback |
+| 67 | launcher | `get-runtime-status` | <none> | Verify true Blender process liveness and readiness |
+| 68 | launcher | `register-executable` | `--path` (string) | Locate and register the Blender executable path |
+| 69 | job | `submit-task` | `--operation-type` (string; required)<br>`--correlation-id` (string)<br>`--metadata` (value) | Register a background task through the shared job lifecycle |
+| 70 | job | `list-tasks` | <none> | List current and retained background task snapshots |
+| 71 | job | `get-capacity-status` | <none> | Return background task capacity and available slots |
+| 72 | job | `get-task-status` | `--task-id` (string; required) | Query the progress and status of a background task |
+| 73 | job | `cancel-task` | `--task-id` (string; required) | Cancel a running background task |
+| 74 | config | `get-config` | `--key` (string) | Retrieve BlenderArwaky configuration settings |
+| 75 | config | `set-config` | `--key` (string; required)<br>`--value` (value; required) | Update a configuration setting |
+
+## Global and common flags
+
+These flags are available across the CLI surface and are intentionally kept outside the action table:
+
+| Flag | Purpose |
+|---|---|
+| `--json` | Emit machine-readable JSON. |
+| `--quiet` | Suppress non-error output. |
+| `--verbose` | Show masked structural diagnostics. |
+| `--color auto|always|never` | Set output color policy. |
+| `--no-progress` | Disable progress hints. |
+| `--confirm` | Confirm a destructive action. |
+| `--filepath` | Select the active `.blend` file or runtime session where applicable. |
+
+Use `blender-arwaky <action-kebab-case> --help` for the complete help of one action. Global flags control output, runtime context, or confirmation; the Parameters column contains only flags declared by that action's own schema.
 
 ## Configuration
 
