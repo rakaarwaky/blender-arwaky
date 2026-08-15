@@ -106,6 +106,16 @@ Create the first new core modules:
 
 These modules must not use direct MCP registration. Their actions are added to the canonical dispatcher and exposed through the existing five tools and CLI.
 
+#### Wave 2 implementation status
+
+| Module | Implemented actions | Verification |
+|---|---|---|
+| `modules/geometry_nodes` | `inspect_geometry_node_group`, `create_geometry_node_group`, `set_geometry_node_link`, `set_geometry_node_modifier` | AES executor tests and Blender 4.0.2 smoke: valid group interface, Group Input/Output link, and modifier binding |
+| `modules/animation` | `get_animation_state`, `insert_object_keyframe`, `set_timeline_range`, `list_object_keyframes` | AES executor tests and Blender 4.0.2 smoke: timeline update, transform keyframes, F-curve inspection, and invalid-path error |
+| `modules/mesh` | `get_mesh_statistics`, `validate_mesh`, `perform_mesh_edit_operation`, `ensure_mesh_uv_layer` | AES executor tests and Blender 4.0.2 smoke: cube topology, validation, UV layer creation, normals recalculation |
+
+All Wave 2 actions remain behind the five-tool MCP surface and are routed through the canonical dispatcher catalog. The runtime handlers enforce bounded limits and explicit allow-lists; they do not create private job stores or direct transport connections.
+
 ### Wave 3 — Specialized internal Blender domains
 
 Add only after Wave 2 contracts are stable:

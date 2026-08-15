@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Wave 2 core capability modules for Geometry Nodes, animation/keyframes, and mesh topology/UV operations, exposed through canonical dispatcher actions and verified in Blender 4.0.2 background smoke tests.
 - CI coverage for `develop` and `main` with Ruff, Python syntax compilation, multi-version pytest, cross-feature integration tests, and distributable artifact verification.
 - Local `scripts/ci.sh` gates for linting, tests, addon packaging, and Python distribution builds with runtime-state cleanup.
 

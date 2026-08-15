@@ -226,6 +226,18 @@ class BlenderMCPServer:
             "get_viewport_screenshot": utils.get_viewport_screenshot,
             "render": self.render,
             "set_render_settings": self.set_render_settings,
+            "inspect_geometry_node_group": self.inspect_geometry_node_group,
+            "create_geometry_node_group": self.create_geometry_node_group,
+            "set_geometry_node_link": self.set_geometry_node_link,
+            "set_geometry_node_modifier": self.set_geometry_node_modifier,
+            "get_animation_state": self.get_animation_state,
+            "insert_object_keyframe": self.insert_object_keyframe,
+            "set_timeline_range": self.set_timeline_range,
+            "list_object_keyframes": self.list_object_keyframes,
+            "get_mesh_statistics": self.get_mesh_statistics,
+            "validate_mesh": self.validate_mesh,
+            "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
+            "ensure_mesh_uv_layer": self.ensure_mesh_uv_layer,
             "execute_code": self.execute_code,
             "execute_blender_code": self.execute_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
@@ -845,6 +857,308 @@ class BlenderMCPServer:
         if hasattr(scene, "cycles"):
             result["cycles_samples"] = scene.cycles.samples
         return result
+
+    @staticmethod
+    def _bounded_wave_two_limit(value):
+        limit = int(value)
+        if not 1 <= limit <= 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        return limit
+
+    @staticmethod
+    def _bounded_wave_two_frame(value):
+        frame = int(value)
+        if not -100000 <= frame <= 100000:
+            raise ValueError("frame must be between -100000 and 100000")
+        return frame
+
+    def inspect_geometry_node_group(self, node_group_name):
+        """Inspect a bounded Geometry Nodes graph and its interface sockets."""
+        name = str(node_group_name).strip()
+        if not name:
+            raise ValueError("node_group_name is required")
+        group = bpy.data.node_groups.get(name)
+        if group is None:
+            raise ValueError(f"Geometry Nodes group not found: {name}")
+        links = []
+        for link in list(group.links)[:256]:
+            links.append(
+                {
+                    "from_node": link.from_node.name,
+                    "from_socket": link.from_socket.name,
+                    "to_node": link.to_node.name,
+                    "to_socket": link.to_socket.name,
+                }
+            )
+        sockets = []
+        interface = getattr(group, "interface", None)
+        if interface is not None and hasattr(interface, "items_tree"):
+            for item in list(interface.items_tree)[:256]:
+                if hasattr(item, "socket_type"):
+                    sockets.append(
+                        {
+                            "name": item.name,
+                            "socket_type": item.socket_type,
+                            "is_output": getattr(item, "in_out", "INPUT") == "OUTPUT",
+                        }
+                    )
+        return {
+            "name": group.name,
+            "node_count": len(group.nodes),
+            "link_count": len(links),
+            "links": links,
+            "sockets": sockets,
+        }
+
+    def create_geometry_node_group(self, node_group_name, object_name=None):
+        """Create or reuse a Geometry Nodes group and optionally bind a modifier."""
+        name = str(node_group_name).strip()
+        if not name or len(name) > 128:
+            raise ValueError("node_group_name must be 1-128 characters")
+        group = bpy.data.node_groups.get(name)
+        created = group is None
+        if group is None:
+            group = bpy.data.node_groups.new(name, "GeometryNodeTree")
+            interface = getattr(group, "interface", None)
+            if interface is not None:
+                interface.new_socket(name="Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
+                interface.new_socket(name="Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+            input_node = group.nodes.new("NodeGroupInput")
+            output_node = group.nodes.new("NodeGroupOutput")
+            input_socket = input_node.outputs.get("Geometry")
+            output_socket = output_node.inputs.get("Geometry")
+            if input_socket is not None and output_socket is not None:
+                group.links.new(input_socket, output_socket)
+        modifier_name = None
+        resolved_object = None
+        if object_name:
+            obj = bpy.data.objects.get(str(object_name))
+            if obj is None:
+                raise ValueError(f"Object not found: {object_name}")
+            modifier = next((item for item in obj.modifiers if item.type == "NODES"), None)
+            if modifier is None:
+                modifier = obj.modifiers.new(name="GeometryNodes", type="NODES")
+            modifier.node_group = group
+            modifier_name = modifier.name
+            resolved_object = obj.name
+        return {
+            "group_name": group.name,
+            "created": created,
+            "changed": created or bool(modifier_name),
+            "object_name": resolved_object,
+            "modifier_name": modifier_name,
+        }
+
+    def set_geometry_node_link(self, node_group_name, from_node, from_socket, to_node, to_socket):
+        """Create one validated Geometry Nodes socket link."""
+        group = bpy.data.node_groups.get(str(node_group_name))
+        if group is None:
+            raise ValueError(f"Geometry Nodes group not found: {node_group_name}")
+        source = group.nodes.get(str(from_node))
+        target = group.nodes.get(str(to_node))
+        if source is None or target is None:
+            raise ValueError("Geometry Nodes source or target node not found")
+        source_socket = source.outputs.get(str(from_socket))
+        target_socket = target.inputs.get(str(to_socket))
+        if source_socket is None or target_socket is None:
+            raise ValueError("Geometry Nodes source or target socket not found")
+        for link in group.links:
+            if link.from_socket == source_socket and link.to_socket == target_socket:
+                return {"group_name": group.name, "changed": False, "message": "Link already exists"}
+        group.links.new(source_socket, target_socket)
+        return {"group_name": group.name, "changed": True, "message": "Link created"}
+
+    def set_geometry_node_modifier(self, object_name, node_group_name):
+        """Bind an existing Geometry Nodes group to an object modifier."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        group = bpy.data.node_groups.get(str(node_group_name))
+        if group is None:
+            raise ValueError(f"Geometry Nodes group not found: {node_group_name}")
+        modifier = next((item for item in obj.modifiers if item.type == "NODES"), None)
+        if modifier is None:
+            modifier = obj.modifiers.new(name="GeometryNodes", type="NODES")
+        changed = modifier.node_group != group
+        modifier.node_group = group
+        return {
+            "group_name": group.name,
+            "changed": changed,
+            "object_name": obj.name,
+            "modifier_name": modifier.name,
+        }
+
+    def get_animation_state(self, object_name, limit=100):
+        """Inspect bounded action and F-curve state for one object."""
+        limit = self._bounded_wave_two_limit(limit)
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        action = obj.animation_data.action if obj.animation_data and obj.animation_data.action else None
+        curves = []
+        if action:
+            for curve in list(action.fcurves)[:limit]:
+                curves.append(
+                    {
+                        "data_path": curve.data_path,
+                        "array_index": curve.array_index,
+                        "keyframes": [
+                            {
+                                "frame": point.co.x,
+                                "value": point.co.y,
+                            }
+                            for point in list(curve.keyframe_points)[:limit]
+                        ],
+                    }
+                )
+        scene = bpy.context.scene
+        return {
+            "object_name": obj.name,
+            "action_name": action.name if action else None,
+            "frame_start": scene.frame_start,
+            "frame_end": scene.frame_end,
+            "current_frame": scene.frame_current,
+            "curve_count": len(curves),
+            "curves": curves,
+        }
+
+    def insert_object_keyframe(self, object_name, frame, data_path, index=None):
+        """Insert a keyframe only for supported transform data paths."""
+        frame = self._bounded_wave_two_frame(frame)
+        path = str(data_path)
+        if path not in {"location", "rotation_euler", "scale"}:
+            raise ValueError(f"Unsupported animation data path: {path}")
+        if index is None:
+            keyframe_index = -1
+        else:
+            keyframe_index = int(index)
+            if not 0 <= keyframe_index <= 3:
+                raise ValueError("index must be between 0 and 3")
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        bpy.context.scene.frame_set(frame)
+        obj.keyframe_insert(data_path=path, index=keyframe_index, frame=frame)
+        return {"object_name": obj.name, "data_path": path, "frame": frame, "index": index, "changed": True}
+
+    def set_timeline_range(self, frame_start, frame_end, current_frame=None):
+        """Set a bounded scene timeline range."""
+        start = self._bounded_wave_two_frame(frame_start)
+        end = self._bounded_wave_two_frame(frame_end)
+        if end < start:
+            raise ValueError("frame_end must be greater than or equal to frame_start")
+        scene = bpy.context.scene
+        current = scene.frame_current if current_frame is None else self._bounded_wave_two_frame(current_frame)
+        if not start <= current <= end:
+            raise ValueError("current_frame must be within the timeline range")
+        scene.frame_start = start
+        scene.frame_end = end
+        scene.frame_set(current)
+        return {"frame_start": start, "frame_end": end, "current_frame": scene.frame_current}
+
+    def list_object_keyframes(self, object_name, limit=100):
+        """Return the same bounded animation state under an explicit list action."""
+        return self.get_animation_state(object_name, limit)
+
+    def get_mesh_statistics(self, object_name):
+        """Return bounded mesh topology and UV statistics."""
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError(f"Object is not a mesh: {obj.name}")
+        mesh = obj.data
+        return {
+            "object_name": obj.name,
+            "vertex_count": len(mesh.vertices),
+            "edge_count": len(mesh.edges),
+            "polygon_count": len(mesh.polygons),
+            "uv_layer_count": len(mesh.uv_layers),
+            "has_custom_normals": bool(getattr(mesh, "has_custom_normals", False)),
+        }
+
+    def validate_mesh(self, object_name, limit=100):
+        """Validate loose vertices, degenerate faces, and non-manifold edges."""
+        limit = self._bounded_wave_two_limit(limit)
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError(f"Object is not a mesh: {obj.name}")
+        import bmesh
+
+        bm = bmesh.new()
+        try:
+            bm.from_mesh(obj.data)
+            bm.verts.ensure_lookup_table()
+            bm.edges.ensure_lookup_table()
+            bm.faces.ensure_lookup_table()
+            findings = []
+            loose = [vertex.index for vertex in bm.verts if not vertex.link_edges][:limit]
+            degenerate = [face.index for face in bm.faces if len(face.verts) < 3 or face.calc_area() <= 1.0e-12][:limit]
+            non_manifold = [edge.index for edge in bm.edges if not edge.is_manifold][:limit]
+            for category, values in (
+                ("loose_vertices", loose),
+                ("degenerate_faces", degenerate),
+                ("non_manifold_edges", non_manifold),
+            ):
+                if values:
+                    findings.append({"category": category, "count": len(values), "examples": values})
+            return {"object_name": obj.name, "valid": not findings, "findings": findings}
+        finally:
+            bm.free()
+
+    def perform_mesh_edit_operation(self, object_name, operation):
+        """Perform one bounded bmesh operation without requiring edit-mode context."""
+        operation = str(operation)
+        if operation not in {"recalculate_normals", "triangulate", "remove_doubles"}:
+            raise ValueError(f"Unsupported mesh operation: {operation}")
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError(f"Object is not a mesh: {obj.name}")
+        import bmesh
+
+        bm = bmesh.new()
+        try:
+            bm.from_mesh(obj.data)
+            changed = False
+            if operation == "recalculate_normals":
+                bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+                changed = True
+            elif operation == "triangulate":
+                result = bmesh.ops.triangulate(bm, faces=list(bm.faces))
+                changed = bool(result.get("faces"))
+            else:
+                result = bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1.0e-6)
+                changed = bool(result.get("targetmap"))
+            bm.to_mesh(obj.data)
+            obj.data.update()
+            return {"object_name": obj.name, "operation": operation, "changed": changed}
+        finally:
+            bm.free()
+
+    def ensure_mesh_uv_layer(self, object_name, uv_layer_name="UVMap"):
+        """Create or reuse a named UV layer for a mesh object."""
+        name = str(uv_layer_name).strip() or "UVMap"
+        if len(name) > 64:
+            raise ValueError("uv_layer_name must not exceed 64 characters")
+        obj = bpy.data.objects.get(str(object_name))
+        if obj is None:
+            raise ValueError(f"Object not found: {object_name}")
+        if obj.type != "MESH":
+            raise ValueError(f"Object is not a mesh: {obj.name}")
+        layer = obj.data.uv_layers.get(name)
+        created = layer is None
+        if layer is None:
+            layer = obj.data.uv_layers.new(name=name)
+        return {
+            "object_name": obj.name,
+            "operation": "ensure_mesh_uv_layer",
+            "changed": created,
+            "uv_layer_name": layer.name,
+        }
 
     def execute_code(self, code):
         out = io.StringIO()

@@ -32,7 +32,9 @@ def iter_action_metadata() -> Iterable[ActionMetadataVO]:
             required = [
                 name for name, spec in parameters.items() if isinstance(spec, dict) and bool(spec.get("required"))
             ]
-            read_only = action_name.startswith(("get_", "search_", "list_", "health_", "status"))
+            read_only = action_name.startswith(
+                ("get_", "inspect_", "validate_", "search_", "list_", "health_", "status")
+            )
             destructive = action_name.startswith(("delete", "cleanup", "cancel", "shutdown", "set_config"))
             yield ActionMetadataVO(
                 action_name=action_name,

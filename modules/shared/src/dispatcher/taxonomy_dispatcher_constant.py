@@ -252,6 +252,108 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             },
         },
     },
+    "geometry_nodes": {
+        "inspect_geometry_node_group": {
+            "description": "Inspect a Geometry Nodes group with bounded node, socket, and link metadata",
+            "parameters": {
+                "node_group_name": {"type": "string", "required": True},
+            },
+        },
+        "create_geometry_node_group": {
+            "description": "Create or reuse a Geometry Nodes group and optionally bind it to an object modifier",
+            "parameters": {
+                "node_group_name": {"type": "string", "required": True},
+                "object_name": {"type": "string", "required": False},
+            },
+        },
+        "set_geometry_node_link": {
+            "description": "Create a validated link between sockets in a Geometry Nodes group",
+            "parameters": {
+                "node_group_name": {"type": "string", "required": True},
+                "from_node": {"type": "string", "required": True},
+                "from_socket": {"type": "string", "required": True},
+                "to_node": {"type": "string", "required": True},
+                "to_socket": {"type": "string", "required": True},
+            },
+        },
+        "set_geometry_node_modifier": {
+            "description": "Bind an existing Geometry Nodes group to an object modifier",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "node_group_name": {"type": "string", "required": True},
+            },
+        },
+    },
+    "animation": {
+        "get_animation_state": {
+            "description": "Inspect an object's bounded animation action, frame range, and F-curves",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+        "insert_object_keyframe": {
+            "description": "Insert a bounded keyframe for an object's location, rotation, or scale",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "frame": {"type": "integer", "required": True},
+                "data_path": {
+                    "type": "string",
+                    "required": True,
+                    "enum": ["location", "rotation_euler", "scale"],
+                },
+                "index": {"type": "integer", "required": False},
+            },
+        },
+        "set_timeline_range": {
+            "description": "Set the scene timeline frame range with bounded integer values",
+            "parameters": {
+                "frame_start": {"type": "integer", "required": True},
+                "frame_end": {"type": "integer", "required": True},
+                "current_frame": {"type": "integer", "required": False},
+            },
+        },
+        "list_object_keyframes": {
+            "description": "List an object's bounded F-curve keyframe points",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+    },
+    "mesh": {
+        "get_mesh_statistics": {
+            "description": "Inspect bounded mesh vertex, edge, polygon, normal, and UV statistics",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+            },
+        },
+        "validate_mesh": {
+            "description": "Run bounded mesh validation for loose, degenerate, and non-manifold geometry",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "limit": {"type": "integer", "required": False, "default": 100},
+            },
+        },
+        "perform_mesh_edit_operation": {
+            "description": "Perform one bounded edit-mode-independent mesh cleanup operation",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "operation": {
+                    "type": "string",
+                    "required": True,
+                    "enum": ["recalculate_normals", "triangulate", "remove_doubles"],
+                },
+            },
+        },
+        "ensure_mesh_uv_layer": {
+            "description": "Create or reuse a named UV layer on a mesh object",
+            "parameters": {
+                "object_name": {"type": "string", "required": True},
+                "uv_layer_name": {"type": "string", "required": False, "default": "UVMap"},
+            },
+        },
+    },
     "render": {
         "configure_camera": {
             "description": "Configure a Blender camera and optional depth of field",
