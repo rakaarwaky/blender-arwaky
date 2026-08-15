@@ -200,11 +200,11 @@ Current core scope is deterministic Blender automation. LLM providers, local Oll
 
 ## Comparison with other Blender MCP projects
 
-The matrix below uses values and capabilities stated in each project's current public repository or official documentation. `√` means documented support, `×` means explicitly unavailable or outside the project's stated scope, and `?` means unknown or not published. Numeric values are kept only where the source publishes them. Counts are not perfectly equivalent because projects may expose one tool per operation or group many operations behind one tool.
+The matrix below uses values and capabilities stated in each project's current public repository or official documentation. `√` means documented support, `×` means explicitly unavailable or outside the project's stated scope, and `?` means unknown or not published. `CLI` means the project documents a command-line interface as an access surface; it does not count the number of commands. Numeric values are kept only where the source publishes them. Counts are not perfectly equivalent because projects may expose one tool per operation or group many operations behind one tool.
 
-| Project | MCP tools | Actions / operations | Namespaces | CLI actions | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
+| Project | MCP tools | Actions / operations | Namespaces | CLI | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Blender Arwaky** | 5 | 75 | 15 | 75 | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
+| **Blender Arwaky** | 5 | 75 | 15 | √ | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
 | [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
 | [Blender MCP Server by djeada][3] | 27 | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
 | [Blender MCP by sandraschi][4] | 41* | 150+ | ? | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | ? | ? |
