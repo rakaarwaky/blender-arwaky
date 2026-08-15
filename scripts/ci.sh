@@ -31,8 +31,7 @@ run_check() {
 
 run_check "Ruff lint" uv run ruff check modules blender_mcp_addon scripts
 run_check "Ruff format" uv run ruff format --check modules blender_mcp_addon scripts
-run_check "AES naming" bash scripts/run_lint_arwaky_naming.sh
-run_check "AES architecture" bash scripts/run_lint_arwaky_architecture.sh
+run_check "AES architecture (naming + architecture)" bash -c 'bash scripts/run_lint_arwaky_naming.sh && bash scripts/run_lint_arwaky_architecture.sh'
 run_check "Python syntax" python -m compileall -q modules blender_mcp_addon
 run_check "Bandit security" uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
 run_check "Tests" uv run pytest -q --tb=short
