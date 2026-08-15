@@ -522,13 +522,31 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
 
     if dispatcher is None:
         try:
+            from modules.asset.src.root_asset_container import create_asset_container
             from modules.cli.src.surface_cli_action_router import CliActionRouter
+            from modules.config.src.root_config_container import ConfigContainer
             from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
+            from modules.job.src.root_job_container import create_job_feature
             from modules.launcher.src.root_launcher_container import LauncherConfigVO, LauncherContainer
+            from modules.security.src.root_security_container import create_security_feature
 
             launcher_container = LauncherContainer(config=LauncherConfigVO())
             launcher_container.wire()
-            dispatcher_container = DispatcherContainer(launcher_action_router=CliActionRouter(launcher_container.agent))
+            config = ConfigContainer().build()
+            security = create_security_feature()
+            asset = create_asset_container(
+                security_validator=security,
+                security_supervisor=security,
+                config_getter=config,
+            ).get_orchestrator()
+            action_router = CliActionRouter(
+                launcher_container.agent,
+                job=create_job_feature(),
+                config=config,
+                security=security,
+                asset=asset,
+            )
+            dispatcher_container = DispatcherContainer(launcher_action_router=action_router)
             dispatcher_container.wire()
             dispatcher = dispatcher_container.agent
         except Exception:

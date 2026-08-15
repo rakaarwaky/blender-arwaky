@@ -11,11 +11,12 @@ from modules.shared.src.animation.taxonomy_animation_vo import (
     AnimationMutationVO,
     AnimationStateVO,
 )
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 
 _ALLOWED_PATHS = {"location", "rotation_euler", "scale"}
 
 
-class AnimationExecutor:
+class AnimationExecutor(IWaveFeatureProtocol):
     """Delegate validated animation behavior to the injected Blender gateway."""
 
     def __init__(self, code_executor: object) -> None:

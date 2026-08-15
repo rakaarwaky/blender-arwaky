@@ -1,15 +1,20 @@
-"""Contract: Settings retriever protocol (FR-CFG-002).
-
-Defines the inbound behavior interface for hierarchical dot-separated
-settings value retrieval with safe copy semantics.
-"""
+"""Contract: Settings retriever protocol (FR-CFG-002)."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
 from ..common.taxonomy_core_vo import ConfigPath
-from .taxonomy_config_vo import SettingsSnapshot, SettingsValue
+from .taxonomy_config_vo import (
+    DEFAULT_CONFIG_FLOAT,
+    DEFAULT_CONFIG_INT,
+    DEFAULT_CONFIG_STRING,
+    ConfigFloatValue,
+    ConfigIntValue,
+    ConfigStringValue,
+    SettingsSnapshot,
+    SettingsValue,
+)
 
 
 class ISettingsRetrieverProtocol(ABC):
@@ -22,7 +27,7 @@ class ISettingsRetrieverProtocol(ABC):
         path: ConfigPath,
         default: SettingsValue = None,
     ) -> SettingsValue:
-        """Retrieve a value by dot-separated path. Returns deep copy to prevent mutation."""
+        """Retrieve a value by dot-separated path."""
         ...
 
     @abstractmethod
@@ -31,12 +36,22 @@ class ISettingsRetrieverProtocol(ABC):
         ...
 
     @abstractmethod
-    def get_string(self, snapshot: SettingsSnapshot, path: ConfigPath, default: str = "") -> str:
+    def get_string(
+        self,
+        snapshot: SettingsSnapshot,
+        path: ConfigPath,
+        default: ConfigStringValue = DEFAULT_CONFIG_STRING,
+    ) -> ConfigStringValue:
         """Retrieve a string value. Returns default on type mismatch."""
         ...
 
     @abstractmethod
-    def get_int(self, snapshot: SettingsSnapshot, path: ConfigPath, default: int = 0) -> int:
+    def get_int(
+        self,
+        snapshot: SettingsSnapshot,
+        path: ConfigPath,
+        default: ConfigIntValue = DEFAULT_CONFIG_INT,
+    ) -> ConfigIntValue:
         """Retrieve an integer value. Returns default on type mismatch."""
         ...
 
@@ -46,6 +61,11 @@ class ISettingsRetrieverProtocol(ABC):
         ...
 
     @abstractmethod
-    def get_float(self, snapshot: SettingsSnapshot, path: ConfigPath, default: float = 0.0) -> float:
+    def get_float(
+        self,
+        snapshot: SettingsSnapshot,
+        path: ConfigPath,
+        default: ConfigFloatValue = DEFAULT_CONFIG_FLOAT,
+    ) -> ConfigFloatValue:
         """Retrieve a float value. Returns default on type mismatch."""
         ...

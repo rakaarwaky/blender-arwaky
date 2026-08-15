@@ -228,7 +228,7 @@ class ConnectionClosedError(ServerError):
         super().__init__("connection_closed", "Connection already closed", _details)
 
 
-class BlenderConnectionExhausted(ServerError):  # noqa: N818 - public taxonomy name
+class BlenderConnectionExhaustedError(ServerError):
     """Raised after all reconnect attempts have been exhausted."""
 
     def __init__(
@@ -239,7 +239,7 @@ class BlenderConnectionExhausted(ServerError):  # noqa: N818 - public taxonomy n
         )
 
 
-class BlenderConnectionFailure(ServerError):  # noqa: N818 - public taxonomy name
+class BlenderConnectionFailureError(ServerError):
     """Raised when connection is lost or unavailable."""
 
     def __init__(self, message: ErrorString = DEFAULT_BLENDER_CONN_MSG, _details: Details | None = None) -> None:
@@ -283,3 +283,8 @@ class AdapterSurfaceError(ServerError):
 
     def __init__(self, message: ErrorString = DEFAULT_ADAPTER_MSG, _details: Details | None = None) -> None:
         super().__init__("adapter_surface_error", message, _details)
+
+
+# Backward-compatible aliases for callers using the pre-v2 taxonomy names.
+BlenderConnectionExhausted = BlenderConnectionExhaustedError
+BlenderConnectionFailure = BlenderConnectionFailureError

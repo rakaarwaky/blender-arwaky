@@ -14,14 +14,14 @@ class CommandCatalogProtocol(ABC):
     @abstractmethod
     def get_command_spec(self, action: ActionName) -> CommandSpec | None:
         """Retrieve command spec for a named action."""
-        raise NotImplementedError
+        ...
 
     @abstractmethod
     def list_actions(self) -> list[ActionName]:
         """Return all available action names."""
-        raise NotImplementedError
+        ...
 
     @abstractmethod
     def filter_by_domain(self, domain: DomainRef) -> dict[ActionName, CommandSpec]:
         """Return command specs filtered by domain."""
-        raise NotImplementedError
+        ...

@@ -10,6 +10,8 @@ import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
+from modules.shared.src.telemetry.contract_telemetry_transmission_protocol import TelemetryTransmissionProtocol
 from modules.shared.src.telemetry.taxonomy_telemetry_event import TelemetryRecord
 
 logger = logging.getLogger("blender-arwaky.telemetry")
@@ -24,7 +26,7 @@ class TelemetryTransmissionResult:
     error: str | None = None
 
 
-class TelemetryTransmissionCapability:
+class TelemetryTransmissionCapability(TelemetryTransmissionProtocol, IWaveFeatureProtocol):
     """Transmit scrubbed records only through an explicitly injected sender."""
 
     def __init__(

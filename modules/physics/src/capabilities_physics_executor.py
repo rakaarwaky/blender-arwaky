@@ -6,6 +6,7 @@ import json
 import math
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.physics.taxonomy_physics_vo import (
     PhysicsMutationVO,
     PhysicsStateVO,
@@ -17,7 +18,7 @@ from modules.shared.src.physics.taxonomy_physics_vo import (
 _ALLOWED_BODY_TYPES = {"ACTIVE", "PASSIVE"}
 
 
-class PhysicsExecutor:
+class PhysicsExecutor(IWaveFeatureProtocol):
     """Delegate physics operations to the injected Blender gateway."""
 
     def __init__(self, code_executor: object) -> None:

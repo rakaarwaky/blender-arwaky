@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
-from modules.rigging.src.capabilities_rigging_executor import RiggingExecutor
+from modules.shared.src.common.contract_wave_feature_aggregate import IWaveFeatureAggregate
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
+from modules.shared.src.common.taxonomy_core_vo import ObjectName
 
 
-class RiggingOrchestrator:
+class RiggingOrchestrator(IWaveFeatureAggregate):
     """Coordinate rigging operations without owning Blender transport."""
 
-    def __init__(self, executor: RiggingExecutor) -> None:
+    def __init__(self, executor: IWaveFeatureProtocol) -> None:
         self._executor = executor
 
-    async def inspect_armature(self, object_name: str, limit: int = 100):
+    async def inspect_armature(self, object_name: ObjectName, limit: int = 100):
         return await self._executor.inspect_armature(object_name, limit)
 
     async def set_pose_bone_transform(
         self,
-        armature_name: str,
-        bone_name: str,
+        armature_name: ObjectName,
+        bone_name: ObjectName,
         location: list[float] | None = None,
         rotation_euler: list[float] | None = None,
         scale: list[float] | None = None,
@@ -26,11 +28,11 @@ class RiggingOrchestrator:
 
     async def configure_bone_constraint(
         self,
-        armature_name: str,
-        bone_name: str,
+        armature_name: ObjectName,
+        bone_name: ObjectName,
         constraint_type: str,
         enabled: bool,
-        constraint_name: str | None = None,
+        constraint_name: ObjectName | None = None,
         target_object: str | None = None,
         subtarget: str | None = None,
     ):
@@ -40,8 +42,8 @@ class RiggingOrchestrator:
 
     async def configure_shape_key(
         self,
-        object_name: str,
-        shape_key_name: str,
+        object_name: ObjectName,
+        shape_key_name: ObjectName,
         enabled: bool,
         value: float = 0.0,
         slider_min: float = 0.0,
@@ -51,5 +53,5 @@ class RiggingOrchestrator:
             object_name, shape_key_name, enabled, value, slider_min, slider_max
         )
 
-    async def get_deformation_state(self, object_name: str):
+    async def get_deformation_state(self, object_name: ObjectName):
         return await self._executor.get_deformation_state(object_name)

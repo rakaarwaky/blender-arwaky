@@ -17,4 +17,4 @@ class WorkflowProtocol(ABC):
         Concrete workflow implementations must provide the orchestration logic;
         the protocol intentionally has no executable fallback behavior.
         """
-        raise NotImplementedError
+        ...

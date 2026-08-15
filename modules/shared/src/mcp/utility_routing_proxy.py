@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any
 
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
-from modules.shared.src.mcp.utility_help_content import build_help_result
 
 
 def normalize_payload(payload: Any) -> dict[str, Any]:
@@ -80,3 +79,26 @@ def route_tool_call(
         return build_help_result(payload.get("topic"))
 
     raise ValueError(f"Unknown tool: {tool_name}")
+
+
+def build_help_result(topic: str | None = None) -> dict[str, Any]:
+    """Build embedded help from shared static taxonomy constants."""
+    from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
+    from modules.shared.src.mcp.taxonomy_mcp_constant import CORE_TOOLS, HELP_SECTIONS, HELP_TOPICS
+
+    selected = str(topic or "overview").strip().lower()
+    if selected not in HELP_TOPICS:
+        return {"error": f"Unknown help topic: {selected}", "available_topics": list(HELP_TOPICS)}
+    result: dict[str, Any] = {
+        "topic": selected,
+        "available_topics": list(HELP_TOPICS),
+        "core_tools": list(CORE_TOOLS),
+        "content": HELP_SECTIONS[selected],
+    }
+    if selected == "actions":
+        result["actions"] = [
+            {"owner": owner, "name": name, "description": str(spec.get("description", name))}
+            for owner, actions in sorted(DISPATCHER_ACTION_SCHEMAS.items())
+            for name, spec in sorted(actions.items())
+        ]
+    return result

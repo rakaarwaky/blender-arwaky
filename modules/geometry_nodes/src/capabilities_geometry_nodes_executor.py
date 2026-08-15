@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
+from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 from modules.shared.src.geometry_nodes.taxonomy_geometry_nodes_vo import (
     GeometryNodeGroupVO,
     GeometryNodeLinkVO,
@@ -17,7 +18,7 @@ from modules.shared.src.geometry_nodes.taxonomy_geometry_nodes_vo import (
 )
 
 
-class GeometryNodesExecutor:
+class GeometryNodesExecutor(IWaveFeatureProtocol):
     """Execute contract-level Geometry Nodes operations through one gateway."""
 
     def __init__(self, code_executor: object) -> None:
