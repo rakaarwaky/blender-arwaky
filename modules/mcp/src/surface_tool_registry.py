@@ -40,10 +40,14 @@ class ToolRegistrySurface:
 
         SceneToolsSurface.register_scene_tools(mcp)
 
-        # Asset tools — search/download via IAssetAggregate (AES505 fix)
+        # Asset tools — search/download via the real IAssetAggregate wiring.
         from .surface_asset_tools import AssetToolsSurface
 
-        AssetToolsSurface.register_asset_tools(mcp)
+        AssetToolsSurface.register_asset_tools(
+            mcp,
+            aggregate_factory=lambda: getattr(container, "asset", None),
+            response_formatter=getattr(container, "response", None),
+        )
 
         from modules.scene.src.surface_scene_command import SceneCommand
 

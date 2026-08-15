@@ -31,6 +31,16 @@ class MockSecurityValidator:
         self._validated_paths.append(path)
 
 
+class MockProviderConnection:
+    """Deterministic provider transport that writes requested cache artifacts."""
+
+    async def send_command(self, _action: str, payload: dict[str, object], provider=None) -> dict[str, object]:
+        destination = pathlib.Path(str(payload["destination_path"]))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(b"provider-fixture")
+        return {"success": True, "path": str(destination), "provider": str(provider)}
+
+
 class MockJobScheduler:
     """Mock job feature for background downloads."""
 
@@ -60,6 +70,7 @@ def capability_with_security(cache_dir: str) -> AssetDownloadCapability:
         security_validator=sec,
         job_scheduler=job,
         config_aggregate=None,
+        provider_connection=MockProviderConnection(),
     )
     cap._cache_dir = FilePath(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)

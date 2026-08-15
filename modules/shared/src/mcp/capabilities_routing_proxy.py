@@ -20,11 +20,18 @@ class McpRoutingImpl(McpRoutingProtocol):
     """MCP routing implementation that delegates to owning feature contracts."""
 
     def __init__(
-        self, dispatcher: Any | None = None, diagnostics: Any | None = None, config: Any | None = None
+        self,
+        dispatcher: Any | None = None,
+        diagnostics: Any | None = None,
+        config: Any | None = None,
+        schema: Any | None = None,
+        action_router: Any | None = None,
     ) -> None:
         self._dispatcher = dispatcher
         self._diagnostics = diagnostics
         self._config = config
+        self._schema = schema
+        self._action_router = action_router
 
     async def route_tool_call(
         self,
@@ -40,12 +47,19 @@ class McpRoutingImpl(McpRoutingProtocol):
         if tool_name == "execute_command":
             action = payload.get("action", "")
             args = payload.get("args", {})
+            if self._action_router is not None:
+                return self._action_router.execute_action(str(action), args if isinstance(args, dict) else {})
             if self._dispatcher:
                 request = ActionCommandVO(action_name=action, parameters=args)
                 return self._dispatcher.execute_action(request)
             raise RuntimeError("Dispatcher aggregate not configured — check container wiring")
 
         if tool_name == "list_commands":
+            if self._schema is not None:
+                return {
+                    "actions": await self._schema.get_tool_schemas(),
+                    "catalog_version": await self._schema.get_catalog_version(),
+                }
             if self._dispatcher:
                 return self._dispatcher.discover_actions()
             return {}
@@ -95,11 +109,9 @@ class McpRoutingImpl(McpRoutingProtocol):
         return errors
 
     async def get_tool_schemas(self) -> list[dict[str, Any]]:
-        """Return tool schema list with names, descriptions, params, examples.
-
-        FR-MCP-001: Schemas assembled from owning features.
-        Degraded tools listed with indicator, not hidden.
-        """
+        """Return schemas from the canonical MCP schema provider."""
+        if self._schema is not None:
+            return await self._schema.get_tool_schemas()
         return [
             {
                 "name": "execute_command",
@@ -154,5 +166,6 @@ class McpRoutingImpl(McpRoutingProtocol):
 
     async def get_catalog_version(self) -> str:
         """Return dispatcher catalog version for drift detection."""
-        # Placeholder — should come from dispatcher contract
+        if self._schema is not None:
+            return await self._schema.get_catalog_version()
         return "unknown"

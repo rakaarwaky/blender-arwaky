@@ -200,3 +200,55 @@ def test_config_and_set_config_map_typed_json(capsys) -> None:
     assert dispatcher.requests[-1].parameters == {"key": "blender.port", "value": "9999"}  # nosec B101
     assert dispatcher.requests[-1].confirmation_flag is True  # nosec B101
     assert _json(capsys)["success"] is True  # nosec B101
+
+
+def test_camera_and_asset_commands_forward_contract_parameters(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+
+    assert (
+        main(
+            [
+                "--json",
+                "camera-config",
+                "--focal-length",
+                "55",
+                "--sensor-fit",
+                "AUTO",
+                "--set-active",
+                "--dof",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
+    camera_request = dispatcher.requests[-1]
+    assert camera_request.action_name == "configure_camera"  # nosec B101
+    assert camera_request.parameters["focal_length"] == 55.0  # nosec B101
+    assert camera_request.parameters["set_active"] is True  # nosec B101
+
+    assert (
+        main(
+            [
+                "--json",
+                "download-asset",
+                "--provider",
+                "Polyhaven",
+                "--asset-id",
+                "chair",
+                "--asset-type",
+                "model",
+                "--cache-dir",
+                ".cache/assets",
+                "--max-size",
+                "1000000",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )  # nosec B101
+    asset_request = dispatcher.requests[-1]
+    assert asset_request.action_name == "download_asset"  # nosec B101
+    assert asset_request.parameters["provider"] == "Polyhaven"  # nosec B101
+    assert asset_request.parameters["max_size"] == 1000000  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101

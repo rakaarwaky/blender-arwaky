@@ -221,6 +221,24 @@ def _build_parser() -> CliArgumentParser:
         "blender-arwaky set-env --hdri-id studio.hdr --strength 1.0",
     )
     add_action(
+        "camera-config",
+        "configure_camera",
+        "Configure Blender camera",
+        [
+            ("--camera", {"dest": "camera_ref"}),
+            ("--focal-length", {"dest": "focal_length", "type": float}),
+            ("--sensor-fit", {"dest": "sensor_fit", "choices": ["AUTO", "HORIZONTAL", "VERTICAL"]}),
+            ("--framing-target", {"dest": "framing_target"}),
+            ("--set-active", {"dest": "set_active", "action": "store_true"}),
+            ("--dof", {"dest": "depth_of_field_enabled", "action": "store_true"}),
+            ("--focus-distance", {"dest": "focus_distance", "type": float}),
+            ("--focus-object", {"dest": "focus_object"}),
+            ("--aperture", {"dest": "aperture", "type": float}),
+            ("--no-create", {"dest": "create_if_missing", "action": "store_false"}),
+        ],
+        "blender-arwaky camera-config --focal-length 50 --set-active",
+    )
+    add_action(
         "object-info",
         "get_object_info",
         "Inspect an object",
@@ -314,6 +332,74 @@ def _build_parser() -> CliArgumentParser:
             ("--scale", {"dest": "scale", "nargs": 3, "type": float, "metavar": ("X", "Y", "Z")}),
         ],
         "blender-arwaky place-asset --asset-id asset-001",
+    )
+    add_action(
+        "search-assets",
+        "search_assets",
+        "Search configured asset providers",
+        [
+            ("--query", {"dest": "query", "default": "curated"}),
+            ("--provider", {"dest": "providers", "action": "append"}),
+            ("--asset-type", {"dest": "asset_type_filter"}),
+            ("--limit", {"dest": "limit", "type": int}),
+            ("--page-token", {"dest": "page_token"}),
+        ],
+        "blender-arwaky search-assets --query chair --provider Polyhaven",
+    )
+    add_action(
+        "asset-metadata",
+        "get_provider_metadata",
+        "Read provider asset metadata",
+        [
+            ("--provider", {"dest": "provider", "required": True}),
+            ("--asset-id", {"dest": "asset_id", "required": True}),
+        ],
+        "blender-arwaky asset-metadata --provider Polyhaven --asset-id chair",
+    )
+    add_action(
+        "download-asset",
+        "download_asset",
+        "Download an asset to the validated cache",
+        [
+            ("--provider", {"dest": "provider", "required": True}),
+            ("--asset-id", {"dest": "asset_id", "required": True}),
+            ("--asset-type", {"dest": "asset_type", "required": True}),
+            ("--cache-dir", {"dest": "cache_dir", "required": True}),
+            ("--resolution", {"dest": "resolution"}),
+            (
+                "--overwrite-policy",
+                {"dest": "overwrite_policy", "choices": ["reuse", "overwrite", "unique"], "default": None},
+            ),
+            ("--max-size", {"dest": "max_size", "type": int}),
+        ],
+        "blender-arwaky download-asset --provider Polyhaven --asset-id chair --asset-type model --cache-dir .cache/assets",
+    )
+    add_action(
+        "extract-asset",
+        "extract_asset",
+        "Safely extract a downloaded asset archive",
+        [
+            ("--artifact", {"dest": "artifact_path", "required": True}),
+            ("--destination", {"dest": "destination", "required": True}),
+            ("--max-entries", {"dest": "max_entries", "type": int}),
+            ("--max-size", {"dest": "max_extracted_size", "type": int}),
+            ("--allow-symlinks", {"dest": "allow_symlinks", "action": "store_true"}),
+        ],
+        "blender-arwaky extract-asset --artifact model.zip --destination .cache/extracted",
+    )
+    add_action(
+        "import-asset",
+        "import_asset",
+        "Import a local cached asset into Blender",
+        [
+            ("--file", {"dest": "file_path", "required": True}),
+            ("--asset-type", {"dest": "asset_type", "required": True}),
+            ("--collection", {"dest": "target_collection"}),
+            ("--normalize-scale", {"dest": "scale_normalization", "action": "store_true"}),
+            ("--duplicate-policy", {"dest": "duplicate_policy", "default": None}),
+            ("--format", {"dest": "format_hint"}),
+        ],
+        "blender-arwaky import-asset --file model.glb --asset-type model",
     )
     add_action(
         "task-status",

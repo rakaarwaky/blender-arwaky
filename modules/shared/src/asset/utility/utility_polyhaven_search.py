@@ -36,8 +36,10 @@ async def polyhaven_search(
     try:
         result = await connection.send_command(
             ActionName("search_polyhaven_assets"),
-            {"asset_type": "all", "categories": categories or []},
+            {"query": str(query), "asset_type": "all", "categories": categories or []},
         )
+        if result.get("error"):
+            raise ProviderError(f"[{result.get('error')}] {result.get('message', 'Poly Haven request failed')}")
         items = [
             AssetMetadataItem(
                 id=AssetId(asset_id),
