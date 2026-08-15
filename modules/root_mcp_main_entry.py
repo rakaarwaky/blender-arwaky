@@ -1,10 +1,12 @@
+"""MCP server composition root."""
+
 from modules.mcp.src import (
     surface_execute_command,
     surface_get_config,
     surface_health_check,
+    surface_help,
     surface_list_commands,
     surface_prompt_register,
-    surface_read_skill,
     surface_scene_tools,
     surface_server_instance,
     surface_server_start,
@@ -15,9 +17,9 @@ _surfaces = (
     surface_execute_command,
     surface_get_config,
     surface_health_check,
+    surface_help,
     surface_list_commands,
     surface_prompt_register,
-    surface_read_skill,
     surface_scene_tools,
     surface_server_instance,
     surface_server_start,
@@ -26,11 +28,7 @@ _surfaces = (
 
 
 def main() -> None:
-    """Entry point for the blender-mcp MCP server.
-
-    Composition root: wires the DI container (root layer) and injects it
-    into the surface layer before starting the server.
-    """
+    """Start the MCP server with the composed feature container."""
     from modules.mcp.src.root_mcp_container import create_mcp_feature
     from modules.mcp.src.surface_server_start import ServerStartSurface
 

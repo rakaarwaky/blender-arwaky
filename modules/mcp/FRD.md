@@ -14,7 +14,7 @@ MCP tools for AI clients. Machine-facing counterpart of CLI surface. Routes tool
 - Error formatting per MCP spec with unified categories
 - Tracking ID injection + propagation on every call
 - Oversized payload protection (summarize / reference / truncate)
-- Skill context exposure as versioned static docs
+- Embedded help exposure for MCP and CLI usage without filesystem dependencies
 - Degraded capability indication in tool metadata
 
 ## Out of Scope
@@ -38,7 +38,9 @@ Publish tool schemas derived from dispatcher catalog + owning feature shapes. Di
 - **Input**: Tool discovery request from MCP client (negotiated session)
 - **Output**: Tool schema list (names, AI-readable descriptions, param schemas, examples, capability indicators, catalog version)
 - **Business Rules**:
-  - Schemas assembled from owning features: action tools from dispatcher catalog, settings from config, health from diagnostics, task tools from job, skill context from static docs
+  - Five stable MCP tools are exposed: execute_command, list_commands, health_check, get_config, and help
+  - Feature actions come from the dispatcher catalog and are executed through execute_command; they are not registered as separate MCP tools
+  - Help content is embedded in source code and documents MCP, CLI, actions, safety, and examples
   - Descriptions for AI consumption: precise capability statements, parameter meanings, units, ≥1 usage example per tool
   - Schema output carries catalog version for drift detection
   - Degraded owning features: tool listed with explicit degraded indicator, not hidden
@@ -46,8 +48,8 @@ Publish tool schemas derived from dispatcher catalog + owning feature shapes. Di
   - Schema assembly from in-memory catalog — no domain execution triggered
   - Incompatible client protocol version → rejected with unsupported error
   - Deterministic output: identical catalog → identical schemas across sessions
-- **Edge Cases**: Empty catalog, catalog version drift, degraded owning feature, oversized schema for client limits, schema during hot re-registration, missing skill docs, client reconnecting with stale catalog
-- **Error Handling**: Unsupported error for incompatible protocol version; state error when catalog unreadable; degraded tools surfaced with indicator; missing docs → unavailable indication
+- **Edge Cases**: Empty catalog, catalog version drift, degraded owning feature, oversized schema for client limits, schema during hot re-registration, unknown help topic, client reconnecting with stale catalog
+- **Error Handling**: Unsupported error for incompatible protocol version; state error when catalog unreadable; degraded actions surfaced with indicator; unknown help topic → validation error with available topics
 
 ### FR-MCP-002: Route Tool Calls
 
@@ -199,16 +201,15 @@ Retrieve BlenderArwaky configuration settings.
 
 Target feature: config feature.
 
-### read_skill_context
+### help
 
-Read SKILL.md documentation for any skill.
+Return embedded documentation for using the MCP and CLI surfaces. The content is compiled into the package and does not read `SKILL.md` or any repository-relative file at runtime.
 
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
-| `skill_name` | string | yes | Skill name (e.g., `blender-mcp`, `auto-linter`). Directory name under `.agents/skills/`. |
-| `section` | string | no | Section to extract: `tools`, `commands`, `workflows`, `addon`, `troubleshooting`. Omit for full content. |
+| `topic` | string | no | `overview`, `mcp`, `cli`, `actions`, `safety`, or `examples`. Defaults to `overview`. |
 
-Target feature: static documentation surface. Reads versioned SKILL.md files directly.
+Target feature: MCP help surface. Action details come from the canonical dispatcher catalog.
 
 ### Summary
 
@@ -218,7 +219,7 @@ Target feature: static documentation surface. Reads versioned SKILL.md files dir
 | `list_commands` | `domain` (opt), `format` (opt) | dispatcher feature |
 | `health_check` | (none) | diagnostics feature |
 | `get_config` | `key` (opt) | config feature |
-| `read_skill_context` | `skill_name` (req), `section` (opt) | static documentation surface |
+| `help` | `topic` (opt) | embedded MCP/CLI help surface |
 
 ## Error Categories
 
@@ -239,7 +240,7 @@ None. Session lifecycle and tool calls appear in structured logs via diagnostics
 | protocol_version      | Negotiated at handshake                 | Current               |
 | input_strictness      | strict/tolerant for unknown fields      | strict                |
 | oversized_strategy    | summarize/substitute/truncate           | substitute            |
-| skill_context_version | Static docs version                     | Release version       |
+| help_content_version | Embedded MCP/CLI help contract version | Release version       |
 | tracking_id_injection | Generate when client omits              | enabled               |
 | schema_detail         | Depth of examples + metadata in schemas | full                  |
 
@@ -268,7 +269,7 @@ None. Session lifecycle and tool calls appear in structured logs via diagnostics
 - [ ]  Warnings preserved alongside results
 - [ ]  Concurrent calls accepted; mutation serialization delegated to gateway
 - [ ]  Client disconnect doesn't corrupt execution
-- [ ]  Skill context: versioned static docs, no live state access
+- [ ]  Help: embedded MCP/CLI usage content, no SKILL.md or filesystem dependency
 - [ ]  1:1 parity with CLI verified — same aggregates, same semantics
 - [ ]  No business logic in MCP layer — no retries, composition, reinterpretation
 - [ ]  New catalog capability reachable via schema exposure, no surface code changes

@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.mcp.utility_help_content import build_help_result
 
 
 def normalize_payload(payload: Any) -> dict[str, Any]:
@@ -75,7 +76,7 @@ def route_tool_call(
     if tool_name == "get_config":
         return {}
 
-    if tool_name == "read_skill_context":
-        return {}
+    if tool_name == "help":
+        return build_help_result(payload.get("topic"))
 
     raise ValueError(f"Unknown tool: {tool_name}")

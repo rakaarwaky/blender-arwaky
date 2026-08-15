@@ -18,9 +18,8 @@ from unittest.mock import MagicMock, patch
 
 from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
 from modules.mcp.src.surface_health_check import HealthCheckSurface
+from modules.mcp.src.surface_help import HelpSurface
 from modules.mcp.src.surface_list_commands import ListCommandsSurface
-from modules.mcp.src.surface_read_skill import SkillDocumentationReader, SkillReadSurface
-from modules.shared.src.common.taxonomy_core_vo import Prompt
 
 
 class FakeOrchestrator:
@@ -181,16 +180,17 @@ class TestListCommandsRouting:
         assert "routed" in result["result"]
 
 
-class TestReadSkillContextRouting:
-    """read_skill_context -> SkillDocumentationReader.read_skill (static docs surface)."""
+class TestHelpRouting:
+    """help returns embedded MCP and CLI usage content without reading files."""
 
-    def test_routes_to_read_skill_context(self):
+    async def test_returns_embedded_help_topic(self):
         mcp = FakeMCP()
-        with patch.object(SkillDocumentationReader, "read_skill", return_value="# skill_x\n\nSkill content."):
-            SkillReadSurface.register_read_skill_context(mcp)
-            result = mcp.tools["read_skill_context"]("skill_x", None)
+        HelpSurface.register(mcp, MagicMock(response=None))
+        result = await mcp.tools["help"]("cli")
 
-        assert result == Prompt("# skill_x\n\nSkill content.")
+        assert result["topic"] == "cli"
+        assert "blender-arwaky" in result["content"]
+        assert result["core_tools"] == ["execute_command", "list_commands", "health_check", "get_config", "help"]
 
 
 class TestHealthCheckRouting:

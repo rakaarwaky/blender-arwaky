@@ -2,7 +2,7 @@
 
 FR-MCP-001: Expose MCP Tools — the surface must register exactly the tool set
 the dispatcher catalog and owning features declare (execute_command,
-list_commands, read_skill_context, health_check, get_config).
+list_commands, help, health_check, get_config).
 
 FR-MCP-002: Route Tool Calls — every registered tool must wire to the same
 agent aggregate the CLI surface uses; the surface never redefines semantics.
@@ -18,8 +18,8 @@ from typing import Any
 from modules.mcp.src.surface_execute_command import ExecuteCommandSurface
 from modules.mcp.src.surface_get_config import GetConfigSurface
 from modules.mcp.src.surface_health_check import HealthCheckSurface
+from modules.mcp.src.surface_help import HelpSurface
 from modules.mcp.src.surface_list_commands import ListCommandsSurface
-from modules.mcp.src.surface_read_skill import SkillReadSurface
 from modules.mcp.src.surface_scene_tools import SceneToolsSurface
 from modules.mcp.src.surface_tool_registry import ToolRegistrySurface
 
@@ -28,7 +28,7 @@ REQUIRED_TOOLS = {
     "get_config",
     "health_check",
     "list_commands",
-    "read_skill_context",
+    "help",
 }
 
 
@@ -65,24 +65,18 @@ class TestToolRegistryContract:
         assert callable(ToolRegistrySurface.register_tools)
 
     def test_register_tools_registers_core_tools(self):
-        """Core tools register; scene tools require code_executor."""
+        """The public registry exposes exactly the five core tools."""
         mcp = FakeMCP()
         ToolRegistrySurface.register_tools(mcp, FAKE_CONTAINER)
-        # Scene tools are skipped when aggregate is None
-        assert "execute_command" in mcp.tools
-        assert "list_commands" in mcp.tools
-        assert "health_check" in mcp.tools
-        assert "get_config" in mcp.tools
-        assert "read_skill_context" in mcp.tools
+        assert set(mcp.tools) == REQUIRED_TOOLS
 
     def test_each_surface_has_register_method(self):
-        """Each surface class has a register method (SkillReadSurface uses register_read_skill_context)."""
+        """Each core surface class exposes the shared register method."""
         assert hasattr(ExecuteCommandSurface, "register")
         assert hasattr(ListCommandsSurface, "register")
         assert hasattr(HealthCheckSurface, "register")
         assert hasattr(GetConfigSurface, "register")
-        # SkillReadSurface uses a different method name (no container param)
-        assert hasattr(SkillReadSurface, "register_read_skill_context")
+        assert hasattr(HelpSurface, "register")
 
 
 class TestIndividualToolRegistration:
@@ -98,10 +92,10 @@ class TestIndividualToolRegistration:
         ListCommandsSurface.register(mcp, FAKE_CONTAINER)
         assert "list_commands" in mcp.tools
 
-    def test_read_skill_context_registers_once(self):
+    def test_help_registers_once(self):
         mcp = FakeMCP()
-        SkillReadSurface.register_read_skill_context(mcp)
-        assert "read_skill_context" in mcp.tools
+        HelpSurface.register(mcp, FAKE_CONTAINER)
+        assert "help" in mcp.tools
 
     def test_health_check_registers_once(self):
         mcp = FakeMCP()

@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Blender 3.0+](https://img.shields.io/badge/Blender-3.0%2B-orange.svg)](https://www.blender.org/)
 
-BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, render, and execute Blender Python through 4 universal MCP tools.
+BlenderArwaky bridges [Blender 3D](https://www.blender.org/) with any MCP-compatible client — Claude Desktop, Cursor, Continue.dev, or custom agents. Control scenes, import assets, render, and execute Blender Python through 5 core MCP tools: `execute_command`, `list_commands`, `health_check`, `get_config`, and `help`.
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ uv run pytest -m integration  # Integration tests
 
 - [PRD.md](PRD.md) — Product requirements (stakeholders)
 - [ARCHITECTURE.md](ARCHITECTURE.md) — System architecture
-- [SKILL.md](SKILL.md) — Agent usage reference
+- MCP `help` tool — embedded MCP/CLI usage reference (`help(topic="mcp"|"cli"|"actions"|"safety"|"examples")`)
 - [AGENT.md](AGENT.md) — Developer reference
 - [TEST.md](TEST.md) — Testing guide
 - [modules/\*/FRD.md](modules/shared/FRD.md) — Feature specs (engineers)

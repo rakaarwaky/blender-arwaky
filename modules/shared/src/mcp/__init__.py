@@ -13,8 +13,8 @@ from .taxonomy_mcp_constant import (
     DEFAULT_SERVER_NAME,
     TOOL_EXECUTE_COMMAND,
     TOOL_HEALTH_CHECK,
+    TOOL_HELP,
     TOOL_LIST_COMMANDS,
-    TOOL_READ_SKILL,
 )
 from .taxonomy_mcp_event import McpEvent, McpEventKind
 from .taxonomy_mcp_vo import McpResponse, McpServerBootstrapVO, McpServerConfig, McpToolDef
@@ -28,7 +28,7 @@ __all__ = [
     "TOOL_EXECUTE_COMMAND",
     "TOOL_HEALTH_CHECK",
     "TOOL_LIST_COMMANDS",
-    "TOOL_READ_SKILL",
+    "TOOL_HELP",
     "McpEventKind",
     "McpEvent",
     "McpToolDef",

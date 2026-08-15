@@ -12,6 +12,7 @@ from typing import Any
 from modules.shared.src.common.taxonomy_core_vo import RequestId, ToolName
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
 from modules.shared.src.mcp.contract_mcp_protocol import McpRoutingProtocol
+from modules.shared.src.mcp.utility_help_content import build_help_result
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -74,8 +75,8 @@ class McpRoutingImpl(McpRoutingProtocol):
                 return self._config.get_snapshot()
             return {}
 
-        if tool_name == "read_skill_context":
-            return {}
+        if tool_name == "help":
+            return build_help_result(payload.get("topic"))
 
         raise ValueError(f"Unknown tool: '{tool_name}' — check tool catalog registration")
 
@@ -105,6 +106,11 @@ class McpRoutingImpl(McpRoutingProtocol):
             key = payload.get("key")
             if key is not None and not isinstance(key, str):
                 errors.append("key must be a string or omitted")
+
+        if tool_name == "help":
+            topic = payload.get("topic")
+            if topic is not None and not isinstance(topic, str):
+                errors.append("topic must be a string or omitted")
 
         return errors
 
@@ -151,15 +157,13 @@ class McpRoutingImpl(McpRoutingProtocol):
                 },
             },
             {
-                "name": "read_skill_context",
-                "description": "Read the SKILL.md documentation for a given skill",
+                "name": "help",
+                "description": "Explain how to use Blender Arwaky MCP and CLI tools",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "skill_name": {"type": "string", "description": "Skill name"},
-                        "section": {"type": "string", "description": "Optional section to extract"},
+                        "topic": {"type": "string", "description": "overview, mcp, cli, actions, safety, or examples"},
                     },
-                    "required": ["skill_name"],
                 },
             },
         ]
