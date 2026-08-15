@@ -1,183 +1,139 @@
 # Contributing to Blender Arwaky
 
-First off, thank you for considering contributing! 🎉
+Thank you for contributing. This document is for developers and maintainers. User installation and usage belong in [README.md](README.md); internal architecture, source layout, tests, quality gates, and pull-request rules belong here.
 
-Blender Arwaky is a community-driven project, and every contribution —
-whether it's a bug report, feature suggestion, documentation improvement,
-or code change — is valuable.
+## Prerequisites
 
-## 📜 Code of Conduct
+Use the following development environment:
 
-This project and everyone participating in it is governed by our
-[Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected
-to uphold this code.
+- Python 3.10 or newer.
+- Blender 4.2 or newer for live addon or Blender smoke tests.
+- [`uv`](https://docs.astral.sh/uv/).
+- Git.
+- `pre-commit` when working with local hooks.
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) package manager
-- Git
-- Blender 3.0+ (only required for addon testing in real Blender)
-- pre-commit (`pip install pre-commit`)
-
-### Setup
+## Development setup
 
 ```bash
-# 1. Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/blender-arwaky.git
+git clone https://github.com/rakaarwaky/blender-arwaky.git
 cd blender-arwaky
-
-# 2. Install dependencies
-uv sync --all-groups
-
-# 3. Install pre-commit hooks
+uv sync --dev
 pre-commit install
-
-# 4. Verify everything works
-uv run pytest
+uv run pytest -q
 ```
 
-## 🛠️ Development Workflow
-
-### 1. Create a branch
+Create a feature branch from `develop`:
 
 ```bash
-git checkout -b feat/your-feature-name
-# or
-git checkout -b fix/issue-number-description
+git switch develop
+git pull --ff-only origin develop
+git switch -c feat/short-description
 ```
 
-### 2. Make your changes
+## Architecture rules
 
-Follow the project's architecture and style:
+Blender Arwaky follows **Agents → Executors → Services (AES)**. Keep dependencies directed toward shared contracts and taxonomy. Do not introduce shortcuts from surface code directly into unrelated feature implementations, and do not add duplicate access paths for an existing action.
 
-- **AES layered architecture** — see [AGENT.md](AGENT.md)
-- **3-word file naming**: `{domain}_{concern}_{suffix}.py`
-- **Type hints on public boundaries** — keep runtime contracts explicit; Ruff and tests are the mandatory gates
-- **Docstrings** — public functions/classes
-- **Tests required** — see [TEST.md](TEST.md)
+The canonical dispatcher catalog defines the public action contract. A new action must be represented once in the catalog, routed through the dispatcher, exposed through the generated CLI, and callable through `execute_command`. The public naming rules are:
 
-### 3. Add tests
+| Surface | Naming rule | Example |
+|---|---|---|
+| CLI | `kebab-case` | `create-primitive` |
+| MCP/API | `snake_case` | `create_primitive` |
+| MCP registry | Five stable tools only | `execute_command` |
 
-New code should be accompanied by tests:
+Do not add a universal `run` fallback, feature shortcut, legacy alias, or parallel handler for an action already present in the catalog. Preserve validation, redaction, response envelopes, tracking metadata, and destructive-action confirmation at the shared boundaries.
 
-| Scope | Test Directory | Marker |
-|-------|-----------------|--------|
-| Any feature module | `modules/<feature>/tests/` | `unit`, `integration`, or `functional` |
-| Blender addon | `blender_mcp_addon/` or colocated addon tests | `addon` |
-| Slow or real-runtime checks | Owning module test directory | `slow` |
+### Source conventions
 
-### 4. Run the test suite
+Feature code lives under `modules/<feature>/`. Follow the repository's AES naming convention for Python files and keep the `modules/` source tree compliant with `lint-arwaky-cli scan .`. Test directories are an approved naming exception.
+
+Keep public boundaries typed and explicit. Use focused modules for taxonomy, contracts, capabilities, agents, composition, and surfaces. Avoid adding business logic to taxonomy constants or surface registration code.
+
+## Adding or changing an action
+
+Before implementation, determine whether the capability belongs to an existing category. Update the canonical action schema, executor/service implementation, dispatcher routing, CLI generation, MCP action handling, and tests as one change. Update user-facing README content only when the capability changes what users can install or do; update this document or the relevant technical document for internal workflow changes.
+
+For a new action, verify all of the following:
+
+1. The action has one canonical `snake_case` name.
+2. Its CLI command is generated as the corresponding `kebab-case` name.
+3. Parameters have explicit types, requiredness, defaults, and validation.
+4. Mutating or destructive behavior is classified and guarded.
+5. The MCP `execute_command` path and CLI path use the same dispatcher contract.
+6. Unit, integration, and contract tests cover the new behavior.
+7. Help output, catalog discovery, and error envelopes remain consistent.
+
+## Testing and quality gates
+
+Run focused tests during development:
 
 ```bash
-# Run all tests
-uv run pytest
-
-# Run by marker
-uv run pytest -m unit
-uv run pytest -m integration
-uv run pytest -m functional
-uv run pytest -m addon
-
-# Run with coverage
-uv run pytest --cov=modules --cov=blender_mcp_addon
-
-# Run a specific test
-uv run pytest modules/dispatcher/tests/test_dispatcher_catalog_registration.py -v
+uv run pytest modules/<feature>/tests -q
+uv run pytest -m unit -q
+uv run pytest -m integration -q
 ```
 
-### 5. Run linters and type checks
+Run the full local gate before opening a pull request:
 
 ```bash
-# Ruff (lint + format)
+uv run pytest -q
 uv run ruff check modules blender_mcp_addon scripts
 uv run ruff format --check modules blender_mcp_addon scripts
-
-# Python syntax and repository quality/build gates
 python -m compileall -q modules blender_mcp_addon
+uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
+lint-arwaky-cli scan .
 bash scripts/ci.sh
-
-# Or use pre-commit (runs all of the above)
-pre-commit run --all-files
 ```
 
-### 6. Update documentation
+The blocking CI workflow verifies lint and syntax, Python 3.10–3.13 tests, Bandit, AES architecture scanning, integration contracts, Codacy, and distributable artifacts. Do not open or merge a pull request with a known failing gate. Clean generated files such as coverage reports, build directories, and caches before committing.
 
-- Update `README.md` for user-facing changes
-- Update `AGENT.md` for architecture changes
-- Update `SKILL.md` for new MCP tools/actions
-- Update `TEST.md` for new test patterns
-- Add an entry to `CHANGELOG.md` under `[Unreleased]`
+For live Blender validation, install the generated addon package, start Blender with the addon enabled, and verify the relevant MCP or CLI action against a disposable scene. Record environment-specific limitations in the owning test or technical document rather than in the user README.
 
-### 7. Commit and push
+## Documentation policy
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+Documentation is split by audience:
+
+| Audience | Document | Content |
+|---|---|---|
+| Users | `README.md` | Installation, client setup, commands, capabilities, limitations, and high-level comparison |
+| Developers | `CONTRIBUTING.md` | Setup, architecture, source conventions, tests, quality gates, and PR workflow |
+| Maintainers | `ARCHITECTURE.md`, `PRD.md`, `TEST.md`, `CHANGELOG.md` | Detailed design, requirements, verification, and release history |
+
+Do not place internal Python module names, source tree diagrams, test commands, or CI implementation details in the user README. When a user-visible action changes, update the catalog documentation and a concise README entry. When only internal behavior changes, update developer or maintainer documentation instead.
+
+## Commit and pull request workflow
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 git add .
-git commit -m "feat: add new search command for Poly Haven"
-# or
-git commit -m "fix: resolve socket connection retry loop"
-# or
-git commit -m "docs: update README installation steps"
+git commit -m "feat: add a canonical Blender action"
+git commit -m "fix: correct dispatcher validation"
+git commit -m "docs: clarify user installation"
 ```
 
-Pre-commit hooks will run automatically on commit.
+Push the feature branch and open a pull request against `develop`:
 
-### 8. Open a Pull Request
-
-- Push your branch: `git push origin feat/your-feature-name`
-- Open a PR against the `develop` branch
-- Fill out the PR template
-- Wait for CI to pass
-- Address review comments
-
-## 📁 Project Structure
-
-```
-blender-arwaky/
-├── modules/                # Feature modules (AES layered)
-│   ├── shared/             # Taxonomy + contracts (cross-feature)
-│   ├── {feature}/          # Per feature: taxonomy, contract, capabilities, agent, surface
-│   │   ├── FRD.md
-│   │   └── src/
-│   │       ├── taxonomy_<domain>_<type>.py
-│   │       ├── contract_<domain>_<concern>_protocol.py
-│   │       ├── capabilities_<domain>_<concern>.py
-│   │       ├── agent_<domain>_orchestrator.py
-│   │       └── root_<domain>_container.py
-│   ├── cli/src/            # CLI surface — direct command per action
-│   └── mcp/src/            # MCP surface — 5 tools via execute_command
-├── modules/<feature>/tests/ # Tests colocated with each feature module
-│   └── test_*.py           # Unit/integration/functional coverage
-├── blender_mcp_addon/      # Addon tests and runtime package
-├── scripts/                # Helper scripts (see scripts/README.md)
-│   ├── build/              # CI/release: build_addon_package, bump_release_version
-│   ├── blender/            # Runtime: run_server_headless, manage_blender_process, ...
-│   └── install/            # User installers: install_cli_wrappers
-├── config.yaml             # Server configuration
-├── .github/workflows/      # CI/CD pipelines
-└── docs/                   # Additional documentation
+```bash
+git push -u origin feat/short-description
 ```
 
-## 🎯 Contribution Areas
+A pull request should explain the user or developer impact, identify changed contracts, describe tests performed, and call out any Blender-version or runtime limitations. Reviewers should confirm that the change preserves AES boundaries, catalog uniqueness, CLI/MCP parity, naming compliance, and backward-compatibility policy. Legacy aliases should be removed through an explicit migration rather than silently retained.
 
-Looking for where to help? Here are some areas:
+## Repository map
 
-- 🐛 **Bug fixes** — check [open issues](https://github.com/rakaarwaky/blender-arwaky/issues)
-- ✨ **New actions** — extend the command catalog (see [AGENT.md](AGENT.md#command-catalog))
-- 🔌 **New asset providers** — add support for new 3D asset sources
-- 📚 **Documentation** — improve READMEs, docstrings, examples
-- 🧪 **Test coverage** — bring under-tested modules to 100%
-- 🌍 **Translations** — translate SKILL.md and docs
-- ⚡ **Performance** — optimize slow operations
+| Area | Purpose |
+|---|---|
+| `modules/shared/` | Shared taxonomy, contracts, schemas, security, and dispatcher data |
+| `modules/<feature>/` | Feature-specific taxonomy, contracts, capabilities, agents, composition, and tests |
+| `modules/cli/` | CLI surface and CLI contract tests |
+| `modules/mcp/` | Five-tool MCP surface and protocol tests |
+| `modules/root_cli_main_entry.py` | CLI composition and generated action parser |
+| `blender_mcp_addon/` | Blender runtime addon and addon tests |
+| `scripts/` | Build, CI, installation, and runtime helpers |
+| `.github/` | Continuous integration and repository automation |
 
-## ❓ Questions?
+## Questions and support
 
-- Open a [Discussion](https://github.com/rakaarwaky/blender-arwaky/discussions)
-- Check the [docs](README.md)
-- Read the [architecture guide](AGENT.md)
-
-Thank you for contributing! 🙏
+For design questions, open a [GitHub Discussion](https://github.com/rakaarwaky/blender-arwaky/discussions). For bugs, provide a minimal reproduction, Blender version, Python version, command or MCP action, expected behavior, actual behavior, and the relevant test or log output.

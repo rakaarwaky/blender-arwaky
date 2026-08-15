@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/downloads/) [![Blender 4.2+](https://img.shields.io/badge/Blender-4.2%2B-E87D0D.svg)](https://www.blender.org/download/) [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
 
-**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, technical artists, and local CI. A validated dispatcher presents the same catalog through two surfaces: five stable MCP protocol tools and 75 CLI actions exposed once as `kebab-case` commands. MCP/API actions use `snake_case` and are routed through `execute_command`.
+**Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, and technical artists. A validated dispatcher presents the same catalog through two surfaces: five stable MCP protocol tools and 75 CLI actions exposed once as `kebab-case` commands. MCP/API actions use `snake_case` and are routed through `execute_command`.
 
-The project follows an **Agents → Executors → Services (AES)** architecture. The canonical dispatcher catalog is the source of truth for action names, owners, descriptions, parameters, and routing. Shared validation, response envelopes, diagnostics, destructive-action confirmation, and CI architecture gates keep both surfaces aligned.
+The same action contract is used by both surfaces, with shared validation, diagnostics, response handling, and confirmation for destructive operations.
 
 > Blender Python execution is powerful and is not a complete security sandbox. Use disposable workspaces, save important `.blend` files, and isolate untrusted workflows.
 
@@ -24,13 +24,7 @@ cd blender-arwaky
 uv sync
 ```
 
-Build the addon package:
-
-```bash
-uv run python scripts/build/build_addon_package.py
-```
-
-Install `dist/blender_mcp_addon.zip` in Blender through **Edit → Preferences → Add-ons → Install…**, enable **Blender Arwaky Addon**, and start the MCP server:
+Build the Blender addon package with the repository's addon build command. Install the generated ZIP through **Edit → Preferences → Add-ons → Install…**, enable **Blender Arwaky Addon**, and start the MCP server:
 
 ```bash
 uv run blender-mcp
@@ -96,7 +90,7 @@ Common flags include `--json`, `--confirm`, `--quiet`, `--verbose`, `--color aut
 
 ## Canonical action catalog
 
-The table below is generated from [`taxonomy_dispatcher_constant.py`](modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py). The `Action` column is the MCP/API `snake_case` name; the CLI spelling is obtained by replacing underscores with hyphens.
+The catalog below lists the available actions. The `Action` column is the MCP/API `snake_case` name; the CLI spelling is obtained by replacing underscores with hyphens.
 
 | No. | Category | Action | Description |
 |---:|---|---|---|
@@ -192,64 +186,22 @@ Shared boundaries validate paths, archives, configuration, and response data. Se
 
 Current core scope is deterministic Blender automation. LLM providers, local Ollama/llama.cpp adapters, VRM workflows, and broad capability packs are not bundled core features unless explicitly represented in the catalog and tested through the project gates.
 
-## Architecture and source of truth
-
-```text
-MCP / CLI
-   │
-   ▼
-dispatcher + canonical catalog
-   │
-   ▼
-AES layers: Agents → Executors → Services
-   │
-   ▼
-Blender addon / local runtime / external providers
-```
-
-| Source | Responsibility |
-|---|---|
-| [`taxonomy_dispatcher_constant.py`](modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py) | 75 canonical action schemas |
-| [`surface_tool_registry.py`](modules/mcp/src/surface_tool_registry.py) | Five stable MCP tools |
-| [`root_cli_main_entry.py`](modules/root_cli_main_entry.py) | Generated CLI parser and kebab-case commands |
-| [`scripts/ci.sh`](scripts/ci.sh) | Local lint, test, AES, and build gates |
-
 ## Comparison with other Blender MCP projects
 
 This is a trade-off summary, not a ranking. Tool counts are self-reported and are not directly comparable because projects may expose one tool per operation or group many operations behind one tool.
 
 | Project | Stronger than Blender Arwaky | Blender Arwaky stronger or different |
 |---|---|---|
-| [BlenderMCP by ahujasid][2] | Larger public adoption, simpler `uvx` onboarding, Poly Haven, Sketchfab, Hunyuan3D, and Hyper3D integrations | Canonical 75-action governance, five-tool MCP boundary, CLI parity, AES gates, and CI-verifiable contracts |
-| [Blender MCP Server by djeada][4] | 27 named tools across 7 namespaces, async jobs, script library, headless workflows, and detailed runtime controls | One dispatcher for 75 actions, unified CLI/MCP contract, AES validation, and versioned taxonomy |
-| [Blender MCP by sandraschi][5] | `.mcpb`, headless-first execution, dashboard, Docker/native options, and broader specialized coverage such as VRM, VSE, Geometry Nodes, and Gaussian splats | Smaller five-tool protocol boundary, 75 discoverable actions, CLI/MCP parity, AES gates, and explicit current non-goals |
-| [Blender Lab MCP Server][3] | Official Blender provenance, Blender 5.1+ integration, and natural-language access to Blender's Python API/documentation | Blender 4.2+ declared compatibility, structured action catalog, CLI, shared validation/redaction, health/config/help, and explicit confirmation boundaries |
+| [BlenderMCP by ahujasid][1] | Larger public adoption, simpler `uvx` onboarding, Poly Haven, Sketchfab, Hunyuan3D, and Hyper3D integrations | A stable five-tool MCP boundary, one shared action contract, CLI parity, and explicit validation |
+| [Blender MCP Server by djeada][3] | 27 named tools across 7 namespaces, async jobs, script library, headless workflows, and detailed runtime controls | One shared contract for 75 actions, unified CLI/MCP behavior, and consistent discovery and validation |
+| [Blender MCP by sandraschi][4] | `.mcpb`, headless-first execution, dashboard, Docker/native options, and broader specialized coverage such as VRM, VSE, Geometry Nodes, and Gaussian splats | Smaller five-tool protocol boundary, 75 discoverable actions, CLI/MCP parity, and clearly stated scope boundaries |
+| [Blender Lab MCP Server][2] | Official Blender provenance, Blender 5.1+ integration, and natural-language access to Blender's Python API/documentation | Blender 4.2+ declared compatibility, structured action catalog, CLI, shared validation/redaction, health/config/help, and explicit confirmation boundaries |
 
 Choose Blender Arwaky for governed, deterministic automation with a stable contract. Choose a broader competitor when you need specialized capability breadth, a polished `.mcpb` installer, dashboard, or headless workflows that are outside Arwaky's current core scope.
 
-## Development and CI
+## Contributing
 
-```bash
-uv sync --dev
-uv run pytest -q
-uv run ruff check modules blender_mcp_addon scripts
-uv run ruff format --check modules blender_mcp_addon scripts
-uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
-bash scripts/ci.sh
-```
-
-The required CI gates cover lint/syntax, Python 3.10–3.13 tests, Bandit, AES architecture scanning with `lint-arwaky-cli scan .`, integration contracts, Codacy, and distributable artifacts.
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [`SKILL.md`](SKILL.md) | Embedded usage and integration guidance |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | AES boundaries and dependency rules |
-| [`PRD.md`](PRD.md) | Product requirements and scope |
-| [`modules/cli/FRD.md`](modules/cli/FRD.md) | CLI contract and command conventions |
-| [`TEST.md`](TEST.md) | Test strategy and verification workflows |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release and migration history |
+Bug reports, feature requests, and code contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the developer workflow.
 
 ## License
 
@@ -257,10 +209,7 @@ Blender Arwaky is released under the [MIT License](LICENSE).
 
 ## References
 
-[1]: https://modelcontextprotocol.io/ "Model Context Protocol"
-[2]: https://github.com/ahujasid/blender-mcp "BlenderMCP by ahujasid"
-[3]: https://www.blender.org/lab/mcp-server/ "Blender Lab MCP Server"
-[4]: https://github.com/djeada/blender-mcp-server "Blender MCP Server by djeada"
-[5]: https://github.com/sandraschi/blender-mcp "Blender MCP by sandraschi"
-[6]: modules/mcp/src/surface_tool_registry.py "Blender Arwaky MCP registry"
-[7]: modules/shared/src/dispatcher/taxonomy_dispatcher_constant.py "Blender Arwaky canonical action catalog"
+[1]: https://github.com/ahujasid/blender-mcp "BlenderMCP by ahujasid"
+[2]: https://www.blender.org/lab/mcp-server/ "Blender Lab MCP Server"
+[3]: https://github.com/djeada/blender-mcp-server "Blender MCP Server by djeada"
+[4]: https://github.com/sandraschi/blender-mcp "Blender MCP by sandraschi"
