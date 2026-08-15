@@ -70,13 +70,16 @@ def search_project_root(markers: tuple[str, ...]) -> Path | None:
 def resolve_default_config_path(explicit: ConfigPath | None = None) -> ConfigPath:
     """Resolve the config file path.
 
-    Priority: explicit → env BLENDERMCP_CONFIG_PATH → cwd/config.yaml.
+    Priority: explicit → env BLENDERMCP_CONFIG_PATH → XDG config dir → cwd/config.yaml.
     """
     if explicit:
         return ConfigPath(str(explicit))
     env_path = os.environ.get("BLENDERMCP_CONFIG_PATH")
     if env_path:
         return ConfigPath(str(env_path))
+    xdg_path = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "blender-arwaky" / DEFAULT_CONFIG_FILENAME
+    if xdg_path.exists():
+        return ConfigPath(str(xdg_path))
     return ConfigPath(str(Path.cwd() / DEFAULT_CONFIG_FILENAME))
 
 
