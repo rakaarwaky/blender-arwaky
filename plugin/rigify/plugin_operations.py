@@ -153,3 +153,50 @@ def map_get_deformation_state(request: RigifyDeformationStateRequest) -> dict[st
         "type": "get_deformation_state",
         "params": {"object_name": str(request.object_name).strip()},
     }
+
+
+@dataclass(frozen=True)
+class RigifyShapeKeyRequest:
+    """Validated request for creating, updating, or removing one shape key."""
+
+    object_name: str
+    shape_key_name: str
+    enabled: bool
+    value: float = 0.0
+    slider_min: float = 0.0
+    slider_max: float = 1.0
+
+    def __post_init__(self) -> None:
+        _validate_name(self.object_name, "object_name")
+        _validate_name(self.shape_key_name, "shape_key_name")
+        if not isinstance(self.enabled, bool):
+            raise ValueError("enabled must be boolean")
+        values = {
+            "value": self.value,
+            "slider_min": self.slider_min,
+            "slider_max": self.slider_max,
+        }
+        for name, value in values.items():
+            if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(f"{name} must be a finite number")
+            if not -10.0 <= float(value) <= 10.0:
+                raise ValueError(f"{name} must be between -10.0 and 10.0")
+        if float(self.slider_min) > float(self.slider_max):
+            raise ValueError("slider_min must be less than or equal to slider_max")
+        if not float(self.slider_min) <= float(self.value) <= float(self.slider_max):
+            raise ValueError("value must be within slider limits")
+
+
+def map_configure_shape_key(request: RigifyShapeKeyRequest) -> dict[str, object]:
+    """Map a validated shape-key request to the canonical Blender command."""
+    return {
+        "type": "configure_shape_key",
+        "params": {
+            "object_name": str(request.object_name).strip(),
+            "shape_key_name": str(request.shape_key_name).strip(),
+            "enabled": request.enabled,
+            "value": float(request.value),
+            "slider_min": float(request.slider_min),
+            "slider_max": float(request.slider_max),
+        },
+    }

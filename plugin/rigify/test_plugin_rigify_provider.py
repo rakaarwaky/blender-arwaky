@@ -245,3 +245,55 @@ def test_deformation_state_request_rejects_empty_object_name() -> None:
         assert "object_name" in str(error)
     else:
         raise AssertionError("expected empty object name to be rejected")
+
+
+def test_shape_key_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import RigifyShapeKeyRequest, map_configure_shape_key
+
+    command = map_configure_shape_key(
+        RigifyShapeKeyRequest(
+            object_name="MPFB_Human",
+            shape_key_name="Smile",
+            enabled=True,
+            value=0.75,
+            slider_min=0.0,
+            slider_max=1.0,
+        )
+    )
+
+    assert command["type"] == "configure_shape_key"
+    assert command["params"]["shape_key_name"] == "Smile"
+    assert command["params"]["value"] == 0.75
+
+
+def test_shape_key_request_rejects_value_outside_slider_range() -> None:
+    from plugin.rigify.plugin_operations import RigifyShapeKeyRequest
+
+    try:
+        RigifyShapeKeyRequest("MPFB_Human", "Smile", True, value=2.0, slider_min=0.0, slider_max=1.0)
+    except ValueError as error:
+        assert "slider limits" in str(error)
+    else:
+        raise AssertionError("expected shape key value outside slider range to be rejected")
+
+
+def test_shape_key_request_rejects_inverted_slider_range() -> None:
+    from plugin.rigify.plugin_operations import RigifyShapeKeyRequest
+
+    try:
+        RigifyShapeKeyRequest("MPFB_Human", "Smile", True, value=0.0, slider_min=1.0, slider_max=0.0)
+    except ValueError as error:
+        assert "slider_min" in str(error)
+    else:
+        raise AssertionError("expected inverted slider range to be rejected")
+
+
+def test_shape_key_request_rejects_non_boolean_enabled() -> None:
+    from plugin.rigify.plugin_operations import RigifyShapeKeyRequest
+
+    try:
+        RigifyShapeKeyRequest("MPFB_Human", "Smile", "true")
+    except ValueError as error:
+        assert "enabled" in str(error)
+    else:
+        raise AssertionError("expected non-boolean enabled value to be rejected")

@@ -67,6 +67,7 @@ class CliActionRouter:
         "set_pose_bone_transform",
         "configure_bone_constraint",
         "get_deformation_state",
+        "configure_shape_key",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -181,7 +182,9 @@ class CliActionRouter:
             RigifyDeformationStateRequest,
             RigifyInspectArmatureRequest,
             RigifyPoseBoneTransformRequest,
+            RigifyShapeKeyRequest,
             map_configure_bone_constraint,
+            map_configure_shape_key,
             map_get_deformation_state,
             map_inspect_armature,
             map_set_pose_bone_transform,
@@ -192,6 +195,7 @@ class CliActionRouter:
             "set_pose_bone_transform",
             "configure_bone_constraint",
             "get_deformation_state",
+            "configure_shape_key",
         }
         default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
@@ -258,6 +262,17 @@ class CliActionRouter:
         elif action_name == "get_deformation_state":
             command = map_get_deformation_state(
                 RigifyDeformationStateRequest(object_name=str(params.get("object_name", "")))
+            )
+        elif action_name == "configure_shape_key":
+            command = map_configure_shape_key(
+                RigifyShapeKeyRequest(
+                    object_name=str(params.get("object_name", "")),
+                    shape_key_name=str(params.get("shape_key_name", "")),
+                    enabled=params.get("enabled", False),
+                    value=params.get("value", 0.0),
+                    slider_min=params.get("slider_min", 0.0),
+                    slider_max=params.get("slider_max", 1.0),
+                )
             )
         else:
             raise ValueError(f"unsupported provider action: {action_name}")
