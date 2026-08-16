@@ -135,3 +135,21 @@ def map_configure_bone_constraint(request: RigifyBoneConstraintRequest) -> dict[
             "subtarget": request.subtarget,
         },
     }
+
+
+@dataclass(frozen=True)
+class RigifyDeformationStateRequest:
+    """Validated request for inspecting one mesh deformation state."""
+
+    object_name: str
+
+    def __post_init__(self) -> None:
+        _validate_name(self.object_name, "object_name")
+
+
+def map_get_deformation_state(request: RigifyDeformationStateRequest) -> dict[str, object]:
+    """Map a validated deformation request to the canonical Blender command."""
+    return {
+        "type": "get_deformation_state",
+        "params": {"object_name": str(request.object_name).strip()},
+    }

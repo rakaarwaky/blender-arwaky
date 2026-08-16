@@ -220,3 +220,28 @@ def test_bone_constraint_request_rejects_non_boolean_enabled() -> None:
         assert "enabled" in str(error)
     else:
         raise AssertionError("expected non-boolean enabled value to be rejected")
+
+
+def test_deformation_state_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import (
+        RigifyDeformationStateRequest,
+        map_get_deformation_state,
+    )
+
+    command = map_get_deformation_state(RigifyDeformationStateRequest("MPFB_Human"))
+
+    assert command == {
+        "type": "get_deformation_state",
+        "params": {"object_name": "MPFB_Human"},
+    }
+
+
+def test_deformation_state_request_rejects_empty_object_name() -> None:
+    from plugin.rigify.plugin_operations import RigifyDeformationStateRequest
+
+    try:
+        RigifyDeformationStateRequest("   ")
+    except ValueError as error:
+        assert "object_name" in str(error)
+    else:
+        raise AssertionError("expected empty object name to be rejected")

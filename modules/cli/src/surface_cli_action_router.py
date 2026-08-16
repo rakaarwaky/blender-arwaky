@@ -66,6 +66,7 @@ class CliActionRouter:
         "inspect_armature",
         "set_pose_bone_transform",
         "configure_bone_constraint",
+        "get_deformation_state",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -177,14 +178,21 @@ class CliActionRouter:
         )
         from plugin.rigify.plugin_operations import (
             RigifyBoneConstraintRequest,
+            RigifyDeformationStateRequest,
             RigifyInspectArmatureRequest,
             RigifyPoseBoneTransformRequest,
             map_configure_bone_constraint,
+            map_get_deformation_state,
             map_inspect_armature,
             map_set_pose_bone_transform,
         )
 
-        rigify_actions = {"inspect_armature", "set_pose_bone_transform", "configure_bone_constraint"}
+        rigify_actions = {
+            "inspect_armature",
+            "set_pose_bone_transform",
+            "configure_bone_constraint",
+            "get_deformation_state",
+        }
         default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
         expected_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
@@ -246,6 +254,10 @@ class CliActionRouter:
                     target_object=str(params["target_object"]) if params.get("target_object") is not None else None,
                     subtarget=str(params["subtarget"]) if params.get("subtarget") is not None else None,
                 )
+            )
+        elif action_name == "get_deformation_state":
+            command = map_get_deformation_state(
+                RigifyDeformationStateRequest(object_name=str(params.get("object_name", "")))
             )
         else:
             raise ValueError(f"unsupported provider action: {action_name}")
