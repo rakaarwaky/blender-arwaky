@@ -168,13 +168,17 @@ The catalog below lists every valid CLI action and its action-specific parameter
 | 76 | plugin | `create-character` | `--plugin-id` (string; default: mpfb2)<br>`--name` (string; default: MPFB_Human) | Create one human through the explicitly mapped MPFB2 provider service |
 | 77 | plugin | `randomize-character` | `--plugin-id` (string; default: mpfb2)<br>`--name` (string; default: MPFB_RandomHuman)<br>`--seed` (int; default: 0) | Create a deterministic MPFB2 human from a bounded seeded phenotype randomization |
 | 78 | plugin | `remove-character` | `--plugin-id` (string; default: mpfb2)<br>`--object-name` (string; required)<br>`--confirm` (global; required for destructive actions) | Remove a verified MPFB2 basemesh and its parent-child closure |
-| 79 | plugin | `list-plugins` | <none> | List registered optional providers and their runtime capability metadata |
-| 80 | plugin | `download-plugin` | `--plugin-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download a plugin package over HTTPS into the local cache |
-| 81 | plugin | `verify-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify SHA-256 and ZIP safety before installation |
-| 82 | plugin | `install-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required)<br>`--enable` (bool; default: true) | Verify and install an optional plugin through Blender 5.2 Extension System |
-| 83 | plugin | `enable-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required) | Enable an installed Blender extension through its explicit extension id |
-| 84 | plugin | `disable-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Disable an installed Blender extension |
-| 85 | plugin | `remove-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Remove an installed Blender extension |
+| 79 | plugin | `download-mpfb-asset-pack` | `--asset-pack-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download an official MPFB2 asset pack into the verified local cache |
+| 80 | plugin | `verify-mpfb-asset-pack` | `--asset-pack-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify asset-pack SHA-256, MPFB structure, traversal, and symlink safety |
+| 81 | plugin | `install-mpfb-asset-pack` | `--asset-pack-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Install a verified MPFB2 asset pack through the active Blender provider bridge |
+| 82 | plugin | `inspect-mpfb-assets` | `--plugin-id` (string; default: mpfb2) | Inspect installed MPFB2 packs and minimum system-asset readiness |
+| 83 | plugin | `list-plugins` | <none> | List registered optional providers and their runtime capability metadata |
+| 84 | plugin | `download-plugin` | `--plugin-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download a plugin package over HTTPS into the local cache |
+| 85 | plugin | `verify-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify SHA-256 and ZIP safety before installation |
+| 86 | plugin | `install-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required)<br>`--enable` (bool; default: true) | Verify and install an optional plugin through Blender 5.2 Extension System |
+| 87 | plugin | `enable-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required) | Enable an installed Blender extension through its explicit extension id |
+| 88 | plugin | `disable-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Disable an installed Blender extension |
+| 89 | plugin | `remove-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Remove an installed Blender extension |
 
 ## Global and common flags
 
@@ -202,6 +206,10 @@ uv run blender-arwaky verify-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-
 uv run blender-arwaky install-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --blender-path /absolute/path/to/blender-5.2 --extension-id mpfb --enable
 uv run blender-arwaky enable-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --blender-path /absolute/path/to/blender-5.2 --extension-id mpfb
 uv run blender-arwaky create-character --plugin-id mpfb2 --name ArwakyHuman
+uv run blender-arwaky download-mpfb-asset-pack --asset-pack-id makehuman_system_assets --source-url https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip --sha256 b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107 --cache-path /absolute/cache/makehuman_system_assets_cc0.zip
+uv run blender-arwaky verify-mpfb-asset-pack --asset-pack-id makehuman_system_assets --sha256 b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107 --cache-path /absolute/cache/makehuman_system_assets_cc0.zip
+uv run blender-arwaky install-mpfb-asset-pack --asset-pack-id makehuman_system_assets --sha256 b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107 --cache-path /absolute/cache/makehuman_system_assets_cc0.zip
+uv run blender-arwaky inspect-mpfb-assets --plugin-id mpfb2
 ```
 
 The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Repeating a valid legacy install or removal command is idempotent; invalid existing paths are still rejected. Provider capabilities are statically declared, while runtime availability is reported separately through lifecycle states: `unavailable`, `installed`, `enabled`, or `incompatible`. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source.
@@ -228,7 +236,7 @@ The matrix below uses values and capabilities stated in each project's current p
 
 | Project | MCP tools | Actions / operations | Namespaces | CLI | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Blender Arwaky** | 5 | 85 | 16 | √ | × | 5.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
+| **Blender Arwaky** | 5 | 89 | 16 | √ | × | 5.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
 | [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
 | [Blender MCP Server by djeada][3] | 27 | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
 | [Blender MCP by sandraschi][4] | 41* | 150+ | ? | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | ? | ? |

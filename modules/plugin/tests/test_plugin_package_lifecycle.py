@@ -54,6 +54,41 @@ def test_legacy_install_and_remove_are_idempotent(tmp_path) -> None:
     assert not install_path.exists()  # nosec B101
 
 
+def test_asset_pack_verification_accepts_mpfb_structure(tmp_path) -> None:
+    package = tmp_path / "assets.zip"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.writestr("packs/makehuman_system_assets.json", "{}")
+        archive.writestr("skins/example.mhmat", "name = example\n")
+    request = PluginPackageRequestVO(
+        plugin_id=PluginId("makehuman_system_assets"),
+        source_url=PluginSourceUrl("https://example.invalid/assets.zip"),
+        sha256=PluginSha256(hashlib.sha256(package.read_bytes()).hexdigest()),
+        cache_path=PluginCachePath(str(package)),
+        install_path=PluginInstallPath(""),
+        asset_pack=True,
+    )
+    result = PluginPackageCapability().execute(PluginActionName("verify_mpfb_asset_pack"), request)
+    assert result.success  # nosec B101
+
+
+def test_asset_pack_verification_rejects_traversal(tmp_path) -> None:
+    package = tmp_path / "unsafe-assets.zip"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.writestr("packs/makehuman_system_assets.json", "{}")
+        archive.writestr("../outside.txt", "unsafe")
+    request = PluginPackageRequestVO(
+        plugin_id=PluginId("makehuman_system_assets"),
+        source_url=PluginSourceUrl("https://example.invalid/assets.zip"),
+        sha256=PluginSha256(hashlib.sha256(package.read_bytes()).hexdigest()),
+        cache_path=PluginCachePath(str(package)),
+        install_path=PluginInstallPath(""),
+        asset_pack=True,
+    )
+    result = PluginPackageCapability().execute(PluginActionName("verify_mpfb_asset_pack"), request)
+    assert not result.success  # nosec B101
+    assert "traversal" in str(result.message)  # nosec B101
+
+
 def test_extension_lifecycle_uses_allowlisted_blender_commands(tmp_path, monkeypatch) -> None:
     calls: list[tuple[str, ...]] = []
 
