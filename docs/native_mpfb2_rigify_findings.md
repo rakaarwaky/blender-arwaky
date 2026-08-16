@@ -16,6 +16,20 @@ Blender 5.2.0 LTS with the installed MPFB2 extension successfully ran the native
 
 This confirms the correct integration path is the native MPFB2 service API, not a generic Rigify human metarig followed by bounding-box or landmark heuristics.
 
+## Visual detail evidence
+
+The native scene was rendered again with deterministic diagnostic curves generated from the final Rigify pose-bone coordinates. This evidence is intended to verify local bone placement on the character mesh, complementing the runtime deformation measurements in `native_mpfb2_rigify_validation.md`.
+
+| Evidence | Resolution | Native overlay content | Purpose |
+| --- | ---: | --- | --- |
+| `native_mpfb2_rigify_full_skeleton.png` | 900 × 1100 | 1,090 pose bones; 260 controls; 22 IK targets | Full-body structural inspection |
+| `native_mpfb2_rigify_face_closeup.png` | 1,000 × 1,000 | 97 DEF facial bones; 72 face controls | Inspection of brow, eye, nose, cheek, lip, jaw, ear, and neck mapping |
+| `native_mpfb2_rigify_hand_closeup.png` | 1,100 × 900 | 16 DEF left-hand/finger bones; 27 controls; 2 IK-related bones | Inspection of wrist, palm, thumb, index, middle, ring, and pinky chains |
+
+The face close-up shows the facial chains tracking the corresponding mesh regions. The hand close-up uses the front-side camera because the character pose brings the fingers close together; overlapping silhouettes are therefore a property of the current pose, not a missing finger chain. IK targets and animator controls can extend outside the mesh by design and must not be interpreted as deform-bone misalignment.
+
+The editable scene retains `show_in_front=True` and `display_type="OCTAHEDRAL"` on the generated Rigify armature, so the same native armature can also be inspected directly in Blender's 3D Viewport.
+
 ## Installed native data
 
 The Blender 5.2 MPFB2 extension contains:
