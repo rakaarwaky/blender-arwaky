@@ -236,6 +236,10 @@ class BlenderMCPServer:
             "insert_object_keyframe": self.insert_object_keyframe,
             "set_timeline_range": self.set_timeline_range,
             "list_object_keyframes": self.list_object_keyframes,
+            "list_animation_actions": self.list_animation_actions,
+            "inspect_rigify_controls": self.inspect_rigify_controls,
+            "import_animation_file": self.import_animation_file,
+            "link_action_to_armature": self.link_action_to_armature,
             "get_mesh_statistics": self.get_mesh_statistics,
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
@@ -2184,6 +2188,18 @@ class BlenderMCPServer:
             "modifier_name": modifier.name,
         }
 
+    @staticmethod
+    def _iter_action_fcurves(action):
+        """Return F-Curves for both legacy and layered Blender Action APIs."""
+        if hasattr(action, "fcurves"):
+            return list(action.fcurves)
+        curves = []
+        for layer in action.layers:
+            for strip in layer.strips:
+                for channelbag in getattr(strip, "channelbags", []):
+                    curves.extend(list(channelbag.fcurves))
+        return curves
+
     def get_animation_state(self, object_name, limit=100):
         """Inspect bounded action and F-curve state for one object."""
         limit = self._bounded_wave_two_limit(limit)
@@ -2193,7 +2209,7 @@ class BlenderMCPServer:
         action = obj.animation_data.action if obj.animation_data and obj.animation_data.action else None
         curves = []
         if action:
-            for curve in list(action.fcurves)[:limit]:
+            for curve in self._iter_action_fcurves(action)[:limit]:
                 curves.append(
                     {
                         "data_path": curve.data_path,
@@ -2255,6 +2271,97 @@ class BlenderMCPServer:
     def list_object_keyframes(self, object_name, limit=100):
         """Return the same bounded animation state under an explicit list action."""
         return self.get_animation_state(object_name, limit)
+
+    def list_animation_actions(self, armature_name=None, limit=100):
+        """List native Blender Actions, optionally filtered to an armature's active Action."""
+        limit = self._bounded_wave_two_limit(limit)
+        armature = None
+        if armature_name:
+            armature = bpy.data.objects.get(str(armature_name))
+            if armature is None or armature.type != "ARMATURE":
+                raise ValueError(f"Armature object not found: {armature_name}")
+        actions = []
+        for action in list(bpy.data.actions)[:limit]:
+            if armature is not None and (not armature.animation_data or armature.animation_data.action != action):
+                continue
+            actions.append(
+                {
+                    "name": action.name,
+                    "frame_start": float(action.frame_range[0]),
+                    "frame_end": float(action.frame_range[1]),
+                    "curve_count": len(self._iter_action_fcurves(action)),
+                    "slot_count": len(action.slots) if hasattr(action, "slots") else 0,
+                }
+            )
+        return {"actions": actions, "count": len(actions)}
+
+    def inspect_rigify_controls(self, armature_name, limit=1000):
+        """Inspect generated Rigify control and deform bone roles without mutating the scene."""
+        limit = self._bounded_wave_two_limit(limit)
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Rigify armature not found: {armature_name}")
+        controls = []
+        for bone in list(obj.data.bones)[:limit]:
+            name = bone.name
+            lowered = name.lower()
+            if name.startswith("DEF-"):
+                role = "deform"
+            elif "_ik" in lowered:
+                role = "ik"
+            elif "_pole" in lowered:
+                role = "pole"
+            elif name.startswith("MCH-"):
+                role = "mechanism"
+            elif name.startswith("ORG-"):
+                role = "original"
+            else:
+                role = "control"
+            side = "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+            controls.append({"name": name, "role": role, "side": side, "is_deform": bool(bone.use_deform)})
+        return {"armature_name": obj.name, "control_count": len(controls), "controls": controls}
+
+    def import_animation_file(self, source_path, importer=None):
+        """Import native FBX or BVH animation data and report created objects/actions."""
+        path = str(source_path).strip()
+        if not path or len(path) > 4096:
+            raise ValueError("source_path must be 1-4096 characters")
+        suffix = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        selected_importer = str(importer or suffix).lower()
+        if selected_importer not in {"fbx", "bvh"}:
+            raise ValueError("importer must be fbx or bvh")
+        before_objects = set(bpy.data.objects.keys())
+        before_actions = set(bpy.data.actions.keys())
+        if selected_importer == "fbx":
+            bpy.ops.import_scene.fbx(filepath=path)
+        else:
+            bpy.ops.import_anim.bvh(filepath=path)
+        return {
+            "source_path": path,
+            "importer": selected_importer,
+            "imported_objects": [name for name in bpy.data.objects if name not in before_objects],
+            "action_names": [name for name in bpy.data.actions if name not in before_actions],
+            "warnings": [],
+        }
+
+    def link_action_to_armature(self, armature_name, action_name):
+        """Assign one existing native Blender Action to an armature."""
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        action = bpy.data.actions.get(str(action_name))
+        if action is None:
+            raise ValueError(f"Action not found: {action_name}")
+        obj.animation_data_create()
+        previous = obj.animation_data.action.name if obj.animation_data.action else None
+        changed = previous != action.name
+        obj.animation_data.action = action
+        return {
+            "armature_name": obj.name,
+            "action_name": action.name,
+            "previous_action_name": previous,
+            "changed": changed,
+        }
 
     def get_mesh_statistics(self, object_name):
         """Return bounded mesh topology and UV statistics."""

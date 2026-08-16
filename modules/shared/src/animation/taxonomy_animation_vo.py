@@ -1,5 +1,3 @@
-"""Animation value objects shared across the dispatcher and feature layers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -38,3 +36,44 @@ class AnimationMutationVO:
     frame_start: int | None = None
     frame_end: int | None = None
     current_frame: int | None = None
+
+
+@dataclass(frozen=True)
+class AnimationActionVO:
+    name: str
+    frame_start: float
+    frame_end: float
+    curve_count: int
+    slot_count: int = 0
+
+
+@dataclass(frozen=True)
+class RigifyControlVO:
+    name: str
+    role: str
+    side: str | None
+    is_deform: bool
+
+
+@dataclass(frozen=True)
+class RigifyControlStateVO:
+    armature_name: str
+    controls: tuple[RigifyControlVO, ...] = field(default_factory=tuple)
+    control_count: int = 0
+
+
+@dataclass(frozen=True)
+class AnimationImportVO:
+    source_path: str
+    importer: str
+    imported_objects: tuple[str, ...] = field(default_factory=tuple)
+    action_names: tuple[str, ...] = field(default_factory=tuple)
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class AnimationActionLinkVO:
+    armature_name: str
+    action_name: str
+    previous_action_name: str | None
+    changed: bool

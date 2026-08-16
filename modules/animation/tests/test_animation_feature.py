@@ -69,3 +69,86 @@ async def test_animation_keyframe_returns_typed_mutation() -> None:
     assert result.object_name == "Cube"
     assert result.data_path == "scale"
     assert result.frame == 12
+
+
+@pytest.mark.asyncio
+async def test_animation_lists_actions_with_typed_result() -> None:
+    gateway = FakeGateway(
+        {
+            "actions": [
+                {"name": "Walk", "frame_start": 1, "frame_end": 48, "curve_count": 6, "slot_count": 1}
+            ]
+        }
+    )
+
+    result = await create_animation_feature(gateway).list_actions("Rig")
+
+    assert result[0].name == "Walk"
+    assert result[0].curve_count == 6
+    assert '"Rig"' in gateway.codes[0]
+
+
+@pytest.mark.asyncio
+async def test_animation_inspects_rigify_controls() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "control_count": 2,
+            "controls": [
+                {"name": "upper_arm_ik.L", "role": "ik", "side": "left", "is_deform": False},
+                {"name": "DEF-upper_arm.L", "role": "deform", "side": "left", "is_deform": True},
+            ],
+        }
+    )
+
+    result = await create_animation_feature(gateway).inspect_rigify_controls("Rigify")
+
+    assert result.control_count == 2
+    assert result.controls[0].role == "ik"
+    assert result.controls[1].is_deform is True
+
+
+@pytest.mark.asyncio
+async def test_animation_import_rejects_unsupported_format_before_gateway() -> None:
+    gateway = FakeGateway({})
+
+    with pytest.raises(ValueError, match="importer must be fbx or bvh"):
+        await AnimationExecutor(gateway).import_animation_file("/tmp/animation.glb")
+
+    assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_import_returns_created_actions() -> None:
+    gateway = FakeGateway(
+        {
+            "source_path": "/tmp/walk.bvh",
+            "importer": "bvh",
+            "imported_objects": ["mocap"],
+            "action_names": ["Walk"],
+            "warnings": [],
+        }
+    )
+
+    result = await create_animation_feature(gateway).import_animation_file("/tmp/walk.bvh")
+
+    assert result.importer == "bvh"
+    assert result.action_names == ("Walk",)
+
+
+@pytest.mark.asyncio
+async def test_animation_links_action_to_armature() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "action_name": "Walk",
+            "previous_action_name": "Idle",
+            "changed": True,
+        }
+    )
+
+    result = await create_animation_feature(gateway).link_action_to_armature("Rigify", "Walk")
+
+    assert result.action_name == "Walk"
+    assert result.previous_action_name == "Idle"
+    assert result.changed is True

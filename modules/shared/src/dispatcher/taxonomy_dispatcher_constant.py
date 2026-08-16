@@ -6,6 +6,7 @@ Taxonomy layer: pure constants only — no functions, loops, classes, or I/O.
 
 from __future__ import annotations
 
+from .taxonomy_animation_action_constant import ANIMATION_ACTION_SCHEMAS
 from .taxonomy_plugin_action_constant import PLUGIN_ACTION_SCHEMAS
 
 DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
@@ -286,43 +287,7 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             },
         },
     },
-    "animation": {
-        "get_animation_state": {
-            "description": "Inspect an object's bounded animation action, frame range, and F-curves",
-            "parameters": {
-                "object_name": {"type": "string", "required": True},
-                "limit": {"type": "integer", "required": False, "default": 100},
-            },
-        },
-        "insert_object_keyframe": {
-            "description": "Insert a bounded keyframe for an object's location, rotation, or scale",
-            "parameters": {
-                "object_name": {"type": "string", "required": True},
-                "frame": {"type": "integer", "required": True},
-                "data_path": {
-                    "type": "string",
-                    "required": True,
-                    "enum": ["location", "rotation_euler", "scale"],
-                },
-                "index": {"type": "integer", "required": False},
-            },
-        },
-        "set_timeline_range": {
-            "description": "Set the scene timeline frame range with bounded integer values",
-            "parameters": {
-                "frame_start": {"type": "integer", "required": True},
-                "frame_end": {"type": "integer", "required": True},
-                "current_frame": {"type": "integer", "required": False},
-            },
-        },
-        "list_object_keyframes": {
-            "description": "List an object's bounded F-curve keyframe points",
-            "parameters": {
-                "object_name": {"type": "string", "required": True},
-                "limit": {"type": "integer", "required": False, "default": 100},
-            },
-        },
-    },
+    "animation": ANIMATION_ACTION_SCHEMAS,
     "mesh": {
         "get_mesh_statistics": {
             "description": "Inspect bounded mesh vertex, edge, polygon, normal, and UV statistics",

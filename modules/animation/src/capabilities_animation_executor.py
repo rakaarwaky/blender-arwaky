@@ -6,10 +6,15 @@ import json
 from collections.abc import Mapping
 
 from modules.shared.src.animation.taxonomy_animation_vo import (
+    AnimationActionLinkVO,
+    AnimationActionVO,
     AnimationCurveVO,
+    AnimationImportVO,
     AnimationKeyframeVO,
     AnimationMutationVO,
     AnimationStateVO,
+    RigifyControlStateVO,
+    RigifyControlVO,
 )
 from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 
@@ -108,6 +113,142 @@ result = {"object_name": "__scene__", "frame_start": scene.frame_start,
 
     async def list_keyframes(self, object_name: str, limit: int = 100) -> AnimationStateVO:
         return await self.get_state(object_name, limit)
+
+    async def list_actions(self, armature_name: str | None = None, limit: int = 100) -> tuple[AnimationActionVO, ...]:
+        limit = self._bounded_limit(limit)
+        code = """
+import bpy
+armature = bpy.data.objects.get(__ARMATURE_NAME__) if __ARMATURE_NAME__ else None
+if __ARMATURE_NAME__ and (armature is None or armature.type != "ARMATURE"):
+    raise ValueError(f"Armature object not found: {__ARMATURE_NAME__}")
+items = []
+for action in list(bpy.data.actions)[:__LIMIT__]:
+    if armature is not None and armature.animation_data and armature.animation_data.action != action:
+        continue
+    items.append({"name": action.name, "frame_start": float(action.frame_range[0]),
+                  "frame_end": float(action.frame_range[1]), "curve_count": len(action.fcurves),
+                  "slot_count": len(action.slots) if hasattr(action, "slots") else 0})
+result = {"actions": items}
+""".replace("__ARMATURE_NAME__", json.dumps(str(armature_name) if armature_name else ""))
+        code = code.replace("__LIMIT__", str(limit))
+        result = await self._execute(code)
+        return tuple(
+            AnimationActionVO(
+                name=str(item.get("name", "")),
+                frame_start=float(item.get("frame_start", 0.0)),
+                frame_end=float(item.get("frame_end", 0.0)),
+                curve_count=int(item.get("curve_count", 0)),
+                slot_count=int(item.get("slot_count", 0)),
+            )
+            for item in result.get("actions", [])
+            if isinstance(item, Mapping)
+        )
+
+    async def inspect_rigify_controls(self, armature_name: str, limit: int = 1000) -> RigifyControlStateVO:
+        limit = self._bounded_limit(limit)
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError(f"Rigify armature not found: {__ARMATURE_NAME__}")
+controls = []
+for bone in list(obj.data.bones)[:__LIMIT__]:
+    name = bone.name
+    lowered = name.lower()
+    if name.startswith("DEF-"):
+        role = "deform"
+    elif "_ik" in lowered:
+        role = "ik"
+    elif "_pole" in lowered:
+        role = "pole"
+    elif name.startswith("MCH-"):
+        role = "mechanism"
+    elif name.startswith("ORG-"):
+        role = "original"
+    else:
+        role = "control"
+    side = "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+    controls.append({"name": name, "role": role, "side": side, "is_deform": bool(bone.use_deform)})
+result = {"armature_name": obj.name, "controls": controls, "control_count": len(controls)}
+""".replace("__ARMATURE_NAME__", json.dumps(str(armature_name))).replace("__LIMIT__", str(limit))
+        result = await self._execute(code)
+        controls = tuple(
+            RigifyControlVO(
+                name=str(item.get("name", "")),
+                role=str(item.get("role", "control")),
+                side=str(item["side"]) if item.get("side") else None,
+                is_deform=bool(item.get("is_deform", False)),
+            )
+            for item in result.get("controls", [])
+            if isinstance(item, Mapping)
+        )
+        return RigifyControlStateVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            controls=controls,
+            control_count=int(result.get("control_count", len(controls))),
+        )
+
+    async def import_animation_file(self, source_path: str, importer: str | None = None) -> AnimationImportVO:
+        path = str(source_path).strip()
+        if not path or len(path) > 4096:
+            raise ValueError("source_path must be 1-4096 characters")
+        suffix = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        selected_importer = str(importer or suffix).lower()
+        if selected_importer not in {"fbx", "bvh"}:
+            raise ValueError("importer must be fbx or bvh")
+        operator = "bpy.ops.import_scene.fbx" if selected_importer == "fbx" else "bpy.ops.import_anim.bvh"
+        code = """
+import bpy
+before_objects = set(bpy.data.objects.keys())
+before_actions = set(bpy.data.actions.keys())
+__OPERATOR__(filepath=__SOURCE_PATH__)
+after_objects = [name for name in bpy.data.objects.keys() if name not in before_objects]
+after_actions = [name for name in bpy.data.actions.keys() if name not in before_actions]
+result = {"source_path": __SOURCE_PATH__, "importer": __IMPORTER__,
+          "imported_objects": after_objects, "action_names": after_actions, "warnings": []}
+""".replace("__OPERATOR__", operator).replace("__SOURCE_PATH__", json.dumps(path)).replace(
+            "__IMPORTER__", json.dumps(selected_importer)
+        )
+        result = await self._execute(code)
+        return AnimationImportVO(
+            source_path=str(result.get("source_path", path)),
+            importer=str(result.get("importer", selected_importer)),
+            imported_objects=tuple(str(item) for item in result.get("imported_objects", [])),
+            action_names=tuple(str(item) for item in result.get("action_names", [])),
+            warnings=tuple(str(item) for item in result.get("warnings", [])),
+        )
+
+    async def link_action_to_armature(self, armature_name: str, action_name: str) -> AnimationActionLinkVO:
+        armature_name = str(armature_name).strip()
+        action_name = str(action_name).strip()
+        if not armature_name or not action_name:
+            raise ValueError("armature_name and action_name are required")
+        if len(armature_name) > 256 or len(action_name) > 256:
+            raise ValueError("armature_name and action_name must not exceed 256 characters")
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError(f"Armature object not found: {__ARMATURE_NAME__}")
+action = bpy.data.actions.get(__ACTION_NAME__)
+if action is None:
+    raise ValueError(f"Action not found: {__ACTION_NAME__}")
+obj.animation_data_create()
+previous = obj.animation_data.action.name if obj.animation_data.action else None
+changed = previous != action.name
+obj.animation_data.action = action
+result = {"armature_name": obj.name, "action_name": action.name,
+          "previous_action_name": previous, "changed": changed}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__ACTION_NAME__", json.dumps(action_name))
+        result = await self._execute(code)
+        return AnimationActionLinkVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            action_name=str(result.get("action_name", action_name)),
+            previous_action_name=str(result["previous_action_name"])
+            if result.get("previous_action_name")
+            else None,
+            changed=bool(result.get("changed", False)),
+        )
 
     async def _execute(self, code: str) -> Mapping[str, object]:
         result = await self._code_executor.execute_blender_code(code)

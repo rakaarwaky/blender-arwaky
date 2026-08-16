@@ -24,3 +24,15 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
 
     async def list_keyframes(self, object_name: ObjectName, limit: int = 100):
         return await self._executor.list_keyframes(object_name, limit)
+
+    async def list_actions(self, armature_name: str | None = None, limit: int = 100):
+        return await self._executor.list_actions(armature_name, limit)
+
+    async def inspect_rigify_controls(self, armature_name: str, limit: int = 1000):
+        return await self._executor.inspect_rigify_controls(armature_name, limit)
+
+    async def import_animation_file(self, source_path: str, importer: str | None = None):
+        return await self._executor.import_animation_file(source_path, importer)
+
+    async def link_action_to_armature(self, armature_name: str, action_name: str):
+        return await self._executor.link_action_to_armature(armature_name, action_name)
