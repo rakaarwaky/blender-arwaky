@@ -48,10 +48,10 @@ def test_legacy_install_and_remove_are_idempotent(tmp_path) -> None:
 
     assert capability.execute(PluginActionName("install_plugin"), request).success
     assert capability.execute(PluginActionName("install_plugin"), request).success
-    assert (install_path / "__init__.py").is_file()
+    assert (install_path / "__init__.py").is_file()  # nosec B101
     assert capability.execute(PluginActionName("remove_plugin"), request).success
     assert capability.execute(PluginActionName("remove_plugin"), request).success
-    assert not install_path.exists()
+    assert not install_path.exists()  # nosec B101
 
 
 def test_extension_lifecycle_uses_allowlisted_blender_commands(tmp_path, monkeypatch) -> None:
