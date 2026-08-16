@@ -82,3 +82,56 @@ def _validate_vector(value: list[float], name: str) -> None:
         raise ValueError(f"{name} must contain exactly 3 numbers")
     if not all(isinstance(item, (int, float)) and math.isfinite(float(item)) for item in value):
         raise ValueError(f"{name} must contain finite numbers")
+
+
+RIGIFY_ALLOWED_CONSTRAINT_TYPES = (
+    "COPY_LOCATION",
+    "COPY_ROTATION",
+    "LIMIT_LOCATION",
+    "LIMIT_ROTATION",
+)
+
+
+@dataclass(frozen=True)
+class RigifyBoneConstraintRequest:
+    """Validated request for configuring one pose-bone constraint."""
+
+    armature_name: str
+    bone_name: str
+    constraint_type: str
+    enabled: bool
+    constraint_name: str | None = None
+    target_object: str | None = None
+    subtarget: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_name(self.armature_name, "armature_name")
+        _validate_name(self.bone_name, "bone_name")
+        constraint_type = str(self.constraint_type).upper()
+        if constraint_type not in RIGIFY_ALLOWED_CONSTRAINT_TYPES:
+            raise ValueError(f"unsupported constraint type: {constraint_type}")
+        if not isinstance(self.enabled, bool):
+            raise ValueError("enabled must be boolean")
+        for name, value in {
+            "constraint_name": self.constraint_name,
+            "target_object": self.target_object,
+            "subtarget": self.subtarget,
+        }.items():
+            if value is not None:
+                _validate_name(value, name)
+
+
+def map_configure_bone_constraint(request: RigifyBoneConstraintRequest) -> dict[str, object]:
+    """Map a validated constraint request to the canonical Blender command."""
+    return {
+        "type": "configure_bone_constraint",
+        "params": {
+            "armature_name": str(request.armature_name).strip(),
+            "bone_name": str(request.bone_name).strip(),
+            "constraint_type": str(request.constraint_type).upper(),
+            "enabled": request.enabled,
+            "constraint_name": request.constraint_name,
+            "target_object": request.target_object,
+            "subtarget": request.subtarget,
+        },
+    }

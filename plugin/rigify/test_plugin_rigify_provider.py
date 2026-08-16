@@ -175,3 +175,48 @@ def test_pose_bone_transform_request_rejects_non_finite_vector() -> None:
         assert "finite" in str(error)
     else:
         raise AssertionError("expected non-finite pose transform to be rejected")
+
+
+def test_bone_constraint_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import (
+        RigifyBoneConstraintRequest,
+        map_configure_bone_constraint,
+    )
+
+    command = map_configure_bone_constraint(
+        RigifyBoneConstraintRequest(
+            armature_name="metarig",
+            bone_name="upper_arm.L",
+            constraint_type="copy_rotation",
+            enabled=True,
+            constraint_name="Arwaky_CopyRotation",
+            target_object="TargetRig",
+            subtarget="upper_arm.R",
+        )
+    )
+
+    assert command["type"] == "configure_bone_constraint"
+    assert command["params"]["constraint_type"] == "COPY_ROTATION"
+    assert command["params"]["target_object"] == "TargetRig"
+
+
+def test_bone_constraint_request_rejects_unallowlisted_type() -> None:
+    from plugin.rigify.plugin_operations import RigifyBoneConstraintRequest
+
+    try:
+        RigifyBoneConstraintRequest("metarig", "upper_arm.L", "IK", True)
+    except ValueError as error:
+        assert "unsupported constraint type" in str(error)
+    else:
+        raise AssertionError("expected unsupported constraint type to be rejected")
+
+
+def test_bone_constraint_request_rejects_non_boolean_enabled() -> None:
+    from plugin.rigify.plugin_operations import RigifyBoneConstraintRequest
+
+    try:
+        RigifyBoneConstraintRequest("metarig", "upper_arm.L", "COPY_ROTATION", "true")
+    except ValueError as error:
+        assert "enabled" in str(error)
+    else:
+        raise AssertionError("expected non-boolean enabled value to be rejected")

@@ -65,6 +65,7 @@ class CliActionRouter:
         "inspect_mpfb_assets",
         "inspect_armature",
         "set_pose_bone_transform",
+        "configure_bone_constraint",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -175,13 +176,15 @@ class CliActionRouter:
             map_remove_character,
         )
         from plugin.rigify.plugin_operations import (
+            RigifyBoneConstraintRequest,
             RigifyInspectArmatureRequest,
             RigifyPoseBoneTransformRequest,
+            map_configure_bone_constraint,
             map_inspect_armature,
             map_set_pose_bone_transform,
         )
 
-        rigify_actions = {"inspect_armature", "set_pose_bone_transform"}
+        rigify_actions = {"inspect_armature", "set_pose_bone_transform", "configure_bone_constraint"}
         default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
         expected_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
@@ -228,6 +231,20 @@ class CliActionRouter:
                     location=params.get("location"),
                     rotation_euler=params.get("rotation_euler"),
                     scale=params.get("scale"),
+                )
+            )
+        elif action_name == "configure_bone_constraint":
+            command = map_configure_bone_constraint(
+                RigifyBoneConstraintRequest(
+                    armature_name=str(params.get("armature_name", "")),
+                    bone_name=str(params.get("bone_name", "")),
+                    constraint_type=str(params.get("constraint_type", "")),
+                    enabled=params.get("enabled", False),
+                    constraint_name=(
+                        str(params["constraint_name"]) if params.get("constraint_name") is not None else None
+                    ),
+                    target_object=str(params["target_object"]) if params.get("target_object") is not None else None,
+                    subtarget=str(params["subtarget"]) if params.get("subtarget") is not None else None,
                 )
             )
         else:
