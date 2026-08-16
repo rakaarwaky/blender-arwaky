@@ -77,3 +77,37 @@ class AnimationActionLinkVO:
     action_name: str
     previous_action_name: str | None
     changed: bool
+
+
+@dataclass(frozen=True)
+class AnimationPoseAssetVO:
+    name: str
+    is_pose_asset: bool
+    frame_start: float
+    frame_end: float
+    catalog_id: str | None = None
+
+
+@dataclass(frozen=True)
+class AnimationPoseAssetStateVO:
+    armature_name: str
+    asset_name: str
+    blend_factor: float
+    flipped: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class AnimationPoseBufferVO:
+    armature_name: str
+    flipped: bool
+    selected_mask: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class RigifyPoseKeyframeVO:
+    armature_name: str
+    frame: int
+    bone_names: tuple[str, ...] = field(default_factory=tuple)
+    changed: bool = True

@@ -152,3 +152,70 @@ async def test_animation_links_action_to_armature() -> None:
     assert result.action_name == "Walk"
     assert result.previous_action_name == "Idle"
     assert result.changed is True
+
+
+@pytest.mark.asyncio
+async def test_animation_lists_pose_assets_with_typed_result() -> None:
+    gateway = FakeGateway(
+        {"assets": [{"name": "T-Pose", "is_pose_asset": True, "frame_start": 1, "frame_end": 1}]}
+    )
+
+    result = await create_animation_feature(gateway).list_pose_assets()
+
+    assert result[0].name == "T-Pose"
+    assert result[0].is_pose_asset is True
+
+
+@pytest.mark.asyncio
+async def test_animation_applies_flipped_pose_asset() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "asset_name": "T-Pose",
+            "blend_factor": 1.0,
+            "flipped": True,
+            "changed": True,
+        }
+    )
+
+    result = await create_animation_feature(gateway).apply_pose_asset("Rigify", "T-Pose", flipped=True)
+
+    assert result.flipped is True
+    assert result.asset_name == "T-Pose"
+
+
+@pytest.mark.asyncio
+async def test_animation_rejects_pose_blend_outside_bounds() -> None:
+    gateway = FakeGateway({})
+
+    with pytest.raises(ValueError, match="blend_factor"):
+        await AnimationExecutor(gateway).apply_pose_asset("Rigify", "T-Pose", blend_factor=1.1)
+
+    assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_pastes_mirrored_pose_buffer() -> None:
+    gateway = FakeGateway(
+        {"armature_name": "Rigify", "flipped": True, "selected_mask": True, "changed": True}
+    )
+
+    result = await create_animation_feature(gateway).paste_rigify_pose("Rigify", True, True)
+
+    assert result.flipped is True
+    assert result.selected_mask is True
+
+
+@pytest.mark.asyncio
+async def test_animation_keyframes_named_rigify_controls() -> None:
+    gateway = FakeGateway(
+        {"armature_name": "Rigify", "frame": 24, "bone_names": ["upper_arm_ik.L"], "changed": True}
+    )
+
+    result = await create_animation_feature(gateway).keyframe_rigify_pose(
+        "Rigify", 24, ["upper_arm_ik.L"]
+    )
+
+    assert result.frame == 24
+    assert result.bone_names == ("upper_arm_ik.L",)
+    assert '"upper_arm_ik.L"' in gateway.codes[0]

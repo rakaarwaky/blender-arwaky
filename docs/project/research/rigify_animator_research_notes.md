@@ -220,3 +220,15 @@ The attempted official URL `https://docs.blender.org/manual/en/latest/files/impo
 Do not use fictional high-level actions such as `create_walk_cycle`, `create_jump_action`, or `create_run_cycle` as if they were official Blender operations. Prefer explicit operations such as `import_animation_file`, `import_motion_capture`, `inspect_imported_action`, `link_action_to_armature`, `retarget_animation`, `bake_animation_action`, `import_pose_asset`, `apply_pose_asset`, `edit_action_keyframes`, and `validate_animation_result`.
 
 ## End import correction
+
+
+## Wave 2 Pose Asset Findings
+
+The official Blender 5.2 LTS manual states that the Pose Library is based on the Asset Browser and is intended for Pose Mode armatures. A pose asset is an Action marked as an asset containing exactly one frame of animation data. Pose assets can use slots, and applying a pose chooses the best matching slot for the active armature. The documented operations include Apply Pose, Apply Pose Flipped, Blend Pose, and Select/Deselect Pose Bones.
+
+The official Copy/Paste Pose manual documents Pose > Copy Pose, Paste Pose, and Paste Pose Flipped. Copying uses selected bones, while pasting applies by bone name and operates on each bone's local position, rotation, and scale. The paste buffer is session-only and is not saved, so Wave 2 should prefer persistent pose assets for reusable workflows and expose copy/paste only as an explicitly ephemeral operation.
+
+Sources:
+- https://docs.blender.org/manual/en/latest/animation/armatures/posing/editing/pose_library.html
+- https://docs.blender.org/manual/en/latest/animation/armatures/posing/editing/copy_paste.html
+- https://docs.blender.org/api/current/bpy.ops.poselib.html

@@ -36,3 +36,30 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
 
     async def link_action_to_armature(self, armature_name: str, action_name: str):
         return await self._executor.link_action_to_armature(armature_name, action_name)
+
+    async def list_pose_assets(self, limit: int = 100):
+        return await self._executor.list_pose_assets(limit)
+
+    async def create_pose_asset(self, armature_name: str, pose_name: str, catalog_path: str | None = None):
+        return await self._executor.create_pose_asset(armature_name, pose_name, catalog_path)
+
+    async def apply_pose_asset(
+        self, armature_name: str, asset_name: str, blend_factor: float = 1.0, flipped: bool = False
+    ):
+        return await self._executor.apply_pose_asset(armature_name, asset_name, blend_factor, flipped)
+
+    async def blend_pose_asset(
+        self, armature_name: str, asset_name: str, blend_factor: float, flipped: bool = False
+    ):
+        return await self._executor.blend_pose_asset(armature_name, asset_name, blend_factor, flipped)
+
+    async def copy_rigify_pose(self, armature_name: str):
+        return await self._executor.copy_rigify_pose(armature_name)
+
+    async def paste_rigify_pose(
+        self, armature_name: str, flipped: bool = False, selected_mask: bool = False
+    ):
+        return await self._executor.paste_rigify_pose(armature_name, flipped, selected_mask)
+
+    async def keyframe_rigify_pose(self, armature_name: str, frame: int, bone_names: list[str] | None = None):
+        return await self._executor.keyframe_rigify_pose(armature_name, frame, bone_names)

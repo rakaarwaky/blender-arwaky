@@ -64,4 +64,54 @@ ANIMATION_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             "action_name": {"type": "string", "required": True},
         },
     },
+    "list_pose_assets": {
+        "description": "List native Blender pose assets available in the current file",
+        "parameters": {"limit": {"type": "integer", "required": False, "default": 100}},
+    },
+    "create_pose_asset": {
+        "description": "Create a native pose asset from the active Rigify armature pose",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "pose_name": {"type": "string", "required": True},
+            "catalog_path": {"type": "string", "required": False},
+        },
+    },
+    "apply_pose_asset": {
+        "description": "Apply or mirror a native pose asset to a Rigify armature",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "asset_name": {"type": "string", "required": True},
+            "blend_factor": {"type": "number", "required": False, "default": 1.0},
+            "flipped": {"type": "boolean", "required": False, "default": False},
+        },
+    },
+    "blend_pose_asset": {
+        "description": "Blend a native pose asset into a Rigify armature",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "asset_name": {"type": "string", "required": True},
+            "blend_factor": {"type": "number", "required": True},
+            "flipped": {"type": "boolean", "required": False, "default": False},
+        },
+    },
+    "copy_rigify_pose": {
+        "description": "Copy the selected Rigify pose to Blender's session pose buffer",
+        "parameters": {"armature_name": {"type": "string", "required": True}},
+    },
+    "paste_rigify_pose": {
+        "description": "Paste the session pose buffer to a Rigify armature, optionally mirrored",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "flipped": {"type": "boolean", "required": False, "default": False},
+            "selected_mask": {"type": "boolean", "required": False, "default": False},
+        },
+    },
+    "keyframe_rigify_pose": {
+        "description": "Insert native keyframes for selected or named Rigify pose controls",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "frame": {"type": "integer", "required": True},
+            "bone_names": {"type": "array", "required": False},
+        },
+    },
 }

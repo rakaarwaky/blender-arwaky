@@ -240,6 +240,13 @@ class BlenderMCPServer:
             "inspect_rigify_controls": self.inspect_rigify_controls,
             "import_animation_file": self.import_animation_file,
             "link_action_to_armature": self.link_action_to_armature,
+            "list_pose_assets": self.list_pose_assets,
+            "create_pose_asset": self.create_pose_asset,
+            "apply_pose_asset": self.apply_pose_asset,
+            "blend_pose_asset": self.blend_pose_asset,
+            "copy_rigify_pose": self.copy_rigify_pose,
+            "paste_rigify_pose": self.paste_rigify_pose,
+            "keyframe_rigify_pose": self.keyframe_rigify_pose,
             "get_mesh_statistics": self.get_mesh_statistics,
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
@@ -2362,6 +2369,194 @@ class BlenderMCPServer:
             "previous_action_name": previous,
             "changed": changed,
         }
+
+    def list_pose_assets(self, limit=100):
+        """List Actions marked as native Blender pose assets."""
+        limit = self._bounded_wave_two_limit(limit)
+        assets = []
+        for action in list(bpy.data.actions)[:limit]:
+            if action.asset_data is None:
+                continue
+            assets.append(
+                {
+                    "name": action.name,
+                    "is_pose_asset": True,
+                    "frame_start": float(action.frame_range[0]),
+                    "frame_end": float(action.frame_range[1]),
+                    "catalog_id": str(getattr(action.asset_data, "catalog_id", "")) or None,
+                }
+            )
+        return {"assets": assets, "count": len(assets)}
+
+    @staticmethod
+    def _activate_pose_armature(armature_name):
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        for selected in list(bpy.context.selected_objects):
+            selected.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if obj.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        return obj
+
+    def create_pose_asset(self, armature_name, pose_name, catalog_path=None):
+        """Create a native Pose Library asset from the active Rigify pose."""
+        pose_name = str(pose_name).strip()
+        catalog_path = "" if catalog_path is None else str(catalog_path).strip()
+        if not pose_name or len(pose_name) > 256:
+            raise ValueError("pose_name must be 1-256 characters")
+        if len(catalog_path) > 1024:
+            raise ValueError("catalog_path must not exceed 1024 characters")
+        self._activate_pose_armature(armature_name)
+        kwargs = {"pose_name": pose_name}
+        if catalog_path:
+            kwargs["catalog_path"] = catalog_path
+        bpy.ops.poselib.create_pose_asset(**kwargs)
+        action = bpy.data.actions.get(pose_name)
+        if action is None:
+            candidates = [item for item in bpy.data.actions if item.asset_data is not None]
+            action = candidates[-1] if candidates else None
+        if action is None or action.asset_data is None:
+            raise RuntimeError("Pose asset creation did not produce a native asset Action")
+        return {
+            "name": action.name,
+            "is_pose_asset": True,
+            "frame_start": float(action.frame_range[0]),
+            "frame_end": float(action.frame_range[1]),
+            "catalog_id": str(getattr(action.asset_data, "catalog_id", "")) or None,
+        }
+
+    def apply_pose_asset(self, armature_name, asset_name, blend_factor=1.0, flipped=False):
+        """Apply a native pose asset, with optional Rigify left-right mirroring."""
+        return self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, False)
+
+    def blend_pose_asset(self, armature_name, asset_name, blend_factor, flipped=False):
+        """Blend a native pose asset, with optional Rigify left-right mirroring."""
+        return self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, True)
+
+    def _apply_pose_asset(self, armature_name, asset_name, blend_factor, flipped, blended):
+        factor = float(blend_factor)
+        if not 0.0 <= factor <= 1.0:
+            raise ValueError("blend_factor must be between 0.0 and 1.0")
+        asset = bpy.data.actions.get(str(asset_name))
+        if asset is None or asset.asset_data is None:
+            raise ValueError(f"Pose asset not found: {asset_name}")
+        obj = self._activate_pose_armature(armature_name)
+        operator = bpy.ops.poselib.blend_pose_asset if blended else bpy.ops.poselib.apply_pose_asset
+        try:
+            operator(
+                asset_library_type="LOCAL",
+                relative_asset_identifier=asset.name,
+                blend_factor=factor,
+                flipped=bool(flipped),
+            )
+        except RuntimeError as error:
+            if "No asset in context" not in str(error):
+                raise
+            self._apply_pose_asset_data(obj, asset, factor, bool(flipped))
+        return {
+            "armature_name": obj.name,
+            "asset_name": asset.name,
+            "blend_factor": factor,
+            "flipped": bool(flipped),
+            "changed": True,
+        }
+
+    @staticmethod
+    def _mirror_bone_name(name):
+        if name.endswith(".L"):
+            return name[:-2] + ".R"
+        if name.endswith(".R"):
+            return name[:-2] + ".L"
+        return name
+
+    @staticmethod
+    def _apply_pose_asset_data(obj, asset, blend_factor, flipped):
+        """Apply an Action-backed pose asset when Asset Browser context is unavailable."""
+        from mathutils import Matrix
+
+        frame = float(asset.frame_range[0])
+        curves = BlenderMCPServer._iter_action_fcurves(asset)
+        grouped = {}
+        for curve in curves:
+            path = str(curve.data_path)
+            if not path.startswith('pose.bones["') or '"].' not in path:
+                continue
+            bone_name, property_name = path[12:].split('"].', 1)
+            grouped.setdefault((bone_name, property_name), []).append(curve)
+        mirror_matrix = Matrix(((-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)))
+        for (source_name, property_name), property_curves in grouped.items():
+            target_name = BlenderMCPServer._mirror_bone_name(source_name) if flipped else source_name
+            bone = obj.pose.bones.get(target_name)
+            if bone is None:
+                continue
+            values = [curve.evaluate(frame) for curve in sorted(property_curves, key=lambda item: item.array_index)]
+            if property_name == "location" and flipped and values:
+                values[0] = -values[0]
+            if property_name == "rotation_euler" and flipped and len(values) >= 3:
+                values[0], values[2] = -values[0], -values[2]
+            if property_name == "rotation_quaternion" and flipped and len(values) >= 4:
+                source_quaternion = bone.rotation_quaternion.copy()
+                for index, value in enumerate(values[:4]):
+                    source_quaternion[index] = value
+                mirrored = source_quaternion.to_matrix()
+                mirrored = mirror_matrix @ mirrored @ mirror_matrix
+                values = list(mirrored.to_quaternion())
+            target = getattr(bone, property_name, None)
+            if target is None or not values:
+                continue
+            if hasattr(target, "__getitem__"):
+                for index, value in enumerate(values):
+                    target[index] = target[index] * (1.0 - blend_factor) + value * blend_factor
+            else:
+                blended_value = float(target) * (1.0 - blend_factor) + values[0] * blend_factor
+                setattr(bone, property_name, blended_value)
+
+    def copy_rigify_pose(self, armature_name):
+        """Copy the selected Rigify pose into Blender's session-only pose buffer."""
+        obj = self._activate_pose_armature(armature_name)
+        bpy.ops.pose.copy()
+        return {"armature_name": obj.name, "flipped": False, "selected_mask": False, "changed": True}
+
+    def paste_rigify_pose(self, armature_name, flipped=False, selected_mask=False):
+        """Paste the session pose buffer to Rigify, optionally using Blender mirroring."""
+        obj = self._activate_pose_armature(armature_name)
+        bpy.ops.pose.paste(flipped=bool(flipped), selected_mask=bool(selected_mask))
+        return {
+            "armature_name": obj.name,
+            "flipped": bool(flipped),
+            "selected_mask": bool(selected_mask),
+            "changed": True,
+        }
+
+    def keyframe_rigify_pose(self, armature_name, frame, bone_names=None):
+        """Insert native location, rotation, and scale keyframes for Rigify controls."""
+        frame = self._bounded_wave_two_frame(frame)
+        obj = self._activate_pose_armature(armature_name)
+        requested = tuple(str(name).strip() for name in (bone_names or ()) if str(name).strip())
+        if requested:
+            missing = [name for name in requested if name not in obj.pose.bones]
+            if missing:
+                raise ValueError(f"Rigify pose bones not found: {', '.join(missing)}")
+            targets = [obj.pose.bones[name] for name in requested]
+        else:
+            targets = [bone for bone in obj.pose.bones if bone.bone.select]
+            requested = tuple(bone.name for bone in targets)
+        if not targets:
+            raise ValueError("At least one Rigify pose bone must be selected or named")
+        bpy.context.scene.frame_set(frame)
+        for bone in targets:
+            bone.keyframe_insert(data_path="location", frame=frame)
+            bone.keyframe_insert(data_path="scale", frame=frame)
+            rotation_path = (
+                "rotation_quaternion" if bone.rotation_mode == "QUATERNION"
+                else "rotation_axis_angle" if bone.rotation_mode == "AXIS_ANGLE"
+                else "rotation_euler"
+            )
+            bone.keyframe_insert(data_path=rotation_path, frame=frame)
+        return {"armature_name": obj.name, "frame": frame, "bone_names": list(requested), "changed": True}
 
     def get_mesh_statistics(self, object_name):
         """Return bounded mesh topology and UV statistics."""

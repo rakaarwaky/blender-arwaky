@@ -12,9 +12,13 @@ from modules.shared.src.animation.taxonomy_animation_vo import (
     AnimationImportVO,
     AnimationKeyframeVO,
     AnimationMutationVO,
+    AnimationPoseAssetStateVO,
+    AnimationPoseAssetVO,
+    AnimationPoseBufferVO,
     AnimationStateVO,
     RigifyControlStateVO,
     RigifyControlVO,
+    RigifyPoseKeyframeVO,
 )
 from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 
@@ -249,6 +253,214 @@ result = {"armature_name": obj.name, "action_name": action.name,
             else None,
             changed=bool(result.get("changed", False)),
         )
+
+    async def list_pose_assets(self, limit: int = 100) -> tuple[AnimationPoseAssetVO, ...]:
+        limit = self._bounded_limit(limit)
+        code = """
+import bpy
+items = []
+for action in list(bpy.data.actions)[:__LIMIT__]:
+    if action.asset_data is None:
+        continue
+    items.append({"name": action.name, "is_pose_asset": True,
+                  "frame_start": float(action.frame_range[0]),
+                  "frame_end": float(action.frame_range[1]),
+                  "catalog_id": getattr(action.asset_data, "catalog_id", None)})
+result = {"assets": items}
+""".replace("__LIMIT__", str(limit))
+        result = await self._execute(code)
+        return tuple(
+            AnimationPoseAssetVO(
+                name=str(item.get("name", "")),
+                is_pose_asset=bool(item.get("is_pose_asset", False)),
+                frame_start=float(item.get("frame_start", 0.0)),
+                frame_end=float(item.get("frame_end", 0.0)),
+                catalog_id=str(item["catalog_id"]) if item.get("catalog_id") else None,
+            )
+            for item in result.get("assets", [])
+            if isinstance(item, Mapping)
+        )
+
+    async def create_pose_asset(
+        self, armature_name: str, pose_name: str, catalog_path: str | None = None
+    ) -> AnimationPoseAssetVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        pose_name = self._bounded_name(pose_name, "pose_name")
+        catalog_path = "" if catalog_path is None else str(catalog_path).strip()
+        if len(catalog_path) > 1024:
+            raise ValueError("catalog_path must not exceed 1024 characters")
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+for candidate in list(bpy.context.selected_objects):
+    candidate.select_set(False)
+obj.select_set(True)
+bpy.context.view_layer.objects.active = obj
+if obj.mode != "POSE":
+    bpy.ops.object.mode_set(mode="POSE")
+bpy.ops.poselib.create_pose_asset(pose_name=__POSE_NAME__, catalog_path=__CATALOG_PATH__)
+action = bpy.data.actions.get(__POSE_NAME__)
+if action is None:
+    action = obj.animation_data.action if obj.animation_data else None
+if action is None:
+    raise RuntimeError("Pose asset creation did not produce an Action")
+result = {"name": action.name, "is_pose_asset": action.asset_data is not None,
+          "frame_start": float(action.frame_range[0]), "frame_end": float(action.frame_range[1]),
+          "catalog_id": getattr(action.asset_data, "catalog_id", None)}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__POSE_NAME__", json.dumps(pose_name)
+        ).replace("__CATALOG_PATH__", json.dumps(catalog_path))
+        result = await self._execute(code)
+        return AnimationPoseAssetVO(
+            name=str(result.get("name", pose_name)),
+            is_pose_asset=bool(result.get("is_pose_asset", False)),
+            frame_start=float(result.get("frame_start", 0.0)),
+            frame_end=float(result.get("frame_end", 0.0)),
+            catalog_id=str(result["catalog_id"]) if result.get("catalog_id") else None,
+        )
+
+    async def apply_pose_asset(
+        self, armature_name: str, asset_name: str, blend_factor: float = 1.0, flipped: bool = False
+    ) -> AnimationPoseAssetStateVO:
+        return await self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, False)
+
+    async def blend_pose_asset(
+        self, armature_name: str, asset_name: str, blend_factor: float, flipped: bool = False
+    ) -> AnimationPoseAssetStateVO:
+        return await self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, True)
+
+    async def _apply_pose_asset(
+        self, armature_name: str, asset_name: str, blend_factor: float, flipped: bool, blended: bool
+    ) -> AnimationPoseAssetStateVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        asset_name = self._bounded_name(asset_name, "asset_name")
+        factor = float(blend_factor)
+        if not 0.0 <= factor <= 1.0:
+            raise ValueError("blend_factor must be between 0.0 and 1.0")
+        operator = "bpy.ops.poselib.blend_pose_asset" if blended else "bpy.ops.poselib.apply_pose_asset"
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+asset = bpy.data.actions.get(__ASSET_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+if asset is None or asset.asset_data is None:
+    raise ValueError("Pose asset not found: " + __ASSET_NAME__)
+for candidate in list(bpy.context.selected_objects):
+    candidate.select_set(False)
+obj.select_set(True)
+bpy.context.view_layer.objects.active = obj
+if obj.mode != "POSE":
+    bpy.ops.object.mode_set(mode="POSE")
+__OPERATOR__(asset_library_type="LOCAL", relative_asset_identifier=asset.name,
+             blend_factor=__BLEND_FACTOR__, flipped=__FLIPPED__)
+result = {"armature_name": obj.name, "asset_name": asset.name,
+          "blend_factor": __BLEND_FACTOR__, "flipped": __FLIPPED__, "changed": True}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__ASSET_NAME__", json.dumps(asset_name)
+        ).replace("__OPERATOR__", operator).replace("__BLEND_FACTOR__", str(factor)).replace(
+            "__FLIPPED__", "True" if flipped else "False"
+        )
+        result = await self._execute(code)
+        return AnimationPoseAssetStateVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            asset_name=str(result.get("asset_name", asset_name)),
+            blend_factor=float(result.get("blend_factor", factor)),
+            flipped=bool(result.get("flipped", flipped)),
+            changed=bool(result.get("changed", True)),
+        )
+
+    async def copy_rigify_pose(self, armature_name: str) -> AnimationPoseBufferVO:
+        return await self._pose_buffer_operation(armature_name, "bpy.ops.pose.copy", False, False)
+
+    async def paste_rigify_pose(
+        self, armature_name: str, flipped: bool = False, selected_mask: bool = False
+    ) -> AnimationPoseBufferVO:
+        return await self._pose_buffer_operation(armature_name, "bpy.ops.pose.paste", flipped, selected_mask)
+
+    async def _pose_buffer_operation(
+        self, armature_name: str, operator: str, flipped: bool, selected_mask: bool
+    ) -> AnimationPoseBufferVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        call = f"{operator}()" if operator.endswith("pose.copy") else (
+            f"{operator}(flipped={'True' if flipped else 'False'}, selected_mask={'True' if selected_mask else 'False'})"
+        )
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+for candidate in list(bpy.context.selected_objects):
+    candidate.select_set(False)
+obj.select_set(True)
+bpy.context.view_layer.objects.active = obj
+if obj.mode != "POSE":
+    bpy.ops.object.mode_set(mode="POSE")
+__CALL__
+result = {"armature_name": obj.name, "flipped": __FLIPPED__,
+          "selected_mask": __SELECTED_MASK__, "changed": True}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__CALL__", call
+        ).replace("__FLIPPED__", "True" if flipped else "False").replace(
+            "__SELECTED_MASK__", "True" if selected_mask else "False"
+        )
+        result = await self._execute(code)
+        return AnimationPoseBufferVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            flipped=bool(result.get("flipped", flipped)),
+            selected_mask=bool(result.get("selected_mask", selected_mask)),
+            changed=bool(result.get("changed", True)),
+        )
+
+    async def keyframe_rigify_pose(
+        self, armature_name: str, frame: int, bone_names: list[str] | None = None
+    ) -> RigifyPoseKeyframeVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        frame = self._bounded_frame(frame)
+        names = tuple(self._bounded_name(name, "bone_name") for name in (bone_names or ()))
+        names_code = json.dumps(list(names))
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+bpy.context.scene.frame_set(__FRAME__)
+selected = __BONE_NAMES__
+if selected:
+    missing = [name for name in selected if name not in obj.pose.bones]
+    if missing:
+        raise ValueError("Rigify pose bones not found: " + ", ".join(missing))
+    targets = [obj.pose.bones[name] for name in selected]
+else:
+    targets = [bone for bone in obj.pose.bones if bone.bone.select]
+    selected = [bone.name for bone in targets]
+if not targets:
+    raise ValueError("At least one Rigify pose bone must be selected or named")
+for bone in targets:
+    bone.keyframe_insert(data_path="location", frame=__FRAME__)
+    bone.keyframe_insert(data_path="scale", frame=__FRAME__)
+    rotation_path = "rotation_quaternion" if bone.rotation_mode == "QUATERNION" else "rotation_axis_angle" if bone.rotation_mode == "AXIS_ANGLE" else "rotation_euler"
+    bone.keyframe_insert(data_path=rotation_path, frame=__FRAME__)
+result = {"armature_name": obj.name, "frame": __FRAME__, "bone_names": selected, "changed": True}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__FRAME__", str(frame)
+        ).replace("__BONE_NAMES__", names_code)
+        result = await self._execute(code)
+        return RigifyPoseKeyframeVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            frame=int(result.get("frame", frame)),
+            bone_names=tuple(str(name) for name in result.get("bone_names", names)),
+            changed=bool(result.get("changed", True)),
+        )
+
+    @staticmethod
+    def _bounded_name(value: str, label: str) -> str:
+        name = str(value).strip()
+        if not name or len(name) > 256:
+            raise ValueError(f"{label} must be 1-256 characters")
+        return name
 
     async def _execute(self, code: str) -> Mapping[str, object]:
         result = await self._code_executor.execute_blender_code(code)
