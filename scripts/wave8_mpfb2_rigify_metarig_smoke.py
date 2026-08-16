@@ -6,7 +6,6 @@ sys.path.insert(0, "/home/ubuntu/blender-arwaky")
 
 from blender_mcp_addon.server import BlenderMCPServer
 
-
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
 bpy.ops.preferences.addon_enable(module="rigify")
@@ -52,6 +51,10 @@ second = second_response["result"]
 armature = bpy.data.objects.get("Wave8_Rigify_Control")
 if armature is None or armature.type != "ARMATURE":
     raise RuntimeError("Native workflow did not create a generated Rigify armature")
+if armature.show_in_front is not True:
+    raise RuntimeError("Final Rigify armature is not configured to show in front")
+if getattr(armature.data, "display_type", None) != "OCTAHEDRAL":
+    raise RuntimeError("Final Rigify armature display type is not OCTAHEDRAL")
 if len(armature.data.bones) < 500:
     raise RuntimeError("Native generated Rigify rig has unexpectedly few bones")
 modifiers = [item for item in character.modifiers if item.type == "ARMATURE"]
@@ -72,6 +75,8 @@ print(
         "blender_version": bpy.app.version_string,
         "character_name": character.name,
         "armature_name": armature.name,
+        "show_in_front": armature.show_in_front,
+        "display_type": getattr(armature.data, "display_type", None),
         "bone_count": len(armature.data.bones),
         "deform_bone_count": len([bone for bone in armature.data.bones if bone.use_deform]),
         "armature_modifiers": [(item.name, item.object.name if item.object else None) for item in modifiers],

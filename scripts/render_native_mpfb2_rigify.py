@@ -6,8 +6,9 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, "/home/ubuntu/blender-arwaky")
-from blender_mcp_addon.server import BlenderMCPServer
 from bl_ext.user_default.mpfb.services.humanservice import HumanService
+
+from blender_mcp_addon.server import BlenderMCPServer
 
 OUTPUT_DIR = Path("/home/ubuntu/mpfb_native_rigify_evidence")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -99,6 +100,12 @@ def main():
     for object_item in scene.objects:
         if object_item.type == "ARMATURE":
             object_item.hide_render = True
+    rig.show_in_front = True
+    rig.hide_viewport = False
+    rig.data.display_type = "OCTAHEDRAL"
+    bpy.ops.object.select_all(action="DESELECT")
+    rig.select_set(True)
+    bpy.context.view_layer.objects.active = rig
 
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND_PATH))
     bpy.ops.render.render(write_still=True)

@@ -1183,6 +1183,11 @@ class BlenderMCPServer:
             created = True
             native_loaded = True
 
+        final_rig.show_in_front = True
+        final_rig.hide_viewport = False
+        if hasattr(final_rig.data, "display_type"):
+            final_rig.data.display_type = "OCTAHEDRAL"
+
         binding = None
         if bind_character:
             binding = self.bind_character_to_rig(
