@@ -48,29 +48,9 @@ uv run blender-mcp
 
 ## Architecture
 
+```
 AES 7-layer architecture with full dependency inversion:
-
-```
-taxonomy → contract → capabilities → agent → surface → entry
-                ↑
-            infrastructure
-```
-
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full specification.
-
-## Project Structure
-
-```
-modules/
-├── shared/         ← Taxonomy + Contracts (FRD: modules/shared/FRD.md)
-├── object/         ← Object operations (FRD: modules/object/FRD.md)
-├── scene/          ← Scene management (FRD: modules/scene/FRD.md)
-├── render/         ← Rendering + assets (FRD: modules/render/FRD.md)
-├── telemetry/      ← Usage analytics (FRD: modules/telemetry/FRD.md)
-├── job/            ← Job tracking (FRD: modules/job/FRD.md)
-├── cli/            ← Standalone CLI (FRD: modules/cli/FRD.md)
-├── root_mcp_entry.py
-└── root_cli_entry.py
 ```
 
 ## Available Scripts
@@ -79,7 +59,7 @@ modules/
 |---------|-------------|
 | `uv run blender-mcp` | Start MCP server |
 | `uv run blender-arwaky` | Run standalone CLI |
-| `uv run pytest` | Run tests (455+) |
+| `uv run pytest` | Run tests  |
 | `uv run pytest -m unit` | Unit tests only |
 | `uv run ruff check .` | Lint code |
 | `lint-arwaky-cli scan .` | AES architecture compliance |
@@ -102,7 +82,6 @@ server:
 | `BLENDERMCP_CONFIG_PATH` | Override config.yaml path |
 | `BLENDERMCP_BLENDER.HOST` | Override Blender host |
 | `BLENDERMCP_BLENDER.PORT` | Override Blender port |
-| `BLENDERMCP_STRICT` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
 
 ## Testing
 
