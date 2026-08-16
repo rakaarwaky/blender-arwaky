@@ -30,6 +30,9 @@ from modules.plugin.src.taxonomy_plugin_vo import (
 from .plugin_runtime_facts import Mpfb2RuntimeFacts, probe_blender_runtime
 
 
+MPFB2_UNSUPPORTED_CAPABILITIES = ("rigging", "pose", "deformation")
+
+
 class Mpfb2PluginOperation(PluginOperationProtocol):
     """Provider operation port for an externally installed MPFB 2 add-on."""
 
@@ -92,6 +95,10 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
     def capabilities(self) -> PluginCapabilityList:
         """Return statically declared capabilities independent of runtime state."""
         return PluginCapabilityList((PluginCapabilityId("character.create"),))
+
+    def unsupported_capabilities(self) -> tuple[str, ...]:
+        """Return explicit capability boundaries owned by a separate provider."""
+        return MPFB2_UNSUPPORTED_CAPABILITIES
 
     def execute(
         self,

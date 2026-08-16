@@ -47,6 +47,12 @@ The official archive was downloaded from the primary HTTPS mirror and pinned wit
 | Detected pack entries | 94 |
 | Blender | 5.2.0 LTS |
 
+## Capability boundary
+
+MPFB2 is intentionally limited to character generation and character asset assembly. Its supported scope includes phenotype creation and mutation, system skin application, hair and clothing asset loading, asset inspection, and safe character removal. Rigging, deformation, and pose authoring are explicitly outside the MPFB2 provider boundary. The provider exposes no rigging or pose capability, and the canonical MPFB2 mappings must reject those operations rather than silently invoking MPFB2 rig APIs.
+
+Rigging and pose actions remain separate Blender capability-pack concerns. Their implementation must use an independent provider or a dedicated internal Blender module with its own contracts, tests, and smoke validation. The experimental pose render demonstrated that a technically callable MPFB2 rig API does not constitute a reliable supported user workflow; it is therefore not part of the MPFB2 product contract.
+
 ## Live verification
 
 The Blender 5.2 asset smoke test passed with marker `WAVE5B_MPFB_ASSET_SMOKE_OK`. It installed the official pack into the MPFB2 user data root, detected `makehuman_system_assets`, reported 94 asset entries, and created a character through `HumanService.create_human`. The previous `create_character` operator mapping was corrected because `bpy.ops.mpfb.create_human` is not registered in MPFB2 2.0.17; the handler now uses the public MPFB2 service API.

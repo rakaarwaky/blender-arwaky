@@ -55,6 +55,10 @@ Before implementation, determine whether the capability belongs to an existing c
 
 For a new action, use the naming table above and verify that parameters have explicit types, requiredness, defaults, and validation. Classify and guard mutating behavior, route both surfaces through the same dispatcher contract, and add unit, integration, or contract coverage. Confirm that help output, catalog discovery, and error envelopes remain consistent.
 
+## MPFB2 provider boundary
+
+MPFB2 is a character-generation and character-asset provider only. Its supported scope covers phenotype creation, character mutation, system skin, hair and clothing asset loading, asset inspection, and safe character removal. Do not add rigging, pose, or deformation mappings under `plugin/mpfb2/`. A callable MPFB2 rig API is not sufficient evidence for a supported product capability; rigging and pose require a separate Blender capability provider with independent contracts and smoke tests.
+
 ## Testing and quality gates
 
 Run focused tests during development:
@@ -69,10 +73,10 @@ Run the full local gate before opening a pull request:
 
 ```bash
 uv run pytest -q
-uv run ruff check modules blender_mcp_addon scripts
-uv run ruff format --check modules blender_mcp_addon scripts
+uv run ruff check modules
+uv run ruff format --check modules
 python -m compileall -q modules blender_mcp_addon
-uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
+uv run bandit -r modules -x '*/tests/*' -ll -ii
 lint-arwaky-cli scan .
 bash scripts/ci.sh
 ```
