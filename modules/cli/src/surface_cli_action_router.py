@@ -63,6 +63,13 @@ class CliActionRouter:
         "remove_character",
         "install_mpfb_asset_pack",
         "inspect_mpfb_assets",
+        "inspect_armature",
+        "set_pose_bone_transform",
+        "configure_bone_constraint",
+        "get_deformation_state",
+        "configure_shape_key",
+        "bind_character_to_rig",
+        "create_rigify_metarig",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -172,10 +179,37 @@ class CliActionRouter:
             map_randomize_character,
             map_remove_character,
         )
+        from plugin.rigify.plugin_operations import (
+            RigifyBoneConstraintRequest,
+            RigifyCharacterBindingRequest,
+            RigifyDeformationStateRequest,
+            RigifyInspectArmatureRequest,
+            RigifyMetarigRequest,
+            RigifyPoseBoneTransformRequest,
+            RigifyShapeKeyRequest,
+            map_bind_character_to_rig,
+            map_configure_bone_constraint,
+            map_configure_shape_key,
+            map_create_rigify_metarig,
+            map_get_deformation_state,
+            map_inspect_armature,
+            map_set_pose_bone_transform,
+        )
 
-        plugin_id = str(params.get("plugin_id", "mpfb2")).strip()
-        if plugin_id != "mpfb2":
-            raise ValueError(f"{action_name} is mapped only to provider mpfb2")
+        rigify_actions = {
+            "inspect_armature",
+            "set_pose_bone_transform",
+            "configure_bone_constraint",
+            "get_deformation_state",
+            "configure_shape_key",
+            "bind_character_to_rig",
+            "create_rigify_metarig",
+        }
+        default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
+        plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
+        expected_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
+        if plugin_id != expected_plugin_id:
+            raise ValueError(f"{action_name} is mapped only to provider {expected_plugin_id}")
         if action_name == "install_mpfb_asset_pack":
             command = map_install_mpfb_asset_pack(
                 Mpfb2AssetPackRequest(
@@ -200,6 +234,73 @@ class CliActionRouter:
                 Mpfb2RemoveCharacterRequest(
                     object_name=str(params.get("object_name", "")),
                     confirm=params.get("confirm", False),
+                )
+            )
+        elif action_name == "inspect_armature":
+            command = map_inspect_armature(
+                RigifyInspectArmatureRequest(
+                    object_name=str(params.get("object_name", "")),
+                    limit=int(params.get("limit", 100)),
+                )
+            )
+        elif action_name == "set_pose_bone_transform":
+            command = map_set_pose_bone_transform(
+                RigifyPoseBoneTransformRequest(
+                    armature_name=str(params.get("armature_name", "")),
+                    bone_name=str(params.get("bone_name", "")),
+                    location=params.get("location"),
+                    rotation_euler=params.get("rotation_euler"),
+                    scale=params.get("scale"),
+                )
+            )
+        elif action_name == "configure_bone_constraint":
+            command = map_configure_bone_constraint(
+                RigifyBoneConstraintRequest(
+                    armature_name=str(params.get("armature_name", "")),
+                    bone_name=str(params.get("bone_name", "")),
+                    constraint_type=str(params.get("constraint_type", "")),
+                    enabled=params.get("enabled", False),
+                    constraint_name=(
+                        str(params["constraint_name"]) if params.get("constraint_name") is not None else None
+                    ),
+                    target_object=str(params["target_object"]) if params.get("target_object") is not None else None,
+                    subtarget=str(params["subtarget"]) if params.get("subtarget") is not None else None,
+                )
+            )
+        elif action_name == "get_deformation_state":
+            command = map_get_deformation_state(
+                RigifyDeformationStateRequest(object_name=str(params.get("object_name", "")))
+            )
+        elif action_name == "configure_shape_key":
+            command = map_configure_shape_key(
+                RigifyShapeKeyRequest(
+                    object_name=str(params.get("object_name", "")),
+                    shape_key_name=str(params.get("shape_key_name", "")),
+                    enabled=params.get("enabled", False),
+                    value=params.get("value", 0.0),
+                    slider_min=params.get("slider_min", 0.0),
+                    slider_max=params.get("slider_max", 1.0),
+                )
+            )
+        elif action_name == "bind_character_to_rig":
+            command = map_bind_character_to_rig(
+                RigifyCharacterBindingRequest(
+                    character_object_name=str(params.get("character_object_name", "")),
+                    armature_name=str(params.get("armature_name", "")),
+                    modifier_name=(
+                        str(params["modifier_name"]) if params.get("modifier_name") is not None else None
+                    ),
+                    replace_existing=params.get("replace_existing", False),
+                )
+            )
+        elif action_name == "create_rigify_metarig":
+            command = map_create_rigify_metarig(
+                RigifyMetarigRequest(
+                    character_object_name=str(params.get("character_object_name", "")),
+                    armature_name=(str(params["armature_name"]) if params.get("armature_name") else None),
+                    preset=str(params.get("preset", "human")),
+                    bind_character=params.get("bind_character", True),
+                    replace_existing=params.get("replace_existing", False),
                 )
             )
         else:

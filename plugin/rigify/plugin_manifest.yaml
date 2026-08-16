@@ -1,0 +1,22 @@
+id: rigify
+name: Rigify
+version: bundled
+provider_type: blender_extension
+blender_min_version: "5.2.0"
+extension_id: rigify
+source_url: ""
+sha256: ""
+repository_id: user_default
+entry_point: plugin_entry:create_provider
+installation_mode: bundled
+capabilities:
+  - rigging.inspect_armature
+  - rigging.set_pose_bone_transform
+  - rigging.configure_bone_constraint
+  - rigging.configure_shape_key
+  - rigging.get_deformation_state
+  - rigging.bind_character_to_rig
+  - rigging.create_rigify_metarig
+unsupported_capabilities:
+  - character
+  - asset_generation

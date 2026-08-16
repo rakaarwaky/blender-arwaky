@@ -268,6 +268,8 @@ class BlenderMCPServer:
             "configure_bone_constraint": self.configure_bone_constraint,
             "configure_shape_key": self.configure_shape_key,
             "get_deformation_state": self.get_deformation_state,
+            "bind_character_to_rig": self.bind_character_to_rig,
+            "create_rigify_metarig": self.create_rigify_metarig,
             "execute_blender_code": self.execute_blender_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
@@ -1114,6 +1116,158 @@ class BlenderMCPServer:
             "armature_modifiers": armature_modifiers,
             "constraints": constraints[:128],
             "shape_keys": shape_keys,
+        }
+
+    def create_rigify_metarig(
+        self,
+        character_object_name,
+        armature_name=None,
+        preset="human",
+        bind_character=True,
+        replace_existing=False,
+    ):
+        """Run the native MPFB2 Rigify definition, weights, and generation workflow."""
+        character_name = str(character_object_name).strip()
+        requested_armature_name = str(armature_name).strip() if armature_name else ""
+        preset_name = str(preset).casefold().strip()
+        if not character_name or len(character_name) > 128 or any(ord(char) < 32 for char in character_name):
+            raise ValueError("character_object_name must contain 1-128 printable characters")
+        if requested_armature_name and (
+            len(requested_armature_name) > 128 or any(ord(char) < 32 for char in requested_armature_name)
+        ):
+            raise ValueError("armature_name must contain 1-128 printable characters")
+        if preset_name != "human":
+            raise ValueError("preset must be human")
+        if not isinstance(bind_character, bool):
+            raise ValueError("bind_character must be boolean")
+        if not isinstance(replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+        character = bpy.data.objects.get(character_name)
+        if character is None:
+            raise ValueError(f"Character object not found: {character_name}")
+        if character.type != "MESH":
+            raise ValueError("create_rigify_metarig requires a mesh character object")
+
+        from bl_ext.user_default.mpfb.services.humanservice import HumanService
+        from bl_ext.user_default.mpfb.services.objectservice import ObjectService
+        from bl_ext.user_default.mpfb.services.rigservice import RigService
+
+        native_rig_name = "rigify.human_toes"
+        existing_generated = next(
+            (
+                obj
+                for obj in bpy.data.objects
+                if obj.type == "ARMATURE"
+                and ObjectService.object_is_generated_rigify_rig(obj)
+                and obj.name == (requested_armature_name or f"{character.name}_Rigify_Control")
+            ),
+            None,
+        )
+        if existing_generated is not None:
+            final_rig = existing_generated
+            meta_rig = ObjectService.find_rigify_metarig_by_rig(final_rig)
+            created = False
+            native_loaded = True
+        else:
+            meta_rig = ObjectService.find_object_of_type_amongst_nearest_relatives(character, "Skeleton")
+            if meta_rig is None or RigService.identify_rig(meta_rig) != native_rig_name:
+                meta_rig = HumanService.add_builtin_rig(character, native_rig_name, import_weights=True)
+            if meta_rig is None or meta_rig.type != "ARMATURE":
+                raise RuntimeError("Native MPFB2 Rigify metarig creation failed")
+            if RigService.identify_rig(meta_rig) != native_rig_name:
+                raise RuntimeError("MPFB2 returned an invalid Rigify metarig")
+            final_name = requested_armature_name or f"{character.name}_Rigify_Control"
+            final_rig = RigService.generate_rigify_rig(meta_rig, name=final_name, meta_rig_action="hide")
+            if final_rig is None or final_rig.type != "ARMATURE":
+                raise RuntimeError("Native MPFB2 Rigify final generation failed")
+            created = True
+            native_loaded = True
+
+        final_rig.show_in_front = True
+        final_rig.hide_viewport = False
+        if hasattr(final_rig.data, "display_type"):
+            final_rig.data.display_type = "OCTAHEDRAL"
+
+        binding = None
+        if bind_character:
+            binding = self.bind_character_to_rig(
+                character_object_name=character.name,
+                armature_name=final_rig.name,
+                modifier_name=f"{final_rig.name}_Armature",
+                replace_existing=replace_existing,
+            )
+        modifiers = [modifier for modifier in character.modifiers if modifier.type == "ARMATURE"]
+        return {
+            "character_object_name": character.name,
+            "armature_name": final_rig.name,
+            "metarig_name": meta_rig.name if meta_rig else None,
+            "preset": preset_name,
+            "native_rig": native_rig_name,
+            "native_loaded": native_loaded,
+            "created": created,
+            "metarig_bone_count": len(meta_rig.data.bones) if meta_rig else 0,
+            "bone_count": len(final_rig.data.bones),
+            "deform_bone_count": len([bone for bone in final_rig.data.bones if bone.use_deform]),
+            "bound": bool(binding),
+            "modifier_name": binding.get("modifier_name") if binding else None,
+            "armature_modifiers": [modifier.name for modifier in modifiers],
+            "operation": "create_rigify_metarig",
+        }
+
+    def bind_character_to_rig(
+        self,
+        character_object_name,
+        armature_name,
+        modifier_name="Rigify_Armature",
+        replace_existing=False,
+    ):
+        """Bind one character mesh to an existing armature modifier."""
+        character_name = str(character_object_name).strip()
+        rig_name = str(armature_name).strip()
+        modifier_label = str(modifier_name).strip() or "Rigify_Armature"
+        if not character_name or len(character_name) > 128 or any(ord(char) < 32 for char in character_name):
+            raise ValueError("character_object_name must contain 1-128 printable characters")
+        if not rig_name or len(rig_name) > 128 or any(ord(char) < 32 for char in rig_name):
+            raise ValueError("armature_name must contain 1-128 printable characters")
+        if len(modifier_label) > 128 or any(ord(char) < 32 for char in modifier_label):
+            raise ValueError("modifier_name must contain at most 128 printable characters")
+        if not isinstance(replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+        character = bpy.data.objects.get(character_name)
+        if character is None:
+            raise ValueError(f"Character object not found: {character_name}")
+        if character.type != "MESH":
+            raise ValueError("bind_character_to_rig requires a mesh character object")
+        armature = bpy.data.objects.get(rig_name)
+        if armature is None:
+            raise ValueError(f"Armature object not found: {rig_name}")
+        if armature.type != "ARMATURE":
+            raise ValueError("bind_character_to_rig requires an armature object")
+        existing = [modifier for modifier in character.modifiers if modifier.type == "ARMATURE"]
+        matching = next((modifier for modifier in existing if modifier.object is armature), None)
+        if matching is not None and not replace_existing:
+            return {
+                "object_name": character.name,
+                "armature_name": armature.name,
+                "modifier_name": matching.name,
+                "changed": False,
+                "replaced_count": 0,
+                "operation": "bind_character_to_rig",
+            }
+        if existing and not replace_existing:
+            raise ValueError("character already has an armature modifier; set replace_existing=true to replace it")
+        for modifier in existing:
+            character.modifiers.remove(modifier)
+        modifier = character.modifiers.new(name=modifier_label, type="ARMATURE")
+        modifier.object = armature
+        modifier.use_deform_preserve_volume = False
+        return {
+            "object_name": character.name,
+            "armature_name": armature.name,
+            "modifier_name": modifier.name,
+            "changed": True,
+            "replaced_count": len(existing),
+            "operation": "bind_character_to_rig",
         }
 
     @staticmethod
