@@ -4,8 +4,6 @@
 
 **Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, and technical artists. A validated dispatcher connects MCP and CLI clients to the same action catalog.
 
-> Blender Python execution is powerful and is not a complete security sandbox. Use disposable workspaces, save important `.blend` files, and isolate untrusted workflows.
-
 ## Why use it?
 
 Blender Arwaky is designed for **deterministic Blender automation, discoverable schemas, CLI/MCP parity, and governed local execution**. It is not a hosted SaaS product, bundled LLM, or complete wrapper for every Blender operator.
