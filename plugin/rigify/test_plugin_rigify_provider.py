@@ -110,3 +110,25 @@ def test_rigify_reports_incompatible_blender() -> None:
 
     assert discovery.compatible is False
     assert discovery.message == "incompatible"
+
+
+def test_inspect_armature_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import RigifyInspectArmatureRequest, map_inspect_armature
+
+    command = map_inspect_armature(RigifyInspectArmatureRequest("Rigify_Rig", 25))
+
+    assert command == {
+        "type": "inspect_armature",
+        "params": {"object_name": "Rigify_Rig", "limit": 25},
+    }
+
+
+def test_inspect_armature_request_rejects_unbounded_limit() -> None:
+    from plugin.rigify.plugin_operations import RigifyInspectArmatureRequest
+
+    try:
+        RigifyInspectArmatureRequest("Rigify_Rig", 1001)
+    except ValueError as error:
+        assert "limit" in str(error)
+    else:
+        raise AssertionError("expected invalid inspect_armature limit to be rejected")

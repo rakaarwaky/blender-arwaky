@@ -63,6 +63,7 @@ class CliActionRouter:
         "remove_character",
         "install_mpfb_asset_pack",
         "inspect_mpfb_assets",
+        "inspect_armature",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -172,10 +173,13 @@ class CliActionRouter:
             map_randomize_character,
             map_remove_character,
         )
+        from plugin.rigify.plugin_operations import RigifyInspectArmatureRequest, map_inspect_armature
 
-        plugin_id = str(params.get("plugin_id", "mpfb2")).strip()
-        if plugin_id != "mpfb2":
-            raise ValueError(f"{action_name} is mapped only to provider mpfb2")
+        default_plugin_id = "rigify" if action_name == "inspect_armature" else "mpfb2"
+        plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
+        expected_plugin_id = "rigify" if action_name == "inspect_armature" else "mpfb2"
+        if plugin_id != expected_plugin_id:
+            raise ValueError(f"{action_name} is mapped only to provider {expected_plugin_id}")
         if action_name == "install_mpfb_asset_pack":
             command = map_install_mpfb_asset_pack(
                 Mpfb2AssetPackRequest(
@@ -200,6 +204,13 @@ class CliActionRouter:
                 Mpfb2RemoveCharacterRequest(
                     object_name=str(params.get("object_name", "")),
                     confirm=params.get("confirm", False),
+                )
+            )
+        elif action_name == "inspect_armature":
+            command = map_inspect_armature(
+                RigifyInspectArmatureRequest(
+                    object_name=str(params.get("object_name", "")),
+                    limit=int(params.get("limit", 100)),
                 )
             )
         else:
