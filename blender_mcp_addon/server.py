@@ -1118,111 +1118,6 @@ class BlenderMCPServer:
             "shape_keys": shape_keys,
         }
 
-    @staticmethod
-    def _fit_rigify_metarig_to_character(character, armature):
-        """Fit Rigify metarig object bounds to the character mesh bounds."""
-        from mathutils import Vector
-
-        def bounds(obj):
-            points = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
-            minimum = Vector((min(point.x for point in points), min(point.y for point in points), min(point.z for point in points)))
-            maximum = Vector((max(point.x for point in points), max(point.y for point in points), max(point.z for point in points)))
-            return minimum, maximum
-
-        character_minimum, character_maximum = bounds(character)
-        armature_minimum, armature_maximum = bounds(armature)
-        character_size = character_maximum - character_minimum
-        armature_size = armature_maximum - armature_minimum
-        if min(character_size) <= 1e-6 or min(armature_size) <= 1e-6:
-            raise RuntimeError("Cannot fit Rigify metarig to degenerate character or armature bounds")
-        scale = Vector(
-            (
-                max(0.25, min(4.0, character_size.x / armature_size.x)),
-                max(0.25, min(4.0, character_size.y / armature_size.y)),
-                max(0.25, min(4.0, character_size.z / armature_size.z)),
-            )
-        )
-        armature.scale = scale
-        armature.location = character_minimum - Vector(
-            (armature_minimum.x * scale.x, armature_minimum.y * scale.y, armature_minimum.z * scale.z)
-        )
-        armature["arwaky_rigify_fit"] = True
-        return {
-            "scale": tuple(round(value, 6) for value in scale),
-            "location": tuple(round(value, 6) for value in armature.location),
-            "character_size": tuple(round(value, 6) for value in character_size),
-            "armature_size": tuple(round(value, 6) for value in armature_size),
-        }
-
-    @staticmethod
-    def _fit_rigify_arm_landmarks(character, armature):
-        """Fit Rigify arm chains to the character's measured lateral arm landmarks."""
-        from mathutils import Vector
-
-        vertices = [character.matrix_world @ vertex.co for vertex in character.data.vertices]
-        minimum_z = min(point.z for point in vertices)
-        maximum_z = max(point.z for point in vertices)
-        height = maximum_z - minimum_z
-        maximum_x = max(abs(point.x) for point in vertices)
-        lateral = [
-            point
-            for point in vertices
-            if abs(point.x) >= 0.62 * maximum_x and point.z >= minimum_z + 0.52 * height
-        ]
-        if not lateral:
-            raise RuntimeError("Cannot find lateral arm landmarks on character mesh")
-        max_x = max(abs(point.x) for point in lateral)
-        arm_z = sum(point.z for point in lateral) / len(lateral)
-        arm_y = sum(point.y for point in lateral) / len(lateral)
-        shoulder_z = arm_z + 0.13 * height
-        targets = {
-            "L": {
-                "shoulder": Vector((0.36 * max_x, arm_y, shoulder_z)),
-                "elbow": Vector((0.62 * max_x, arm_y, arm_z + 0.02)),
-                "wrist": Vector((0.86 * max_x, arm_y, arm_z)),
-                "hand": Vector((max_x, arm_y, arm_z)),
-            },
-            "R": {
-                "shoulder": Vector((-0.36 * max_x, arm_y, shoulder_z)),
-                "elbow": Vector((-0.62 * max_x, arm_y, arm_z + 0.02)),
-                "wrist": Vector((-0.86 * max_x, arm_y, arm_z)),
-                "hand": Vector((-max_x, arm_y, arm_z)),
-            },
-        }
-        previous_active = bpy.context.view_layer.objects.active
-        previous_mode = armature.mode
-        bpy.ops.object.mode_set(mode="OBJECT") if previous_mode != "OBJECT" else None
-        bpy.ops.object.select_all(action="DESELECT")
-        armature.select_set(True)
-        bpy.context.view_layer.objects.active = armature
-        bpy.ops.object.mode_set(mode="EDIT")
-        inverse_world = armature.matrix_world.inverted()
-        for side, points in targets.items():
-            shoulder = armature.data.edit_bones.get(f"shoulder.{side}")
-            upper_arm = armature.data.edit_bones.get(f"upper_arm.{side}")
-            forearm = armature.data.edit_bones.get(f"forearm.{side}")
-            hand = armature.data.edit_bones.get(f"hand.{side}")
-            if not all((shoulder, upper_arm, forearm, hand)):
-                continue
-            shoulder.head = inverse_world @ Vector((0.0, arm_y, shoulder_z))
-            shoulder.tail = inverse_world @ points["shoulder"]
-            upper_arm.head = inverse_world @ points["shoulder"]
-            upper_arm.tail = inverse_world @ points["elbow"]
-            forearm.head = inverse_world @ points["elbow"]
-            forearm.tail = inverse_world @ points["wrist"]
-            hand.head = inverse_world @ points["wrist"]
-            hand.tail = inverse_world @ points["hand"]
-        bpy.ops.object.mode_set(mode="OBJECT")
-        if previous_active is not None:
-            previous_active.select_set(True)
-            bpy.context.view_layer.objects.active = previous_active
-        return {
-            "arm_z": round(arm_z, 6),
-            "arm_y": round(arm_y, 6),
-            "max_lateral_x": round(max_x, 6),
-            "shoulder_z": round(shoulder_z, 6),
-        }
-
     def create_rigify_metarig(
         self,
         character_object_name,
@@ -1231,7 +1126,7 @@ class BlenderMCPServer:
         bind_character=True,
         replace_existing=False,
     ):
-        """Create or reuse a Rigify human metarig and optionally bind a character."""
+        """Run the native MPFB2 Rigify definition, weights, and generation workflow."""
         character_name = str(character_object_name).strip()
         requested_armature_name = str(armature_name).strip() if armature_name else ""
         preset_name = str(preset).casefold().strip()
@@ -1253,44 +1148,64 @@ class BlenderMCPServer:
         if character.type != "MESH":
             raise ValueError("create_rigify_metarig requires a mesh character object")
 
-        desired_name = requested_armature_name or f"{character.name}_Rigify_Metarig"
-        armature = bpy.data.objects.get(desired_name)
-        created = False
-        if armature is None:
-            operator = getattr(getattr(bpy.ops, "object", None), "armature_human_metarig_add", None)
-            if not callable(operator):
-                raise RuntimeError("Rigify human metarig operator is unavailable")
-            operator()
-            armature = bpy.context.object
-            if armature is None or armature.type != "ARMATURE":
-                raise RuntimeError("Rigify metarig generation did not produce an armature")
-            armature.name = desired_name
+        from bl_ext.user_default.mpfb.services.humanservice import HumanService
+        from bl_ext.user_default.mpfb.services.objectservice import ObjectService
+        from bl_ext.user_default.mpfb.services.rigservice import RigService
+
+        native_rig_name = "rigify.human_toes"
+        existing_generated = next(
+            (
+                obj
+                for obj in bpy.data.objects
+                if obj.type == "ARMATURE"
+                and ObjectService.object_is_generated_rigify_rig(obj)
+                and obj.name == (requested_armature_name or f"{character.name}_Rigify_Control")
+            ),
+            None,
+        )
+        if existing_generated is not None:
+            final_rig = existing_generated
+            meta_rig = ObjectService.find_rigify_metarig_by_rig(final_rig)
+            created = False
+            native_loaded = True
+        else:
+            meta_rig = ObjectService.find_object_of_type_amongst_nearest_relatives(character, "Skeleton")
+            if meta_rig is None or RigService.identify_rig(meta_rig) != native_rig_name:
+                meta_rig = HumanService.add_builtin_rig(character, native_rig_name, import_weights=True)
+            if meta_rig is None or meta_rig.type != "ARMATURE":
+                raise RuntimeError("Native MPFB2 Rigify metarig creation failed")
+            if RigService.identify_rig(meta_rig) != native_rig_name:
+                raise RuntimeError("MPFB2 returned an invalid Rigify metarig")
+            final_name = requested_armature_name or f"{character.name}_Rigify_Control"
+            final_rig = RigService.generate_rigify_rig(meta_rig, name=final_name, meta_rig_action="hide")
+            if final_rig is None or final_rig.type != "ARMATURE":
+                raise RuntimeError("Native MPFB2 Rigify final generation failed")
             created = True
-        elif armature.type != "ARMATURE":
-            raise ValueError(f"Requested metarig name is not an armature: {desired_name}")
-        if len(armature.data.bones) == 0:
-            raise RuntimeError("Rigify metarig contains no bones")
-        fit_result = self._fit_rigify_metarig_to_character(character, armature)
-        arm_fit_result = self._fit_rigify_arm_landmarks(character, armature)
+            native_loaded = True
 
         binding = None
         if bind_character:
             binding = self.bind_character_to_rig(
                 character_object_name=character.name,
-                armature_name=armature.name,
-                modifier_name=f"{armature.name}_Armature",
+                armature_name=final_rig.name,
+                modifier_name=f"{final_rig.name}_Armature",
                 replace_existing=replace_existing,
             )
+        modifiers = [modifier for modifier in character.modifiers if modifier.type == "ARMATURE"]
         return {
             "character_object_name": character.name,
-            "armature_name": armature.name,
+            "armature_name": final_rig.name,
+            "metarig_name": meta_rig.name if meta_rig else None,
             "preset": preset_name,
+            "native_rig": native_rig_name,
+            "native_loaded": native_loaded,
             "created": created,
-            "bone_count": len(armature.data.bones),
-            "fit": fit_result,
-            "arm_fit": arm_fit_result,
+            "metarig_bone_count": len(meta_rig.data.bones) if meta_rig else 0,
+            "bone_count": len(final_rig.data.bones),
+            "deform_bone_count": len([bone for bone in final_rig.data.bones if bone.use_deform]),
             "bound": bool(binding),
             "modifier_name": binding.get("modifier_name") if binding else None,
+            "armature_modifiers": [modifier.name for modifier in modifiers],
             "operation": "create_rigify_metarig",
         }
 
