@@ -36,8 +36,8 @@ def test_mpfb2_exposes_character_only_boundary() -> None:
     provider = Mpfb2PluginOperation(installed=True, active=True)
 
     assert provider.capabilities() == ("character.create",)
-    assert provider.unsupported_capabilities() == MPFB2_UNSUPPORTED_CAPABILITIES
-    assert {"rigging", "pose", "deformation"}.isdisjoint(provider.capabilities())
+    assert provider.unsupported_capabilities() == MPFB2_UNSUPPORTED_CAPABILITIES  # nosec B101
+    assert {"rigging", "pose", "deformation"}.isdisjoint(provider.capabilities())  # nosec B101
 
 
 def test_mpfb2_rejects_unsupported_operation() -> None:
