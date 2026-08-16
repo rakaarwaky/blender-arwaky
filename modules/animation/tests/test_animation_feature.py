@@ -411,3 +411,73 @@ async def test_animation_validates_retarget_result() -> None:
     result = await create_animation_feature(gateway).validate_animation_result("Rigify", "Walk_Rigify")
     assert result.approved is True
     assert result.curve_count == 3
+
+
+@pytest.mark.asyncio
+async def test_animation_creates_nla_track() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "Base", "strip_count": 0, "is_solo": False, "is_muted": False, "changed": True})
+    result = await create_animation_feature(gateway).create_nla_track("Rigify", "Base")
+    assert result.track_name == "Base"
+    assert result.changed is True
+
+
+@pytest.mark.asyncio
+async def test_animation_adds_nla_strip() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "Base", "strip_name": "Walk", "action_name": "Walk", "frame_start": 1.0, "frame_end": 25.0, "scale": 1.0, "repeat": 1.0, "blend_in": 2.0, "blend_out": 2.0, "influence": 1.0, "blend_type": "REPLACE", "extrapolation": "HOLD", "reversed": False, "changed": True})
+    result = await create_animation_feature(gateway).add_nla_strip("Rigify", "Base", "Walk", "Walk", 1, blend_in=2, blend_out=2)
+    assert result.action_name == "Walk"
+    assert result.blend_in == 2.0
+
+
+@pytest.mark.asyncio
+async def test_animation_updates_nla_strip() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "Base", "strip_name": "Walk", "action_name": "Walk", "frame_start": 5.0, "frame_end": 29.0, "scale": 1.0, "repeat": 1.0, "blend_in": 2.0, "blend_out": 2.0, "influence": 0.75, "blend_type": "ADD", "extrapolation": "HOLD", "reversed": False, "changed": True})
+    result = await create_animation_feature(gateway).set_nla_strip("Rigify", "Base", "Walk", frame_start=5, influence=0.75, blend_type="ADD")
+    assert result.influence == 0.75
+    assert result.blend_type == "ADD"
+
+
+@pytest.mark.asyncio
+async def test_animation_sets_nla_layer() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "UpperBody", "blend_type": "ADD", "influence": 0.5, "is_solo": False, "is_muted": False, "changed": True})
+    result = await create_animation_feature(gateway).set_animation_layer("Rigify", "UpperBody", "ADD", 0.5)
+    assert result.blend_type == "ADD"
+    assert result.influence == 0.5
+
+
+@pytest.mark.asyncio
+async def test_animation_sets_rigify_nla_mask() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "UpperBody", "strip_name": "Gesture", "bone_names": ["hand_ik.L", "hand_ik.R"], "changed": True})
+    result = await create_animation_feature(gateway).set_animation_mask("Rigify", "UpperBody", "Gesture", ["hand_ik.L", "hand_ik.R"])
+    assert result.bone_names == ("hand_ik.L", "hand_ik.R")
+
+
+@pytest.mark.asyncio
+async def test_animation_rejects_deform_nla_mask() -> None:
+    gateway = FakeGateway({})
+    with pytest.raises(ValueError, match="animator controls"):
+        await create_animation_feature(gateway).set_animation_mask("Rigify", "Base", "Walk", ["DEF-upper_arm.L"])
+    assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_bakes_nla_assembly() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "output_action": "Final", "frame_start": 1, "frame_end": 24, "step": 1, "keyframe_count": 288, "cleared_constraints": False, "cleared_nla": True, "changed": True})
+    result = await create_animation_feature(gateway).bake_nla_assembly("Rigify", 1, 24, output_action="Final", clear_nla=True)
+    assert result.output_action == "Final"
+    assert result.cleared_nla is True
+
+
+@pytest.mark.asyncio
+async def test_animation_validates_nla_assembly() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_count": 2, "strip_count": 3, "frame_start": 1.0, "frame_end": 72.0, "approved": True, "warnings": []})
+    result = await create_animation_feature(gateway).validate_nla_assembly("Rigify")
+    assert result.approved is True
+    assert result.strip_count == 3
+
+
+@pytest.mark.asyncio
+async def test_animation_removes_nla_strip() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "track_name": "Base", "strip_name": "Walk", "changed": True, "removed": True})
+    result = await create_animation_feature(gateway).remove_nla_strip("Rigify", "Base", "Walk")
+    assert result.removed is True

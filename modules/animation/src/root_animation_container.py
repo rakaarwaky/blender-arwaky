@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from modules.animation.src.agent_animation_orchestrator import AnimationOrchestrator
 from modules.animation.src.capabilities_animation_executor import AnimationExecutor
+from modules.animation.src.capabilities_animation_nla_executor import AnimationNlaExecutor
 from modules.animation.src.capabilities_animation_retarget_executor import AnimationRetargetExecutor
 
 
@@ -13,7 +14,8 @@ class AnimationContainer:
     def __init__(self, code_executor: object) -> None:
         executor = AnimationExecutor(code_executor)
         retarget_executor = AnimationRetargetExecutor(code_executor)
-        self._orchestrator = AnimationOrchestrator(executor, retarget_executor)
+        nla_executor = AnimationNlaExecutor(code_executor)
+        self._orchestrator = AnimationOrchestrator(executor, retarget_executor, nla_executor)
 
     @property
     def aggregate(self) -> AnimationOrchestrator:

@@ -233,3 +233,85 @@ class AnimationValidationVO:
     keyframe_count: int
     approved: bool
     warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class NlaTrackVO:
+    armature_name: str
+    track_name: str
+    strip_count: int
+    is_solo: bool
+    is_muted: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class NlaStripVO:
+    armature_name: str
+    track_name: str
+    strip_name: str
+    action_name: str
+    frame_start: float
+    frame_end: float
+    scale: float
+    repeat: float
+    blend_in: float
+    blend_out: float
+    influence: float
+    blend_type: str
+    extrapolation: str
+    reversed: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class NlaLayerVO:
+    armature_name: str
+    track_name: str
+    blend_type: str | None
+    influence: float | None
+    is_solo: bool | None
+    is_muted: bool | None
+    changed: bool
+
+
+@dataclass(frozen=True)
+class NlaMaskVO:
+    armature_name: str
+    track_name: str
+    strip_name: str
+    bone_names: tuple[str, ...] = field(default_factory=tuple)
+    changed: bool = True
+
+
+@dataclass(frozen=True)
+class NlaBakeVO:
+    armature_name: str
+    output_action: str
+    frame_start: int
+    frame_end: int
+    step: int
+    keyframe_count: int
+    cleared_constraints: bool
+    cleared_nla: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class NlaValidationVO:
+    armature_name: str
+    track_count: int
+    strip_count: int
+    frame_start: float | None
+    frame_end: float | None
+    approved: bool
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class NlaMutationVO:
+    armature_name: str
+    track_name: str
+    strip_name: str | None
+    changed: bool
+    removed: bool = False

@@ -259,6 +259,14 @@ class BlenderMCPServer:
             "set_root_motion": self.set_root_motion,
             "bake_retarget_action": self.bake_retarget_action,
             "validate_animation_result": self.validate_animation_result,
+            "create_nla_track": self.create_nla_track,
+            "add_nla_strip": self.add_nla_strip,
+            "set_nla_strip": self.set_nla_strip,
+            "set_animation_layer": self.set_animation_layer,
+            "set_animation_mask": self.set_animation_mask,
+            "remove_nla_strip": self.remove_nla_strip,
+            "bake_nla_assembly": self.bake_nla_assembly,
+            "validate_nla_assembly": self.validate_nla_assembly,
             "get_mesh_statistics": self.get_mesh_statistics,
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
@@ -3006,6 +3014,325 @@ class BlenderMCPServer:
             "curve_count": len(curves),
             "keyframe_count": sum(min(len(curve.keyframe_points), limit) for curve in curves),
             "approved": not warnings,
+            "warnings": warnings,
+        }
+
+    @staticmethod
+    def _nla_name(value, label):
+        name = str(value).strip()
+        if not name or len(name) > 256:
+            raise ValueError(f"{label} must be 1-256 characters")
+        return name
+
+    def _nla_armature(self, armature_name):
+        obj = bpy.data.objects.get(self._nla_name(armature_name, "armature_name"))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        obj.animation_data_create()
+        return obj
+
+    @staticmethod
+    def _nla_track(obj, track_name):
+        name = BlenderMCPServer._nla_name(track_name, "track_name")
+        track = next((item for item in obj.animation_data.nla_tracks if item.name == name), None)
+        if track is None:
+            raise ValueError(f"NLA track not found: {name}")
+        return track
+
+    @staticmethod
+    def _nla_strip(track, strip_name):
+        name = BlenderMCPServer._nla_name(strip_name, "strip_name")
+        strip = next((item for item in track.strips if item.name == name), None)
+        if strip is None:
+            raise ValueError(f"NLA strip not found: {name}")
+        return strip
+
+    @staticmethod
+    def _nla_strip_result(obj, track, strip, changed=True):
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": strip.name,
+            "action_name": strip.action.name if strip.action else "",
+            "frame_start": float(strip.frame_start),
+            "frame_end": float(strip.frame_end),
+            "scale": float(strip.scale),
+            "repeat": float(strip.repeat),
+            "blend_in": float(strip.blend_in),
+            "blend_out": float(strip.blend_out),
+            "influence": float(strip.influence),
+            "blend_type": str(strip.blend_type),
+            "extrapolation": str(strip.extrapolation),
+            "reversed": bool(strip.use_reverse),
+            "changed": bool(changed),
+        }
+
+    def create_nla_track(self, armature_name, track_name, is_solo=False, is_muted=False):
+        obj = self._nla_armature(armature_name)
+        name = self._nla_name(track_name, "track_name")
+        track = next((item for item in obj.animation_data.nla_tracks if item.name == name), None)
+        changed = track is None
+        if track is None:
+            track = obj.animation_data.nla_tracks.new()
+            track.name = name
+        track.is_solo = bool(is_solo)
+        track.mute = bool(is_muted)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_count": len(track.strips),
+            "is_solo": bool(track.is_solo),
+            "is_muted": bool(track.mute),
+            "changed": changed,
+        }
+
+    def add_nla_strip(
+        self,
+        armature_name,
+        track_name,
+        action_name,
+        strip_name,
+        frame_start,
+        scale=1.0,
+        repeat=1.0,
+        blend_in=0.0,
+        blend_out=0.0,
+        influence=1.0,
+        blend_type="REPLACE",
+        extrapolation="HOLD",
+        reversed=False,
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        action = bpy.data.actions.get(self._nla_name(action_name, "action_name"))
+        if action is None:
+            raise ValueError(f"Action not found: {action_name}")
+        strip_name = self._nla_name(strip_name, "strip_name")
+        if any(item.name == strip_name for item in track.strips):
+            raise ValueError(f"NLA strip already exists: {strip_name}")
+        frame_start = int(float(frame_start))
+        scale = float(scale)
+        repeat = float(repeat)
+        blend_in = float(blend_in)
+        blend_out = float(blend_out)
+        influence = float(influence)
+        if not -100000.0 <= frame_start <= 100000.0:
+            raise ValueError("frame_start must be between -100000 and 100000")
+        if not 0.001 <= scale <= 1000.0 or not 0.001 <= repeat <= 1000.0:
+            raise ValueError("scale and repeat must be between 0.001 and 1000")
+        if not 0.0 <= blend_in <= 100000.0 or not 0.0 <= blend_out <= 100000.0:
+            raise ValueError("blend_in and blend_out must be between 0 and 100000")
+        if not 0.0 <= influence <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+            raise ValueError("unsupported NLA blend_type")
+        if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
+            raise ValueError("unsupported NLA extrapolation")
+        strip = track.strips.new(strip_name, frame_start, action)
+        strip.scale = scale
+        strip.repeat = repeat
+        strip.blend_in = blend_in
+        strip.blend_out = blend_out
+        strip.influence = influence
+        strip.blend_type = blend_type
+        strip.extrapolation = extrapolation
+        strip.use_reverse = bool(reversed)
+        return self._nla_strip_result(obj, track, strip)
+
+    def set_nla_strip(
+        self,
+        armature_name,
+        track_name,
+        strip_name,
+        frame_start=None,
+        scale=None,
+        repeat=None,
+        blend_in=None,
+        blend_out=None,
+        influence=None,
+        blend_type=None,
+        extrapolation=None,
+        reversed=None,
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        updates = {
+            "frame_start": frame_start,
+            "scale": scale,
+            "repeat": repeat,
+            "blend_in": blend_in,
+            "blend_out": blend_out,
+            "influence": influence,
+        }
+        if not any(value is not None for value in updates.values()) and blend_type is None and extrapolation is None and reversed is None:
+            raise ValueError("at least one NLA strip property must be provided")
+        for property_name, value in updates.items():
+            if value is not None:
+                setattr(strip, property_name, float(value))
+        if strip.scale < 0.001 or strip.repeat < 0.001:
+            raise ValueError("scale and repeat must be at least 0.001")
+        if not 0.0 <= strip.influence <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if blend_type is not None:
+            if blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+                raise ValueError("unsupported NLA blend_type")
+            strip.blend_type = blend_type
+        if extrapolation is not None:
+            if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
+                raise ValueError("unsupported NLA extrapolation")
+            strip.extrapolation = extrapolation
+        if reversed is not None:
+            strip.use_reverse = bool(reversed)
+        return self._nla_strip_result(obj, track, strip)
+
+    def set_animation_layer(
+        self, armature_name, track_name, blend_type=None, influence=None, is_solo=None, is_muted=None
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        if blend_type is None and influence is None and is_solo is None and is_muted is None:
+            raise ValueError("at least one NLA layer property must be provided")
+        if blend_type is not None and blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+            raise ValueError("unsupported NLA blend_type")
+        if influence is not None and not 0.0 <= float(influence) <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if is_solo is not None:
+            track.is_solo = bool(is_solo)
+        if is_muted is not None:
+            track.mute = bool(is_muted)
+        for strip in track.strips:
+            if blend_type is not None:
+                strip.blend_type = blend_type
+            if influence is not None:
+                strip.influence = float(influence)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "blend_type": blend_type,
+            "influence": float(influence) if influence is not None else None,
+            "is_solo": bool(track.is_solo) if is_solo is not None else None,
+            "is_muted": bool(track.mute) if is_muted is not None else None,
+            "changed": True,
+        }
+
+    def set_animation_mask(self, armature_name, track_name, strip_name, bone_names):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        if not isinstance(bone_names, list) or len(bone_names) > 1000:
+            raise ValueError("bone_names must be a list of no more than 1000 items")
+        normalized = []
+        for raw_name in bone_names:
+            name = self._nla_name(raw_name, "bone_name")
+            if name.startswith(("DEF-", "MCH-", "ORG-")):
+                raise ValueError("animation masks may only contain Rigify animator controls")
+            if obj.pose.bones.get(name) is None:
+                raise ValueError(f"Pose bone not found: {name}")
+            normalized.append(name)
+        metadata = json.loads(obj.get("arwaky_nla_masks", "{}"))
+        metadata[f"{track.name}:{strip.name}"] = normalized
+        obj["arwaky_nla_masks"] = json.dumps(metadata, separators=(",", ":"))
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": strip.name,
+            "bone_names": normalized,
+            "changed": True,
+        }
+
+    def remove_nla_strip(self, armature_name, track_name, strip_name):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        track.strips.remove(strip)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": str(strip_name),
+            "changed": True,
+            "removed": True,
+        }
+
+    def bake_nla_assembly(
+        self, armature_name, frame_start, frame_end, step=1, output_action="Wave5_Baked_Action", clear_constraints=False, clear_nla=False
+    ):
+        obj = self._nla_armature(armature_name)
+        frame_start = self._bounded_wave_two_frame(frame_start)
+        frame_end = self._bounded_wave_two_frame(frame_end)
+        step = int(step)
+        output_action = self._nla_name(output_action, "output_action")
+        if frame_end < frame_start or not 1 <= step <= 100:
+            raise ValueError("invalid NLA bake frame range or step")
+        existing = bpy.data.actions.get(output_action)
+        if existing is not None:
+            bpy.data.actions.remove(existing)
+        for candidate in list(bpy.context.selected_objects):
+            candidate.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if obj.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        bpy.ops.pose.select_all(action="SELECT")
+        obj.animation_data.action = None
+        before_actions = set(bpy.data.actions.keys())
+        bpy.ops.nla.bake(
+            frame_start=frame_start,
+            frame_end=frame_end,
+            step=step,
+            only_selected=True,
+            visual_keying=True,
+            clear_constraints=bool(clear_constraints),
+            clear_parents=False,
+            use_current_action=False,
+            clean_curves=False,
+            bake_types={"POSE"},
+            channel_types={"LOCATION", "ROTATION", "SCALE", "PROPS"},
+        )
+        created = [action for action in bpy.data.actions if action.name not in before_actions]
+        baked = obj.animation_data.action or (created[-1] if created else None)
+        if baked is None:
+            raise RuntimeError("NLA bake did not create an Action")
+        baked.name = output_action
+        obj.animation_data.action = baked
+        if clear_nla:
+            for track in list(obj.animation_data.nla_tracks):
+                obj.animation_data.nla_tracks.remove(track)
+        return {
+            "armature_name": obj.name,
+            "output_action": baked.name,
+            "frame_start": frame_start,
+            "frame_end": frame_end,
+            "step": step,
+            "keyframe_count": sum(len(curve.keyframe_points) for curve in self._iter_action_fcurves(baked)),
+            "cleared_constraints": bool(clear_constraints),
+            "cleared_nla": bool(clear_nla),
+            "changed": True,
+        }
+
+    def validate_nla_assembly(self, armature_name, limit=100):
+        obj = self._nla_armature(armature_name)
+        limit = self._bounded_wave_two_limit(limit)
+        tracks = list(obj.animation_data.nla_tracks)[:limit]
+        strips = []
+        warnings = []
+        for track in tracks:
+            for strip in list(track.strips)[: max(1, limit - len(strips))]:
+                strips.append(strip)
+                if strip.action is None:
+                    warnings.append(f"NLA strip has no Action: {track.name}/{strip.name}")
+                if not 0.0 <= float(strip.influence) <= 1.0:
+                    warnings.append(f"NLA strip influence is out of bounds: {track.name}/{strip.name}")
+                if strip.frame_end < strip.frame_start:
+                    warnings.append(f"NLA strip frame range is invalid: {track.name}/{strip.name}")
+        frame_values = [value for strip in strips for value in (float(strip.frame_start), float(strip.frame_end))]
+        return {
+            "armature_name": obj.name,
+            "track_count": len(tracks),
+            "strip_count": len(strips),
+            "frame_start": min(frame_values) if frame_values else None,
+            "frame_end": max(frame_values) if frame_values else None,
+            "approved": bool(strips) and not warnings,
             "warnings": warnings,
         }
 

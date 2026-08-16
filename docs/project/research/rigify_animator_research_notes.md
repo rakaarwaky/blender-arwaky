@@ -244,3 +244,10 @@ Sources:
 - https://docs.blender.org/manual/en/latest/animation/armatures/posing/editing/pose_library.html
 - https://docs.blender.org/manual/en/latest/animation/armatures/posing/editing/copy_paste.html
 - https://docs.blender.org/api/current/bpy.ops.poselib.html
+
+
+## Wave 5 — Blender 5.2 NLA API findings
+
+Wave 5 uses Blender native `AnimData.nla_tracks`, `NlaTrack.strips`, and `NlaStrip` properties. The implementation treats track mute/solo, strip Action linkage, frame start, scale, repeat, blend in/out, influence, blend type, extrapolation, and reverse playback as native NLA state. Rigify bone masks are represented as explicit bounded metadata on each strip because Blender's NLA strip RNA does not expose a general per-strip bone-mask collection; the executor validates that mask names are animator control bones and excludes `DEF-`, `MCH-`, and `ORG-` bones. Assembly baking uses Blender's native NLA bake operator with explicit frame range and output Action policy.
+
+Official references: Blender Python API NlaStrip, NlaTrack, and AnimData pages retrieved during Wave 5 planning.
