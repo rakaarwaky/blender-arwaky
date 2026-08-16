@@ -204,7 +204,7 @@ uv run blender-arwaky enable-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-
 uv run blender-arwaky create-character --plugin-id mpfb2 --name ArwakyHuman
 ```
 
-The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source.
+The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Repeating a valid legacy install or removal command is idempotent; invalid existing paths are still rejected. Provider capabilities are statically declared, while runtime availability is reported separately through lifecycle states: `unavailable`, `installed`, `enabled`, or `incompatible`. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source.
 
 ## Configuration
 

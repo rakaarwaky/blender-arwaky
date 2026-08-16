@@ -32,6 +32,28 @@ def _request(tmp_path: Path) -> PluginPackageRequestVO:
     )
 
 
+def test_legacy_install_and_remove_are_idempotent(tmp_path) -> None:
+    package = tmp_path / "legacy.zip"
+    install_path = tmp_path / "legacy-provider"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.writestr("__init__.py", "provider = True\n")
+    request = PluginPackageRequestVO(
+        plugin_id=PluginId("legacy"),
+        source_url=PluginSourceUrl("https://example.invalid/legacy.zip"),
+        sha256=PluginSha256(hashlib.sha256(package.read_bytes()).hexdigest()),
+        cache_path=PluginCachePath(str(package)),
+        install_path=PluginInstallPath(str(install_path)),
+    )
+    capability = PluginPackageCapability()
+
+    assert capability.execute(PluginActionName("install_plugin"), request).success
+    assert capability.execute(PluginActionName("install_plugin"), request).success
+    assert (install_path / "__init__.py").is_file()
+    assert capability.execute(PluginActionName("remove_plugin"), request).success
+    assert capability.execute(PluginActionName("remove_plugin"), request).success
+    assert not install_path.exists()
+
+
 def test_extension_lifecycle_uses_allowlisted_blender_commands(tmp_path, monkeypatch) -> None:
     calls: list[tuple[str, ...]] = []
 

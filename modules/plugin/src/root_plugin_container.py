@@ -7,7 +7,7 @@ from .capabilities_plugin_package import PluginPackageCapability
 from .capabilities_plugin_registry import PluginRegistryCapability
 from .contract_plugin_aggregate import PluginAggregate
 from .contract_plugin_operation_protocol import PluginOperationProtocol
-from .taxonomy_plugin_vo import PluginId
+from .taxonomy_plugin_vo import PluginId, PluginRegistrationVO
 
 
 class PluginContainer:
@@ -22,9 +22,9 @@ class PluginContainer:
         self,
         plugin_id: PluginId,
         operation: PluginOperationProtocol,
-    ) -> None:
+    ) -> PluginRegistrationVO:
         """Register a provider through the composed registry."""
-        self._registry.register(plugin_id, operation)
+        return self._registry.register(plugin_id, operation)
 
     def aggregate(self) -> PluginAggregate:
         """Return the stable plugin aggregate."""

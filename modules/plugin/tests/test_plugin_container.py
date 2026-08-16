@@ -11,6 +11,7 @@ from modules.plugin.src.taxonomy_plugin_vo import (
     PluginExecutionVO,
     PluginHealthVO,
     PluginId,
+    PluginLifecycleState,
     PluginMessage,
     PluginParameterMap,
 )
@@ -19,15 +20,25 @@ from modules.plugin.src.taxonomy_plugin_vo import (
 class FakePluginOperation(PluginOperationProtocol):
     """Contract double for plugin feature wiring tests."""
 
-    def __init__(self, plugin_id: PluginId) -> None:
+    def __init__(
+        self,
+        plugin_id: PluginId,
+        *,
+        active: bool = True,
+        compatible: bool = True,
+        capabilities: tuple[str, ...] = ("character.create",),
+    ) -> None:
         self._plugin_id = plugin_id
+        self._active = active
+        self._compatible = compatible
+        self._capabilities = capabilities
 
     def discover(self, blender_version: BlenderVersion) -> PluginDiscoveryVO:
         return PluginDiscoveryVO(
             plugin_id=self._plugin_id,
             installed=True,
-            active=True,
-            compatible=str(blender_version) >= "4.2",
+            active=self._active,
+            compatible=self._compatible and str(blender_version) >= "4.2",
             message=PluginMessage("discovered"),
         )
 
@@ -35,13 +46,13 @@ class FakePluginOperation(PluginOperationProtocol):
         return PluginHealthVO(
             plugin_id=self._plugin_id,
             installed=True,
-            active=True,
-            compatible=True,
+            active=self._active,
+            compatible=self._compatible,
             message=PluginMessage("healthy"),
         )
 
     def capabilities(self) -> PluginCapabilityList:
-        return PluginCapabilityList((PluginCapabilityId("character.create"),))
+        return PluginCapabilityList(tuple(PluginCapabilityId(item) for item in self._capabilities))
 
     def execute(
         self,
@@ -65,6 +76,55 @@ def test_container_registers_provider_and_exposes_capability() -> None:
 
     assert aggregate.capabilities() == (PluginCapabilityId("character.create"),)
     assert aggregate.discover(BlenderVersion("4.2")) == (PluginId("fake"),)
+
+
+def test_registry_rejects_capability_collision() -> None:
+    container = PluginContainer()
+    first = container.register_provider(PluginId("first"), FakePluginOperation(PluginId("first")))
+    second = container.register_provider(PluginId("second"), FakePluginOperation(PluginId("second")))
+
+    assert first.registered is True
+    assert second.registered is False
+    assert second.message == PluginMessage("plugin capability collision: character.create")
+
+
+def test_registry_rejects_duplicate_capability_declaration() -> None:
+    container = PluginContainer()
+    result = container.register_provider(
+        PluginId("duplicate"),
+        FakePluginOperation(PluginId("duplicate"), capabilities=("character.create", "character.create")),
+    )
+
+    assert result.registered is False
+    assert result.message == PluginMessage("plugin declares a duplicate capability")
+
+
+def test_container_normalizes_provider_lifecycle_state() -> None:
+    container = PluginContainer()
+    container.register_provider(
+        PluginId("fake"),
+        FakePluginOperation(PluginId("fake"), active=False),
+    )
+
+    health = container.aggregate().health_check()
+
+    assert health[0].state is PluginLifecycleState.INSTALLED
+
+
+def test_container_blocks_execution_for_disabled_provider() -> None:
+    container = PluginContainer()
+    container.register_provider(
+        PluginId("fake"),
+        FakePluginOperation(PluginId("fake"), active=False),
+    )
+
+    result = container.aggregate().execute(
+        PluginActionName("character.create"),
+        PluginParameterMap({}),
+    )
+
+    assert result.success is False
+    assert result.message == PluginMessage("plugin is not executable in lifecycle state installed")
 
 
 def test_container_executes_declared_capability() -> None:

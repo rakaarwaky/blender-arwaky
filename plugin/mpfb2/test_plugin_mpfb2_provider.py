@@ -16,7 +16,7 @@ def test_mpfb2_absent_provider_is_optional() -> None:
 
     assert discovery.installed is False
     assert discovery.active is False
-    assert provider.capabilities() == ()
+    assert provider.capabilities() == ("character.create",)
 
 
 def test_mpfb2_active_provider_declares_capability() -> None:

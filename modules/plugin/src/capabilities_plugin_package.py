@@ -111,6 +111,8 @@ class PluginPackageCapability(PluginPackageProtocol):
         package = self._safe_path(request.cache_path)
         destination = self._safe_path(request.install_path)
         if destination.exists():
+            if destination.is_dir() and self._is_valid_install_directory(destination):
+                return
             raise ValueError("plugin install path already exists")
         destination.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=destination.parent) as temporary:
@@ -150,7 +152,9 @@ class PluginPackageCapability(PluginPackageProtocol):
             )
             return
         destination = self._safe_path(request.install_path)
-        if not destination.exists() or destination.is_symlink() or not destination.is_dir():
+        if not destination.exists():
+            return
+        if destination.is_symlink() or not destination.is_dir():
             raise ValueError("plugin install path is not a directory")
         shutil.rmtree(destination)
 
@@ -206,6 +210,11 @@ class PluginPackageCapability(PluginPackageProtocol):
         names = {Path(member.filename).name for member in members}
         if "__init__.py" not in names and "blender_manifest.toml" not in names:
             raise ValueError("plugin package must contain __init__.py or blender_manifest.toml")
+
+    @staticmethod
+    def _is_valid_install_directory(directory: Path) -> bool:
+        """Recognize an existing idempotent install without executing package code."""
+        return (directory / "__init__.py").is_file() or (directory / "blender_manifest.toml").is_file()
 
     @staticmethod
     def _normalize_package_root(directory: Path) -> Path:

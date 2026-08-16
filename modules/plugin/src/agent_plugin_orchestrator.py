@@ -26,14 +26,11 @@ class PluginAgentOrchestrator(PluginAggregate):
         self._registry = registry
 
     def discover(self, blender_version: BlenderVersion) -> PluginIdList:
-        """Return providers that report compatible discovery state."""
-        del blender_version
-        healthy = tuple(
-            item.plugin_id
-            for item in self._registry.health_check()
-            if item.installed and item.active and item.compatible
+        """Return providers that report an enabled and compatible discovery state."""
+        discovered = self._registry.discover(blender_version)
+        return PluginIdList(
+            tuple(item.plugin_id for item in discovered if item.installed and item.active and item.compatible)
         )
-        return PluginIdList(healthy)
 
     def capabilities(self) -> PluginCapabilityList:
         """Return capability identifiers through the registry contract."""
@@ -56,5 +53,17 @@ class PluginAgentOrchestrator(PluginAggregate):
                 action=action,
                 success=False,
                 message=PluginMessage("plugin capability is not registered"),
+            )
+        provider_id = self._registry.resolve_provider_id(operation)
+        health = next(
+            (item for item in self._registry.health_check() if item.plugin_id == provider_id),
+            None,
+        )
+        if health is not None and (not health.installed or not health.active or not health.compatible):
+            return PluginExecutionVO(
+                plugin_id=health.plugin_id,
+                action=action,
+                success=False,
+                message=PluginMessage(f"plugin is not executable in lifecycle state {health.state.value}"),
             )
         return operation.execute(action, params)

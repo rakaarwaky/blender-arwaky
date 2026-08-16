@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import NewType
 
 PluginId = NewType("PluginId", str)
@@ -21,6 +22,27 @@ PluginSourceUrl = NewType("PluginSourceUrl", str)
 PluginSha256 = NewType("PluginSha256", str)
 PluginCachePath = NewType("PluginCachePath", str)
 PluginInstallPath = NewType("PluginInstallPath", str)
+
+
+class PluginLifecycleState(StrEnum):
+    """Normalized provider lifecycle states shared by every plugin."""
+
+    UNKNOWN = "unknown"
+    UNAVAILABLE = "unavailable"
+    INSTALLED = "installed"
+    ENABLED = "enabled"
+    INCOMPATIBLE = "incompatible"
+
+
+def derive_plugin_lifecycle_state(installed: bool, active: bool, compatible: bool) -> PluginLifecycleState:
+    """Derive one deterministic lifecycle state from provider health flags."""
+    if not installed:
+        return PluginLifecycleState.UNAVAILABLE
+    if not compatible:
+        return PluginLifecycleState.INCOMPATIBLE
+    if active:
+        return PluginLifecycleState.ENABLED
+    return PluginLifecycleState.INSTALLED
 
 
 @dataclass(frozen=True)
@@ -45,6 +67,7 @@ class PluginDiscoveryVO:
     active: bool
     compatible: bool
     message: PluginMessage
+    state: PluginLifecycleState = PluginLifecycleState.UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -56,6 +79,7 @@ class PluginHealthVO:
     active: bool
     compatible: bool
     message: PluginMessage
+    state: PluginLifecycleState = PluginLifecycleState.UNKNOWN
 
 
 @dataclass(frozen=True)
