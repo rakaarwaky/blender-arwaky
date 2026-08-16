@@ -11,6 +11,7 @@ from modules.plugin.src.taxonomy_plugin_vo import (
     PluginCachePath,
     PluginId,
     PluginInstallPath,
+    PluginMessage,
     PluginPackageRequestVO,
     PluginSha256,
     PluginSourceUrl,
@@ -56,11 +57,14 @@ class CliActionRouter:
         "download_asset",
         "extract_asset",
     }
+    _PLUGIN_PROVIDER_ACTIONS = {"create_character", "randomize_character", "remove_character"}
     _PLUGIN_ACTIONS = {
         "list_plugins",
         "download_plugin",
         "verify_plugin",
         "install_plugin",
+        "enable_plugin",
+        "disable_plugin",
         "remove_plugin",
     }
     _LAUNCHER_ACTIONS = {
@@ -96,6 +100,8 @@ class CliActionRouter:
             return self._execute_config(action_name, params)
         if action_name in self._ASSET_ACTIONS:
             return self._execute_asset(action_name, params)
+        if action_name in self._PLUGIN_PROVIDER_ACTIONS:
+            return self._execute_plugin_provider(action_name, params)
         if action_name in self._PLUGIN_ACTIONS:
             return self._execute_plugin(action_name, params)
 
@@ -145,6 +151,45 @@ class CliActionRouter:
         result = asyncio.run(self._asset.extract_archive(request))
         return asdict(result)
 
+    def _execute_plugin_provider(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
+        """Route explicitly mapped provider operations through the Blender bridge."""
+        from plugin.mpfb2.plugin_operations import (
+            Mpfb2CreateCharacterRequest,
+            Mpfb2RandomizeCharacterRequest,
+            Mpfb2RemoveCharacterRequest,
+            map_create_character,
+            map_randomize_character,
+            map_remove_character,
+        )
+
+        plugin_id = str(params.get("plugin_id", "mpfb2")).strip()
+        if plugin_id != "mpfb2":
+            raise ValueError(f"{action_name} is mapped only to provider mpfb2")
+        if action_name == "create_character":
+            command = map_create_character(Mpfb2CreateCharacterRequest(name=str(params.get("name", "MPFB_Human"))))
+        elif action_name == "randomize_character":
+            command = map_randomize_character(
+                Mpfb2RandomizeCharacterRequest(
+                    name=str(params.get("name", "MPFB_RandomHuman")),
+                    seed=params.get("seed", 0),
+                )
+            )
+        elif action_name == "remove_character":
+            command = map_remove_character(
+                Mpfb2RemoveCharacterRequest(
+                    object_name=str(params.get("object_name", "")),
+                    confirm=params.get("confirm", False),
+                )
+            )
+        else:
+            raise ValueError(f"unsupported provider action: {action_name}")
+        with BlenderSocketClient(port=Registry().get_port()) as client:
+            response = client.send_command(command["type"], command["params"])
+        if response.get("status") != "success":
+            raise RuntimeError(str(response.get("message", "MPFB2 character operation failed")))
+        result = response.get("result", {})
+        return result if isinstance(result, dict) else {"result": result}
+
     def _execute_plugin(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
         if self._plugin is None:
             raise RuntimeError("Plugin container is not configured")
@@ -160,6 +205,12 @@ class CliActionRouter:
             sha256=PluginSha256(str(params.get("sha256", "")).strip()),
             cache_path=PluginCachePath(str(params.get("cache_path", "")).strip()),
             install_path=PluginInstallPath(str(params.get("install_path", "")).strip()),
+            blender_path=PluginInstallPath(str(params.get("blender_path", "")).strip())
+            if params.get("blender_path")
+            else None,
+            repository_id=PluginMessage(str(params.get("repository_id", "user_default")).strip()),
+            extension_id=PluginId(str(params.get("extension_id", "")).strip()) if params.get("extension_id") else None,
+            enable=bool(params.get("enable", True)),
         )
         result = self._plugin.package().execute(PluginActionName(action_name), request)
         return asdict(result)

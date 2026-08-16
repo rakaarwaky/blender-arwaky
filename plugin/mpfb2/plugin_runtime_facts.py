@@ -29,7 +29,7 @@ def probe_blender_runtime(runtime: object | None = None) -> Mpfb2RuntimeFacts:
     app = getattr(candidate, "app", None)
     version = _read_blender_version(app)
     addons = _read_enabled_addons(candidate)
-    active = any(_is_mpfb2_name(name) for name in addons)
+    active = any(_is_mpfb2_name(name) for name in addons) or _has_mpfb2_operator(candidate)
     return Mpfb2RuntimeFacts(
         blender_version=version,
         installed=active,
@@ -61,6 +61,13 @@ def _read_enabled_addons(runtime: object) -> tuple[str, ...]:
     if not callable(keys):
         return ()
     return tuple(str(key) for key in keys())
+
+
+def _has_mpfb2_operator(runtime: object) -> bool:
+    """Detect an enabled modern extension through its public operator namespace."""
+    operators = getattr(runtime, "ops", None)
+    mpfb_namespace = getattr(operators, "mpfb", None)
+    return callable(getattr(mpfb_namespace, "create_human", None))
 
 
 def _is_mpfb2_name(name: str) -> bool:

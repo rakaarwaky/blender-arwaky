@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from modules.plugin.src.contract_plugin_operation_protocol import PluginOperationProtocol
 from modules.plugin.src.taxonomy_plugin_constant import (
-    PLUGIN_PROVIDER_TYPE_BLENDER_ADDON,
+    PLUGIN_PROVIDER_TYPE_BLENDER_EXTENSION,
     PLUGIN_STATUS_INCOMPATIBLE,
     PLUGIN_STATUS_SUCCESS,
     PLUGIN_STATUS_UNAVAILABLE,
@@ -42,7 +42,7 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
     ) -> None:
         self._installed = installed
         self._active = active
-        self._blender_min_version = blender_min_version or BlenderVersion("4.2")
+        self._blender_min_version = blender_min_version or BlenderVersion("5.2")
         self._blender_version = blender_version or self._blender_min_version
 
     def manifest(self) -> PluginManifestVO:
@@ -51,9 +51,9 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
             plugin_id=PluginId("mpfb2"),
             name=PluginName("MPFB 2"),
             version=PluginVersion("2.0.17"),
-            provider_type=PluginProviderType(PLUGIN_PROVIDER_TYPE_BLENDER_ADDON),
+            provider_type=PluginProviderType(PLUGIN_PROVIDER_TYPE_BLENDER_EXTENSION),
             blender_min_version=self._blender_min_version,
-            entry_point=PluginMessage("plugin/mpfb2/plugin_entry.py"),
+            entry_point=PluginMessage("plugin/mpfb2/plugin_entry.py; extension_id=mpfb"),
             capabilities=PluginCapabilityList((PluginCapabilityId("character.create"),)),
         )
 

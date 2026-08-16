@@ -86,6 +86,10 @@ class PluginPackageRequestVO:
     sha256: PluginSha256
     cache_path: PluginCachePath
     install_path: PluginInstallPath
+    blender_path: PluginInstallPath | None = None
+    repository_id: PluginMessage = PluginMessage("user_default")
+    extension_id: PluginId | None = None
+    enable: bool = True
 
 
 @dataclass(frozen=True)

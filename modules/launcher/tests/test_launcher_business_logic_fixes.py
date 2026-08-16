@@ -217,17 +217,17 @@ class TestPIDReuseGuard:
 class TestVersionCompatibilityParsing:
     """Test P1 fix for semantic version compatibility parsing (Finding #2)."""
 
-    def test_supported_version_36(self) -> None:
-        """P1 (Finding #2): Blender 3.6.0 is SUPPORTED."""
+    def test_unsupported_version_36(self) -> None:
+        """Blender 3.6 is below the Arwaky 5.2 runtime baseline."""
         locator = ExecutableLocator()
         result = locator._check_compatibility("3.6.0")
-        assert result == VersionCompatibility.SUPPORTED
+        assert result == VersionCompatibility.UNSUPPORTED
 
-    def test_supported_version_30(self) -> None:
-        """P1 (Finding #2): Blender 3.0 is SUPPORTED (minimum modern version)."""
+    def test_unsupported_version_42(self) -> None:
+        """Blender 4.2 is below the Arwaky 5.2 runtime baseline."""
         locator = ExecutableLocator()
-        result = locator._check_compatibility("3.0")
-        assert result == VersionCompatibility.SUPPORTED
+        result = locator._check_compatibility("4.2.0")
+        assert result == VersionCompatibility.UNSUPPORTED
 
     def test_unsupported_version_29(self) -> None:
         """P1 (Finding #2): Blender 2.9 is UNSUPPORTED."""
@@ -241,17 +241,17 @@ class TestVersionCompatibilityParsing:
         result = locator._check_compatibility("")
         assert result == VersionCompatibility.UNKNOWN
 
-    def test_warning_experimental_version_42(self) -> None:
-        """P1 (Finding #2): Blender 4.2+ is WARNING (experimental features)."""
-        locator = ExecutableLocator()
-        result = locator._check_compatibility("4.2.0")
-        assert result == VersionCompatibility.WARNING
-
-    def test_warning_experimental_version_43(self) -> None:
-        """P1 (Finding #2): Blender 4.3 is WARNING."""
+    def test_unsupported_version_43(self) -> None:
+        """Blender 4.3 is below the Arwaky 5.2 runtime baseline."""
         locator = ExecutableLocator()
         result = locator._check_compatibility("4.3")
-        assert result == VersionCompatibility.WARNING
+        assert result == VersionCompatibility.UNSUPPORTED
+
+    def test_supported_version_52(self) -> None:
+        """Blender 5.2 is the supported Arwaky runtime baseline."""
+        locator = ExecutableLocator()
+        result = locator._check_compatibility("5.2.0")
+        assert result == VersionCompatibility.SUPPORTED
 
 
 # ─── P1 Finding #7: Corrupt State Load Warning Event ─────────────────────────

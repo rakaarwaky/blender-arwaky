@@ -12,7 +12,7 @@ from plugin.mpfb2.plugin_runtime_facts import probe_blender_runtime
 def test_mpfb2_absent_provider_is_optional() -> None:
     provider = Mpfb2PluginOperation(installed=False, active=False)
 
-    discovery = provider.discover(BlenderVersion("4.2"))
+    discovery = provider.discover(BlenderVersion("5.2"))
 
     assert discovery.installed is False
     assert discovery.active is False
@@ -22,7 +22,7 @@ def test_mpfb2_absent_provider_is_optional() -> None:
 def test_mpfb2_active_provider_declares_capability() -> None:
     provider = Mpfb2PluginOperation(installed=True, active=True)
 
-    discovery = provider.discover(BlenderVersion("4.2"))
+    discovery = provider.discover(BlenderVersion("5.2"))
 
     assert discovery.compatible is True
     assert provider.capabilities() == ("character.create",)
@@ -52,7 +52,7 @@ def test_runtime_probe_reads_enabled_mpfb2_addon() -> None:
         preferences = FakePreferences()
 
     class FakeApp:
-        version = (4, 3, 0)
+        version = (5, 2, 0)
 
     class FakeBlender:
         app = FakeApp()
@@ -66,6 +66,28 @@ def test_runtime_probe_reads_enabled_mpfb2_addon() -> None:
     assert provider.discover(facts.blender_version).compatible is True
 
 
+def test_runtime_probe_reads_modern_extension_operator() -> None:
+    class FakeOpsNamespace:
+        def create_human(self) -> None:
+            return None
+
+    class FakeOps:
+        mpfb = FakeOpsNamespace()
+
+    class FakeApp:
+        version = (5, 2, 0)
+
+    class FakeBlender:
+        app = FakeApp()
+        ops = FakeOps()
+
+    facts = probe_blender_runtime(FakeBlender())
+
+    assert facts.installed is True
+    assert facts.active is True
+    assert facts.blender_version == "5.2.0"
+
+
 def test_runtime_probe_without_blender_is_unavailable() -> None:
     facts = probe_blender_runtime(object())
 
@@ -76,7 +98,7 @@ def test_runtime_probe_without_blender_is_unavailable() -> None:
 def test_mpfb2_reports_incompatible_blender() -> None:
     provider = Mpfb2PluginOperation(installed=True, active=True)
 
-    discovery = provider.discover(BlenderVersion("4.1"))
+    discovery = provider.discover(BlenderVersion("4.5"))
 
     assert discovery.compatible is False
     assert discovery.message == "incompatible"

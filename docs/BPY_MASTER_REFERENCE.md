@@ -161,7 +161,7 @@ bpy.types.SpaceView3D.draw_handler_add(draw_viewport_callback, (), 'WINDOW', 'PO
 
 ---
 
-## 7. Addon Development & Extension Manifest (Blender 4.2+)
+## 7. Addon Development & Extension Manifest (Blender 5.2+)
 
 Detailed file reference: [docs/bpy.types/bpy.types.Operator.md](file:///home/raka/mcp-arwaky/blender-arwaky/docs/bpy.types/bpy.types.Operator.md) & [blender_manifest.toml](file:///home/raka/mcp-arwaky/blender-arwaky/blender_mcp_addon/blender_manifest.toml)
 

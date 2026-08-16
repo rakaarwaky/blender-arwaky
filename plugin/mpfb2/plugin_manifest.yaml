@@ -1,8 +1,12 @@
 id: mpfb2
 name: MPFB 2
 version: 2.0.17
-provider_type: blender_addon
-blender_min_version: "4.2"
+provider_type: blender_extension
+blender_min_version: "5.2.0"
+extension_id: mpfb
+source_url: "https://extensions.blender.org/download/sha256:4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87/add-on-mpfb-v2.0.17.zip?repository=%2Fapi%2Fv1%2Fextensions%2F&blender_version_min=5.2.0"
+sha256: 4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87
+repository_id: user_default
 entry_point: plugin_entry:create_provider
 capabilities:
   - character.create

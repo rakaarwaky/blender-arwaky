@@ -1,6 +1,6 @@
 # Blender Arwaky
 
-[![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/downloads/) [![Blender 4.2+](https://img.shields.io/badge/Blender-4.2%2B-E87D0D.svg)](https://www.blender.org/download/) [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
+[![CI](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/rakaarwaky/blender-arwaky/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/downloads/) [![Blender 5.2+](https://img.shields.io/badge/Blender-5.2%2B-E87D0D.svg)](https://www.blender.org/download/) [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f.svg)](LICENSE)
 
 **Blender Arwaky** is an open-source Blender automation runtime for MCP clients, agentic coding workflows, and technical artists. A validated dispatcher connects MCP and CLI clients to the same action catalog.
 
@@ -14,7 +14,7 @@ Blender Arwaky is designed for **deterministic Blender automation, discoverable 
 
 ### Requirements
 
-Install Blender 4.2+, Python 3.10+, and [`uv`](https://docs.astral.sh/uv/).
+Install Blender 5.2+, Python 3.10+, and [`uv`](https://docs.astral.sh/uv/). Blender 5.2 LTS is the supported runtime baseline for Arwaky.
 
 ```bash
 git clone https://github.com/rakaarwaky/blender-arwaky.git
@@ -165,11 +165,16 @@ The catalog below lists every valid CLI action and its action-specific parameter
 | 73 | job | `cancel-task` | `--task-id` (string; required) | Cancel a running background task |
 | 74 | config | `get-config` | `--key` (string) | Retrieve BlenderArwaky configuration settings |
 | 75 | config | `set-config` | `--key` (string; required)<br>`--value` (value; required) | Update a configuration setting |
-| 76 | plugin | `list-plugins` | <none> | List registered optional providers and their runtime capability metadata |
-| 77 | plugin | `download-plugin` | `--plugin-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download a plugin package over HTTPS into the local cache |
-| 78 | plugin | `verify-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify SHA-256 and ZIP safety before installation |
-| 79 | plugin | `install-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--install-path` (absolute path; required) | Verify and atomically install an optional plugin package |
-| 80 | plugin | `remove-plugin` | `--plugin-id` (string; required)<br>`--install-path` (absolute path; required)<br>`--confirm` (global; required for destructive actions) | Remove one explicitly selected installed plugin directory |
+| 76 | plugin | `create-character` | `--plugin-id` (string; default: mpfb2)<br>`--name` (string; default: MPFB_Human) | Create one human through the explicitly mapped MPFB2 provider service |
+| 77 | plugin | `randomize-character` | `--plugin-id` (string; default: mpfb2)<br>`--name` (string; default: MPFB_RandomHuman)<br>`--seed` (int; default: 0) | Create a deterministic MPFB2 human from a bounded seeded phenotype randomization |
+| 78 | plugin | `remove-character` | `--plugin-id` (string; default: mpfb2)<br>`--object-name` (string; required)<br>`--confirm` (global; required for destructive actions) | Remove a verified MPFB2 basemesh and its parent-child closure |
+| 79 | plugin | `list-plugins` | <none> | List registered optional providers and their runtime capability metadata |
+| 80 | plugin | `download-plugin` | `--plugin-id` (string; required)<br>`--source-url` (HTTPS string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Download a plugin package over HTTPS into the local cache |
+| 81 | plugin | `verify-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required) | Verify SHA-256 and ZIP safety before installation |
+| 82 | plugin | `install-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required)<br>`--enable` (bool; default: true) | Verify and install an optional plugin through Blender 5.2 Extension System |
+| 83 | plugin | `enable-plugin` | `--plugin-id` (string; required)<br>`--sha256` (string; required)<br>`--cache-path` (absolute path; required)<br>`--blender-path` (absolute path; required)<br>`--repository-id` (string; default: user_default)<br>`--extension-id` (string; required) | Enable an installed Blender extension through its explicit extension id |
+| 84 | plugin | `disable-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Disable an installed Blender extension |
+| 85 | plugin | `remove-plugin` | `--plugin-id` (string; required)<br>`--blender-path` (absolute path; required)<br>`--extension-id` (string; required)<br>`--confirm` (global; required for destructive actions) | Remove an installed Blender extension |
 
 ## Global and common flags
 
@@ -194,10 +199,12 @@ Plugin packages are optional and are never required for the core runtime. For a 
 ```bash
 uv run blender-arwaky download-plugin --plugin-id mpfb2 --source-url https://example.org/mpfb2.zip --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip
 uv run blender-arwaky verify-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip
-uv run blender-arwaky install-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --install-path /absolute/plugins/mpfb2
+uv run blender-arwaky install-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --blender-path /absolute/path/to/blender-5.2 --extension-id mpfb --enable
+uv run blender-arwaky enable-plugin --plugin-id mpfb2 --sha256 <sha256> --cache-path /absolute/cache/mpfb2.zip --blender-path /absolute/path/to/blender-5.2 --extension-id mpfb
+uv run blender-arwaky create-character --plugin-id mpfb2 --name ArwakyHuman
 ```
 
-The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, and atomic installation. Installation places provider files on disk; provider-specific Blender operations remain explicitly mapped actions and require a compatible Blender environment with the provider enabled.
+The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source.
 
 ## Configuration
 
@@ -221,7 +228,7 @@ The matrix below uses values and capabilities stated in each project's current p
 
 | Project | MCP tools | Actions / operations | Namespaces | CLI | `.mcpb` | Min. Blender | Headless | Addon/bridge | Dashboard | Async jobs | Assets | 3D generation | Geometry Nodes | VSE | VRM | Gaussian splats | Safety controls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Blender Arwaky** | 5 | 80 | 16 | √ | × | 4.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
+| **Blender Arwaky** | 5 | 85 | 16 | √ | × | 5.2+ | ? | √ | × | √ | √ | × | √ | √ | × | × | √ |
 | [BlenderMCP by ahujasid][1] | ? | ? | ? | ? | ? | ? | ? | √ | ? | ? | √ | √ | ? | ? | ? | ? | ? |
 | [Blender MCP Server by djeada][3] | 27 | ? | 7 | ? | ? | ? | √ | √ | ? | √ | ? | ? | ? | ? | ? | ? | √ |
 | [Blender MCP by sandraschi][4] | 41* | 150+ | ? | ? | √ | ? | √ | √ | √ | ? | √ | √ | √ | √ | √ | ? | ? |

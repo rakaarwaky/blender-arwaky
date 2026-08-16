@@ -7,7 +7,7 @@ Thank you for contributing.
 Use the following development environment:
 
 - Python 3.10 or newer.
-- Blender 4.2 or newer for live addon or Blender smoke tests.
+- Blender 5.2 LTS or newer for live addon or Blender smoke tests.
 - [`uv`](https://docs.astral.sh/uv/).
 - Git.
 - `pre-commit` when working with local hooks.
