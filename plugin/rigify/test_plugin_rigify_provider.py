@@ -132,3 +132,46 @@ def test_inspect_armature_request_rejects_unbounded_limit() -> None:
         assert "limit" in str(error)
     else:
         raise AssertionError("expected invalid inspect_armature limit to be rejected")
+
+
+def test_pose_bone_transform_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import (
+        RigifyPoseBoneTransformRequest,
+        map_set_pose_bone_transform,
+    )
+
+    command = map_set_pose_bone_transform(
+        RigifyPoseBoneTransformRequest(
+            armature_name="metarig",
+            bone_name="upper_arm.L",
+            location=[0.1, 0.0, 0.0],
+            rotation_euler=[0.0, 0.5, 0.0],
+            scale=[1.0, 1.0, 1.0],
+        )
+    )
+
+    assert command["type"] == "set_pose_bone_transform"
+    assert command["params"]["bone_name"] == "upper_arm.L"
+    assert command["params"]["rotation_euler"] == [0.0, 0.5, 0.0]
+
+
+def test_pose_bone_transform_request_rejects_empty_transform() -> None:
+    from plugin.rigify.plugin_operations import RigifyPoseBoneTransformRequest
+
+    try:
+        RigifyPoseBoneTransformRequest("metarig", "upper_arm.L")
+    except ValueError as error:
+        assert "at least one" in str(error)
+    else:
+        raise AssertionError("expected empty pose transform to be rejected")
+
+
+def test_pose_bone_transform_request_rejects_non_finite_vector() -> None:
+    from plugin.rigify.plugin_operations import RigifyPoseBoneTransformRequest
+
+    try:
+        RigifyPoseBoneTransformRequest("metarig", "upper_arm.L", location=[0.0, float("nan"), 0.0])
+    except ValueError as error:
+        assert "finite" in str(error)
+    else:
+        raise AssertionError("expected non-finite pose transform to be rejected")

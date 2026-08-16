@@ -64,6 +64,7 @@ class CliActionRouter:
         "install_mpfb_asset_pack",
         "inspect_mpfb_assets",
         "inspect_armature",
+        "set_pose_bone_transform",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -173,11 +174,17 @@ class CliActionRouter:
             map_randomize_character,
             map_remove_character,
         )
-        from plugin.rigify.plugin_operations import RigifyInspectArmatureRequest, map_inspect_armature
+        from plugin.rigify.plugin_operations import (
+            RigifyInspectArmatureRequest,
+            RigifyPoseBoneTransformRequest,
+            map_inspect_armature,
+            map_set_pose_bone_transform,
+        )
 
-        default_plugin_id = "rigify" if action_name == "inspect_armature" else "mpfb2"
+        rigify_actions = {"inspect_armature", "set_pose_bone_transform"}
+        default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
-        expected_plugin_id = "rigify" if action_name == "inspect_armature" else "mpfb2"
+        expected_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         if plugin_id != expected_plugin_id:
             raise ValueError(f"{action_name} is mapped only to provider {expected_plugin_id}")
         if action_name == "install_mpfb_asset_pack":
@@ -211,6 +218,16 @@ class CliActionRouter:
                 RigifyInspectArmatureRequest(
                     object_name=str(params.get("object_name", "")),
                     limit=int(params.get("limit", 100)),
+                )
+            )
+        elif action_name == "set_pose_bone_transform":
+            command = map_set_pose_bone_transform(
+                RigifyPoseBoneTransformRequest(
+                    armature_name=str(params.get("armature_name", "")),
+                    bone_name=str(params.get("bone_name", "")),
+                    location=params.get("location"),
+                    rotation_euler=params.get("rotation_euler"),
+                    scale=params.get("scale"),
                 )
             )
         else:

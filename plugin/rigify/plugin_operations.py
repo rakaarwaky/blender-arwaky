@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -27,3 +28,57 @@ def map_inspect_armature(request: RigifyInspectArmatureRequest) -> dict[str, obj
             "limit": int(request.limit),
         },
     }
+
+
+@dataclass(frozen=True)
+class RigifyPoseBoneTransformRequest:
+    """Validated request for changing one pose-bone transform."""
+
+    armature_name: str
+    bone_name: str
+    location: list[float] | None = None
+    rotation_euler: list[float] | None = None
+    scale: list[float] | None = None
+
+    def __post_init__(self) -> None:
+        _validate_name(self.armature_name, "armature_name")
+        _validate_name(self.bone_name, "bone_name")
+        vectors = {
+            "location": self.location,
+            "rotation_euler": self.rotation_euler,
+            "scale": self.scale,
+        }
+        if all(value is None for value in vectors.values()):
+            raise ValueError("at least one pose transform vector is required")
+        for name, value in vectors.items():
+            if value is not None:
+                _validate_vector(value, name)
+
+
+def map_set_pose_bone_transform(request: RigifyPoseBoneTransformRequest) -> dict[str, object]:
+    """Map a validated pose request to the canonical Blender command."""
+    return {
+        "type": "set_pose_bone_transform",
+        "params": {
+            "armature_name": str(request.armature_name).strip(),
+            "bone_name": str(request.bone_name).strip(),
+            "location": request.location,
+            "rotation_euler": request.rotation_euler,
+            "scale": request.scale,
+        },
+    }
+
+
+def _validate_name(value: str, name: str) -> None:
+    """Validate a Blender datablock or bone name."""
+    normalized = str(value).strip()
+    if not normalized or len(normalized) > 128 or any(ord(char) < 32 for char in normalized):
+        raise ValueError(f"{name} must contain 1-128 printable characters")
+
+
+def _validate_vector(value: list[float], name: str) -> None:
+    """Validate one finite three-number transform vector."""
+    if not isinstance(value, list) or len(value) != 3:
+        raise ValueError(f"{name} must contain exactly 3 numbers")
+    if not all(isinstance(item, (int, float)) and math.isfinite(float(item)) for item in value):
+        raise ValueError(f"{name} must contain finite numbers")
