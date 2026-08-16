@@ -159,4 +159,70 @@ ANIMATION_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             "location": {"type": "array", "required": False},
         },
     },
+    "import_motion_capture": {
+        "description": "Import native BVH or FBX motion-capture data and report source Actions",
+        "parameters": {
+            "source_path": {"type": "string", "required": True},
+            "importer": {"type": "string", "required": False, "enum": ["bvh", "fbx"]},
+        },
+    },
+    "build_bone_mapping": {
+        "description": "Build an explicit source-to-target bone mapping for native Rigify retargeting",
+        "parameters": {
+            "source_armature": {"type": "string", "required": True},
+            "target_armature": {"type": "string", "required": True},
+            "preset": {"type": "string", "required": False, "default": "exact"},
+            "overrides": {"type": "object", "required": False},
+            "unmapped_policy": {"type": "string", "required": False, "enum": ["report", "error"]},
+        },
+    },
+    "validate_rest_pose": {
+        "description": "Validate source and target armature rest-pose compatibility for an approved mapping",
+        "parameters": {
+            "source_armature": {"type": "string", "required": True},
+            "target_armature": {"type": "string", "required": True},
+            "mapping": {"type": "object", "required": True},
+            "tolerance": {"type": "number", "required": False, "default": 0.25},
+        },
+    },
+    "retarget_animation": {
+        "description": "Retarget a native source Action to Rigify controls using explicit mapping and frame range",
+        "parameters": {
+            "source_armature": {"type": "string", "required": True},
+            "target_armature": {"type": "string", "required": True},
+            "source_action": {"type": "string", "required": True},
+            "mapping": {"type": "object", "required": True},
+            "frame_start": {"type": "integer", "required": False},
+            "frame_end": {"type": "integer", "required": False},
+            "output_action": {"type": "string", "required": True},
+            "scale_policy": {"type": "string", "required": False, "enum": ["preserve", "normalize"]},
+            "root_motion": {"type": "string", "required": False, "enum": ["preserve", "separate", "ignore"]},
+        },
+    },
+    "set_root_motion": {
+        "description": "Set the native Arwaky root-motion policy metadata for a target armature",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "policy": {"type": "string", "required": True, "enum": ["preserve", "separate", "ignore"]},
+        },
+    },
+    "bake_retarget_action": {
+        "description": "Bake or normalize a retargeted target Action over a bounded frame range",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "action_name": {"type": "string", "required": True},
+            "frame_start": {"type": "integer", "required": True},
+            "frame_end": {"type": "integer", "required": True},
+            "step": {"type": "integer", "required": False, "default": 1},
+            "clear_constraints": {"type": "boolean", "required": False, "default": False},
+        },
+    },
+    "validate_animation_result": {
+        "description": "Validate target Action ownership, mapped channels, frame range, and key count",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "action_name": {"type": "string", "required": True},
+            "limit": {"type": "integer", "required": False, "default": 1000},
+        },
+    },
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from modules.animation.src.capabilities_animation_executor import AnimationExecutor
+from modules.animation.src.capabilities_animation_retarget_executor import AnimationRetargetExecutor
 from modules.animation.src.root_animation_container import create_animation_feature
 
 
@@ -333,3 +334,80 @@ async def test_animation_rejects_shape_key_value_outside_bounds() -> None:
         await AnimationExecutor(gateway).set_shape_key_keyframe("Body", "Smile", 1.2, 1)
 
     assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_builds_explicit_bone_mapping() -> None:
+    gateway = FakeGateway(
+        {
+            "source_armature": "Source",
+            "target_armature": "Rigify",
+            "preset": "exact",
+            "mappings": [{"source_bone": "upper_arm.L", "target_bone": "upper_arm.L", "side": "left", "confidence": 1.0}],
+            "unmapped_source": ["unused"],
+            "unmapped_target": ["jaw_master"],
+        }
+    )
+    result = await create_animation_feature(gateway).build_bone_mapping("Source", "Rigify")
+    assert result.mappings[0].source_bone == "upper_arm.L"
+    assert result.unmapped_source == ("unused",)
+
+
+@pytest.mark.asyncio
+async def test_animation_validates_rest_pose_result() -> None:
+    gateway = FakeGateway(
+        {"source_armature": "Source", "target_armature": "Rigify", "approved": True, "mapped_count": 1, "position_warning_count": 0, "scale_ratio": 1.0, "warnings": []}
+    )
+    mapping = {"mappings": [{"source_bone": "upper_arm.L", "target_bone": "upper_arm.L"}]}
+    result = await create_animation_feature(gateway).validate_rest_pose("Source", "Rigify", mapping)
+    assert result.approved is True
+    assert result.scale_ratio == 1.0
+
+
+@pytest.mark.asyncio
+async def test_animation_retargets_action_result() -> None:
+    gateway = FakeGateway(
+        {"source_armature": "Source", "target_armature": "Rigify", "source_action": "Walk", "output_action": "Walk_Rigify", "frame_start": 1, "frame_end": 24, "mapped_bone_count": 1, "keyframe_count": 72, "root_motion": "preserve", "changed": True}
+    )
+    mapping = {"mappings": [{"source_bone": "upper_arm.L", "target_bone": "upper_arm.L"}]}
+    result = await create_animation_feature(gateway).retarget_animation("Source", "Rigify", "Walk", mapping, "Walk_Rigify", 1, 24)
+    assert result.output_action == "Walk_Rigify"
+    assert result.keyframe_count == 72
+
+
+@pytest.mark.asyncio
+async def test_animation_rejects_invalid_root_motion_policy() -> None:
+    gateway = FakeGateway({})
+    with pytest.raises(ValueError, match="root_motion must be"):
+        await AnimationRetargetExecutor(gateway).retarget_animation(
+            "Source", "Rigify", "Walk", {"mappings": [{"source_bone": "a", "target_bone": "b"}]}, "Out", root_motion="move"
+        )
+    assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_sets_root_motion_metadata() -> None:
+    gateway = FakeGateway({"armature_name": "Rigify", "policy": "separate", "changed": True})
+    result = await create_animation_feature(gateway).set_root_motion("Rigify", "separate")
+    assert result.policy == "separate"
+    assert result.changed is True
+
+
+@pytest.mark.asyncio
+async def test_animation_bakes_retarget_action() -> None:
+    gateway = FakeGateway(
+        {"armature_name": "Rigify", "action_name": "Walk_Rigify", "frame_start": 1, "frame_end": 24, "step": 1, "keyframe_count": 144, "cleared_constraints": False, "changed": True}
+    )
+    result = await create_animation_feature(gateway).bake_retarget_action("Rigify", "Walk_Rigify", 1, 24)
+    assert result.action_name == "Walk_Rigify"
+    assert result.keyframe_count == 144
+
+
+@pytest.mark.asyncio
+async def test_animation_validates_retarget_result() -> None:
+    gateway = FakeGateway(
+        {"armature_name": "Rigify", "action_name": "Walk_Rigify", "frame_start": 1, "frame_end": 24, "curve_count": 3, "keyframe_count": 72, "approved": True, "warnings": []}
+    )
+    result = await create_animation_feature(gateway).validate_animation_result("Rigify", "Walk_Rigify")
+    assert result.approved is True
+    assert result.curve_count == 3

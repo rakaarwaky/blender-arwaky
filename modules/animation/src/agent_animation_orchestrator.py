@@ -10,8 +10,11 @@ from modules.shared.src.common.taxonomy_core_vo import ObjectName
 class AnimationOrchestrator(IWaveFeatureAggregate):
     """Coordinate animation operations without owning gateway transport."""
 
-    def __init__(self, executor: IWaveFeatureProtocol) -> None:
+    def __init__(
+        self, executor: IWaveFeatureProtocol, retarget_executor: IWaveFeatureProtocol | None = None
+    ) -> None:
         self._executor = executor
+        self._retarget_executor = retarget_executor or executor
 
     async def get_state(self, object_name: ObjectName, limit: int = 100):
         return await self._executor.get_state(object_name, limit)
@@ -91,3 +94,66 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
         return await self._executor.edit_face_control_animation(
             armature_name, bone_name, frame, rotation_euler, location
         )
+
+    async def import_motion_capture(self, source_path: str, importer: str | None = None):
+        return await self._retarget_executor.import_motion_capture(source_path, importer)
+
+    async def build_bone_mapping(
+        self,
+        source_armature: str,
+        target_armature: str,
+        preset: str = "exact",
+        overrides: dict[str, str] | None = None,
+        unmapped_policy: str = "report",
+    ):
+        return await self._retarget_executor.build_bone_mapping(
+            source_armature, target_armature, preset, overrides, unmapped_policy
+        )
+
+    async def validate_rest_pose(
+        self, source_armature: str, target_armature: str, mapping: dict[str, object], tolerance: float = 0.25
+    ):
+        return await self._retarget_executor.validate_rest_pose(source_armature, target_armature, mapping, tolerance)
+
+    async def retarget_animation(
+        self,
+        source_armature: str,
+        target_armature: str,
+        source_action: str,
+        mapping: dict[str, object],
+        output_action: str,
+        frame_start: int | None = None,
+        frame_end: int | None = None,
+        scale_policy: str = "preserve",
+        root_motion: str = "preserve",
+    ):
+        return await self._retarget_executor.retarget_animation(
+            source_armature,
+            target_armature,
+            source_action,
+            mapping,
+            output_action,
+            frame_start,
+            frame_end,
+            scale_policy,
+            root_motion,
+        )
+
+    async def set_root_motion(self, armature_name: str, policy: str):
+        return await self._retarget_executor.set_root_motion(armature_name, policy)
+
+    async def bake_retarget_action(
+        self,
+        armature_name: str,
+        action_name: str,
+        frame_start: int,
+        frame_end: int,
+        step: int = 1,
+        clear_constraints: bool = False,
+    ):
+        return await self._retarget_executor.bake_retarget_action(
+            armature_name, action_name, frame_start, frame_end, step, clear_constraints
+        )
+
+    async def validate_animation_result(self, armature_name: str, action_name: str, limit: int = 1000):
+        return await self._retarget_executor.validate_animation_result(armature_name, action_name, limit)

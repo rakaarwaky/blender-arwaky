@@ -215,6 +215,12 @@ The native MPFB2-Rigify evidence character uses a 1,090-bone generated control a
 The generated rig contains explicit facial controls and mechanisms, including `jaw_master`, `jaw_master_mouth`, `jaw`, eye controls, lip controls, brow controls, cheek controls, forehead controls, and nose controls. Wave 3 therefore scopes bounded domain inspection for face and hand/finger controls, plus allowlisted FK/IK property mutation on explicit limb-parent controls, instead of exposing all 1,090 bones indiscriminately.
 
 
+## Wave 4 Retargeting API Findings — 2026-08-16
+
+The official Blender Python API documents `bpy.ops.nla.bake` with `frame_start`, `frame_end`, `step`, `only_selected`, `visual_keying`, `clear_constraints`, `clear_parents`, `use_current_action`, `clean_curves`, `bake_types`, and `channel_types`. It bakes selected object or pose animation into an Action. Wave 4 will use this native operator only after explicit source-to-target mapping and temporary constraint setup, with `visual_keying=True`, `bake_types={"POSE"}`, and controlled frame ranges. The smoke test must verify the resulting target Action and preserve the source Action.
+
+Source: `https://docs.blender.org/api/current/bpy.ops.nla.html`.
+
 ## Import workflow correction — 2026-08-16
 
 The official Blender 5.2 FBX manual confirms that FBX is used to exchange animated characters and that Blender imports animation data as actions/curves. It explicitly warns that imported animations/actions may not be linked to the object automatically and may need manual reassignment. It also documents that import orientation and baked animation behavior require validation. Therefore Arwaky's canonical workflow must expose import, inspect, link/apply action, retarget, and bake operations rather than pretend Blender has high-level `create_walk_cycle` or `create_jump_action` operators. Source: `https://docs.blender.org/manual/en/latest/files/import_export/fbx_legacy.html`.

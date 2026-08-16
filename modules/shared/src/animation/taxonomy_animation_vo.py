@@ -159,3 +159,77 @@ class FaceControlAnimationVO:
     location: tuple[float, ...]
     rotation_euler: tuple[float, ...]
     changed: bool
+
+
+@dataclass(frozen=True)
+class BoneMappingVO:
+    source_bone: str
+    target_bone: str
+    side: str | None = None
+    confidence: float = 1.0
+
+
+@dataclass(frozen=True)
+class BoneMappingStateVO:
+    source_armature: str
+    target_armature: str
+    preset: str
+    mappings: tuple[BoneMappingVO, ...] = field(default_factory=tuple)
+    unmapped_source: tuple[str, ...] = field(default_factory=tuple)
+    unmapped_target: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class RestPoseValidationVO:
+    source_armature: str
+    target_armature: str
+    approved: bool
+    mapped_count: int
+    position_warning_count: int
+    scale_ratio: float
+    warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class RetargetAnimationVO:
+    source_armature: str
+    target_armature: str
+    source_action: str
+    output_action: str
+    frame_start: int
+    frame_end: int
+    mapped_bone_count: int
+    keyframe_count: int
+    root_motion: str
+    changed: bool
+
+
+@dataclass(frozen=True)
+class RootMotionVO:
+    armature_name: str
+    policy: str
+    changed: bool
+
+
+@dataclass(frozen=True)
+class BakeRetargetVO:
+    armature_name: str
+    action_name: str
+    frame_start: int
+    frame_end: int
+    step: int
+    keyframe_count: int
+    cleared_constraints: bool
+    changed: bool
+
+
+@dataclass(frozen=True)
+class AnimationValidationVO:
+    armature_name: str
+    action_name: str
+    frame_start: int
+    frame_end: int
+    curve_count: int
+    keyframe_count: int
+    approved: bool
+    warnings: tuple[str, ...] = field(default_factory=tuple)
