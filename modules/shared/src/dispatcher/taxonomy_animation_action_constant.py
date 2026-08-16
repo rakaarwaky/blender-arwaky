@@ -114,4 +114,49 @@ ANIMATION_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
             "bone_names": {"type": "array", "required": False},
         },
     },
+    "inspect_face_animation_channels": {
+        "description": "Inspect bounded native Rigify facial control bones and animated shape keys",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "mesh_name": {"type": "string", "required": False},
+            "limit": {"type": "integer", "required": False, "default": 200},
+        },
+    },
+    "inspect_hand_animation_controls": {
+        "description": "Inspect bounded Rigify hand and finger control bones by side",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "side": {"type": "string", "required": False, "enum": ["left", "right", "both"]},
+            "limit": {"type": "integer", "required": False, "default": 200},
+        },
+    },
+    "set_rigify_fk_ik_mode": {
+        "description": "Set and optionally key the native Rigify FK/IK switch on an explicit limb parent",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "limb": {"type": "string", "required": True, "enum": ["arm", "leg"]},
+            "side": {"type": "string", "required": True, "enum": ["left", "right"]},
+            "mode": {"type": "string", "required": True, "enum": ["fk", "ik"]},
+            "frame": {"type": "integer", "required": False},
+        },
+    },
+    "set_shape_key_keyframe": {
+        "description": "Set and keyframe one mesh shape key value at a bounded frame",
+        "parameters": {
+            "mesh_name": {"type": "string", "required": True},
+            "shape_key_name": {"type": "string", "required": True},
+            "value": {"type": "number", "required": True},
+            "frame": {"type": "integer", "required": True},
+        },
+    },
+    "edit_face_control_animation": {
+        "description": "Keyframe an allowlisted Rigify facial control transform without touching deform bones",
+        "parameters": {
+            "armature_name": {"type": "string", "required": True},
+            "bone_name": {"type": "string", "required": True},
+            "frame": {"type": "integer", "required": True},
+            "rotation_euler": {"type": "array", "required": False},
+            "location": {"type": "array", "required": False},
+        },
+    },
 }

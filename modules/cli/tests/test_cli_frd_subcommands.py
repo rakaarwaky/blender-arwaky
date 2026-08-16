@@ -289,7 +289,7 @@ def test_cli_exposes_every_canonical_action_once() -> None:
     expected = {
         action.replace("_", "-") for owner_actions in DISPATCHER_ACTION_SCHEMAS.values() for action in owner_actions
     }
-    assert len(expected) == 102  # nosec B101
+    assert len(expected) == 107  # nosec B101
     assert set(subparsers.choices) == expected  # nosec B101
     assert "run" not in subparsers.choices  # nosec B101
     assert "scene-info" not in subparsers.choices  # nosec B101

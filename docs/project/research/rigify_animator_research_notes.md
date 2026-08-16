@@ -208,6 +208,12 @@ The Blender add-ons mirror page identifies itself as an archived read-only repos
 
 No proprietary provider adapter will be implemented in Arwaky. Native/open-source-only is now a hard acceptance gate for the Animator Provider roadmap.
 
+## Wave 3 Rigify Control Audit — 2026-08-16
+
+The native MPFB2-Rigify evidence character uses a 1,090-bone generated control armature. The canonical limb parent controls `upper_arm_parent.L` and `upper_arm_parent.R` expose the custom properties `FK_limb_follow`, `IK_FK`, `IK_Stretch`, `pole_vector`, `IK_parent`, and `pole_parent`; these are the native Rigify FK/IK switching controls for the generated limbs. The visible hand controls `hand_ik.L` and `hand_ik.R` exist as pose bones without custom properties.
+
+The generated rig contains explicit facial controls and mechanisms, including `jaw_master`, `jaw_master_mouth`, `jaw`, eye controls, lip controls, brow controls, cheek controls, forehead controls, and nose controls. Wave 3 therefore scopes bounded domain inspection for face and hand/finger controls, plus allowlisted FK/IK property mutation on explicit limb-parent controls, instead of exposing all 1,090 bones indiscriminately.
+
 
 ## Import workflow correction — 2026-08-16
 

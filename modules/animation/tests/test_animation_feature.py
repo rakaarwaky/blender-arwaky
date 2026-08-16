@@ -219,3 +219,117 @@ async def test_animation_keyframes_named_rigify_controls() -> None:
     assert result.frame == 24
     assert result.bone_names == ("upper_arm_ik.L",)
     assert '"upper_arm_ik.L"' in gateway.codes[0]
+
+
+@pytest.mark.asyncio
+async def test_animation_inspects_face_channels() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "domain": "face",
+            "controls": [
+                {"name": "jaw_master", "side": None, "role": "face_control", "is_deform": False, "property_names": []}
+            ],
+            "shape_keys": ["Basis", "Smile"],
+        }
+    )
+
+    result = await create_animation_feature(gateway).inspect_face_animation_channels("Rigify", "Body")
+
+    assert result.domain == "face"
+    assert result.controls[0].name == "jaw_master"
+    assert result.shape_keys == ("Basis", "Smile")
+
+
+@pytest.mark.asyncio
+async def test_animation_inspects_hand_channels_by_side() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "domain": "hands",
+            "controls": [
+                {"name": "hand_ik.L", "side": "left", "role": "hand_control", "is_deform": False}
+            ],
+            "shape_keys": [],
+        }
+    )
+
+    result = await create_animation_feature(gateway).inspect_hand_animation_controls("Rigify", "left")
+
+    assert result.domain == "hands"
+    assert result.controls[0].side == "left"
+
+
+@pytest.mark.asyncio
+async def test_animation_sets_fk_ik_mode_with_optional_frame() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "bone_name": "upper_arm_parent.L",
+            "limb": "arm",
+            "side": "left",
+            "mode": "ik",
+            "value": 1.0,
+            "frame": 24,
+            "changed": True,
+        }
+    )
+
+    result = await create_animation_feature(gateway).set_rigify_fk_ik_mode("Rigify", "arm", "left", "ik", 24)
+
+    assert result.mode == "ik"
+    assert result.value == 1.0
+    assert result.frame == 24
+
+
+@pytest.mark.asyncio
+async def test_animation_rejects_invalid_fk_ik_mode_before_gateway() -> None:
+    gateway = FakeGateway({})
+
+    with pytest.raises(ValueError, match="mode must be fk or ik"):
+        await AnimationExecutor(gateway).set_rigify_fk_ik_mode("Rigify", "arm", "left", "blend")
+
+    assert gateway.codes == []
+
+
+@pytest.mark.asyncio
+async def test_animation_sets_shape_key_keyframe() -> None:
+    gateway = FakeGateway(
+        {"mesh_name": "Body", "shape_key_name": "Smile", "value": 0.8, "frame": 12, "changed": True}
+    )
+
+    result = await create_animation_feature(gateway).set_shape_key_keyframe("Body", "Smile", 0.8, 12)
+
+    assert result.shape_key_name == "Smile"
+    assert result.value == 0.8
+
+
+@pytest.mark.asyncio
+async def test_animation_keys_face_control_transform() -> None:
+    gateway = FakeGateway(
+        {
+            "armature_name": "Rigify",
+            "bone_name": "jaw_master",
+            "frame": 12,
+            "location": [0.0, 0.0, 0.1],
+            "rotation_euler": [0.2, 0.0, 0.0],
+            "changed": True,
+        }
+    )
+
+    result = await create_animation_feature(gateway).edit_face_control_animation(
+        "Rigify", "jaw_master", 12, rotation_euler=[0.2, 0.0, 0.0], location=[0.0, 0.0, 0.1]
+    )
+
+    assert result.bone_name == "jaw_master"
+    assert result.rotation_euler == (0.2, 0.0, 0.0)
+
+
+@pytest.mark.asyncio
+async def test_animation_rejects_shape_key_value_outside_bounds() -> None:
+    gateway = FakeGateway({})
+
+    with pytest.raises(ValueError, match="value must be between"):
+        await AnimationExecutor(gateway).set_shape_key_keyframe("Body", "Smile", 1.2, 1)
+
+    assert gateway.codes == []

@@ -111,3 +111,51 @@ class RigifyPoseKeyframeVO:
     frame: int
     bone_names: tuple[str, ...] = field(default_factory=tuple)
     changed: bool = True
+
+
+@dataclass(frozen=True)
+class AnimationControlVO:
+    name: str
+    side: str | None
+    role: str
+    is_deform: bool
+    property_names: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class AnimationDomainStateVO:
+    armature_name: str
+    domain: str
+    controls: tuple[AnimationControlVO, ...] = field(default_factory=tuple)
+    shape_keys: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class RigifyFkIkStateVO:
+    armature_name: str
+    bone_name: str
+    limb: str
+    side: str
+    mode: str
+    value: float
+    frame: int | None
+    changed: bool
+
+
+@dataclass(frozen=True)
+class ShapeKeyKeyframeVO:
+    mesh_name: str
+    shape_key_name: str
+    value: float
+    frame: int
+    changed: bool
+
+
+@dataclass(frozen=True)
+class FaceControlAnimationVO:
+    armature_name: str
+    bone_name: str
+    frame: int
+    location: tuple[float, ...]
+    rotation_euler: tuple[float, ...]
+    changed: bool

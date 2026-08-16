@@ -63,3 +63,31 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
 
     async def keyframe_rigify_pose(self, armature_name: str, frame: int, bone_names: list[str] | None = None):
         return await self._executor.keyframe_rigify_pose(armature_name, frame, bone_names)
+
+    async def inspect_face_animation_channels(
+        self, armature_name: str, mesh_name: str | None = None, limit: int = 200
+    ):
+        return await self._executor.inspect_face_animation_channels(armature_name, mesh_name, limit)
+
+    async def inspect_hand_animation_controls(self, armature_name: str, side: str = "both", limit: int = 200):
+        return await self._executor.inspect_hand_animation_controls(armature_name, side, limit)
+
+    async def set_rigify_fk_ik_mode(
+        self, armature_name: str, limb: str, side: str, mode: str, frame: int | None = None
+    ):
+        return await self._executor.set_rigify_fk_ik_mode(armature_name, limb, side, mode, frame)
+
+    async def set_shape_key_keyframe(self, mesh_name: str, shape_key_name: str, value: float, frame: int):
+        return await self._executor.set_shape_key_keyframe(mesh_name, shape_key_name, value, frame)
+
+    async def edit_face_control_animation(
+        self,
+        armature_name: str,
+        bone_name: str,
+        frame: int,
+        rotation_euler: list[float] | None = None,
+        location: list[float] | None = None,
+    ):
+        return await self._executor.edit_face_control_animation(
+            armature_name, bone_name, frame, rotation_euler, location
+        )

@@ -8,7 +8,9 @@ from collections.abc import Mapping
 from modules.shared.src.animation.taxonomy_animation_vo import (
     AnimationActionLinkVO,
     AnimationActionVO,
+    AnimationControlVO,
     AnimationCurveVO,
+    AnimationDomainStateVO,
     AnimationImportVO,
     AnimationKeyframeVO,
     AnimationMutationVO,
@@ -16,9 +18,12 @@ from modules.shared.src.animation.taxonomy_animation_vo import (
     AnimationPoseAssetVO,
     AnimationPoseBufferVO,
     AnimationStateVO,
+    FaceControlAnimationVO,
     RigifyControlStateVO,
     RigifyControlVO,
+    RigifyFkIkStateVO,
     RigifyPoseKeyframeVO,
+    ShapeKeyKeyframeVO,
 )
 from modules.shared.src.common.contract_wave_feature_protocol import IWaveFeatureProtocol
 
@@ -453,6 +458,231 @@ result = {"armature_name": obj.name, "frame": __FRAME__, "bone_names": selected,
             frame=int(result.get("frame", frame)),
             bone_names=tuple(str(name) for name in result.get("bone_names", names)),
             changed=bool(result.get("changed", True)),
+        )
+
+    async def inspect_face_animation_channels(
+        self, armature_name: str, mesh_name: str | None = None, limit: int = 200
+    ) -> AnimationDomainStateVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        mesh_name = "" if mesh_name is None else self._bounded_name(mesh_name, "mesh_name")
+        limit = self._bounded_limit(limit)
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+face_tokens = ("face", "jaw", "eye", "lip", "brow", "cheek", "forehead", "nose", "mouth", "chin")
+controls = []
+for bone in obj.pose.bones:
+    name = bone.name
+    lowered = name.lower()
+    if name.startswith(("DEF-", "MCH-", "ORG-")) or not any(token in lowered for token in face_tokens):
+        continue
+    side = "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+    controls.append({"name": name, "side": side, "role": "face_control", "is_deform": bool(bone.bone.use_deform), "property_names": list(bone.keys())})
+controls = controls[:__LIMIT__]
+shape_keys = []
+if __MESH_NAME__:
+    mesh = bpy.data.objects.get(__MESH_NAME__)
+    if mesh is None or mesh.type != "MESH":
+        raise ValueError("Mesh object not found: " + __MESH_NAME__)
+    if mesh.data.shape_keys:
+        shape_keys = [key.name for key in list(mesh.data.shape_keys.key_blocks)[:__LIMIT__]]
+result = {"armature_name": obj.name, "domain": "face", "controls": controls, "shape_keys": shape_keys}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__MESH_NAME__", json.dumps(mesh_name)
+        ).replace("__LIMIT__", str(limit))
+        result = await self._execute(code)
+        return self._domain_from_mapping(result, "face", armature_name)
+
+    async def inspect_hand_animation_controls(
+        self, armature_name: str, side: str = "both", limit: int = 200
+    ) -> AnimationDomainStateVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        selected_side = str(side).lower()
+        if selected_side not in {"left", "right", "both"}:
+            raise ValueError("side must be left, right, or both")
+        limit = self._bounded_limit(limit)
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+hand_tokens = ("hand", "thumb", "finger", "index", "middle", "ring", "pinky")
+controls = []
+for bone in obj.pose.bones:
+    name = bone.name
+    lowered = name.lower()
+    bone_side = "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+    if name.startswith(("DEF-", "MCH-", "ORG-")) or not any(token in lowered for token in hand_tokens):
+        continue
+    if __SIDE__ != "both" and bone_side != __SIDE__:
+        continue
+    controls.append({"name": name, "side": bone_side, "role": "hand_control", "is_deform": bool(bone.bone.use_deform), "property_names": list(bone.keys())})
+controls = controls[:__LIMIT__]
+result = {"armature_name": obj.name, "domain": "hands", "controls": controls, "shape_keys": []}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__SIDE__", json.dumps(selected_side)
+        ).replace("__LIMIT__", str(limit))
+        result = await self._execute(code)
+        return self._domain_from_mapping(result, "hands", armature_name)
+
+    async def set_rigify_fk_ik_mode(
+        self, armature_name: str, limb: str, side: str, mode: str, frame: int | None = None
+    ) -> RigifyFkIkStateVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        limb = str(limb).lower()
+        side = str(side).lower()
+        mode = str(mode).lower()
+        if limb not in {"arm", "leg"} or side not in {"left", "right"}:
+            raise ValueError("limb must be arm or leg and side must be left or right")
+        if mode not in {"fk", "ik"}:
+            raise ValueError("mode must be fk or ik")
+        bounded_frame = None if frame is None else self._bounded_frame(frame)
+        value = 0.0 if mode == "fk" else 1.0
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+bone_name = __BONE_NAME__
+bone = obj.pose.bones.get(bone_name)
+if bone is None:
+    raise ValueError("Rigify limb parent not found: " + bone_name)
+if "IK_FK" not in bone:
+    raise ValueError("Rigify bone does not expose IK_FK: " + bone_name)
+previous = float(bone["IK_FK"])
+bone["IK_FK"] = __VALUE__
+if __FRAME__ is not None:
+    bone.keyframe_insert(data_path='["IK_FK"]', frame=__FRAME__)
+result = {"armature_name": obj.name, "bone_name": bone_name, "limb": __LIMB__, "side": __SIDE__,
+          "mode": __MODE__, "value": float(bone["IK_FK"]), "frame": __FRAME__, "changed": previous != float(bone["IK_FK"])}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__BONE_NAME__", json.dumps(("upper_arm_parent" if limb == "arm" else "thigh_parent") + (".L" if side == "left" else ".R"))
+        ).replace("__LIMB__", json.dumps(limb)).replace("__SIDE__", json.dumps(side)).replace(
+            "__MODE__", json.dumps(mode)
+        ).replace("__VALUE__", str(value)).replace("__FRAME__", "None" if bounded_frame is None else str(bounded_frame))
+        result = await self._execute(code)
+        return RigifyFkIkStateVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            bone_name=str(result.get("bone_name", "")),
+            limb=str(result.get("limb", limb)),
+            side=str(result.get("side", side)),
+            mode=str(result.get("mode", mode)),
+            value=float(result.get("value", value)),
+            frame=int(result["frame"]) if result.get("frame") is not None else None,
+            changed=bool(result.get("changed", True)),
+        )
+
+    async def set_shape_key_keyframe(
+        self, mesh_name: str, shape_key_name: str, value: float, frame: int
+    ) -> ShapeKeyKeyframeVO:
+        mesh_name = self._bounded_name(mesh_name, "mesh_name")
+        shape_key_name = self._bounded_name(shape_key_name, "shape_key_name")
+        value = float(value)
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("value must be between 0.0 and 1.0")
+        frame = self._bounded_frame(frame)
+        code = """
+import bpy
+obj = bpy.data.objects.get(__MESH_NAME__)
+if obj is None or obj.type != "MESH" or obj.data.shape_keys is None:
+    raise ValueError("Mesh with shape keys not found: " + __MESH_NAME__)
+key = obj.data.shape_keys.key_blocks.get(__SHAPE_KEY_NAME__)
+if key is None:
+    raise ValueError("Shape key not found: " + __SHAPE_KEY_NAME__)
+bpy.context.scene.frame_set(__FRAME__)
+key.value = __VALUE__
+key.keyframe_insert(data_path="value", frame=__FRAME__)
+result = {"mesh_name": obj.name, "shape_key_name": key.name, "value": float(key.value), "frame": __FRAME__, "changed": True}
+""".replace("__MESH_NAME__", json.dumps(mesh_name)).replace(
+            "__SHAPE_KEY_NAME__", json.dumps(shape_key_name)
+        ).replace("__VALUE__", str(value)).replace("__FRAME__", str(frame))
+        result = await self._execute(code)
+        return ShapeKeyKeyframeVO(
+            mesh_name=str(result.get("mesh_name", mesh_name)),
+            shape_key_name=str(result.get("shape_key_name", shape_key_name)),
+            value=float(result.get("value", value)),
+            frame=int(result.get("frame", frame)),
+            changed=bool(result.get("changed", True)),
+        )
+
+    async def edit_face_control_animation(
+        self,
+        armature_name: str,
+        bone_name: str,
+        frame: int,
+        rotation_euler: list[float] | None = None,
+        location: list[float] | None = None,
+    ) -> FaceControlAnimationVO:
+        armature_name = self._bounded_name(armature_name, "armature_name")
+        bone_name = self._bounded_name(bone_name, "bone_name")
+        frame = self._bounded_frame(frame)
+        rotation = tuple(float(value) for value in (rotation_euler or ()))
+        translation = tuple(float(value) for value in (location or ()))
+        if rotation and len(rotation) != 3:
+            raise ValueError("rotation_euler must contain exactly 3 values")
+        if translation and len(translation) != 3:
+            raise ValueError("location must contain exactly 3 values")
+        if not rotation and not translation:
+            raise ValueError("rotation_euler or location is required")
+        code = """
+import bpy
+obj = bpy.data.objects.get(__ARMATURE_NAME__)
+if obj is None or obj.type != "ARMATURE":
+    raise ValueError("Armature object not found: " + __ARMATURE_NAME__)
+bone = obj.pose.bones.get(__BONE_NAME__)
+if bone is None:
+    raise ValueError("Face control bone not found: " + __BONE_NAME__)
+name = bone.name.lower()
+face_tokens = ("face", "jaw", "eye", "lip", "brow", "cheek", "forehead", "nose", "mouth", "chin")
+if bone.name.startswith(("DEF-", "MCH-", "ORG-")) or not any(token in name for token in face_tokens):
+    raise ValueError("Bone is not an allowlisted Rigify face control: " + bone.name)
+bpy.context.scene.frame_set(__FRAME__)
+if __ROTATION__:
+    bone.rotation_mode = "XYZ"
+    bone.rotation_euler = __ROTATION__
+    bone.keyframe_insert(data_path="rotation_euler", frame=__FRAME__)
+if __LOCATION__:
+    bone.location = __LOCATION__
+    bone.keyframe_insert(data_path="location", frame=__FRAME__)
+result = {"armature_name": obj.name, "bone_name": bone.name, "frame": __FRAME__,
+          "location": list(bone.location), "rotation_euler": list(bone.rotation_euler), "changed": True}
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace(
+            "__BONE_NAME__", json.dumps(bone_name)
+        ).replace("__FRAME__", str(frame)).replace("__ROTATION__", json.dumps(list(rotation))).replace(
+            "__LOCATION__", json.dumps(list(translation))
+        )
+        result = await self._execute(code)
+        return FaceControlAnimationVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            bone_name=str(result.get("bone_name", bone_name)),
+            frame=int(result.get("frame", frame)),
+            location=tuple(float(value) for value in result.get("location", translation)),
+            rotation_euler=tuple(float(value) for value in result.get("rotation_euler", rotation)),
+            changed=bool(result.get("changed", True)),
+        )
+
+    @staticmethod
+    def _domain_from_mapping(
+        result: Mapping[str, object], domain: str, armature_name: str
+    ) -> AnimationDomainStateVO:
+        controls = tuple(
+            AnimationControlVO(
+                name=str(item.get("name", "")),
+                side=str(item["side"]) if item.get("side") else None,
+                role=str(item.get("role", "control")),
+                is_deform=bool(item.get("is_deform", False)),
+                property_names=tuple(str(name) for name in item.get("property_names", [])),
+            )
+            for item in result.get("controls", [])
+            if isinstance(item, Mapping)
+        )
+        return AnimationDomainStateVO(
+            armature_name=str(result.get("armature_name", armature_name)),
+            domain=str(result.get("domain", domain)),
+            controls=controls,
+            shape_keys=tuple(str(name) for name in result.get("shape_keys", [])),
         )
 
     @staticmethod

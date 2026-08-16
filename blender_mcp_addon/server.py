@@ -247,6 +247,11 @@ class BlenderMCPServer:
             "copy_rigify_pose": self.copy_rigify_pose,
             "paste_rigify_pose": self.paste_rigify_pose,
             "keyframe_rigify_pose": self.keyframe_rigify_pose,
+            "inspect_face_animation_channels": self.inspect_face_animation_channels,
+            "inspect_hand_animation_controls": self.inspect_hand_animation_controls,
+            "set_rigify_fk_ik_mode": self.set_rigify_fk_ik_mode,
+            "set_shape_key_keyframe": self.set_shape_key_keyframe,
+            "edit_face_control_animation": self.edit_face_control_animation,
             "get_mesh_statistics": self.get_mesh_statistics,
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
@@ -2557,6 +2562,168 @@ class BlenderMCPServer:
             )
             bone.keyframe_insert(data_path=rotation_path, frame=frame)
         return {"armature_name": obj.name, "frame": frame, "bone_names": list(requested), "changed": True}
+
+    @staticmethod
+    def _animation_control_side(name):
+        return "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+
+    @staticmethod
+    def _is_face_control(name):
+        lowered = name.lower()
+        tokens = ("face", "jaw", "eye", "lip", "brow", "cheek", "forehead", "nose", "mouth", "chin")
+        return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
+
+    @staticmethod
+    def _is_hand_control(name):
+        lowered = name.lower()
+        tokens = ("hand", "thumb", "finger", "index", "middle", "ring", "pinky")
+        return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
+
+    def inspect_face_animation_channels(self, armature_name, mesh_name=None, limit=200):
+        """Inspect bounded Rigify facial controls and optional mesh shape keys."""
+        limit = self._bounded_wave_two_limit(limit)
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        controls = []
+        for bone in list(obj.pose.bones):
+            if not self._is_face_control(bone.name):
+                continue
+            controls.append(
+                {
+                    "name": bone.name,
+                    "side": self._animation_control_side(bone.name),
+                    "role": "face_control",
+                    "is_deform": bool(bone.bone.use_deform),
+                    "property_names": list(bone.keys()),
+                }
+            )
+            if len(controls) >= limit:
+                break
+        shape_keys = []
+        if mesh_name:
+            mesh = bpy.data.objects.get(str(mesh_name))
+            if mesh is None or mesh.type != "MESH" or mesh.data.shape_keys is None:
+                raise ValueError(f"Mesh with shape keys not found: {mesh_name}")
+            shape_keys = [key.name for key in list(mesh.data.shape_keys.key_blocks)[:limit]]
+        return {"armature_name": obj.name, "domain": "face", "controls": controls, "shape_keys": shape_keys}
+
+    def inspect_hand_animation_controls(self, armature_name, side="both", limit=200):
+        """Inspect bounded Rigify hand and finger controls by side."""
+        limit = self._bounded_wave_two_limit(limit)
+        selected_side = str(side).lower()
+        if selected_side not in {"left", "right", "both"}:
+            raise ValueError("side must be left, right, or both")
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        controls = []
+        for bone in list(obj.pose.bones):
+            if not self._is_hand_control(bone.name):
+                continue
+            bone_side = self._animation_control_side(bone.name)
+            if selected_side != "both" and bone_side != selected_side:
+                continue
+            controls.append(
+                {
+                    "name": bone.name,
+                    "side": bone_side,
+                    "role": "hand_control",
+                    "is_deform": bool(bone.bone.use_deform),
+                    "property_names": list(bone.keys()),
+                }
+            )
+            if len(controls) >= limit:
+                break
+        return {"armature_name": obj.name, "domain": "hands", "controls": controls, "shape_keys": []}
+
+    @staticmethod
+    def _rigify_limb_parent_name(limb, side):
+        prefix = "upper_arm_parent" if limb == "arm" else "thigh_parent"
+        return prefix + (".L" if side == "left" else ".R")
+
+    def set_rigify_fk_ik_mode(self, armature_name, limb, side, mode, frame=None):
+        """Set and optionally key the allowlisted native Rigify IK_FK property."""
+        limb = str(limb).lower()
+        side = str(side).lower()
+        mode = str(mode).lower()
+        if limb not in {"arm", "leg"} or side not in {"left", "right"}:
+            raise ValueError("limb must be arm or leg and side must be left or right")
+        if mode not in {"fk", "ik"}:
+            raise ValueError("mode must be fk or ik")
+        bounded_frame = None if frame is None else self._bounded_wave_two_frame(frame)
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        bone_name = self._rigify_limb_parent_name(limb, side)
+        bone = obj.pose.bones.get(bone_name)
+        if bone is None or "IK_FK" not in bone:
+            raise ValueError(f"Rigify limb parent does not expose IK_FK: {bone_name}")
+        value = 0.0 if mode == "fk" else 1.0
+        previous = float(bone["IK_FK"])
+        bone["IK_FK"] = value
+        if bounded_frame is not None:
+            bpy.context.scene.frame_set(bounded_frame)
+            bone.keyframe_insert(data_path='["IK_FK"]', frame=bounded_frame)
+        return {
+            "armature_name": obj.name,
+            "bone_name": bone.name,
+            "limb": limb,
+            "side": side,
+            "mode": mode,
+            "value": float(bone["IK_FK"]),
+            "frame": bounded_frame,
+            "changed": previous != value,
+        }
+
+    def set_shape_key_keyframe(self, mesh_name, shape_key_name, value, frame):
+        """Set and keyframe a bounded mesh shape-key value."""
+        value = float(value)
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("value must be between 0.0 and 1.0")
+        frame = self._bounded_wave_two_frame(frame)
+        mesh = bpy.data.objects.get(str(mesh_name))
+        if mesh is None or mesh.type != "MESH" or mesh.data.shape_keys is None:
+            raise ValueError(f"Mesh with shape keys not found: {mesh_name}")
+        key = mesh.data.shape_keys.key_blocks.get(str(shape_key_name))
+        if key is None:
+            raise ValueError(f"Shape key not found: {shape_key_name}")
+        bpy.context.scene.frame_set(frame)
+        key.value = value
+        key.keyframe_insert(data_path="value", frame=frame)
+        return {"mesh_name": mesh.name, "shape_key_name": key.name, "value": float(key.value), "frame": frame, "changed": True}
+
+    def edit_face_control_animation(self, armature_name, bone_name, frame, rotation_euler=None, location=None):
+        """Keyframe an allowlisted facial control transform without touching DEF bones."""
+        frame = self._bounded_wave_two_frame(frame)
+        rotation = tuple(float(value) for value in (rotation_euler or ()))
+        translation = tuple(float(value) for value in (location or ()))
+        if rotation and len(rotation) != 3:
+            raise ValueError("rotation_euler must contain exactly 3 values")
+        if translation and len(translation) != 3:
+            raise ValueError("location must contain exactly 3 values")
+        if not rotation and not translation:
+            raise ValueError("rotation_euler or location is required")
+        obj = self._activate_pose_armature(armature_name)
+        bone = obj.pose.bones.get(str(bone_name))
+        if bone is None or not self._is_face_control(bone.name):
+            raise ValueError(f"Bone is not an allowlisted Rigify face control: {bone_name}")
+        bpy.context.scene.frame_set(frame)
+        if rotation:
+            bone.rotation_mode = "XYZ"
+            bone.rotation_euler = rotation
+            bone.keyframe_insert(data_path="rotation_euler", frame=frame)
+        if translation:
+            bone.location = translation
+            bone.keyframe_insert(data_path="location", frame=frame)
+        return {
+            "armature_name": obj.name,
+            "bone_name": bone.name,
+            "frame": frame,
+            "location": list(bone.location),
+            "rotation_euler": list(bone.rotation_euler),
+            "changed": True,
+        }
 
     def get_mesh_statistics(self, object_name):
         """Return bounded mesh topology and UV statistics."""
