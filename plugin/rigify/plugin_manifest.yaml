@@ -15,6 +15,7 @@ capabilities:
   - rigging.configure_bone_constraint
   - rigging.configure_shape_key
   - rigging.get_deformation_state
+  - rigging.bind_character_to_rig
 unsupported_capabilities:
   - character
   - asset_generation

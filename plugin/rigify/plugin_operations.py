@@ -200,3 +200,34 @@ def map_configure_shape_key(request: RigifyShapeKeyRequest) -> dict[str, object]
             "slider_max": float(request.slider_max),
         },
     }
+
+
+@dataclass(frozen=True)
+class RigifyCharacterBindingRequest:
+    """Validated request for binding a character mesh to a Rigify armature."""
+
+    character_object_name: str
+    armature_name: str
+    modifier_name: str | None = None
+    replace_existing: bool = False
+
+    def __post_init__(self) -> None:
+        _validate_name(self.character_object_name, "character_object_name")
+        _validate_name(self.armature_name, "armature_name")
+        if self.modifier_name is not None:
+            _validate_name(self.modifier_name, "modifier_name")
+        if not isinstance(self.replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+
+
+def map_bind_character_to_rig(request: RigifyCharacterBindingRequest) -> dict[str, object]:
+    """Map a validated character binding request to the canonical Blender command."""
+    return {
+        "type": "bind_character_to_rig",
+        "params": {
+            "character_object_name": str(request.character_object_name).strip(),
+            "armature_name": str(request.armature_name).strip(),
+            "modifier_name": str(request.modifier_name).strip() if request.modifier_name else "Rigify_Armature",
+            "replace_existing": request.replace_existing,
+        },
+    }

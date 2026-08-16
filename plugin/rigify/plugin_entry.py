@@ -33,6 +33,7 @@ RIGIFY_CAPABILITIES = (
     PluginCapabilityId("rigging.configure_bone_constraint"),
     PluginCapabilityId("rigging.configure_shape_key"),
     PluginCapabilityId("rigging.get_deformation_state"),
+    PluginCapabilityId("rigging.bind_character_to_rig"),
 )
 RIGIFY_UNSUPPORTED_CAPABILITIES = ("character", "asset_generation")
 

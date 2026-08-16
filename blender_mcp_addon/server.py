@@ -268,6 +268,7 @@ class BlenderMCPServer:
             "configure_bone_constraint": self.configure_bone_constraint,
             "configure_shape_key": self.configure_shape_key,
             "get_deformation_state": self.get_deformation_state,
+            "bind_character_to_rig": self.bind_character_to_rig,
             "execute_blender_code": self.execute_blender_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
@@ -1114,6 +1115,52 @@ class BlenderMCPServer:
             "armature_modifiers": armature_modifiers,
             "constraints": constraints[:128],
             "shape_keys": shape_keys,
+        }
+
+    def bind_character_to_rig(
+        self,
+        character_object_name,
+        armature_name,
+        modifier_name="Rigify_Armature",
+        replace_existing=False,
+    ):
+        """Bind one character mesh to an existing armature modifier."""
+        character_name = str(character_object_name).strip()
+        rig_name = str(armature_name).strip()
+        modifier_label = str(modifier_name).strip() or "Rigify_Armature"
+        if not character_name or len(character_name) > 128 or any(ord(char) < 32 for char in character_name):
+            raise ValueError("character_object_name must contain 1-128 printable characters")
+        if not rig_name or len(rig_name) > 128 or any(ord(char) < 32 for char in rig_name):
+            raise ValueError("armature_name must contain 1-128 printable characters")
+        if len(modifier_label) > 128 or any(ord(char) < 32 for char in modifier_label):
+            raise ValueError("modifier_name must contain at most 128 printable characters")
+        if not isinstance(replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+        character = bpy.data.objects.get(character_name)
+        if character is None:
+            raise ValueError(f"Character object not found: {character_name}")
+        if character.type != "MESH":
+            raise ValueError("bind_character_to_rig requires a mesh character object")
+        armature = bpy.data.objects.get(rig_name)
+        if armature is None:
+            raise ValueError(f"Armature object not found: {rig_name}")
+        if armature.type != "ARMATURE":
+            raise ValueError("bind_character_to_rig requires an armature object")
+        existing = [modifier for modifier in character.modifiers if modifier.type == "ARMATURE"]
+        if existing and not replace_existing:
+            raise ValueError("character already has an armature modifier; set replace_existing=true to replace it")
+        for modifier in existing:
+            character.modifiers.remove(modifier)
+        modifier = character.modifiers.new(name=modifier_label, type="ARMATURE")
+        modifier.object = armature
+        modifier.use_deform_preserve_volume = False
+        return {
+            "object_name": character.name,
+            "armature_name": armature.name,
+            "modifier_name": modifier.name,
+            "changed": True,
+            "replaced_count": len(existing),
+            "operation": "bind_character_to_rig",
         }
 
     @staticmethod

@@ -297,3 +297,51 @@ def test_shape_key_request_rejects_non_boolean_enabled() -> None:
         assert "enabled" in str(error)
     else:
         raise AssertionError("expected non-boolean enabled value to be rejected")
+
+
+def test_character_binding_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import (
+        RigifyCharacterBindingRequest,
+        map_bind_character_to_rig,
+    )
+
+    command = map_bind_character_to_rig(
+        RigifyCharacterBindingRequest(
+            character_object_name="MPFB_Human",
+            armature_name="metarig",
+            modifier_name="Rigify_Armature",
+            replace_existing=True,
+        )
+    )
+
+    assert command == {
+        "type": "bind_character_to_rig",
+        "params": {
+            "character_object_name": "MPFB_Human",
+            "armature_name": "metarig",
+            "modifier_name": "Rigify_Armature",
+            "replace_existing": True,
+        },
+    }
+
+
+def test_character_binding_request_uses_default_modifier_name() -> None:
+    from plugin.rigify.plugin_operations import (
+        RigifyCharacterBindingRequest,
+        map_bind_character_to_rig,
+    )
+
+    command = map_bind_character_to_rig(RigifyCharacterBindingRequest("MPFB_Human", "metarig"))
+
+    assert command["params"]["modifier_name"] == "Rigify_Armature"
+
+
+def test_character_binding_request_rejects_non_boolean_replace_flag() -> None:
+    from plugin.rigify.plugin_operations import RigifyCharacterBindingRequest
+
+    try:
+        RigifyCharacterBindingRequest("MPFB_Human", "metarig", replace_existing="true")
+    except ValueError as error:
+        assert "replace_existing" in str(error)
+    else:
+        raise AssertionError("expected non-boolean replace flag to be rejected")
