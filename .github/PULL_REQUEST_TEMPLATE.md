@@ -90,7 +90,7 @@ Key improvements include:
 # Commands run to verify
 bash scripts/ci.sh
 uv run pytest modules/security/tests -v
-uv run ruff check modules blender_mcp_addon scripts
+uv run ruff check modules
 ```
 
 ## Documentation
