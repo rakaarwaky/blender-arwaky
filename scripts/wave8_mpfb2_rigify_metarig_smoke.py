@@ -61,6 +61,10 @@ if first["created"] is not True or second["created"] is not False:
     raise RuntimeError(f"Metarig workflow is not idempotent: first={first}, second={second}")
 if second["bound"] is not True or second["modifier_name"] != modifier.name:
     raise RuntimeError(f"Automatic binding result is invalid: {second}")
+if len(second.get("fit", {}).get("scale", ())) != 3:
+    raise RuntimeError(f"Global metarig fitting result is missing: {second}")
+if second.get("arm_fit", {}).get("max_lateral_x", 0.0) <= 0.0:
+    raise RuntimeError(f"Arm landmark fitting result is missing: {second}")
 
 print(
     "WAVE8_MPFB2_RIGIFY_METARIG_LIVE_OK",
@@ -73,5 +77,7 @@ print(
         "first_created": first["created"],
         "second_created": second["created"],
         "second_bound": second["bound"],
+        "global_fit_scale": second["fit"]["scale"],
+        "arm_fit": second["arm_fit"],
     },
 )
