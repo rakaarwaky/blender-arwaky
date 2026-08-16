@@ -281,9 +281,11 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
             plugin_container = PluginContainer()
             try:
                 from modules.plugin.src.taxonomy_plugin_vo import PluginId
-                from plugin.mpfb2.plugin_entry import create_runtime_provider
+                from plugin.mpfb2.plugin_entry import create_runtime_provider as create_mpfb2_runtime_provider
+                from plugin.rigify.plugin_entry import create_runtime_provider as create_rigify_runtime_provider
 
-                plugin_container.register_provider(PluginId("mpfb2"), create_runtime_provider())
+                plugin_container.register_provider(PluginId("mpfb2"), create_mpfb2_runtime_provider())
+                plugin_container.register_provider(PluginId("rigify"), create_rigify_runtime_provider())
             except (ImportError, OSError, ValueError):
                 pass
             action_router = CliActionRouter(
