@@ -81,6 +81,10 @@ The blocking CI workflow verifies lint and syntax, Python 3.10–3.13 tests, Ban
 
 For live Blender validation, install the generated addon package, start Blender with the addon enabled, and verify the relevant MCP or CLI action against a disposable scene. Record environment-specific limitations in the owning test or technical document rather than in the user README.
 
+Plugin providers must declare capabilities independently from runtime availability. Installation and activation are lifecycle state, not capability declaration. The shared plugin registry rejects duplicate provider IDs, duplicate capability declarations, and capability collisions. The orchestrator must block execution for providers that are unavailable, merely installed, or incompatible; only enabled and compatible providers may execute operations. Package lifecycle commands must preserve path and archive security and should be idempotent where the runtime can verify the existing state.
+
+Every new provider must pass the plugin conformance tests for discovery, health state normalization, capability registration, lifecycle execution guards, unsupported actions, and repeated install/remove behavior. Provider-specific implementation belongs under `plugin/<provider-name>/`; generic contracts and orchestration belong under `modules/plugin/` and must remain free of provider-specific imports.
+
 ## Documentation policy
 
 Documentation is split by audience:

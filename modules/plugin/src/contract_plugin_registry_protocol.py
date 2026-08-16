@@ -6,8 +6,10 @@ from abc import ABC, abstractmethod
 
 from .contract_plugin_operation_protocol import PluginOperationProtocol
 from .taxonomy_plugin_vo import (
+    BlenderVersion,
     PluginCapabilityId,
     PluginCapabilityList,
+    PluginDiscoveryVO,
     PluginHealthVO,
     PluginId,
     PluginIdList,
@@ -33,8 +35,18 @@ class PluginRegistryProtocol(ABC):
         ...
 
     @abstractmethod
+    def discover(self, blender_version: BlenderVersion) -> tuple[PluginDiscoveryVO, ...]:
+        """Discover every registered provider against the requested Blender version."""
+        ...
+
+    @abstractmethod
     def list_plugin_ids(self) -> PluginIdList:
         """Return registered provider identifiers."""
+        ...
+
+    @abstractmethod
+    def resolve_provider_id(self, operation: PluginOperationProtocol) -> PluginId | None:
+        """Return the registered provider identifier for an operation instance."""
         ...
 
     @abstractmethod

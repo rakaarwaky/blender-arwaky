@@ -90,9 +90,7 @@ class Mpfb2PluginOperation(PluginOperationProtocol):
         )
 
     def capabilities(self) -> PluginCapabilityList:
-        """Return capabilities only when the provider is available."""
-        if not self._installed or not self._active:
-            return PluginCapabilityList(())
+        """Return statically declared capabilities independent of runtime state."""
         return PluginCapabilityList((PluginCapabilityId("character.create"),))
 
     def execute(
