@@ -149,6 +149,7 @@ The CLI exposes every canonical action exactly once using kebab-case. MCP keeps 
 | `configure-shape-key` | `--object-name` **required**, `--shape-key-name` **required**, `--enabled` **required**, `--value`, `--slider-min`, `--slider-max` | `configure_shape_key` | `rigging` |
 | `get-deformation-state` | `--object-name` **required** | `get_deformation_state` | `rigging` |
 | `bind-character-to-rig` | `--character-object-name` **required**, `--armature-name` **required**, `--modifier-name`, `--replace-existing` | `bind_character_to_rig` | `rigging` |
+| `create-rigify-metarig` | `--character-object-name` **required**, `--armature-name`, `--preset`, `--bind-character`, `--replace-existing` | `create_rigify_metarig` | `rigging` |
 | `search-assets` | `--query`, `--providers`, `--asset-type-filter`, `--limit`, `--page-token` | `search_assets` | `asset` |
 | `get-provider-metadata` | `--provider` **required**, `--asset-id` **required** | `get_provider_metadata` | `asset` |
 | `download-asset` | `--provider` **required**, `--asset-id` **required**, `--asset-type` **required**, `--cache-dir` **required**, `--resolution`, `--overwrite-policy`, `--max-size`, `--background` | `download_asset` | `asset` |

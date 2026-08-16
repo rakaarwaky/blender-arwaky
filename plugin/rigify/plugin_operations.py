@@ -231,3 +231,39 @@ def map_bind_character_to_rig(request: RigifyCharacterBindingRequest) -> dict[st
             "replace_existing": request.replace_existing,
         },
     }
+
+
+@dataclass(frozen=True)
+class RigifyMetarigRequest:
+    """Validated request for creating a Rigify metarig workflow."""
+
+    character_object_name: str
+    armature_name: str | None = None
+    preset: str = "human"
+    bind_character: bool = True
+    replace_existing: bool = False
+
+    def __post_init__(self) -> None:
+        _validate_name(self.character_object_name, "character_object_name")
+        if self.armature_name is not None:
+            _validate_name(self.armature_name, "armature_name")
+        if str(self.preset).casefold() != "human":
+            raise ValueError("preset must be human")
+        if not isinstance(self.bind_character, bool):
+            raise ValueError("bind_character must be boolean")
+        if not isinstance(self.replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+
+
+def map_create_rigify_metarig(request: RigifyMetarigRequest) -> dict[str, object]:
+    """Map a validated metarig workflow request to the canonical Blender command."""
+    return {
+        "type": "create_rigify_metarig",
+        "params": {
+            "character_object_name": str(request.character_object_name).strip(),
+            "armature_name": str(request.armature_name).strip() if request.armature_name else None,
+            "preset": str(request.preset).casefold(),
+            "bind_character": request.bind_character,
+            "replace_existing": request.replace_existing,
+        },
+    }

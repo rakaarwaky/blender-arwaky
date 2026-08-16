@@ -345,3 +345,49 @@ def test_character_binding_request_rejects_non_boolean_replace_flag() -> None:
         assert "replace_existing" in str(error)
     else:
         raise AssertionError("expected non-boolean replace flag to be rejected")
+
+
+def test_metarig_request_maps_to_canonical_command() -> None:
+    from plugin.rigify.plugin_operations import RigifyMetarigRequest, map_create_rigify_metarig
+
+    command = map_create_rigify_metarig(
+        RigifyMetarigRequest(
+            character_object_name="MPFB_Human",
+            armature_name="MPFB_Human_Rigify_Metarig",
+            preset="human",
+            bind_character=True,
+            replace_existing=False,
+        )
+    )
+
+    assert command == {
+        "type": "create_rigify_metarig",
+        "params": {
+            "character_object_name": "MPFB_Human",
+            "armature_name": "MPFB_Human_Rigify_Metarig",
+            "preset": "human",
+            "bind_character": True,
+            "replace_existing": False,
+        },
+    }
+
+
+def test_metarig_request_rejects_unsupported_preset() -> None:
+    from plugin.rigify.plugin_operations import RigifyMetarigRequest
+
+    try:
+        RigifyMetarigRequest("MPFB_Human", preset="face")
+    except ValueError as error:
+        assert "preset" in str(error)
+    else:
+        raise AssertionError("expected unsupported preset to be rejected")
+
+
+def test_metarig_request_defaults_to_human_binding_workflow() -> None:
+    from plugin.rigify.plugin_operations import RigifyMetarigRequest, map_create_rigify_metarig
+
+    command = map_create_rigify_metarig(RigifyMetarigRequest("MPFB_Human"))
+
+    assert command["params"]["preset"] == "human"
+    assert command["params"]["bind_character"] is True
+    assert command["params"]["replace_existing"] is False

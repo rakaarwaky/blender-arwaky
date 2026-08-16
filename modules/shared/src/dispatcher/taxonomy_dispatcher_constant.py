@@ -732,6 +732,16 @@ DISPATCHER_ACTION_SCHEMAS: dict[str, dict[str, dict[str, object]]] = {
                 "replace_existing": {"type": "boolean", "required": False, "default": False},
             },
         },
+        "create_rigify_metarig": {
+            "description": "Create or reuse a validated Rigify human metarig and optionally bind a character mesh",
+            "parameters": {
+                "character_object_name": {"type": "string", "required": True},
+                "armature_name": {"type": "string", "required": False},
+                "preset": {"type": "string", "required": False, "enum": ["human"]},
+                "bind_character": {"type": "boolean", "required": False, "default": True},
+                "replace_existing": {"type": "boolean", "required": False, "default": False},
+            },
+        },
     },
     "asset": {
         "search_assets": {

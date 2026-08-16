@@ -69,6 +69,7 @@ class CliActionRouter:
         "get_deformation_state",
         "configure_shape_key",
         "bind_character_to_rig",
+        "create_rigify_metarig",
     }
     _PLUGIN_ACTIONS = {
         "list_plugins",
@@ -183,11 +184,13 @@ class CliActionRouter:
             RigifyCharacterBindingRequest,
             RigifyDeformationStateRequest,
             RigifyInspectArmatureRequest,
+            RigifyMetarigRequest,
             RigifyPoseBoneTransformRequest,
             RigifyShapeKeyRequest,
             map_bind_character_to_rig,
             map_configure_bone_constraint,
             map_configure_shape_key,
+            map_create_rigify_metarig,
             map_get_deformation_state,
             map_inspect_armature,
             map_set_pose_bone_transform,
@@ -200,6 +203,7 @@ class CliActionRouter:
             "get_deformation_state",
             "configure_shape_key",
             "bind_character_to_rig",
+            "create_rigify_metarig",
         }
         default_plugin_id = "rigify" if action_name in rigify_actions else "mpfb2"
         plugin_id = str(params.get("plugin_id", default_plugin_id)).strip()
@@ -286,6 +290,16 @@ class CliActionRouter:
                     modifier_name=(
                         str(params["modifier_name"]) if params.get("modifier_name") is not None else None
                     ),
+                    replace_existing=params.get("replace_existing", False),
+                )
+            )
+        elif action_name == "create_rigify_metarig":
+            command = map_create_rigify_metarig(
+                RigifyMetarigRequest(
+                    character_object_name=str(params.get("character_object_name", "")),
+                    armature_name=(str(params["armature_name"]) if params.get("armature_name") else None),
+                    preset=str(params.get("preset", "human")),
+                    bind_character=params.get("bind_character", True),
                     replace_existing=params.get("replace_existing", False),
                 )
             )

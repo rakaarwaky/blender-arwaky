@@ -269,6 +269,7 @@ class BlenderMCPServer:
             "configure_shape_key": self.configure_shape_key,
             "get_deformation_state": self.get_deformation_state,
             "bind_character_to_rig": self.bind_character_to_rig,
+            "create_rigify_metarig": self.create_rigify_metarig,
             "execute_blender_code": self.execute_blender_code,
             "get_polyhaven_categories": polyhaven.get_polyhaven_categories,
             "search_polyhaven_assets": polyhaven.search_polyhaven_assets,
@@ -1117,6 +1118,73 @@ class BlenderMCPServer:
             "shape_keys": shape_keys,
         }
 
+    def create_rigify_metarig(
+        self,
+        character_object_name,
+        armature_name=None,
+        preset="human",
+        bind_character=True,
+        replace_existing=False,
+    ):
+        """Create or reuse a Rigify human metarig and optionally bind a character."""
+        character_name = str(character_object_name).strip()
+        requested_armature_name = str(armature_name).strip() if armature_name else ""
+        preset_name = str(preset).casefold().strip()
+        if not character_name or len(character_name) > 128 or any(ord(char) < 32 for char in character_name):
+            raise ValueError("character_object_name must contain 1-128 printable characters")
+        if requested_armature_name and (
+            len(requested_armature_name) > 128 or any(ord(char) < 32 for char in requested_armature_name)
+        ):
+            raise ValueError("armature_name must contain 1-128 printable characters")
+        if preset_name != "human":
+            raise ValueError("preset must be human")
+        if not isinstance(bind_character, bool):
+            raise ValueError("bind_character must be boolean")
+        if not isinstance(replace_existing, bool):
+            raise ValueError("replace_existing must be boolean")
+        character = bpy.data.objects.get(character_name)
+        if character is None:
+            raise ValueError(f"Character object not found: {character_name}")
+        if character.type != "MESH":
+            raise ValueError("create_rigify_metarig requires a mesh character object")
+
+        desired_name = requested_armature_name or f"{character.name}_Rigify_Metarig"
+        armature = bpy.data.objects.get(desired_name)
+        created = False
+        if armature is None:
+            operator = getattr(getattr(bpy.ops, "object", None), "armature_human_metarig_add", None)
+            if not callable(operator):
+                raise RuntimeError("Rigify human metarig operator is unavailable")
+            operator()
+            armature = bpy.context.object
+            if armature is None or armature.type != "ARMATURE":
+                raise RuntimeError("Rigify metarig generation did not produce an armature")
+            armature.name = desired_name
+            created = True
+        elif armature.type != "ARMATURE":
+            raise ValueError(f"Requested metarig name is not an armature: {desired_name}")
+        if len(armature.data.bones) == 0:
+            raise RuntimeError("Rigify metarig contains no bones")
+
+        binding = None
+        if bind_character:
+            binding = self.bind_character_to_rig(
+                character_object_name=character.name,
+                armature_name=armature.name,
+                modifier_name=f"{armature.name}_Armature",
+                replace_existing=replace_existing,
+            )
+        return {
+            "character_object_name": character.name,
+            "armature_name": armature.name,
+            "preset": preset_name,
+            "created": created,
+            "bone_count": len(armature.data.bones),
+            "bound": bool(binding),
+            "modifier_name": binding.get("modifier_name") if binding else None,
+            "operation": "create_rigify_metarig",
+        }
+
     def bind_character_to_rig(
         self,
         character_object_name,
@@ -1147,6 +1215,16 @@ class BlenderMCPServer:
         if armature.type != "ARMATURE":
             raise ValueError("bind_character_to_rig requires an armature object")
         existing = [modifier for modifier in character.modifiers if modifier.type == "ARMATURE"]
+        matching = next((modifier for modifier in existing if modifier.object is armature), None)
+        if matching is not None and not replace_existing:
+            return {
+                "object_name": character.name,
+                "armature_name": armature.name,
+                "modifier_name": matching.name,
+                "changed": False,
+                "replaced_count": 0,
+                "operation": "bind_character_to_rig",
+            }
         if existing and not replace_existing:
             raise ValueError("character already has an armature modifier; set replace_existing=true to replace it")
         for modifier in existing:
