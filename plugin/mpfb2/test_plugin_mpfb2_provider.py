@@ -5,7 +5,11 @@ from modules.plugin.src.taxonomy_plugin_vo import (
     PluginActionName,
     PluginParameterMap,
 )
-from plugin.mpfb2.plugin_entry import Mpfb2PluginOperation, create_runtime_provider
+from plugin.mpfb2.plugin_entry import (
+    MPFB2_UNSUPPORTED_CAPABILITIES,
+    Mpfb2PluginOperation,
+    create_runtime_provider,
+)
 from plugin.mpfb2.plugin_runtime_facts import probe_blender_runtime
 
 
@@ -26,6 +30,14 @@ def test_mpfb2_active_provider_declares_capability() -> None:
 
     assert discovery.compatible is True
     assert provider.capabilities() == ("character.create",)
+
+
+def test_mpfb2_exposes_character_only_boundary() -> None:
+    provider = Mpfb2PluginOperation(installed=True, active=True)
+
+    assert provider.capabilities() == ("character.create",)
+    assert provider.unsupported_capabilities() == MPFB2_UNSUPPORTED_CAPABILITIES
+    assert {"rigging", "pose", "deformation"}.isdisjoint(provider.capabilities())
 
 
 def test_mpfb2_rejects_unsupported_operation() -> None:

@@ -212,7 +212,7 @@ uv run blender-arwaky install-mpfb-asset-pack --asset-pack-id makehuman_system_a
 uv run blender-arwaky inspect-mpfb-assets --plugin-id mpfb2
 ```
 
-The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Repeating a valid legacy install or removal command is idempotent; invalid existing paths are still rejected. Provider capabilities are statically declared, while runtime availability is reported separately through lifecycle states: `unavailable`, `installed`, `enabled`, or `incompatible`. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source.
+The package boundary enforces HTTPS, SHA-256 verification, absolute traversal-free paths, ZIP traversal protection, symlink rejection, atomic installation, and Blender 5.2 Extension System lifecycle control. Repeating a valid legacy install or removal command is idempotent; invalid existing paths are still rejected. Provider capabilities are statically declared, while runtime availability is reported separately through lifecycle states: `unavailable`, `installed`, `enabled`, or `incompatible`. Provider operations remain explicitly mapped actions; character creation and seeded randomization use MPFB2's public service APIs and never accept arbitrary Python source. **MPFB2 is intentionally limited to character generation and character asset assembly; rigging, pose, and deformation are outside its supported provider scope and are not mapped through the MPFB2 integration.**
 
 ## Configuration
 
