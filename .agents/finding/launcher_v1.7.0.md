@@ -9962,7 +9962,7 @@ server:
 | `BLENDERMCP_CONFIG_PATH` | Override config.yaml path |
 | `BLENDERMCP_BLENDER.HOST` | Override Blender host |
 | `BLENDERMCP_BLENDER.PORT` | Override Blender port |
-| `BLENDERMCP_STRICT` | Enable v1.7.0 new enforcement (schema validation, 1 MiB size limit, `\` path escaping, strict ConfigTypeError, runtime overrides). Default OFF; flips ON in v1.8.0. |
+| Strict enforcement | Schema validation, 1 MiB size limit, escaped-dot paths, strict ConfigTypeError, and runtime overrides are always active; policy mode controls raise versus warning behavior. |
 
 ## Testing
 

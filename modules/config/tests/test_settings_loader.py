@@ -59,7 +59,7 @@ def test_runtime_override_wins(monkeypatch):  # noqa: ARG001 (unused monkeypatch
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(strict_mode_enabled=True)
+    loader = SettingsLoaderCapability()
     snap = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     assert snap.get("blender.port") == 7777
 
@@ -118,7 +118,7 @@ def test_oversized_v2_on_strict_raises(monkeypatch):  # noqa: ARG001 (unused mon
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n")
-    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="strict")
     with pytest.raises(ConfigLoadError):
         loader.load_settings(ConfigPath(cfg))
 
@@ -128,20 +128,20 @@ def test_oversized_v2_on_permissive_skips():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n")
-    loader = SettingsLoaderCapability(policy_mode="permissive", strict_mode_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="permissive")
     snap = loader.load_settings(ConfigPath(cfg))
     assert snap.get("blender.port") == 9876
 
 
 @pytest.mark.unit
-def test_oversized_v2_off_parses():
+def test_oversized_always_rejected_in_strict_policy():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     big = "x: " + "a" * (MAX_CONFIG_SIZE_BYTES + 10) + "\n"
     _write(cfg, big)
-    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=False)
-    snap = loader.load_settings(ConfigPath(cfg))
-    assert snap.get("x")  # value present (flag regression)
+    loader = SettingsLoaderCapability(policy_mode="strict")
+    with pytest.raises(ConfigLoadError):
+        loader.load_settings(ConfigPath(cfg))
 
 
 @pytest.mark.unit
@@ -149,7 +149,7 @@ def test_schema_v2_on_strict_error():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: oops\n")
-    loader = SettingsLoaderCapability(policy_mode="strict", strict_mode_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="strict")
     with pytest.raises(ConfigValidationError):
         loader.load_settings(ConfigPath(cfg))
 
@@ -159,7 +159,7 @@ def test_schema_v2_on_permissive_warning_and_event():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: oops\n")
-    loader = SettingsLoaderCapability(policy_mode="permissive", strict_mode_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode="permissive")
     loader.load_settings(ConfigPath(cfg))
     ev = loader.emit_validation_warning_event()
     assert ev is not None
@@ -181,11 +181,11 @@ def test_overrides_applied_unconditionally_and_cached():
 
 @pytest.mark.unit
 def test_overrides_applied_in_permissive_mode():
-    """Runtime overrides are applied even when strict_mode_enabled=False."""
+    """Runtime overrides remain available under the permanent strict policy."""
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     _write(cfg, "blender:\n  port: 5555\n")
-    loader = SettingsLoaderCapability(strict_mode_enabled=False)
+    loader = SettingsLoaderCapability()
     snap = loader.load_settings(ConfigPath(cfg), overrides={"blender.port": 7777})
     assert snap.get("blender.port") == 7777
 

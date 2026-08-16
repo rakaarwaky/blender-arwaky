@@ -24,9 +24,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
     No I/O. No file or environment reads per request.
     """
 
-    def __init__(self, policy_mode: str = POLICY_MODE_STRICT, escape_enabled: bool = False) -> None:
+    def __init__(self, policy_mode: str = POLICY_MODE_STRICT) -> None:
         self._policy_mode = policy_mode
-        self._escape_enabled = escape_enabled
 
     # ─── Block 2: Protocol Method Implementation ──────────────
 
@@ -37,12 +36,12 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         default: SettingsValue = None,
     ) -> SettingsValue:
         """Retrieve value by dot-separated path. Returns deep copy."""
-        segments = parse_settings_path(path, self._escape_enabled)
+        segments = parse_settings_path(path)
         return snapshot.get_segments(segments, default)
 
     def has_value(self, snapshot: SettingsSnapshot, path: str) -> bool:
         """Check if a dot-separated path exists."""
-        segments = parse_settings_path(path, self._escape_enabled)
+        segments = parse_settings_path(path)
         return snapshot.has_segments(segments)
 
     def get_string(self, snapshot: SettingsSnapshot, path: str, default: str = "") -> str:
@@ -72,7 +71,7 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         exclude_bool: bool = False,
         coerce_int: bool = False,
     ) -> SettingsValue:
-        segments = parse_settings_path(path, self._escape_enabled)
+        segments = parse_settings_path(path)
         raw = snapshot.get_segments(segments, SENTINEL_MISSING)
         if raw is SENTINEL_MISSING:
             return default  # missing key never raises in either mode

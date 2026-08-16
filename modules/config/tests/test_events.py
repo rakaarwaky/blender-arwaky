@@ -20,7 +20,7 @@ from modules.shared.src.config.taxonomy_config_constant import (
 
 def _orchestrator(permissive=False):
     mode = "permissive" if permissive else "strict"
-    loader = SettingsLoaderCapability(policy_mode=mode, strict_mode_enabled=True)
+    loader = SettingsLoaderCapability(policy_mode=mode)
     return ConfigOrchestrator(
         loader=loader,
         retriever=SettingsRetrieverCapability(policy_mode=mode),

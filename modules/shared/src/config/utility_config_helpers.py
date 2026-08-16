@@ -260,18 +260,15 @@ def validate_settings_schema(
     return tuple(errors), tuple(warnings)
 
 
-def parse_settings_path(path: str, escape_enabled: bool) -> tuple[str, ...]:
+def parse_settings_path(path: str) -> tuple[str, ...]:
     """Split a dotted path into segments.
 
-    When ``escape_enabled``, \\. yields a literal . inside a segment.
-    Empty path → (). Trailing/leading/repeated separators produce empty
-    segments which resolve as missing keys (returns default).
+    ``\\.`` yields a literal dot inside a segment. Empty path → ().
+    Trailing, leading, or repeated separators produce empty segments which
+    resolve as missing keys and return the caller's default.
     """
     if not path:
         return ()
-
-    if not escape_enabled:
-        return tuple(path.split("."))
 
     segments: list[str] = []
     current = ""

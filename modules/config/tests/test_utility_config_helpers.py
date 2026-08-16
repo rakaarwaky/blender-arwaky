@@ -173,23 +173,17 @@ def test_schema_clean_passes():
 
 @pytest.mark.unit
 def test_parse_settings_path_basic():
-    assert parse_settings_path("a.b", False) == ("a", "b")
-    assert parse_settings_path("a.b", True) == ("a", "b")
+    assert parse_settings_path("a.b") == ("a", "b")
 
 
 @pytest.mark.unit
-def test_parse_settings_path_escape_on():
-    assert parse_settings_path("a\\.b", True) == ("a.b",)
-
-
-@pytest.mark.unit
-def test_parse_settings_path_escape_off_literal_split():
-    assert parse_settings_path("a\\.b", False) == ("a\\", "b")
+def test_parse_settings_path_escaped_dot():
+    assert parse_settings_path("a\\.b") == ("a.b",)
 
 
 @pytest.mark.unit
 def test_parse_settings_path_empty():
-    assert parse_settings_path("", True) == ()
+    assert parse_settings_path("") == ()
 
 
 # ─── deep_merge / set_nested ─────────────────────────────────

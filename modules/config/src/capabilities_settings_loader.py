@@ -109,14 +109,12 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         policy_mode: str = DEFAULT_POLICY_MODE,
         defaults: SettingsOverrides | None = None,
         schema: SettingsSchema | None = None,
-        strict_mode_enabled: bool = False,
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
         # Use cached copies when no custom defaults/schema provided (Finding #2/#14)
         self._defaults = dict(defaults) if defaults is not None else _get_defaults_cache()
         self._schema = dict(schema) if schema is not None else _get_schema_cache()
-        self._strict_mode_enabled = strict_mode_enabled
         self._lock = threading.Lock()
         # cached state
         self._cached: SettingsSnapshot | None = None
@@ -273,11 +271,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             # Missing file: never fatal (Q6).
             parse_warnings.append(ParseWarning(f"settings file not found: {resolved}; using defaults"))
         else:
-            # Size limit (strict-mode gated)
-            # FR-CFG-001: Size limit gated by BLENDERMCP_STRICT flag.
-            # When flag is off, size limit is not enforced regardless of policy mode.
-            # When flag is on: strict → ConfigError; permissive → warning + skip.
-            if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
+            # The 1 MiB limit is always enforced; policy mode controls whether
+            # an oversized file raises or becomes a warning with defaults.
+            if p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
                     raise ConfigLoadError(f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes")
                 parse_warnings.append(ParseWarning(f"settings file too large: {resolved}; skipped"))
@@ -299,14 +295,14 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         merged = deep_merge_dicts(dict(self._defaults), file_data)
         merged, env_count = apply_env_overrides(merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS)
 
-        # Schema (strict-mode gated)
+        # Schema validation is always performed; policy mode controls whether
+        # validation errors raise or are retained as warnings.
         validation_warnings: list[ValidationWarning] = []
-        if self._strict_mode_enabled:
-            errors, warnings = validate_settings_schema(merged, self._schema)
-            if errors and self._policy_mode == POLICY_MODE_STRICT:
-                raise ConfigValidationError("; ".join(errors))
-            validation_warnings.extend(warnings)
-            validation_warnings.extend(errors)
+        errors, warnings = validate_settings_schema(merged, self._schema)
+        if errors and self._policy_mode == POLICY_MODE_STRICT:
+            raise ConfigValidationError("; ".join(errors))
+        validation_warnings.extend(warnings)
+        validation_warnings.extend(errors)
 
         metadata = ConfigMetadata(
             source=SourceLocation(str(resolved)),

@@ -8,12 +8,12 @@ import tempfile
 import pytest
 
 from modules.config.src.root_config_container import ConfigContainer
-from modules.shared.src.config.taxonomy_config_constant import STRICT_MODE_FLAG_ENV
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath
+from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
 
 
 @pytest.mark.unit
 def test_zero_arg_build_loads_defaults(monkeypatch):
-    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     # chdir to a temp dir with no config.yaml
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
@@ -25,7 +25,6 @@ def test_zero_arg_build_loads_defaults(monkeypatch):
 
 @pytest.mark.unit
 def test_metadata_populated_after_load(monkeypatch):
-    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -37,7 +36,6 @@ def test_metadata_populated_after_load(monkeypatch):
 
 @pytest.mark.unit
 def test_recent_events_populated_after_load(monkeypatch):
-    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -47,7 +45,6 @@ def test_recent_events_populated_after_load(monkeypatch):
 
 @pytest.mark.unit
 def test_metadata_source_ends_with_config_yaml(monkeypatch):
-    monkeypatch.delenv(STRICT_MODE_FLAG_ENV, raising=False)
     d = tempfile.mkdtemp()
     monkeypatch.chdir(d)
     agg = ConfigContainer().build()
@@ -56,30 +53,22 @@ def test_metadata_source_ends_with_config_yaml(monkeypatch):
 
 
 @pytest.mark.unit
-def test_flag_from_env_enables_schema_errors(monkeypatch):
-    monkeypatch.setenv(STRICT_MODE_FLAG_ENV, "on")
+def test_schema_validation_is_always_enabled():
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     with open(cfg, "w") as f:
         f.write("blender:\n  port: oops\n")
-    from modules.shared.src.common.taxonomy_core_vo import ConfigPath
-    from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
-
     agg = ConfigContainer().build()
     with pytest.raises(ConfigValidationError):
         agg.load(ConfigPath(cfg))
 
 
 @pytest.mark.unit
-def test_explicit_false_beats_env_true(monkeypatch):
-    monkeypatch.setenv(STRICT_MODE_FLAG_ENV, "on")
-    agg = ConfigContainer(strict_mode_enabled=False).build()
-    # flag OFF → no schema validation; bad port does not raise
+def test_strict_enforcement_cannot_be_disabled():
+    agg = ConfigContainer().build()
     d = tempfile.mkdtemp()
     cfg = os.path.join(d, "config.yaml")
     with open(cfg, "w") as f:
         f.write("blender:\n  port: oops\n")
-    from modules.shared.src.common.taxonomy_core_vo import ConfigPath
-
-    snap = agg.load(ConfigPath(cfg))
-    assert snap.get("blender.port") == "oops"  # no validation, value accepted
+    with pytest.raises(ConfigValidationError):
+        agg.load(ConfigPath(cfg))

@@ -34,14 +34,12 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
 WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"
-STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 
 # Environment keys that are control signals, never settings overrides.
 RESERVED_ENV_KEYS: tuple[str, ...] = (
     "BLENDERMCP_CONFIG_PATH",
     "BLENDERMCP_ROOT",
-    "BLENDERMCP_STRICT",
 )
 
 # ─── Event Sink (FR-CFG-001 / T-09) ──────────────────────────
