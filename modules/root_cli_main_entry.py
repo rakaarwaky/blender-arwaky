@@ -102,12 +102,13 @@ def _add_common_flags(parser: argparse.ArgumentParser) -> None:
         default=argparse.SUPPRESS,
         help="Disable progress hints",
     )
-    parser.add_argument(
-        "--confirm",
-        action="store_true",
-        default=argparse.SUPPRESS,
-        help="Confirm destructive action",
-    )
+    if not any("--confirm" in action.option_strings for action in parser._actions):
+        parser.add_argument(
+            "--confirm",
+            action="store_true",
+            default=argparse.SUPPRESS,
+            help="Confirm destructive action",
+        )
 
 
 def _example(parser: argparse.ArgumentParser, text: str) -> None:
@@ -265,6 +266,7 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
             from modules.dispatcher.src.root_dispatcher_container import DispatcherContainer
             from modules.job.src.root_job_container import create_job_feature
             from modules.launcher.src.root_launcher_container import LauncherConfigVO, LauncherContainer
+            from modules.plugin.src.root_plugin_container import PluginContainer
             from modules.security.src.root_security_container import create_security_feature
 
             launcher_container = LauncherContainer(config=LauncherConfigVO())
@@ -276,12 +278,21 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
                 security_supervisor=security,
                 config_getter=config,
             ).get_orchestrator()
+            plugin_container = PluginContainer()
+            try:
+                from modules.plugin.src.taxonomy_plugin_vo import PluginId
+                from plugin.mpfb2.plugin_entry import create_runtime_provider
+
+                plugin_container.register_provider(PluginId("mpfb2"), create_runtime_provider())
+            except (ImportError, OSError, ValueError):
+                pass
             action_router = CliActionRouter(
                 launcher_container.agent,
                 job=create_job_feature(),
                 config=config,
                 security=security,
                 asset=asset,
+                plugin=plugin_container,
             )
             dispatcher_container = DispatcherContainer(launcher_action_router=action_router)
             dispatcher_container.wire()

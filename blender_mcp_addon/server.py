@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import queue
+import random
 import socket
 import struct
 import threading
@@ -244,6 +245,9 @@ class BlenderMCPServer:
             "set_compositor_link": self.set_compositor_link,
             "inspect_sequence_editor": self.inspect_sequence_editor,
             "create_sequence_strip": self.create_sequence_strip,
+            "create_character": self.create_character,
+            "randomize_character": self.randomize_character,
+            "remove_character": self.remove_character,
             "remove_sequence_strip": self.remove_sequence_strip,
             "render_sequence": self.render_sequence,
             "get_physics_state": self.get_physics_state,
@@ -1260,6 +1264,105 @@ class BlenderMCPServer:
                     }
                 )
         return {"sequence_present": strips is not None, "strips": values}
+
+    def create_character(self, plugin_id="mpfb2", name="MPFB_Human"):
+        """Create one MPFB2 human through the explicitly mapped public operator."""
+        if str(plugin_id).strip() != "mpfb2":
+            raise ValueError("create_character is mapped only to provider mpfb2")
+        character_name = str(name).strip() or "MPFB_Human"
+        if len(character_name) > 64 or any(char in character_name for char in "\r\n\x00"):
+            raise ValueError("character name must be 1-64 characters without control characters")
+        mpfb_namespace = getattr(bpy.ops, "mpfb", None)
+        create_human = getattr(mpfb_namespace, "create_human", None)
+        if create_human is None:
+            raise RuntimeError("MPFB2 is not installed or enabled in Blender")
+        result = create_human()
+        if "FINISHED" not in result:
+            raise RuntimeError(f"MPFB2 create_human failed: {result}")
+        character = bpy.context.view_layer.objects.active
+        if character is None:
+            raise RuntimeError("MPFB2 create_human completed without an active character")
+        if character_name not in bpy.data.objects or bpy.data.objects.get(character_name) is character:
+            character.name = character_name
+        return {
+            "changed": True,
+            "plugin_id": "mpfb2",
+            "operation": "character.create",
+            "object_name": character.name,
+            "blender_version": bpy.app.version_string,
+        }
+
+    def randomize_character(self, plugin_id="mpfb2", name="MPFB_RandomHuman", seed=0):
+        """Create one deterministic MPFB2 random human through the public operator."""
+        if str(plugin_id).strip() != "mpfb2":
+            raise ValueError("randomize_character is mapped only to provider mpfb2")
+        character_name = str(name).strip() or "MPFB_RandomHuman"
+        if len(character_name) > 64 or any(ord(char) < 32 for char in character_name):
+            raise ValueError("character name must be 1-64 characters without control characters")
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            raise ValueError("seed must be an integer greater than or equal to zero")
+        objects_before = set(bpy.data.objects)
+        try:
+            from bl_ext.user_default.mpfb.services.humanservice import HumanService
+            from bl_ext.user_default.mpfb.services.randomizationservice import RandomizationService
+        except ImportError as error:
+            raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
+        randomization_spec = RandomizationService.get_default_phenotype_spec()
+        macro_detail_dict = RandomizationService.randomize_macro_info_dict(
+            randomization_spec,
+            random.Random(seed),
+        )
+        basemesh = HumanService.create_human(macro_detail_dict=macro_detail_dict)
+        active = bpy.context.view_layer.objects.active
+        character = basemesh or (active if active not in objects_before else None)
+        if character is None:
+            raise RuntimeError("MPFB2 randomization completed without a new character")
+        if character_name not in bpy.data.objects or bpy.data.objects.get(character_name) is character:
+            character.name = character_name
+        return {
+            "changed": True,
+            "plugin_id": "mpfb2",
+            "operation": "character.randomize",
+            "object_name": character.name,
+            "seed": seed,
+            "blender_version": bpy.app.version_string,
+        }
+
+    def remove_character(self, plugin_id="mpfb2", object_name="", confirm=False):
+        """Remove one verified MPFB2 basemesh root closure without touching unrelated objects."""
+        if str(plugin_id).strip() != "mpfb2":
+            raise ValueError("remove_character is mapped only to provider mpfb2")
+        if confirm is not True:
+            raise ValueError("remove_character requires confirm=true")
+        target_name = str(object_name).strip()
+        if not target_name or len(target_name) > 128 or any(ord(char) < 32 for char in target_name):
+            raise ValueError("object_name must be 1-128 characters without control characters")
+        target = bpy.data.objects.get(target_name)
+        if target is None:
+            raise ValueError(f"MPFB2 character object not found: {target_name}")
+        if target.type != "MESH":
+            raise ValueError("remove_character target must be an MPFB2 basemesh")
+        if not hasattr(target, "MPFB_HUM_gender") or getattr(target, "MPFB_GEN_object_type", None) not in {
+            None,
+            "Basemesh",
+        }:
+            raise ValueError("target is not a verified MPFB2 basemesh")
+        root = target
+        visited = set()
+        while root.parent is not None and root.name not in visited:
+            visited.add(root.name)
+            root = root.parent
+        closure = {root, target, *root.children_recursive}
+        removed_names = sorted(obj.name for obj in closure)
+        for obj in closure:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        return {
+            "changed": True,
+            "plugin_id": "mpfb2",
+            "operation": "character.remove",
+            "removed_objects": removed_names,
+            "blender_version": bpy.app.version_string,
+        }
 
     def create_sequence_strip(
         self,

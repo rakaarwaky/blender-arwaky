@@ -152,10 +152,8 @@ class ExecutableLocator(LocateRegisterProtocol):
             parts = [int(p) for p in version.split(".")[:2]]
             major = parts[0]
             minor = parts[1] if len(parts) > 1 else 0
-            if major < 3:
+            if major < 5 or (major == 5 and minor < 2):
                 return VersionCompatibility.UNSUPPORTED
-            if major > 4 or (major == 4 and minor >= 2):
-                return VersionCompatibility.WARNING
             return VersionCompatibility.SUPPORTED
         except (ValueError, IndexError):
             return VersionCompatibility.UNKNOWN

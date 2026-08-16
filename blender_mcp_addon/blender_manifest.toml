@@ -7,7 +7,7 @@ tagline = "Connect Blender to Claude (or any MCP client)"
 maintainer = "rakaarwaky <arwaky90@gmail.com>"
 type = "add-on"
 
-blender_version_min = "4.2.0"
+blender_version_min = "5.2.0"
 
 website = "https://github.com/rakaarwaky/blender-arwaky"
 
