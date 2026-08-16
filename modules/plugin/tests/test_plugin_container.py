@@ -83,9 +83,9 @@ def test_registry_rejects_capability_collision() -> None:
     first = container.register_provider(PluginId("first"), FakePluginOperation(PluginId("first")))
     second = container.register_provider(PluginId("second"), FakePluginOperation(PluginId("second")))
 
-    assert first.registered is True
-    assert second.registered is False
-    assert second.message == PluginMessage("plugin capability collision: character.create")
+    assert first.registered is True  # nosec B101
+    assert second.registered is False  # nosec B101
+    assert second.message == PluginMessage("plugin capability collision: character.create")  # nosec B101
 
 
 def test_registry_rejects_duplicate_capability_declaration() -> None:
@@ -95,8 +95,8 @@ def test_registry_rejects_duplicate_capability_declaration() -> None:
         FakePluginOperation(PluginId("duplicate"), capabilities=("character.create", "character.create")),
     )
 
-    assert result.registered is False
-    assert result.message == PluginMessage("plugin declares a duplicate capability")
+    assert result.registered is False  # nosec B101
+    assert result.message == PluginMessage("plugin declares a duplicate capability")  # nosec B101
 
 
 def test_container_normalizes_provider_lifecycle_state() -> None:
@@ -108,7 +108,7 @@ def test_container_normalizes_provider_lifecycle_state() -> None:
 
     health = container.aggregate().health_check()
 
-    assert health[0].state is PluginLifecycleState.INSTALLED
+    assert health[0].state is PluginLifecycleState.INSTALLED  # nosec B101
 
 
 def test_container_blocks_execution_for_disabled_provider() -> None:
@@ -124,7 +124,7 @@ def test_container_blocks_execution_for_disabled_provider() -> None:
     )
 
     assert result.success is False
-    assert result.message == PluginMessage("plugin is not executable in lifecycle state installed")
+    assert result.message == PluginMessage("plugin is not executable in lifecycle state installed")  # nosec B101
 
 
 def test_container_executes_declared_capability() -> None:

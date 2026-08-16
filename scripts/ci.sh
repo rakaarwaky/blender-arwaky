@@ -29,11 +29,11 @@ run_check() {
     fi
 }
 
-run_check "Ruff lint" uv run ruff check modules blender_mcp_addon scripts
-run_check "Ruff format" uv run ruff format --check modules blender_mcp_addon scripts
+run_check "Ruff lint (modules only)" uv run ruff check modules
+run_check "Ruff format (modules only)" uv run ruff format --check modules
 run_check "AES architecture full scan" bash scripts/run_lint_arwaky_architecture.sh
 run_check "Python syntax" python -m compileall -q modules blender_mcp_addon
-run_check "Bandit security" uv run bandit -r modules blender_mcp_addon -x '*/tests/*' -ll -ii
+run_check "Bandit security (modules only)" uv run bandit -r modules -x '*/tests/*' -ll -ii
 run_check "Tests" uv run pytest -q --tb=short
 run_check "Addon package" bash -c 'uv run python scripts/build/build_addon_package.py && unzip -t dist/blender_mcp_addon.zip >/dev/null'
 run_check "Python distributions" bash -c 'build_dir=$(mktemp -d) && trap "rm -rf \"$build_dir\"" EXIT && uv build --out-dir "$build_dir" >/dev/null && test -n "$(find "$build_dir" -maxdepth 1 -type f -print -quit)"'

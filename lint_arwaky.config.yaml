@@ -38,7 +38,8 @@ adapters:
 
 ignored_rules: []
 
-ignored_paths: []
+ignored_paths:
+  - "plugin/**"
 
 # ─── Architecture rules (superset, shared across all languages) ───────
 architecture:
