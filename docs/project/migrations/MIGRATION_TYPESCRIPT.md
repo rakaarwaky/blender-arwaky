@@ -3,8 +3,8 @@
 > Skill-driven migration workflow for TypeScript/JavaScript projects to AES
 > architecture. Each phase delegates to a dedicated skill in `.agents/skills/`.
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for layer rules and
-[README.md](../README.md) for project usage.
+See [ARCHITECTURE.md](../../../ARCHITECTURE.md) for layer rules and
+[README.md](../../../README.md) for project usage.
 
 ---
 
@@ -760,15 +760,15 @@ Surface layer files with JSX (`.tsx`) are fully supported. The tree-sitter
 parser handles JSX syntax natively. AES naming and import rules apply
 identically to `.ts` and `.tsx` files.
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) §12 for the full violation code reference.
+See [ARCHITECTURE.md](../../../ARCHITECTURE.md) §12 for the full violation code reference.
 
 ---
 
 ## Reference
 
-- Architecture: [ARCHITECTURE.md](../ARCHITECTURE.md)
-- CLI Reference: [README.md](../README.md)
-- PRD: [PRD.md](../PRD.md)
-- Test Plan: [TEST_PLAN.md](../TEST.md)
+- Architecture: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
+- CLI Reference: [README.md](../../../README.md)
+- PRD: [PRD.md](../../../PRD.md)
+- Test Plan: [TEST_PLAN.md](../../../TEST.md)
 - Rust Migration Guide: [MIGRATION_RUST.md](MIGRATION_RUST.md)
-- Python Migration Guide: [MIGRATION_PYTHON.md](../MIGRATION_PYTHON.md)
+- Python Migration Guide: [MIGRATION_PYTHON.md](../../../MIGRATION_PYTHON.md)

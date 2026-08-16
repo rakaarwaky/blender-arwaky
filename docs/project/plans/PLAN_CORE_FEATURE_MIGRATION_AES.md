@@ -32,7 +32,7 @@ External asset providers, generative model APIs, VRM/VRChat integrations, Gaussi
 | Public README, API behavior, or demo | May be used as a behavior reference. Reimplement behavior through Arwaky contracts instead of assuming source-level compatibility. |
 | External dependencies/assets | Must be reviewed independently. A competitor's repository license does not automatically cover its dependencies, model providers, assets, or service terms. |
 
-The source refresh report records exact upstream commit SHAs and license findings in [`COMPETITOR_SOURCE_REFRESH.md`](COMPETITOR_SOURCE_REFRESH.md).
+The source refresh report records exact upstream commit SHAs and license findings in [COMPETITOR_SOURCE_REFRESH.md](../research/COMPETITOR_SOURCE_REFRESH.md).
 
 ## AES migration architecture
 

@@ -39,7 +39,7 @@ The module plans preserve the existing findings rather than duplicating them. Th
 |---|---|---|
 | 🟡 WARNING | `.agents/rules/README.md` is required by the workflow but absent. | Add a canonical index linking all available rule files and specifying which rules apply to each language/layer. |
 
-The detailed proposal is in [`todo-cross-cutting-business-analyst-20260814.md`](../.agents/plans/todo-cross-cutting-business-analyst-20260814.md).
+The detailed proposal is in [`todo-cross-cutting-business-analyst-20260814.md`](../../../.agents/plans/todo-cross-cutting-business-analyst-20260814.md).
 
 ## Deliverables
 
@@ -47,8 +47,8 @@ The 14 module plan files are stored under `.agents/plans/` with the suffix `2026
 
 ## References
 
-- [`ARCHITECTURE.md`](../ARCHITECTURE.md)
-- [`PRD.md`](../PRD.md)
-- [`AES rules`](../.agents/rules/RULES_AES.md)
-- [`Skills index`](../.agents/skills/README.md)
-- [`Feature plans`](../.agents/plans/)
+- [`ARCHITECTURE.md`](../../../ARCHITECTURE.md)
+- [`PRD.md`](../../../PRD.md)
+- [`AES rules`](../../../.agents/rules/RULES_AES.md)
+- [`Skills index`](../../../.agents/skills/README.md)
+- [`Feature plans`](../../../.agents/plans/)

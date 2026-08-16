@@ -96,6 +96,6 @@ Action item dianggap selesai hanya jika perubahan memiliki test atau bukti accep
 
 - [`PLAN_REVALIDATION_ALL_FEATURE_MODULES_20260814.md`](PLAN_REVALIDATION_ALL_FEATURE_MODULES_20260814.md)
 - [`PLAN_REVALIDATION_EVIDENCE_20260814.md`](PLAN_REVALIDATION_EVIDENCE_20260814.md)
-- [`ARCHITECTURE.md`](../ARCHITECTURE.md)
-- [`PRD.md`](../PRD.md)
-- [`Revalidated plans`](../.agents/plans/)
+- [`ARCHITECTURE.md`](../../../ARCHITECTURE.md)
+- [`PRD.md`](../../../PRD.md)
+- [`Revalidated plans`](../../../.agents/plans/)

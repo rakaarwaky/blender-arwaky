@@ -3,8 +3,8 @@
 > Skill-driven migration workflow for Rust projects to AES architecture.
 > Each phase delegates to a dedicated skill in `.agents/skills/`.
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for layer rules and
-[README.md](../README.md) for project usage.
+See [ARCHITECTURE.md](../../../ARCHITECTURE.md) for layer rules and
+[README.md](../../../README.md) for project usage.
 
 ---
 
@@ -38,8 +38,8 @@ AES uses **dependency injection** as the inter
 > Skill-driven migration workflow for Rust projects to AES architecture.
 > Each phase delegates to a dedicated skill in `.agents/skills/`.
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) for layer rules and
-[README.md](../README.md) for project usage.
+See [ARCHITECTURE.md](../../../ARCHITECTURE.md) for layer rules and
+[README.md](../../../README.md) for project usage.
 
 ---
 
@@ -704,13 +704,13 @@ error that prevents AST parsing. Fix the syntax error first, then re-scan.
 If no config file is found, lint-arwaky uses embedded defaults. Run
 `lint-arwaky-cli init` to create an explicit config file.
 
-See [ARCHITECTURE.md](../ARCHITECTURE.md) §12 for the full violation code reference.
+See [ARCHITECTURE.md](../../../ARCHITECTURE.md) §12 for the full violation code reference.
 
 ---
 
 ## Reference
 
-- Architecture: [ARCHITECTURE.md](../ARCHITECTURE.md)
-- CLI Reference: [README.md](../README.md)
-- PRD: [PRD.md](../PRD.md)
-- Test Plan: [TEST_PLAN.md](../TEST.md)
+- Architecture: [ARCHITECTURE.md](../../../ARCHITECTURE.md)
+- CLI Reference: [README.md](../../../README.md)
+- PRD: [PRD.md](../../../PRD.md)
+- Test Plan: [TEST_PLAN.md](../../../TEST.md)
