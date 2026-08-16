@@ -114,6 +114,7 @@ class PluginPackageRequestVO:
     repository_id: PluginMessage = PluginMessage("user_default")
     extension_id: PluginId | None = None
     enable: bool = True
+    asset_pack: bool = False
 
 
 @dataclass(frozen=True)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,15 @@ class Mpfb2RandomizeCharacterRequest:
 
     name: str = "MPFB_RandomHuman"
     seed: int = 0
+
+
+@dataclass(frozen=True)
+class Mpfb2AssetPackRequest:
+    """Canonical parameters for installing one approved MPFB2 asset pack."""
+
+    asset_pack_id: str = "makehuman_system_assets"
+    cache_path: str = ""
+    sha256: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,6 +68,32 @@ def map_randomize_character(request: Mpfb2RandomizeCharacterRequest) -> dict[str
             "seed": request.seed,
         },
     }
+
+
+def map_install_mpfb_asset_pack(request: Mpfb2AssetPackRequest) -> dict[str, object]:
+    """Map one verified asset pack to the bounded Blender provider handler."""
+    if request.asset_pack_id != "makehuman_system_assets":
+        raise ValueError("only makehuman_system_assets is currently mapped")
+    cache_path = Path(request.cache_path).expanduser()
+    if not cache_path.is_absolute():
+        raise ValueError("cache_path must be absolute")
+    digest = request.sha256.lower().strip()
+    if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+        raise ValueError("sha256 must be a 64-character hexadecimal digest")
+    return {
+        "type": "install_mpfb_asset_pack",
+        "params": {
+            "plugin_id": "mpfb2",
+            "asset_pack_id": request.asset_pack_id,
+            "cache_path": str(cache_path),
+            "sha256": digest,
+        },
+    }
+
+
+def map_inspect_mpfb_assets() -> dict[str, object]:
+    """Map asset readiness inspection to the bounded Blender provider handler."""
+    return {"type": "inspect_mpfb_assets", "params": {"plugin_id": "mpfb2"}}
 
 
 def map_remove_character(request: Mpfb2RemoveCharacterRequest) -> dict[str, object]:

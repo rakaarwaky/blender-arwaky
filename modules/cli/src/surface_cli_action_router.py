@@ -57,7 +57,13 @@ class CliActionRouter:
         "download_asset",
         "extract_asset",
     }
-    _PLUGIN_PROVIDER_ACTIONS = {"create_character", "randomize_character", "remove_character"}
+    _PLUGIN_PROVIDER_ACTIONS = {
+        "create_character",
+        "randomize_character",
+        "remove_character",
+        "install_mpfb_asset_pack",
+        "inspect_mpfb_assets",
+    }
     _PLUGIN_ACTIONS = {
         "list_plugins",
         "download_plugin",
@@ -66,6 +72,8 @@ class CliActionRouter:
         "enable_plugin",
         "disable_plugin",
         "remove_plugin",
+        "download_mpfb_asset_pack",
+        "verify_mpfb_asset_pack",
     }
     _LAUNCHER_ACTIONS = {
         "launch_blender",
@@ -154,10 +162,13 @@ class CliActionRouter:
     def _execute_plugin_provider(self, action_name: str, params: dict[str, object]) -> dict[str, object]:
         """Route explicitly mapped provider operations through the Blender bridge."""
         from plugin.mpfb2.plugin_operations import (
+            Mpfb2AssetPackRequest,
             Mpfb2CreateCharacterRequest,
             Mpfb2RandomizeCharacterRequest,
             Mpfb2RemoveCharacterRequest,
             map_create_character,
+            map_inspect_mpfb_assets,
+            map_install_mpfb_asset_pack,
             map_randomize_character,
             map_remove_character,
         )
@@ -165,7 +176,17 @@ class CliActionRouter:
         plugin_id = str(params.get("plugin_id", "mpfb2")).strip()
         if plugin_id != "mpfb2":
             raise ValueError(f"{action_name} is mapped only to provider mpfb2")
-        if action_name == "create_character":
+        if action_name == "install_mpfb_asset_pack":
+            command = map_install_mpfb_asset_pack(
+                Mpfb2AssetPackRequest(
+                    asset_pack_id=str(params.get("asset_pack_id", "makehuman_system_assets")),
+                    cache_path=str(params.get("cache_path", "")),
+                    sha256=str(params.get("sha256", "")),
+                )
+            )
+        elif action_name == "inspect_mpfb_assets":
+            command = map_inspect_mpfb_assets()
+        elif action_name == "create_character":
             command = map_create_character(Mpfb2CreateCharacterRequest(name=str(params.get("name", "MPFB_Human"))))
         elif action_name == "randomize_character":
             command = map_randomize_character(
@@ -199,8 +220,9 @@ class CliActionRouter:
                 "plugins": [asdict(item) for item in aggregate.health_check()],
                 "capabilities": [str(item) for item in aggregate.capabilities()],
             }
+        is_asset_pack = action_name in {"download_mpfb_asset_pack", "verify_mpfb_asset_pack"}
         request = PluginPackageRequestVO(
-            plugin_id=PluginId(str(params.get("plugin_id", "")).strip()),
+            plugin_id=PluginId(str(params.get("plugin_id", params.get("asset_pack_id", ""))).strip()),
             source_url=PluginSourceUrl(str(params.get("source_url", "")).strip()),
             sha256=PluginSha256(str(params.get("sha256", "")).strip()),
             cache_path=PluginCachePath(str(params.get("cache_path", "")).strip()),
@@ -211,6 +233,7 @@ class CliActionRouter:
             repository_id=PluginMessage(str(params.get("repository_id", "user_default")).strip()),
             extension_id=PluginId(str(params.get("extension_id", "")).strip()) if params.get("extension_id") else None,
             enable=bool(params.get("enable", True)),
+            asset_pack=is_asset_pack,
         )
         result = self._plugin.package().execute(PluginActionName(action_name), request)
         return asdict(result)

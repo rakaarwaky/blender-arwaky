@@ -3,6 +3,37 @@
 from __future__ import annotations
 
 PLUGIN_ACTION_SCHEMAS: dict[str, dict[str, object]] = {
+    "download_mpfb_asset_pack": {
+        "description": "Download an official MPFB2 asset pack to a verified local cache",
+        "parameters": {
+            "asset_pack_id": {"type": "string", "required": True},
+            "source_url": {"type": "string", "required": True},
+            "sha256": {"type": "string", "required": True},
+            "cache_path": {"type": "string", "required": True},
+        },
+    },
+    "verify_mpfb_asset_pack": {
+        "description": "Verify an MPFB2 asset pack checksum and archive structure",
+        "parameters": {
+            "asset_pack_id": {"type": "string", "required": True},
+            "sha256": {"type": "string", "required": True},
+            "cache_path": {"type": "string", "required": True},
+        },
+    },
+    "install_mpfb_asset_pack": {
+        "description": "Install a verified MPFB2 asset pack through the Blender provider boundary",
+        "parameters": {
+            "asset_pack_id": {"type": "string", "required": True},
+            "sha256": {"type": "string", "required": True},
+            "cache_path": {"type": "string", "required": True},
+        },
+    },
+    "inspect_mpfb_assets": {
+        "description": "Inspect MPFB2 installed asset packs and minimum system asset readiness",
+        "parameters": {
+            "plugin_id": {"type": "string", "required": False, "default": "mpfb2"},
+        },
+    },
     "randomize_character": {
         "description": "Create one deterministic or newly seeded random MPFB2 human character",
         "parameters": {

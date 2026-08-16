@@ -170,6 +170,10 @@ The CLI exposes every canonical action exactly once using kebab-case. MCP keeps 
 | `create-character` | `--plugin-id` (default `mpfb2`), `--name` (default `MPFB_Human`) | `create_character` | `plugin` |
 | `randomize-character` | `--plugin-id` (default `mpfb2`), `--name` (default `MPFB_RandomHuman`), `--seed` (integer, default `0`) | `randomize_character` | `plugin` |
 | `remove-character` | `--plugin-id` (default `mpfb2`), `--object-name` **required**, `--confirm` | `remove_character` | `plugin` |
+| `download-mpfb-asset-pack` | `--asset-pack-id` **required**, `--source-url` **required**, `--sha256` **required**, `--cache-path` **required** | `download_mpfb_asset_pack` | `plugin` |
+| `verify-mpfb-asset-pack` | `--asset-pack-id` **required**, `--sha256` **required**, `--cache-path` **required** | `verify_mpfb_asset_pack` | `plugin` |
+| `install-mpfb-asset-pack` | `--asset-pack-id` **required**, `--sha256` **required**, `--cache-path` **required** | `install_mpfb_asset_pack` | `plugin` |
+| `inspect-mpfb-assets` | `--plugin-id` (default `mpfb2`) | `inspect_mpfb_assets` | `plugin` |
 | `list-plugins` | — | `list_plugins` | `plugin` |
 | `download-plugin` | `--plugin-id` **required**, `--source-url` **required**, `--sha256` **required**, `--cache-path` **required** | `download_plugin` | `plugin` |
 | `verify-plugin` | `--plugin-id` **required**, `--sha256` **required**, `--cache-path` **required** | `verify_plugin` | `plugin` |
@@ -191,7 +195,7 @@ Action parameters are typed from the same schema consumed by MCP `list_commands`
 ## Error Categories
 
 - **Owned**: validation error (surface-level arg problems), configuration error (settings unavailable), blocked (contract not executable), unsupported (runtime mode/capability unavailable)
-- Plugin package actions delegate HTTPS, digest, archive, filesystem safety, and Blender 5.2 Extension System lifecycle decisions to the plugin aggregate; CLI only validates flag shape and renders the normalized result. Provider operations such as `create-character` are separately mapped to explicit provider wire actions and never accept arbitrary Python source.
+- Plugin package and MPFB2 asset-pack actions delegate HTTPS, digest, archive, filesystem safety, and Blender 5.2 lifecycle decisions to the plugin aggregate/provider boundary; CLI only validates flag shape and renders the normalized result. Provider operations such as `create-character`, `install-mpfb-asset-pack`, and `inspect-mpfb-assets` are separately mapped to explicit wire actions and never accept arbitrary Python source.
 - **Displayed but unowned**: not_found, capacity, timeout, security_violation, connection, state, task — pass through from owning features with CLI remediation hints attached (hints carry no logic authority)
 - `not_found` must never be used for a known-but-blocked or known-but-unsupported command.
 

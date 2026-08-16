@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import logging
@@ -248,6 +249,8 @@ class BlenderMCPServer:
             "create_character": self.create_character,
             "randomize_character": self.randomize_character,
             "remove_character": self.remove_character,
+            "install_mpfb_asset_pack": self.install_mpfb_asset_pack,
+            "inspect_mpfb_assets": self.inspect_mpfb_assets,
             "remove_sequence_strip": self.remove_sequence_strip,
             "render_sequence": self.render_sequence,
             "get_physics_state": self.get_physics_state,
@@ -1272,16 +1275,17 @@ class BlenderMCPServer:
         character_name = str(name).strip() or "MPFB_Human"
         if len(character_name) > 64 or any(char in character_name for char in "\r\n\x00"):
             raise ValueError("character name must be 1-64 characters without control characters")
-        mpfb_namespace = getattr(bpy.ops, "mpfb", None)
-        create_human = getattr(mpfb_namespace, "create_human", None)
-        if create_human is None:
-            raise RuntimeError("MPFB2 is not installed or enabled in Blender")
-        result = create_human()
-        if "FINISHED" not in result:
-            raise RuntimeError(f"MPFB2 create_human failed: {result}")
-        character = bpy.context.view_layer.objects.active
+        try:
+            from bl_ext.user_default.mpfb.services.humanservice import HumanService
+        except ImportError as error:
+            raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
+        objects_before = set(bpy.data.objects)
+        character = HumanService.create_human()
         if character is None:
-            raise RuntimeError("MPFB2 create_human completed without an active character")
+            active = bpy.context.view_layer.objects.active
+            character = active if active not in objects_before else None
+        if character is None:
+            raise RuntimeError("MPFB2 create_human completed without a new character")
         if character_name not in bpy.data.objects or bpy.data.objects.get(character_name) is character:
             character.name = character_name
         return {
@@ -1361,6 +1365,79 @@ class BlenderMCPServer:
             "plugin_id": "mpfb2",
             "operation": "character.remove",
             "removed_objects": removed_names,
+            "blender_version": bpy.app.version_string,
+        }
+
+    def install_mpfb_asset_pack(
+        self,
+        plugin_id="mpfb2",
+        asset_pack_id="makehuman_system_assets",
+        cache_path="",
+        sha256="",
+    ):
+        """Install one verified MPFB2 asset pack through the public AssetService API."""
+        if str(plugin_id).strip() != "mpfb2":
+            raise ValueError("install_mpfb_asset_pack is mapped only to provider mpfb2")
+        pack_id = str(asset_pack_id).strip()
+        if pack_id != "makehuman_system_assets":
+            raise ValueError("only the official makehuman_system_assets pack is currently mapped")
+        archive_path = Path(str(cache_path)).expanduser()
+        if not archive_path.is_absolute() or not archive_path.is_file():
+            raise ValueError("cache_path must be an existing absolute asset pack archive")
+        expected = str(sha256).lower().strip()
+        if len(expected) != 64 or any(character not in "0123456789abcdef" for character in expected):
+            raise ValueError("sha256 must be a 64-character hexadecimal digest")
+        digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+        if digest != expected:
+            raise ValueError("asset pack checksum mismatch")
+        try:
+            from bl_ext.user_default.mpfb.services.assetservice import AssetService
+            from bl_ext.user_default.mpfb.services.locationservice import LocationService
+        except ImportError as error:
+            raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
+        archive_error = AssetService.check_asset_pack_zip(str(archive_path))
+        if archive_error not in {None, "MACOS", "STRUCTURE"}:
+            raise ValueError(f"invalid MPFB2 asset pack: {archive_error}")
+        user_data = Path(LocationService.get_user_data()).expanduser()
+        if not user_data.is_absolute():
+            raise RuntimeError("MPFB2 user data path must be absolute")
+        user_data.mkdir(parents=True, exist_ok=True)
+        extraction_error = AssetService.fix_and_extract_asset_pack_zip(str(archive_path), str(user_data))
+        if extraction_error:
+            raise RuntimeError(f"MPFB2 asset pack installation failed: {extraction_error}")
+        AssetService.rescan_pack_metadata()
+        if not AssetService.system_assets_pack_is_installed():
+            raise RuntimeError("MPFB2 asset pack installed but system pack metadata was not detected")
+        return {
+            "changed": True,
+            "plugin_id": "mpfb2",
+            "operation": "asset_pack.install",
+            "asset_pack_id": pack_id,
+            "user_data_path": str(user_data.resolve()),
+            "pack_names": sorted(AssetService.get_pack_names()),
+            "blender_version": bpy.app.version_string,
+        }
+
+    def inspect_mpfb_assets(self, plugin_id="mpfb2"):
+        """Inspect MPFB2 asset pack metadata and minimum system pack readiness."""
+        if str(plugin_id).strip() != "mpfb2":
+            raise ValueError("inspect_mpfb_assets is mapped only to provider mpfb2")
+        try:
+            from bl_ext.user_default.mpfb.services.assetservice import AssetService
+            from bl_ext.user_default.mpfb.services.locationservice import LocationService
+        except ImportError as error:
+            raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
+        pack_names = sorted(AssetService.get_pack_names())
+        asset_counts = {
+            name: len(AssetService.get_asset_names_in_pack(name)) for name in pack_names
+        }
+        return {
+            "plugin_id": "mpfb2",
+            "operation": "asset_pack.inspect",
+            "system_assets_installed": AssetService.system_assets_pack_is_installed(),
+            "pack_names": pack_names,
+            "asset_counts": asset_counts,
+            "user_data_path": str(Path(LocationService.get_user_data()).expanduser().resolve()),
             "blender_version": bpy.app.version_string,
         }
 

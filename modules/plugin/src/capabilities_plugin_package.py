@@ -26,10 +26,12 @@ from .taxonomy_plugin_vo import (
 class PluginPackageCapability(PluginPackageProtocol):
     """Download, verify, install, and control explicit Blender plugin packages."""
 
-    _MAX_PACKAGE_BYTES = 100 * 1024 * 1024
+    _MAX_PACKAGE_BYTES = 512 * 1024 * 1024
     _ACTIONS = {
         "download_plugin",
         "verify_plugin",
+        "download_mpfb_asset_pack",
+        "verify_mpfb_asset_pack",
         "install_plugin",
         "enable_plugin",
         "disable_plugin",
@@ -46,10 +48,10 @@ class PluginPackageCapability(PluginPackageProtocol):
         if action_name not in self._ACTIONS:
             return self._result(request, action, False, "unsupported")
         try:
-            if action_name == "download_plugin":
+            if action_name in {"download_plugin", "download_mpfb_asset_pack"}:
                 self._download(request)
                 return self._result(request, action, True, "downloaded")
-            if action_name == "verify_plugin":
+            if action_name in {"verify_plugin", "verify_mpfb_asset_pack"}:
                 self._verify(request)
                 return self._result(request, action, True, "verified")
             if action_name == "install_plugin":
@@ -98,7 +100,10 @@ class PluginPackageCapability(PluginPackageProtocol):
         if hashlib.sha256(package.read_bytes()).hexdigest() != expected:
             raise ValueError("plugin package checksum mismatch")
         with zipfile.ZipFile(package) as archive:
-            self._validate_archive(archive)
+            if request.asset_pack:
+                self._validate_asset_archive(archive)
+            else:
+                self._validate_archive(archive)
 
     def _install(self, request: PluginPackageRequestVO) -> None:
         """Install through Blender when an executable is supplied, otherwise extract legacy ZIP."""
@@ -191,6 +196,22 @@ class PluginPackageCapability(PluginPackageProtocol):
         if completed.returncode != 0:
             detail = (completed.stderr or completed.stdout).strip()[-1000:]
             raise RuntimeError(detail or "Blender plugin command failed")
+
+    @staticmethod
+    def _validate_asset_archive(archive: zipfile.ZipFile) -> None:
+        """Validate a MakeHuman/MPFB asset archive without extracting it."""
+        names = archive.namelist()
+        if not names or not any(name.startswith("packs/") or "/packs/" in name for name in names):
+            raise ValueError("asset pack archive must contain a packs directory")
+        for member in archive.infolist():
+            path = PurePosixPath(member.filename)
+            if path.is_absolute() or ".." in path.parts:
+                raise ValueError("asset pack archive contains unsafe traversal")
+            if member.is_dir():
+                continue
+            unix_mode = (member.external_attr >> 16) & 0o170000
+            if unix_mode == 0o120000:
+                raise ValueError("asset pack archive contains a symlink")
 
     @staticmethod
     def _validate_archive(archive: zipfile.ZipFile) -> None:
