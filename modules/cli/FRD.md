@@ -88,7 +88,7 @@ Present failures as categorized, actionable guidance. Never display secrets.
 
 ## Command Mapping
 
-The CLI exposes every canonical action exactly once using kebab-case. MCP keeps the same action names in snake_case. Both surfaces are generated from the shared dispatcher catalog; no duplicate fallback or shortcut alias is part of the public surface.
+The CLI exposes a three-tier hierarchical surface generated from the shared dispatcher catalog. Tier one lists modules, tier two lists tools owned by one module, and tier three describes one tool. MCP keeps canonical action names in snake_case. The explicit `action` namespace preserves direct canonical action execution for compatibility; module/tool paths are the primary consumer-facing surface.
 
 | CLI command | Parameters | MCP action | Owner |
 |---|---|---|---|
@@ -186,13 +186,24 @@ The CLI exposes every canonical action exactly once using kebab-case. MCP keeps 
 
 Every command supports `--help`, `--json`, `--quiet`, `--verbose`, `--color`, `--no-progress`, and `--confirm`. The `--confirm` flag is enforced by the action contract for destructive operations.
 
-The command form is:
+The primary command forms are:
 
 ```text
-blender-arwaky <action-name> [typed flags]
+blender-arwaky --help
+blender-arwaky <module> --help
+blender-arwaky <module> <tool> --help
+blender-arwaky <module> <tool> [typed flags]
 ```
 
-Action parameters are typed from the same schema consumed by MCP `list_commands`; CLI uses kebab-case flags while MCP uses snake_case object keys.
+The compatibility form is:
+
+```text
+blender-arwaky action <action-name> [typed flags]
+```
+
+Module names are converted from canonical snake_case to kebab-case. Action parameters are typed from the same schema consumed by MCP `list_commands`; CLI uses kebab-case flags while MCP uses snake_case object keys. A tool name that collides with a module name must be invoked through `action <action-name>` to keep resolution deterministic.
+
+Plugin providers are eligible to appear as dynamic modules only when their lifecycle state is `enabled` (installed, active, and compatible). Providers in `unavailable`, `installed`, or `incompatible` states do not contribute modules or tools to active discovery. Core modules remain available when any plugin is absent or fails health checks.
 
 ## Error Categories
 

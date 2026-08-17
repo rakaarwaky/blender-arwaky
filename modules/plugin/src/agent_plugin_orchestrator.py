@@ -33,8 +33,29 @@ class PluginAgentOrchestrator(PluginAggregate):
         )
 
     def capabilities(self) -> PluginCapabilityList:
-        """Return capability identifiers through the registry contract."""
+        """Return all registered capability identifiers for internal diagnostics."""
         return self._registry.list_capabilities()
+
+    def enabled_plugin_ids(self) -> PluginIdList:
+        """Return only providers that are installed, active, and compatible."""
+        return PluginIdList(
+            tuple(
+                health.plugin_id
+                for health in self.health_check()
+                if health.installed and health.active and health.compatible
+            )
+        )
+
+    def enabled_capabilities(self) -> PluginCapabilityList:
+        """Return only capabilities owned by enabled providers."""
+        enabled = set(self.enabled_plugin_ids())
+        capability_ids: list[PluginCapabilityId] = []
+        for capability_id in self._registry.list_capabilities():
+            operation = self._registry.resolve(capability_id)
+            provider_id = self._registry.resolve_provider_id(operation) if operation is not None else None
+            if provider_id in enabled:
+                capability_ids.append(capability_id)
+        return PluginCapabilityList(tuple(sorted(capability_ids, key=str)))
 
     def health_check(self) -> tuple[PluginHealthVO, ...]:
         """Return provider health through the registry contract."""

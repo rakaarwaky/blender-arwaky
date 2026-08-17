@@ -154,8 +154,65 @@ def _schema_arg_options(name: str, spec: dict[str, object]) -> dict[str, object]
     return options
 
 
+def _add_action_parser(
+    parent: argparse.ArgumentParser,
+    action_name: str,
+    schema: dict[str, object],
+    owner: str,
+) -> None:
+    """Add one canonical action parser to a flat or module-scoped parent."""
+    description = str(schema.get("description", action_name.replace("_", " ")))
+    command_parser = parent.add_parser(
+        _snake_to_kebab(action_name),
+        help=f"[{owner}] {description}",
+        description=f"[{owner}] {description}",
+    )
+    parameters = schema.get("parameters", {})
+    if "filepath" not in parameters:
+        command_parser.add_argument(
+            "--filepath",
+            help="Path to the active .blend file or runtime session",
+            default=argparse.SUPPRESS,
+        )
+    for parameter_name, parameter_spec in parameters.items():
+        command_parser.add_argument(
+            f"--{_snake_to_kebab(parameter_name)}",
+            **_schema_arg_options(parameter_name, parameter_spec),
+        )
+    command_parser.set_defaults(
+        action_name=action_name,
+        action_availability="executable",
+        parameter_fields=list(parameters.keys()),
+        module_owner=owner,
+    )
+    _add_common_flags(command_parser)
+    _example(command_parser, f"blender-arwaky {owner} {_snake_to_kebab(action_name)} --help")
+
+
+def _add_module_parser(
+    parent: argparse.ArgumentParser,
+    owner: str,
+    actions: dict[str, dict[str, object]],
+) -> None:
+    """Add a scoped module parser whose help only exposes its own actions."""
+    module_parser = parent.add_parser(
+        _snake_to_kebab(owner),
+        help=f"{owner} module",
+        description=f"{owner} module — scoped canonical tools",
+    )
+    module_subparsers = module_parser.add_subparsers(
+        dest="module_tool",
+        title=f"{owner} tools",
+        metavar="TOOL",
+        required=True,
+    )
+    for action_name, schema in actions.items():
+        _add_action_parser(module_subparsers, action_name, schema, owner)
+    _add_common_flags(module_parser)
+
+
 def _build_parser() -> CliArgumentParser:
-    """Build one CLI command for every canonical dispatcher action."""
+    """Build legacy flat actions and scoped module/tool actions."""
     from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
 
     parser = CliArgumentParser(
@@ -175,36 +232,58 @@ def _build_parser() -> CliArgumentParser:
     parser.add_argument("--color", choices=["auto", "always", "never"], default="auto", help="Color policy")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress hints")
     parser.add_argument("--confirm", action="store_true", help="Confirm destructive action")
-    subparsers = parser.add_subparsers(dest="command", title="canonical actions", metavar="ACTION", required=True)
+    subparsers = parser.add_subparsers(
+        dest="command", title="modules or compatibility commands", metavar="COMMAND", required=True
+    )
 
     for owner, actions in DISPATCHER_ACTION_SCHEMAS.items():
+        _add_module_parser(subparsers, owner, actions)
+
+    compatibility_parser = subparsers.add_parser(
+        "action",
+        help="Compatibility namespace for direct canonical action execution",
+        description="Compatibility namespace for direct canonical action execution",
+    )
+    compatibility_subparsers = compatibility_parser.add_subparsers(
+        dest="compatibility_action",
+        title="canonical actions",
+        metavar="ACTION",
+        required=True,
+    )
+    for owner, actions in DISPATCHER_ACTION_SCHEMAS.items():
         for action_name, schema in actions.items():
-            description = str(schema.get("description", action_name.replace("_", " ")))
-            command_parser = subparsers.add_parser(
-                _snake_to_kebab(action_name),
-                help=f"[{owner}] {description}",
-                description=f"[{owner}] {description}",
-            )
-            parameters = schema.get("parameters", {})
-            if "filepath" not in parameters:
-                command_parser.add_argument(
-                    "--filepath",
-                    help="Path to the active .blend file or runtime session",
-                    default=argparse.SUPPRESS,
-                )
-            for parameter_name, parameter_spec in parameters.items():
-                command_parser.add_argument(
-                    f"--{_snake_to_kebab(parameter_name)}",
-                    **_schema_arg_options(parameter_name, parameter_spec),
-                )
-            command_parser.set_defaults(
-                action_name=action_name,
-                action_availability="executable",
-                parameter_fields=list(parameters.keys()),
-            )
-            _add_common_flags(command_parser)
-            _example(command_parser, f"blender-arwaky {_snake_to_kebab(action_name)} --help")
+            _add_action_parser(compatibility_subparsers, action_name, schema, owner)
+    _add_common_flags(compatibility_parser)
     return parser
+
+
+def _normalize_legacy_argv(argv: list[str] | None) -> list[str] | None:
+    """Rewrite unambiguous legacy flat actions into the explicit action namespace."""
+    if argv is None:
+        return None
+    from modules.shared.src.dispatcher.taxonomy_dispatcher_constant import DISPATCHER_ACTION_SCHEMAS
+
+    actions = {
+        _snake_to_kebab(action_name)
+        for owner_actions in DISPATCHER_ACTION_SCHEMAS.values()
+        for action_name in owner_actions
+    }
+    modules = {_snake_to_kebab(owner) for owner in DISPATCHER_ACTION_SCHEMAS}
+    normalized = list(argv)
+    value_flags = {"--color"}
+    index = 0
+    while index < len(normalized):
+        token = normalized[index]
+        if token in value_flags:
+            index += 2
+            continue
+        if token.startswith("--"):
+            index += 1
+            continue
+        if token in actions and token not in modules:
+            normalized[index : index + 1] = ["action", token]
+        break
+    return normalized
 
 
 def _collect_params(args: argparse.Namespace) -> dict[str, object]:
@@ -253,7 +332,7 @@ def _render_result(result: dict[str, object], args: argparse.Namespace) -> None:
 
 def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_normalize_legacy_argv(argv))
     if not args.command:
         parser.print_help()
         return EXIT_VALIDATION
