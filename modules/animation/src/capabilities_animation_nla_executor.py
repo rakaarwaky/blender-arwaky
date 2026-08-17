@@ -82,7 +82,8 @@ class AnimationNlaExecutor(IWaveFeatureProtocol):
     ) -> NlaTrackVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -96,9 +97,11 @@ if track is None:
 track.is_solo = __IS_SOLO__
 track.mute = __IS_MUTED__
 result = {"armature_name": obj.name, "track_name": track.name, "strip_count": len(track.strips), "is_solo": bool(track.is_solo), "is_muted": bool(track.mute), "changed": changed}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace(
-            "__IS_SOLO__", str(bool(is_solo))
-        ).replace("__IS_MUTED__", str(bool(is_muted)))
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__IS_SOLO__", str(bool(is_solo)))
+            .replace("__IS_MUTED__", str(bool(is_muted)))
+        )
         result = await self._execute(code)
         return NlaTrackVO(
             armature_name=str(result.get("armature_name", armature_name)),
@@ -139,7 +142,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_count": le
             raise ValueError("unsupported NLA blend_type")
         if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
             raise ValueError("unsupported NLA extrapolation")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -163,15 +167,30 @@ strip.blend_type = __BLEND_TYPE__
 strip.extrapolation = __EXTRAPOLATION__
 strip.use_reverse = __REVERSED__
 result = {"armature_name": obj.name, "track_name": track.name, "strip_name": strip.name, "action_name": strip.action.name, "frame_start": float(strip.frame_start), "frame_end": float(strip.frame_end), "scale": float(strip.scale), "repeat": float(strip.repeat), "blend_in": float(strip.blend_in), "blend_out": float(strip.blend_out), "influence": float(strip.influence), "blend_type": strip.blend_type, "extrapolation": strip.extrapolation, "reversed": bool(strip.use_reverse), "changed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace(
-            "__ACTION_NAME__", json.dumps(action_name)
-        ).replace("__STRIP_NAME__", json.dumps(strip_name)).replace("__FRAME_START__", str(frame_start)).replace("__SCALE__", str(scale)).replace(
-            "__REPEAT__", str(repeat)
-        ).replace("__BLEND_IN__", str(blend_in)).replace("__BLEND_OUT__", str(blend_out)).replace("__INFLUENCE__", str(influence)).replace(
-            "__BLEND_TYPE__", json.dumps(blend_type)
-        ).replace("__EXTRAPOLATION__", json.dumps(extrapolation)).replace("__REVERSED__", str(bool(reversed)))
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__ACTION_NAME__", json.dumps(action_name))
+            .replace("__STRIP_NAME__", json.dumps(strip_name))
+            .replace("__FRAME_START__", str(frame_start))
+            .replace("__SCALE__", str(scale))
+            .replace("__REPEAT__", str(repeat))
+            .replace("__BLEND_IN__", str(blend_in))
+            .replace("__BLEND_OUT__", str(blend_out))
+            .replace("__INFLUENCE__", str(influence))
+            .replace("__BLEND_TYPE__", json.dumps(blend_type))
+            .replace("__EXTRAPOLATION__", json.dumps(extrapolation))
+            .replace("__REVERSED__", str(bool(reversed)))
+        )
         result = await self._execute(code)
-        return self._strip_from_result(result, {"armature_name": armature_name, "track_name": track_name, "strip_name": strip_name, "action_name": action_name})
+        return self._strip_from_result(
+            result,
+            {
+                "armature_name": armature_name,
+                "track_name": track_name,
+                "strip_name": strip_name,
+                "action_name": action_name,
+            },
+        )
 
     async def set_nla_strip(
         self,
@@ -191,12 +210,38 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
         strip_name = self._bounded_name(strip_name, "strip_name")
-        if all(value is None for value in (frame_start, scale, repeat, blend_in, blend_out, influence, blend_type, extrapolation, reversed)):
+        if all(
+            value is None
+            for value in (
+                frame_start,
+                scale,
+                repeat,
+                blend_in,
+                blend_out,
+                influence,
+                blend_type,
+                extrapolation,
+                reversed,
+            )
+        ):
             raise ValueError("at least one NLA strip property must be provided")
         assignments = []
-        for property_name, value in (("frame_start", frame_start), ("scale", scale), ("repeat", repeat), ("blend_in", blend_in), ("blend_out", blend_out), ("influence", influence)):
+        for property_name, value in (
+            ("frame_start", frame_start),
+            ("scale", scale),
+            ("repeat", repeat),
+            ("blend_in", blend_in),
+            ("blend_out", blend_out),
+            ("influence", influence),
+        ):
             if value is not None:
-                minimum, maximum = (0.001, 1000.0) if property_name in {"scale", "repeat"} else (0.0, 1.0) if property_name == "influence" else (0.0, 100000.0)
+                minimum, maximum = (
+                    (0.001, 1000.0)
+                    if property_name in {"scale", "repeat"}
+                    else (0.0, 1.0)
+                    if property_name == "influence"
+                    else (0.0, 100000.0)
+                )
                 if property_name == "frame_start":
                     minimum, maximum = -100000.0, 100000.0
                 number = self._bounded_float(value, property_name, minimum, maximum)
@@ -211,7 +256,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
             assignments.append(f"strip.extrapolation = {json.dumps(extrapolation)}")
         if reversed is not None:
             assignments.append(f"strip.use_reverse = {bool(reversed)}")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -227,14 +273,24 @@ __ASSIGNMENTS__
 if strip.influence < 0.0 or strip.influence > 1.0:
     raise ValueError("influence must be between 0 and 1")
 result = {"armature_name": obj.name, "track_name": track.name, "strip_name": strip.name, "action_name": strip.action.name if strip.action else "", "frame_start": float(strip.frame_start), "frame_end": float(strip.frame_end), "scale": float(strip.scale), "repeat": float(strip.repeat), "blend_in": float(strip.blend_in), "blend_out": float(strip.blend_out), "influence": float(strip.influence), "blend_type": strip.blend_type, "extrapolation": strip.extrapolation, "reversed": bool(strip.use_reverse), "changed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace("__STRIP_NAME__", json.dumps(strip_name)).replace(
-            "__ASSIGNMENTS__", "\n".join(assignments)
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__STRIP_NAME__", json.dumps(strip_name))
+            .replace("__ASSIGNMENTS__", "\n".join(assignments))
         )
         result = await self._execute(code)
-        return self._strip_from_result(result, {"armature_name": armature_name, "track_name": track_name, "strip_name": strip_name})
+        return self._strip_from_result(
+            result, {"armature_name": armature_name, "track_name": track_name, "strip_name": strip_name}
+        )
 
     async def set_animation_layer(
-        self, armature_name: str, track_name: str, blend_type: str | None = None, influence: float | None = None, is_solo: bool | None = None, is_muted: bool | None = None
+        self,
+        armature_name: str,
+        track_name: str,
+        blend_type: str | None = None,
+        influence: float | None = None,
+        is_solo: bool | None = None,
+        is_muted: bool | None = None,
     ) -> NlaLayerVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
@@ -253,7 +309,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
             assignments.append(f"strip.blend_type = {json.dumps(blend_type)}")
         if influence is not None:
             assignments.append(f"strip.influence = {influence}")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -265,10 +322,13 @@ if track is None:
 for strip in track.strips:
     __ASSIGNMENTS__
 result = {"armature_name": obj.name, "track_name": track.name, "blend_type": __BLEND_TYPE__, "influence": __INFLUENCE__, "is_solo": __IS_SOLO__, "is_muted": __IS_MUTED__, "changed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace("__ASSIGNMENTS__", "\n    ".join(assignments)).replace(
-            "__BLEND_TYPE__", json.dumps(blend_type) if blend_type is not None else "None"
-        ).replace("__INFLUENCE__", str(influence) if influence is not None else "None").replace("__IS_SOLO__", str(is_solo) if is_solo is not None else "None").replace(
-            "__IS_MUTED__", str(is_muted) if is_muted is not None else "None"
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__ASSIGNMENTS__", "\n    ".join(assignments))
+            .replace("__BLEND_TYPE__", json.dumps(blend_type) if blend_type is not None else "None")
+            .replace("__INFLUENCE__", str(influence) if influence is not None else "None")
+            .replace("__IS_SOLO__", str(is_solo) if is_solo is not None else "None")
+            .replace("__IS_MUTED__", str(is_muted) if is_muted is not None else "None")
         )
         result = await self._execute(code)
         return NlaLayerVO(
@@ -281,7 +341,9 @@ result = {"armature_name": obj.name, "track_name": track.name, "blend_type": __B
             changed=bool(result.get("changed", True)),
         )
 
-    async def set_animation_mask(self, armature_name: str, track_name: str, strip_name: str, bone_names: list[str]) -> NlaMaskVO:
+    async def set_animation_mask(
+        self, armature_name: str, track_name: str, strip_name: str, bone_names: list[str]
+    ) -> NlaMaskVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
         strip_name = self._bounded_name(strip_name, "strip_name")
@@ -290,7 +352,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "blend_type": __B
         normalized = [self._bounded_name(name, "bone_name") for name in bone_names]
         if any(name.startswith(("DEF-", "MCH-", "ORG-")) for name in normalized):
             raise ValueError("animation masks may only contain Rigify animator controls")
-        code = """
+        code = (
+            """
 import bpy, json
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -309,9 +372,12 @@ metadata = json.loads(obj.get("arwaky_nla_masks", "{}"))
 metadata[__MASK_KEY__] = __BONE_NAMES__
 obj["arwaky_nla_masks"] = json.dumps(metadata, separators=(",", ":"))
 result = {"armature_name": obj.name, "track_name": track.name, "strip_name": strip.name, "bone_names": __BONE_NAMES__, "changed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace("__STRIP_NAME__", json.dumps(strip_name)).replace(
-            "__BONE_NAMES__", json.dumps(normalized)
-        ).replace("__MASK_KEY__", json.dumps(f"{track_name}:{strip_name}"))
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__STRIP_NAME__", json.dumps(strip_name))
+            .replace("__BONE_NAMES__", json.dumps(normalized))
+            .replace("__MASK_KEY__", json.dumps(f"{track_name}:{strip_name}"))
+        )
         result = await self._execute(code)
         return NlaMaskVO(
             armature_name=str(result.get("armature_name", armature_name)),
@@ -325,7 +391,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
         strip_name = self._bounded_name(strip_name, "strip_name")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -339,7 +406,10 @@ if strip is None:
     raise ValueError("NLA strip not found: " + __STRIP_NAME__)
 track.strips.remove(strip)
 result = {"armature_name": obj.name, "track_name": track.name, "strip_name": __STRIP_NAME__, "changed": True, "removed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__TRACK_NAME__", json.dumps(track_name)).replace("__STRIP_NAME__", json.dumps(strip_name))
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__TRACK_NAME__", json.dumps(track_name))
+            .replace("__STRIP_NAME__", json.dumps(strip_name))
+        )
         result = await self._execute(code)
         return NlaMutationVO(
             armature_name=str(result.get("armature_name", armature_name)),
@@ -350,7 +420,14 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": __S
         )
 
     async def bake_nla_assembly(
-        self, armature_name: str, frame_start: int, frame_end: int, step: int = 1, output_action: str = "Wave5_Baked_Action", clear_constraints: bool = False, clear_nla: bool = False
+        self,
+        armature_name: str,
+        frame_start: int,
+        frame_end: int,
+        step: int = 1,
+        output_action: str = "Wave5_Baked_Action",
+        clear_constraints: bool = False,
+        clear_nla: bool = False,
     ) -> NlaBakeVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         frame_start = self._bounded_frame(frame_start)
@@ -359,7 +436,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": __S
         step = int(step)
         if frame_end < frame_start or not 1 <= step <= 100:
             raise ValueError("invalid NLA bake frame range or step")
-        code = """
+        code = (
+            """
 import bpy
 obj = bpy.data.objects.get(__ARMATURE_NAME__)
 if obj is None or obj.type != "ARMATURE":
@@ -386,9 +464,14 @@ if __CLEAR_NLA__:
         obj.animation_data.nla_tracks.remove(track)
 curves = list(baked.fcurves) if hasattr(baked, "fcurves") else [curve for layer in baked.layers for strip in layer.strips for bag in getattr(strip, "channelbags", []) for curve in bag.fcurves]
 result = {"armature_name": obj.name, "output_action": baked.name, "frame_start": __FRAME_START__, "frame_end": __FRAME_END__, "step": __STEP__, "keyframe_count": sum(len(curve.keyframe_points) for curve in curves), "cleared_constraints": __CLEAR_CONSTRAINTS__, "cleared_nla": __CLEAR_NLA__, "changed": True}
-""".replace("__ARMATURE_NAME__", json.dumps(armature_name)).replace("__FRAME_START__", str(frame_start)).replace("__FRAME_END__", str(frame_end)).replace("__STEP__", str(step)).replace(
-            "__OUTPUT_ACTION__", json.dumps(output_action)
-        ).replace("__CLEAR_CONSTRAINTS__", str(bool(clear_constraints))).replace("__CLEAR_NLA__", str(bool(clear_nla)))
+""".replace("__ARMATURE_NAME__", json.dumps(armature_name))
+            .replace("__FRAME_START__", str(frame_start))
+            .replace("__FRAME_END__", str(frame_end))
+            .replace("__STEP__", str(step))
+            .replace("__OUTPUT_ACTION__", json.dumps(output_action))
+            .replace("__CLEAR_CONSTRAINTS__", str(bool(clear_constraints)))
+            .replace("__CLEAR_NLA__", str(bool(clear_nla)))
+        )
         result = await self._execute(code)
         return NlaBakeVO(
             armature_name=str(result.get("armature_name", armature_name)),

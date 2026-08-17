@@ -7,7 +7,6 @@ WAVE1_ANIMATION_ACTIONS = {
     "get_animation_state": ("animation", True),
     "list_object_keyframes": ("animation", True),
     "list_animation_actions": ("animation", True),
-    "inspect_rigify_controls": ("animation", True),
     "import_animation_file": ("animation", False),
     "link_action_to_armature": ("animation", False),
 }

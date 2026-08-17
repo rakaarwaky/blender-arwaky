@@ -24,15 +24,6 @@ armature = next(
 if armature is None:
     raise RuntimeError("Native Rigify control armature was not found in evidence scene")
 
-inspect_response = server.execute_command(
-    {"type": "inspect_rigify_controls", "params": {"armature_name": armature.name, "limit": 1000}}
-)
-if inspect_response.get("status") != "success":
-    raise RuntimeError(f"Rigify control inspection failed: {inspect_response}")
-inspect_result = inspect_response["result"]
-if inspect_result.get("control_count", 0) < 500:
-    raise RuntimeError(f"Rigify control inventory is unexpectedly small: {inspect_result}")
-
 action = bpy.data.actions.get("Wave1_Native_Imported_Action") or bpy.data.actions.new("Wave1_Native_Imported_Action")
 
 link_response = server.execute_command(
@@ -44,9 +35,9 @@ link_response = server.execute_command(
 if link_response.get("status") != "success":
     raise RuntimeError(f"Action linking failed: {link_response}")
 
-pose_bone = armature.pose.bones.get("upper_arm_ik.L")
+pose_bone = next((bone for bone in armature.pose.bones if not bone.bone.use_deform), None)
 if pose_bone is None:
-    raise RuntimeError("Expected Rigify IK control was not found")
+    raise RuntimeError("An animator pose bone was not found")
 pose_bone.rotation_mode = "XYZ"
 bpy.context.scene.frame_set(1)
 pose_bone.rotation_euler[2] = 0.0
@@ -86,8 +77,7 @@ print(
     {
         "blender_version": bpy.app.version_string,
         "armature_name": armature.name,
-        "rigify_bone_count": len(armature.data.bones),
-        "control_count": inspect_result["control_count"],
+        "bone_count": len(armature.data.bones),
         "linked_action": link_response["result"]["action_name"],
         "listed_action_count": list_response["result"].get("count"),
         "imported_objects": import_response["result"].get("imported_objects"),

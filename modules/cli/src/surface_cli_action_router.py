@@ -287,9 +287,7 @@ class CliActionRouter:
                 RigifyCharacterBindingRequest(
                     character_object_name=str(params.get("character_object_name", "")),
                     armature_name=str(params.get("armature_name", "")),
-                    modifier_name=(
-                        str(params["modifier_name"]) if params.get("modifier_name") is not None else None
-                    ),
+                    modifier_name=(str(params["modifier_name"]) if params.get("modifier_name") is not None else None),
                     replace_existing=params.get("replace_existing", False),
                 )
             )

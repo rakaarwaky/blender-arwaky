@@ -1,5 +1,7 @@
 # Research Notes — Rigify Animator Tools
 
+> **Current scope decision (17 August 2026):** This is historical research only. Rigify-specific animation, retargeting, semantic controls, and procedural gait are deferred to external providers/plugins. The Arwaky core exposes native Blender animation primitives only. Earlier capability proposals in this historical ledger are superseded by `modules/animation/FRD.md`.
+
 ## Scope
 Research awal untuk memilih capability animator bagi karakter MPFB2 yang sudah menggunakan generated Rigify rig pada Blender 5.2 LTS.
 

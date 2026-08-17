@@ -234,31 +234,17 @@ class BlenderMCPServer:
             "set_geometry_node_modifier": self.set_geometry_node_modifier,
             "get_animation_state": self.get_animation_state,
             "insert_object_keyframe": self.insert_object_keyframe,
+            "insert_pose_bone_keyframe": self.insert_pose_bone_keyframe,
             "set_timeline_range": self.set_timeline_range,
             "list_object_keyframes": self.list_object_keyframes,
             "list_animation_actions": self.list_animation_actions,
-            "inspect_rigify_controls": self.inspect_rigify_controls,
             "import_animation_file": self.import_animation_file,
             "link_action_to_armature": self.link_action_to_armature,
             "list_pose_assets": self.list_pose_assets,
             "create_pose_asset": self.create_pose_asset,
             "apply_pose_asset": self.apply_pose_asset,
             "blend_pose_asset": self.blend_pose_asset,
-            "copy_rigify_pose": self.copy_rigify_pose,
-            "paste_rigify_pose": self.paste_rigify_pose,
-            "keyframe_rigify_pose": self.keyframe_rigify_pose,
-            "inspect_face_animation_channels": self.inspect_face_animation_channels,
-            "inspect_hand_animation_controls": self.inspect_hand_animation_controls,
-            "set_rigify_fk_ik_mode": self.set_rigify_fk_ik_mode,
             "set_shape_key_keyframe": self.set_shape_key_keyframe,
-            "edit_face_control_animation": self.edit_face_control_animation,
-            "import_motion_capture": self.import_motion_capture,
-            "build_bone_mapping": self.build_bone_mapping,
-            "validate_rest_pose": self.validate_rest_pose,
-            "retarget_animation": self.retarget_animation,
-            "set_root_motion": self.set_root_motion,
-            "bake_retarget_action": self.bake_retarget_action,
-            "validate_animation_result": self.validate_animation_result,
             "create_nla_track": self.create_nla_track,
             "add_nla_strip": self.add_nla_strip,
             "set_nla_strip": self.set_nla_strip,
@@ -2280,6 +2266,32 @@ class BlenderMCPServer:
         obj.keyframe_insert(data_path=path, index=keyframe_index, frame=frame)
         return {"object_name": obj.name, "data_path": path, "frame": frame, "index": index, "changed": True}
 
+    def insert_pose_bone_keyframe(self, armature_name, bone_name, frame, data_path, index=None):
+        """Insert a native keyframe on an armature pose bone transform."""
+        frame = self._bounded_wave_two_frame(frame)
+        path = str(data_path)
+        if path not in {"location", "rotation_euler", "rotation_quaternion", "scale"}:
+            raise ValueError(f"Unsupported pose bone animation data path: {path}")
+        keyframe_index = -1 if index is None else int(index)
+        if not -1 <= keyframe_index <= 3:
+            raise ValueError("index must be between 0 and 3 when provided")
+        armature = bpy.data.objects.get(str(armature_name))
+        if armature is None or armature.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        pose_bone = armature.pose.bones.get(str(bone_name))
+        if pose_bone is None:
+            raise ValueError(f"Pose bone not found: {bone_name}")
+        bpy.context.scene.frame_set(frame)
+        pose_bone.keyframe_insert(data_path=path, index=keyframe_index, frame=frame)
+        return {
+            "armature_name": armature.name,
+            "bone_name": pose_bone.name,
+            "data_path": path,
+            "frame": frame,
+            "index": None if index is None else keyframe_index,
+            "changed": True,
+        }
+
     def set_timeline_range(self, frame_start, frame_end, current_frame=None):
         """Set a bounded scene timeline range."""
         start = self._bounded_wave_two_frame(frame_start)
@@ -2322,31 +2334,6 @@ class BlenderMCPServer:
             )
         return {"actions": actions, "count": len(actions)}
 
-    def inspect_rigify_controls(self, armature_name, limit=1000):
-        """Inspect generated Rigify control and deform bone roles without mutating the scene."""
-        limit = self._bounded_wave_two_limit(limit)
-        obj = bpy.data.objects.get(str(armature_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Rigify armature not found: {armature_name}")
-        controls = []
-        for bone in list(obj.data.bones)[:limit]:
-            name = bone.name
-            lowered = name.lower()
-            if name.startswith("DEF-"):
-                role = "deform"
-            elif "_ik" in lowered:
-                role = "ik"
-            elif "_pole" in lowered:
-                role = "pole"
-            elif name.startswith("MCH-"):
-                role = "mechanism"
-            elif name.startswith("ORG-"):
-                role = "original"
-            else:
-                role = "control"
-            side = "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
-            controls.append({"name": name, "role": role, "side": side, "is_deform": bool(bone.use_deform)})
-        return {"armature_name": obj.name, "control_count": len(controls), "controls": controls}
 
     def import_animation_file(self, source_path, importer=None):
         """Import native FBX or BVH animation data and report created objects/actions."""
@@ -2534,49 +2521,8 @@ class BlenderMCPServer:
                 blended_value = float(target) * (1.0 - blend_factor) + values[0] * blend_factor
                 setattr(bone, property_name, blended_value)
 
-    def copy_rigify_pose(self, armature_name):
-        """Copy the selected Rigify pose into Blender's session-only pose buffer."""
-        obj = self._activate_pose_armature(armature_name)
-        bpy.ops.pose.copy()
-        return {"armature_name": obj.name, "flipped": False, "selected_mask": False, "changed": True}
 
-    def paste_rigify_pose(self, armature_name, flipped=False, selected_mask=False):
-        """Paste the session pose buffer to Rigify, optionally using Blender mirroring."""
-        obj = self._activate_pose_armature(armature_name)
-        bpy.ops.pose.paste(flipped=bool(flipped), selected_mask=bool(selected_mask))
-        return {
-            "armature_name": obj.name,
-            "flipped": bool(flipped),
-            "selected_mask": bool(selected_mask),
-            "changed": True,
-        }
 
-    def keyframe_rigify_pose(self, armature_name, frame, bone_names=None):
-        """Insert native location, rotation, and scale keyframes for Rigify controls."""
-        frame = self._bounded_wave_two_frame(frame)
-        obj = self._activate_pose_armature(armature_name)
-        requested = tuple(str(name).strip() for name in (bone_names or ()) if str(name).strip())
-        if requested:
-            missing = [name for name in requested if name not in obj.pose.bones]
-            if missing:
-                raise ValueError(f"Rigify pose bones not found: {', '.join(missing)}")
-            targets = [obj.pose.bones[name] for name in requested]
-        else:
-            targets = [bone for bone in obj.pose.bones if bone.bone.select]
-            requested = tuple(bone.name for bone in targets)
-        if not targets:
-            raise ValueError("At least one Rigify pose bone must be selected or named")
-        bpy.context.scene.frame_set(frame)
-        for bone in targets:
-            bone.keyframe_insert(data_path="location", frame=frame)
-            bone.keyframe_insert(data_path="scale", frame=frame)
-            rotation_path = (
-                "rotation_quaternion" if bone.rotation_mode == "QUATERNION"
-                else "rotation_axis_angle" if bone.rotation_mode == "AXIS_ANGLE"
-                else "rotation_euler"
-            )
-            bone.keyframe_insert(data_path=rotation_path, frame=frame)
-        return {"armature_name": obj.name, "frame": frame, "bone_names": list(requested), "changed": True}
 
     @staticmethod
     def _animation_control_side(name):
@@ -2594,102 +2540,13 @@ class BlenderMCPServer:
         tokens = ("hand", "thumb", "finger", "index", "middle", "ring", "pinky")
         return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
 
-    def inspect_face_animation_channels(self, armature_name, mesh_name=None, limit=200):
-        """Inspect bounded Rigify facial controls and optional mesh shape keys."""
-        limit = self._bounded_wave_two_limit(limit)
-        obj = bpy.data.objects.get(str(armature_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Armature object not found: {armature_name}")
-        controls = []
-        for bone in list(obj.pose.bones):
-            if not self._is_face_control(bone.name):
-                continue
-            controls.append(
-                {
-                    "name": bone.name,
-                    "side": self._animation_control_side(bone.name),
-                    "role": "face_control",
-                    "is_deform": bool(bone.bone.use_deform),
-                    "property_names": list(bone.keys()),
-                }
-            )
-            if len(controls) >= limit:
-                break
-        shape_keys = []
-        if mesh_name:
-            mesh = bpy.data.objects.get(str(mesh_name))
-            if mesh is None or mesh.type != "MESH" or mesh.data.shape_keys is None:
-                raise ValueError(f"Mesh with shape keys not found: {mesh_name}")
-            shape_keys = [key.name for key in list(mesh.data.shape_keys.key_blocks)[:limit]]
-        return {"armature_name": obj.name, "domain": "face", "controls": controls, "shape_keys": shape_keys}
 
-    def inspect_hand_animation_controls(self, armature_name, side="both", limit=200):
-        """Inspect bounded Rigify hand and finger controls by side."""
-        limit = self._bounded_wave_two_limit(limit)
-        selected_side = str(side).lower()
-        if selected_side not in {"left", "right", "both"}:
-            raise ValueError("side must be left, right, or both")
-        obj = bpy.data.objects.get(str(armature_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Armature object not found: {armature_name}")
-        controls = []
-        for bone in list(obj.pose.bones):
-            if not self._is_hand_control(bone.name):
-                continue
-            bone_side = self._animation_control_side(bone.name)
-            if selected_side != "both" and bone_side != selected_side:
-                continue
-            controls.append(
-                {
-                    "name": bone.name,
-                    "side": bone_side,
-                    "role": "hand_control",
-                    "is_deform": bool(bone.bone.use_deform),
-                    "property_names": list(bone.keys()),
-                }
-            )
-            if len(controls) >= limit:
-                break
-        return {"armature_name": obj.name, "domain": "hands", "controls": controls, "shape_keys": []}
 
     @staticmethod
     def _rigify_limb_parent_name(limb, side):
         prefix = "upper_arm_parent" if limb == "arm" else "thigh_parent"
         return prefix + (".L" if side == "left" else ".R")
 
-    def set_rigify_fk_ik_mode(self, armature_name, limb, side, mode, frame=None):
-        """Set and optionally key the allowlisted native Rigify IK_FK property."""
-        limb = str(limb).lower()
-        side = str(side).lower()
-        mode = str(mode).lower()
-        if limb not in {"arm", "leg"} or side not in {"left", "right"}:
-            raise ValueError("limb must be arm or leg and side must be left or right")
-        if mode not in {"fk", "ik"}:
-            raise ValueError("mode must be fk or ik")
-        bounded_frame = None if frame is None else self._bounded_wave_two_frame(frame)
-        obj = bpy.data.objects.get(str(armature_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Armature object not found: {armature_name}")
-        bone_name = self._rigify_limb_parent_name(limb, side)
-        bone = obj.pose.bones.get(bone_name)
-        if bone is None or "IK_FK" not in bone:
-            raise ValueError(f"Rigify limb parent does not expose IK_FK: {bone_name}")
-        value = 0.0 if mode == "fk" else 1.0
-        previous = float(bone["IK_FK"])
-        bone["IK_FK"] = value
-        if bounded_frame is not None:
-            bpy.context.scene.frame_set(bounded_frame)
-            bone.keyframe_insert(data_path='["IK_FK"]', frame=bounded_frame)
-        return {
-            "armature_name": obj.name,
-            "bone_name": bone.name,
-            "limb": limb,
-            "side": side,
-            "mode": mode,
-            "value": float(bone["IK_FK"]),
-            "frame": bounded_frame,
-            "changed": previous != value,
-        }
 
     def set_shape_key_keyframe(self, mesh_name, shape_key_name, value, frame):
         """Set and keyframe a bounded mesh shape-key value."""
@@ -2708,314 +2565,13 @@ class BlenderMCPServer:
         key.keyframe_insert(data_path="value", frame=frame)
         return {"mesh_name": mesh.name, "shape_key_name": key.name, "value": float(key.value), "frame": frame, "changed": True}
 
-    def edit_face_control_animation(self, armature_name, bone_name, frame, rotation_euler=None, location=None):
-        """Keyframe an allowlisted facial control transform without touching DEF bones."""
-        frame = self._bounded_wave_two_frame(frame)
-        rotation = tuple(float(value) for value in (rotation_euler or ()))
-        translation = tuple(float(value) for value in (location or ()))
-        if rotation and len(rotation) != 3:
-            raise ValueError("rotation_euler must contain exactly 3 values")
-        if translation and len(translation) != 3:
-            raise ValueError("location must contain exactly 3 values")
-        if not rotation and not translation:
-            raise ValueError("rotation_euler or location is required")
-        obj = self._activate_pose_armature(armature_name)
-        bone = obj.pose.bones.get(str(bone_name))
-        if bone is None or not self._is_face_control(bone.name):
-            raise ValueError(f"Bone is not an allowlisted Rigify face control: {bone_name}")
-        bpy.context.scene.frame_set(frame)
-        if rotation:
-            bone.rotation_mode = "XYZ"
-            bone.rotation_euler = rotation
-            bone.keyframe_insert(data_path="rotation_euler", frame=frame)
-        if translation:
-            bone.location = translation
-            bone.keyframe_insert(data_path="location", frame=frame)
-        return {
-            "armature_name": obj.name,
-            "bone_name": bone.name,
-            "frame": frame,
-            "location": list(bone.location),
-            "rotation_euler": list(bone.rotation_euler),
-            "changed": True,
-        }
 
-    def import_motion_capture(self, source_path, importer=None):
-        """Import motion data through the existing native FBX/BVH importer."""
-        return self.import_animation_file(source_path, importer)
 
-    def build_bone_mapping(
-        self, source_armature, target_armature, preset="exact", overrides=None, unmapped_policy="report"
-    ):
-        """Build an explicit source-to-target mapping without mutating animation data."""
-        preset = str(preset).lower()
-        if preset not in {"exact", "mixamo", "bvh"}:
-            raise ValueError("preset must be exact, mixamo, or bvh")
-        unmapped_policy = str(unmapped_policy).lower()
-        if unmapped_policy not in {"report", "error"}:
-            raise ValueError("unmapped_policy must be report or error")
-        source = bpy.data.objects.get(str(source_armature))
-        target = bpy.data.objects.get(str(target_armature))
-        if source is None or source.type != "ARMATURE":
-            raise ValueError(f"Source armature not found: {source_armature}")
-        if target is None or target.type != "ARMATURE":
-            raise ValueError(f"Target armature not found: {target_armature}")
-        overrides = dict(overrides or {})
-        if len(overrides) > 1000:
-            raise ValueError("overrides must not contain more than 1000 entries")
-        source_names = {bone.name for bone in source.data.bones}
-        target_names = {bone.name for bone in target.data.bones}
-        mapping = {}
-        for source_name, target_name in overrides.items():
-            if source_name not in source_names or target_name not in target_names:
-                raise ValueError(f"Invalid mapping override: {source_name} -> {target_name}")
-            mapping[source_name] = target_name
-        if preset == "exact":
-            for name in sorted(source_names & target_names):
-                mapping.setdefault(name, name)
-        else:
-            aliases = {
-                "Hips": "root",
-                "Spine": "spine",
-                "Spine1": "spine.001",
-                "Spine2": "spine.002",
-                "Neck": "neck",
-                "Head": "head",
-                "LeftArm": "upper_arm.L",
-                "RightArm": "upper_arm.R",
-                "LeftForeArm": "forearm.L",
-                "RightForeArm": "forearm.R",
-                "LeftHand": "hand_ik.L",
-                "RightHand": "hand_ik.R",
-            }
-            for source_name, target_name in aliases.items():
-                if source_name in source_names and target_name in target_names:
-                    mapping.setdefault(source_name, target_name)
-        mappings = []
-        for source_name, target_name in sorted(mapping.items()):
-            mappings.append(
-                {
-                    "source_bone": source_name,
-                    "target_bone": target_name,
-                    "side": "left" if target_name.endswith(".L") else "right" if target_name.endswith(".R") else None,
-                    "confidence": 1.0 if source_name in overrides else 0.8 if preset != "exact" else 1.0,
-                }
-            )
-        unmapped_source = sorted(source_names - set(mapping))
-        unmapped_target = sorted(target_names - set(mapping.values()))
-        if unmapped_policy == "error" and unmapped_source:
-            raise ValueError(f"Unmapped source bones: {', '.join(unmapped_source[:50])}")
-        return {
-            "source_armature": source.name,
-            "target_armature": target.name,
-            "preset": preset,
-            "mappings": mappings,
-            "unmapped_source": unmapped_source,
-            "unmapped_target": unmapped_target,
-        }
 
-    def validate_rest_pose(self, source_armature, target_armature, mapping, tolerance=0.25):
-        """Validate mapped rest-bone lengths and report bounded diagnostics."""
-        tolerance = float(tolerance)
-        if not 0.0 < tolerance <= 10.0:
-            raise ValueError("tolerance must be greater than 0 and no greater than 10")
-        source = bpy.data.objects.get(str(source_armature))
-        target = bpy.data.objects.get(str(target_armature))
-        if source is None or source.type != "ARMATURE" or target is None or target.type != "ARMATURE":
-            raise ValueError("Both source and target armatures are required")
-        items = list((mapping or {}).get("mappings", []))
-        if not items or len(items) > 5000:
-            raise ValueError("mapping.mappings must contain 1-5000 items")
-        warnings = []
-        position_warning_count = 0
-        ratios = []
-        for item in items:
-            source_bone = source.data.bones.get(str(item.get("source_bone", "")))
-            target_bone = target.data.bones.get(str(item.get("target_bone", "")))
-            if source_bone is None or target_bone is None:
-                warnings.append(f"Missing mapped bone: {item}")
-                continue
-            source_length = max(float(source_bone.length), 0.000001)
-            target_length = max(float(target_bone.length), 0.000001)
-            ratios.append(target_length / source_length)
-            if source == target and (source_bone.head_local - target_bone.head_local).length > tolerance:
-                position_warning_count += 1
-                warnings.append(f"Rest-pose head distance exceeds tolerance for {source_bone.name}")
-        scale_ratio = sum(ratios) / len(ratios) if ratios else 0.0
-        if not ratios:
-            warnings.append("No mapped bones were available for rest-pose validation")
-        return {
-            "source_armature": source.name,
-            "target_armature": target.name,
-            "approved": bool(ratios) and position_warning_count == 0,
-            "mapped_count": len(items),
-            "position_warning_count": position_warning_count,
-            "scale_ratio": scale_ratio,
-            "warnings": warnings,
-        }
 
-    def retarget_animation(
-        self,
-        source_armature,
-        target_armature,
-        source_action,
-        mapping,
-        output_action,
-        frame_start=None,
-        frame_end=None,
-        scale_policy="preserve",
-        root_motion="preserve",
-    ):
-        """Retarget supported native pose-bone transform curves into a new target Action."""
-        scale_policy = str(scale_policy).lower()
-        root_motion = str(root_motion).lower()
-        if scale_policy not in {"preserve", "normalize"}:
-            raise ValueError("scale_policy must be preserve or normalize")
-        if root_motion not in {"preserve", "separate", "ignore"}:
-            raise ValueError("root_motion must be preserve, separate, or ignore")
-        source = bpy.data.objects.get(str(source_armature))
-        target = bpy.data.objects.get(str(target_armature))
-        action = bpy.data.actions.get(str(source_action))
-        if source is None or source.type != "ARMATURE" or target is None or target.type != "ARMATURE":
-            raise ValueError("Both source and target armatures are required")
-        if action is None:
-            raise ValueError(f"Source Action not found: {source_action}")
-        items = list((mapping or {}).get("mappings", []))
-        if not items or len(items) > 5000:
-            raise ValueError("mapping.mappings must contain 1-5000 items")
-        curves = self._iter_action_fcurves(action)
-        frames = sorted({int(point.co.x) for curve in curves for point in curve.keyframe_points})
-        if not frames:
-            raise ValueError("Source Action has no keyframes")
-        start = int(frame_start) if frame_start is not None else int(min(frames))
-        end = int(frame_end) if frame_end is not None else int(max(frames))
-        start = self._bounded_wave_two_frame(start)
-        end = self._bounded_wave_two_frame(end)
-        if end < start:
-            raise ValueError("frame_end must be greater than or equal to frame_start")
-        frames = [frame for frame in frames if start <= frame <= end]
-        mapping_by_source = {str(item.get("source_bone")): str(item.get("target_bone")) for item in items}
-        grouped = {}
-        for curve in curves:
-            path = str(curve.data_path)
-            if not path.startswith('pose.bones["') or '"].' not in path:
-                continue
-            source_name, property_name = path[12:].split('"].', 1)
-            grouped.setdefault((source_name, property_name), []).append(curve)
-        output = bpy.data.actions.get(str(output_action))
-        if output is not None:
-            bpy.data.actions.remove(output)
-        output = bpy.data.actions.new(str(output_action))
-        target.animation_data_create()
-        target.animation_data.action = output
-        root_bones = {"root", "root_master", "hips", "pelvis"}
-        keyframe_count = 0
-        for frame in frames:
-            bpy.context.scene.frame_set(frame)
-            for (source_name, property_name), property_curves in grouped.items():
-                target_name = mapping_by_source.get(source_name)
-                if target_name is None or (root_motion == "ignore" and target_name.lower() in root_bones):
-                    continue
-                bone = target.pose.bones.get(target_name)
-                if bone is None or property_name not in {"location", "rotation_euler", "rotation_quaternion", "scale"}:
-                    continue
-                values = [curve.evaluate(frame) for curve in sorted(property_curves, key=lambda item: item.array_index)]
-                if property_name == "rotation_euler":
-                    bone.rotation_mode = "XYZ"
-                destination = getattr(bone, property_name)
-                for index, value in enumerate(values):
-                    destination[index] = value
-                bone.keyframe_insert(data_path=property_name, frame=frame)
-                keyframe_count += len(values)
-        return {
-            "source_armature": source.name,
-            "target_armature": target.name,
-            "source_action": action.name,
-            "output_action": output.name,
-            "frame_start": start,
-            "frame_end": end,
-            "mapped_bone_count": len(mapping_by_source),
-            "keyframe_count": keyframe_count,
-            "root_motion": root_motion,
-            "changed": True,
-        }
 
-    def set_root_motion(self, armature_name, policy):
-        """Store the explicit root-motion policy as target armature metadata."""
-        policy = str(policy).lower()
-        if policy not in {"preserve", "separate", "ignore"}:
-            raise ValueError("policy must be preserve, separate, or ignore")
-        obj = bpy.data.objects.get(str(armature_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Armature object not found: {armature_name}")
-        previous = obj.get("arwaky_root_motion_policy")
-        obj["arwaky_root_motion_policy"] = policy
-        return {"armature_name": obj.name, "policy": policy, "changed": previous != policy}
 
-    def bake_retarget_action(self, armature_name, action_name, frame_start, frame_end, step=1, clear_constraints=False):
-        """Bake a target pose Action through native Blender NLA bake."""
-        frame_start = self._bounded_wave_two_frame(frame_start)
-        frame_end = self._bounded_wave_two_frame(frame_end)
-        step = int(step)
-        if frame_end < frame_start or not 1 <= step <= 100:
-            raise ValueError("invalid bake frame range or step")
-        obj = self._activate_pose_armature(armature_name)
-        action = bpy.data.actions.get(str(action_name))
-        if action is None:
-            raise ValueError(f"Action not found: {action_name}")
-        obj.animation_data_create()
-        obj.animation_data.action = action
-        bpy.ops.pose.select_all(action="SELECT")
-        bpy.ops.nla.bake(
-            frame_start=frame_start,
-            frame_end=frame_end,
-            step=step,
-            only_selected=True,
-            visual_keying=True,
-            clear_constraints=bool(clear_constraints),
-            clear_parents=False,
-            use_current_action=True,
-            clean_curves=False,
-            bake_types={"POSE"},
-            channel_types={"LOCATION", "ROTATION", "SCALE", "PROPS"},
-        )
-        curves = self._iter_action_fcurves(action)
-        return {
-            "armature_name": obj.name,
-            "action_name": action.name,
-            "frame_start": frame_start,
-            "frame_end": frame_end,
-            "step": step,
-            "keyframe_count": sum(len(curve.keyframe_points) for curve in curves),
-            "cleared_constraints": bool(clear_constraints),
-            "changed": True,
-        }
 
-    def validate_animation_result(self, armature_name, action_name, limit=1000):
-        """Validate target Action linkage and bounded channel/keyframe counts."""
-        limit = self._bounded_wave_two_limit(limit)
-        obj = bpy.data.objects.get(str(armature_name))
-        action = bpy.data.actions.get(str(action_name))
-        if obj is None or obj.type != "ARMATURE":
-            raise ValueError(f"Armature object not found: {armature_name}")
-        if action is None:
-            raise ValueError(f"Action not found: {action_name}")
-        curves = self._iter_action_fcurves(action)[:limit]
-        warnings = []
-        if not obj.animation_data or obj.animation_data.action != action:
-            warnings.append("Action is not linked to the target armature")
-        if not curves:
-            warnings.append("Action contains no curves")
-        return {
-            "armature_name": obj.name,
-            "action_name": action.name,
-            "frame_start": int(action.frame_range[0]),
-            "frame_end": int(action.frame_range[1]),
-            "curve_count": len(curves),
-            "keyframe_count": sum(min(len(curve.keyframe_points), limit) for curve in curves),
-            "approved": not warnings,
-            "warnings": warnings,
-        }
 
     @staticmethod
     def _nla_name(value, label):

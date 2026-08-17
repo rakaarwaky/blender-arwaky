@@ -66,36 +66,6 @@ if apply_response.get("status") != "success":
 if not apply_response["result"].get("flipped"):
     raise RuntimeError(f"Flipped application result was not marked mirrored: {apply_response}")
 
-copy_response = server.execute_command(
-    {"type": "copy_rigify_pose", "params": {"armature_name": armature.name}}
-)
-if copy_response.get("status") != "success":
-    raise RuntimeError(f"Pose copy failed: {copy_response}")
-
-paste_response = server.execute_command(
-    {
-        "type": "paste_rigify_pose",
-        "params": {"armature_name": armature.name, "flipped": True, "selected_mask": True},
-    }
-)
-if paste_response.get("status") != "success":
-    raise RuntimeError(f"Mirrored pose paste failed: {paste_response}")
-
-keyframe_response = server.execute_command(
-    {
-        "type": "keyframe_rigify_pose",
-        "params": {
-            "armature_name": armature.name,
-            "frame": 24,
-            "bone_names": ["upper_arm_ik.L", "upper_arm_ik.R"],
-        },
-    }
-)
-if keyframe_response.get("status") != "success":
-    raise RuntimeError(f"Rigify pose keyframing failed: {keyframe_response}")
-if len(keyframe_response["result"].get("bone_names", [])) != 2:
-    raise RuntimeError(f"Unexpected Rigify keyframe result: {keyframe_response}")
-
 print(
     "WAVE2_POSE_ANIMATION_LIVE_OK",
     {
@@ -105,7 +75,5 @@ print(
         "asset_name": asset_name,
         "pose_asset_count": list_response["result"].get("count"),
         "flipped_asset_applied": apply_response["result"].get("flipped"),
-        "flipped_pose_pasted": paste_response["result"].get("flipped"),
-        "keyframed_bones": keyframe_response["result"].get("bone_names"),
     },
 )
