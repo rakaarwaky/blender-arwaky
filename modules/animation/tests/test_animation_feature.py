@@ -86,20 +86,21 @@ async def test_animation_lists_actions_with_typed_result() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.asyncio
-async def test_animation_import_rejects_unsupported_format_before_gateway() -> None:
+async def test_animation_import_rejects_unsupported_format_before_gateway(tmp_path) -> None:
     gateway = FakeGateway({})
+    source_path = tmp_path / "animation.glb"
 
     with pytest.raises(ValueError, match="importer must be fbx or bvh"):
-        await AnimationExecutor(gateway).import_animation_file("/tmp/animation.glb")
+        await AnimationExecutor(gateway).import_animation_file(str(source_path))
 
     assert gateway.codes == []
 
 
 @pytest.mark.asyncio
-async def test_animation_import_returns_created_actions() -> None:
+async def test_animation_import_returns_created_actions(tmp_path) -> None:
     gateway = FakeGateway(
         {
-            "source_path": "/tmp/walk.bvh",
+            "source_path": str(tmp_path / "walk.bvh"),
             "importer": "bvh",
             "imported_objects": ["mocap"],
             "action_names": ["Walk"],
@@ -107,7 +108,7 @@ async def test_animation_import_returns_created_actions() -> None:
         }
     )
 
-    result = await create_animation_feature(gateway).import_animation_file("/tmp/walk.bvh")
+    result = await create_animation_feature(gateway).import_animation_file(str(tmp_path / "walk.bvh"))
 
     assert result.importer == "bvh"
     assert result.action_names == ("Walk",)

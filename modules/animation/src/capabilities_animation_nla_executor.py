@@ -126,7 +126,7 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_count": le
         influence: float = 1.0,
         blend_type: str = "REPLACE",
         extrapolation: str = "HOLD",
-        reversed: bool = False,
+        reverse: bool = False,
     ) -> NlaStripVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
@@ -179,7 +179,7 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
             .replace("__INFLUENCE__", str(influence))
             .replace("__BLEND_TYPE__", json.dumps(blend_type))
             .replace("__EXTRAPOLATION__", json.dumps(extrapolation))
-            .replace("__REVERSED__", str(bool(reversed)))
+            .replace("__REVERSED__", str(bool(reverse)))
         )
         result = await self._execute(code)
         return self._strip_from_result(
@@ -205,7 +205,7 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
         influence: float | None = None,
         blend_type: str | None = None,
         extrapolation: str | None = None,
-        reversed: bool | None = None,
+        reverse: bool | None = None,
     ) -> NlaStripVO:
         armature_name = self._bounded_name(armature_name, "armature_name")
         track_name = self._bounded_name(track_name, "track_name")
@@ -221,7 +221,7 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
                 influence,
                 blend_type,
                 extrapolation,
-                reversed,
+                reverse,
             )
         ):
             raise ValueError("at least one NLA strip property must be provided")
@@ -254,8 +254,8 @@ result = {"armature_name": obj.name, "track_name": track.name, "strip_name": str
             if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
                 raise ValueError("unsupported NLA extrapolation")
             assignments.append(f"strip.extrapolation = {json.dumps(extrapolation)}")
-        if reversed is not None:
-            assignments.append(f"strip.use_reverse = {bool(reversed)}")
+        if reverse is not None:
+            assignments.append(f"strip.use_reverse = {bool(reverse)}")
         code = (
             """
 import bpy

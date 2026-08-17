@@ -307,6 +307,9 @@ class BlenderMCPServer:
             return {"status": "error", "message": f"Unknown command: {cmd_type}"}
 
         try:
+            if cmd_type in {"add_nla_strip", "set_nla_strip"} and "reversed" in params:
+                params = {**params, "reverse": params["reversed"]}
+                params.pop("reversed")
             result = handler(**params)
             return {"status": "success", "result": result}
         except Exception as e:
@@ -2645,7 +2648,7 @@ class BlenderMCPServer:
         influence=1.0,
         blend_type="REPLACE",
         extrapolation="HOLD",
-        reversed=False,
+        reverse=False,
     ):
         obj = self._nla_armature(armature_name)
         track = self._nla_track(obj, track_name)
@@ -2681,7 +2684,7 @@ class BlenderMCPServer:
         strip.influence = influence
         strip.blend_type = blend_type
         strip.extrapolation = extrapolation
-        strip.use_reverse = bool(reversed)
+        strip.use_reverse = bool(reverse)
         return self._nla_strip_result(obj, track, strip)
 
     def set_nla_strip(
@@ -2697,7 +2700,7 @@ class BlenderMCPServer:
         influence=None,
         blend_type=None,
         extrapolation=None,
-        reversed=None,
+        reverse=None,
     ):
         obj = self._nla_armature(armature_name)
         track = self._nla_track(obj, track_name)
@@ -2714,7 +2717,7 @@ class BlenderMCPServer:
             not any(value is not None for value in updates.values())
             and blend_type is None
             and extrapolation is None
-            and reversed is None
+            and reverse is None
         ):
             raise ValueError("at least one NLA strip property must be provided")
         for property_name, value in updates.items():
@@ -2732,8 +2735,8 @@ class BlenderMCPServer:
             if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
                 raise ValueError("unsupported NLA extrapolation")
             strip.extrapolation = extrapolation
-        if reversed is not None:
-            strip.use_reverse = bool(reversed)
+        if reverse is not None:
+            strip.use_reverse = bool(reverse)
         return self._nla_strip_result(obj, track, strip)
 
     def set_animation_layer(

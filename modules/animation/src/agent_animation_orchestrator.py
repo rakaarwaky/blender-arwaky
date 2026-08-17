@@ -85,7 +85,7 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
         influence: float = 1.0,
         blend_type: str = "REPLACE",
         extrapolation: str = "HOLD",
-        reversed: bool = False,
+        reverse: bool = False,
     ):
         return await self._nla_executor.add_nla_strip(
             armature_name,
@@ -100,7 +100,7 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
             influence,
             blend_type,
             extrapolation,
-            reversed,
+            reverse,
         )
 
     async def set_nla_strip(
@@ -116,7 +116,7 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
         influence: float | None = None,
         blend_type: str | None = None,
         extrapolation: str | None = None,
-        reversed: bool | None = None,
+        reverse: bool | None = None,
     ):
         return await self._nla_executor.set_nla_strip(
             armature_name,
@@ -130,7 +130,7 @@ class AnimationOrchestrator(IWaveFeatureAggregate):
             influence,
             blend_type,
             extrapolation,
-            reversed,
+            reverse,
         )
 
     async def set_animation_layer(
