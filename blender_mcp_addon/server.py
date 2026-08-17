@@ -1599,9 +1599,7 @@ class BlenderMCPServer:
         except ImportError as error:
             raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
         pack_names = sorted(AssetService.get_pack_names())
-        asset_counts = {
-            name: len(AssetService.get_asset_names_in_pack(name)) for name in pack_names
-        }
+        asset_counts = {name: len(AssetService.get_asset_names_in_pack(name)) for name in pack_names}
         return {
             "plugin_id": "mpfb2",
             "operation": "asset_pack.inspect",
@@ -2334,7 +2332,6 @@ class BlenderMCPServer:
             )
         return {"actions": actions, "count": len(actions)}
 
-
     def import_animation_file(self, source_path, importer=None):
         """Import native FBX or BVH animation data and report created objects/actions."""
         path = str(source_path).strip()
@@ -2521,9 +2518,6 @@ class BlenderMCPServer:
                 blended_value = float(target) * (1.0 - blend_factor) + values[0] * blend_factor
                 setattr(bone, property_name, blended_value)
 
-
-
-
     @staticmethod
     def _animation_control_side(name):
         return "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
@@ -2540,13 +2534,10 @@ class BlenderMCPServer:
         tokens = ("hand", "thumb", "finger", "index", "middle", "ring", "pinky")
         return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
 
-
-
     @staticmethod
     def _rigify_limb_parent_name(limb, side):
         prefix = "upper_arm_parent" if limb == "arm" else "thigh_parent"
         return prefix + (".L" if side == "left" else ".R")
-
 
     def set_shape_key_keyframe(self, mesh_name, shape_key_name, value, frame):
         """Set and keyframe a bounded mesh shape-key value."""
@@ -2563,15 +2554,13 @@ class BlenderMCPServer:
         bpy.context.scene.frame_set(frame)
         key.value = value
         key.keyframe_insert(data_path="value", frame=frame)
-        return {"mesh_name": mesh.name, "shape_key_name": key.name, "value": float(key.value), "frame": frame, "changed": True}
-
-
-
-
-
-
-
-
+        return {
+            "mesh_name": mesh.name,
+            "shape_key_name": key.name,
+            "value": float(key.value),
+            "frame": frame,
+            "changed": True,
+        }
 
     @staticmethod
     def _nla_name(value, label):
@@ -2721,7 +2710,12 @@ class BlenderMCPServer:
             "blend_out": blend_out,
             "influence": influence,
         }
-        if not any(value is not None for value in updates.values()) and blend_type is None and extrapolation is None and reversed is None:
+        if (
+            not any(value is not None for value in updates.values())
+            and blend_type is None
+            and extrapolation is None
+            and reversed is None
+        ):
             raise ValueError("at least one NLA strip property must be provided")
         for property_name, value in updates.items():
             if value is not None:
@@ -2811,7 +2805,14 @@ class BlenderMCPServer:
         }
 
     def bake_nla_assembly(
-        self, armature_name, frame_start, frame_end, step=1, output_action="Wave5_Baked_Action", clear_constraints=False, clear_nla=False
+        self,
+        armature_name,
+        frame_start,
+        frame_end,
+        step=1,
+        output_action="Wave5_Baked_Action",
+        clear_constraints=False,
+        clear_nla=False,
     ):
         obj = self._nla_armature(armature_name)
         frame_start = self._bounded_wave_two_frame(frame_start)
