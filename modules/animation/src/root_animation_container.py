@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from modules.animation.src.agent_animation_orchestrator import AnimationOrchestrator
 from modules.animation.src.capabilities_animation_executor import AnimationExecutor
+from modules.animation.src.capabilities_animation_nla_executor import AnimationNlaExecutor
 
 
 class AnimationContainer:
     """Wire the injected gateway executor to the Animation agent."""
 
     def __init__(self, code_executor: object) -> None:
-        self._orchestrator = AnimationOrchestrator(AnimationExecutor(code_executor))
+        executor = AnimationExecutor(code_executor)
+        nla_executor = AnimationNlaExecutor(code_executor)
+        self._orchestrator = AnimationOrchestrator(executor, nla_executor)
 
     @property
     def aggregate(self) -> AnimationOrchestrator:

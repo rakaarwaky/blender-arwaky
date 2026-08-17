@@ -151,3 +151,26 @@ def test_container_rejects_unknown_capability() -> None:
 
     assert result.success is False
     assert result.message == PluginMessage("plugin capability is not registered")
+
+
+def test_container_hides_capabilities_for_disabled_provider() -> None:
+    container = PluginContainer()
+    container.register_provider(
+        PluginId("fake"),
+        FakePluginOperation(PluginId("fake"), active=False),
+    )
+
+    aggregate = container.aggregate()
+
+    assert aggregate.enabled_plugin_ids() == ()  # nosec B101
+    assert aggregate.enabled_capabilities() == ()  # nosec B101
+
+
+def test_container_exposes_capabilities_for_enabled_provider() -> None:
+    container = PluginContainer()
+    container.register_provider(PluginId("fake"), FakePluginOperation(PluginId("fake")))
+
+    aggregate = container.aggregate()
+
+    assert aggregate.enabled_plugin_ids() == (PluginId("fake"),)  # nosec B101
+    assert aggregate.enabled_capabilities() == (PluginCapabilityId("character.create"),)  # nosec B101

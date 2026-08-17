@@ -234,8 +234,25 @@ class BlenderMCPServer:
             "set_geometry_node_modifier": self.set_geometry_node_modifier,
             "get_animation_state": self.get_animation_state,
             "insert_object_keyframe": self.insert_object_keyframe,
+            "insert_pose_bone_keyframe": self.insert_pose_bone_keyframe,
             "set_timeline_range": self.set_timeline_range,
             "list_object_keyframes": self.list_object_keyframes,
+            "list_animation_actions": self.list_animation_actions,
+            "import_animation_file": self.import_animation_file,
+            "link_action_to_armature": self.link_action_to_armature,
+            "list_pose_assets": self.list_pose_assets,
+            "create_pose_asset": self.create_pose_asset,
+            "apply_pose_asset": self.apply_pose_asset,
+            "blend_pose_asset": self.blend_pose_asset,
+            "set_shape_key_keyframe": self.set_shape_key_keyframe,
+            "create_nla_track": self.create_nla_track,
+            "add_nla_strip": self.add_nla_strip,
+            "set_nla_strip": self.set_nla_strip,
+            "set_animation_layer": self.set_animation_layer,
+            "set_animation_mask": self.set_animation_mask,
+            "remove_nla_strip": self.remove_nla_strip,
+            "bake_nla_assembly": self.bake_nla_assembly,
+            "validate_nla_assembly": self.validate_nla_assembly,
             "get_mesh_statistics": self.get_mesh_statistics,
             "validate_mesh": self.validate_mesh,
             "perform_mesh_edit_operation": self.perform_mesh_edit_operation,
@@ -290,6 +307,9 @@ class BlenderMCPServer:
             return {"status": "error", "message": f"Unknown command: {cmd_type}"}
 
         try:
+            if cmd_type in {"add_nla_strip", "set_nla_strip"} and "reversed" in params:
+                params = {**params, "reverse": params["reversed"]}
+                params.pop("reversed")
             result = handler(**params)
             return {"status": "success", "result": result}
         except Exception as e:
@@ -1582,9 +1602,7 @@ class BlenderMCPServer:
         except ImportError as error:
             raise RuntimeError("MPFB2 is not installed or enabled in Blender") from error
         pack_names = sorted(AssetService.get_pack_names())
-        asset_counts = {
-            name: len(AssetService.get_asset_names_in_pack(name)) for name in pack_names
-        }
+        asset_counts = {name: len(AssetService.get_asset_names_in_pack(name)) for name in pack_names}
         return {
             "plugin_id": "mpfb2",
             "operation": "asset_pack.inspect",
@@ -2184,6 +2202,18 @@ class BlenderMCPServer:
             "modifier_name": modifier.name,
         }
 
+    @staticmethod
+    def _iter_action_fcurves(action):
+        """Return F-Curves for both legacy and layered Blender Action APIs."""
+        if hasattr(action, "fcurves"):
+            return list(action.fcurves)
+        curves = []
+        for layer in action.layers:
+            for strip in layer.strips:
+                for channelbag in getattr(strip, "channelbags", []):
+                    curves.extend(list(channelbag.fcurves))
+        return curves
+
     def get_animation_state(self, object_name, limit=100):
         """Inspect bounded action and F-curve state for one object."""
         limit = self._bounded_wave_two_limit(limit)
@@ -2193,7 +2223,7 @@ class BlenderMCPServer:
         action = obj.animation_data.action if obj.animation_data and obj.animation_data.action else None
         curves = []
         if action:
-            for curve in list(action.fcurves)[:limit]:
+            for curve in self._iter_action_fcurves(action)[:limit]:
                 curves.append(
                     {
                         "data_path": curve.data_path,
@@ -2237,6 +2267,32 @@ class BlenderMCPServer:
         obj.keyframe_insert(data_path=path, index=keyframe_index, frame=frame)
         return {"object_name": obj.name, "data_path": path, "frame": frame, "index": index, "changed": True}
 
+    def insert_pose_bone_keyframe(self, armature_name, bone_name, frame, data_path, index=None):
+        """Insert a native keyframe on an armature pose bone transform."""
+        frame = self._bounded_wave_two_frame(frame)
+        path = str(data_path)
+        if path not in {"location", "rotation_euler", "rotation_quaternion", "scale"}:
+            raise ValueError(f"Unsupported pose bone animation data path: {path}")
+        keyframe_index = -1 if index is None else int(index)
+        if not -1 <= keyframe_index <= 3:
+            raise ValueError("index must be between 0 and 3 when provided")
+        armature = bpy.data.objects.get(str(armature_name))
+        if armature is None or armature.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        pose_bone = armature.pose.bones.get(str(bone_name))
+        if pose_bone is None:
+            raise ValueError(f"Pose bone not found: {bone_name}")
+        bpy.context.scene.frame_set(frame)
+        pose_bone.keyframe_insert(data_path=path, index=keyframe_index, frame=frame)
+        return {
+            "armature_name": armature.name,
+            "bone_name": pose_bone.name,
+            "data_path": path,
+            "frame": frame,
+            "index": None if index is None else keyframe_index,
+            "changed": True,
+        }
+
     def set_timeline_range(self, frame_start, frame_end, current_frame=None):
         """Set a bounded scene timeline range."""
         start = self._bounded_wave_two_frame(frame_start)
@@ -2255,6 +2311,590 @@ class BlenderMCPServer:
     def list_object_keyframes(self, object_name, limit=100):
         """Return the same bounded animation state under an explicit list action."""
         return self.get_animation_state(object_name, limit)
+
+    def list_animation_actions(self, armature_name=None, limit=100):
+        """List native Blender Actions, optionally filtered to an armature's active Action."""
+        limit = self._bounded_wave_two_limit(limit)
+        armature = None
+        if armature_name:
+            armature = bpy.data.objects.get(str(armature_name))
+            if armature is None or armature.type != "ARMATURE":
+                raise ValueError(f"Armature object not found: {armature_name}")
+        actions = []
+        for action in list(bpy.data.actions)[:limit]:
+            if armature is not None and (not armature.animation_data or armature.animation_data.action != action):
+                continue
+            actions.append(
+                {
+                    "name": action.name,
+                    "frame_start": float(action.frame_range[0]),
+                    "frame_end": float(action.frame_range[1]),
+                    "curve_count": len(self._iter_action_fcurves(action)),
+                    "slot_count": len(action.slots) if hasattr(action, "slots") else 0,
+                }
+            )
+        return {"actions": actions, "count": len(actions)}
+
+    def import_animation_file(self, source_path, importer=None):
+        """Import native FBX or BVH animation data and report created objects/actions."""
+        path = str(source_path).strip()
+        if not path or len(path) > 4096:
+            raise ValueError("source_path must be 1-4096 characters")
+        suffix = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        selected_importer = str(importer or suffix).lower()
+        if selected_importer not in {"fbx", "bvh"}:
+            raise ValueError("importer must be fbx or bvh")
+        before_objects = set(bpy.data.objects.keys())
+        before_actions = set(bpy.data.actions.keys())
+        if selected_importer == "fbx":
+            bpy.ops.import_scene.fbx(filepath=path)
+        else:
+            bpy.ops.import_anim.bvh(filepath=path)
+        return {
+            "source_path": path,
+            "importer": selected_importer,
+            "imported_objects": [name for name in bpy.data.objects if name not in before_objects],
+            "action_names": [name for name in bpy.data.actions if name not in before_actions],
+            "warnings": [],
+        }
+
+    def link_action_to_armature(self, armature_name, action_name):
+        """Assign one existing native Blender Action to an armature."""
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        action = bpy.data.actions.get(str(action_name))
+        if action is None:
+            raise ValueError(f"Action not found: {action_name}")
+        obj.animation_data_create()
+        previous = obj.animation_data.action.name if obj.animation_data.action else None
+        changed = previous != action.name
+        obj.animation_data.action = action
+        return {
+            "armature_name": obj.name,
+            "action_name": action.name,
+            "previous_action_name": previous,
+            "changed": changed,
+        }
+
+    def list_pose_assets(self, limit=100):
+        """List Actions marked as native Blender pose assets."""
+        limit = self._bounded_wave_two_limit(limit)
+        assets = []
+        for action in list(bpy.data.actions)[:limit]:
+            if action.asset_data is None:
+                continue
+            assets.append(
+                {
+                    "name": action.name,
+                    "is_pose_asset": True,
+                    "frame_start": float(action.frame_range[0]),
+                    "frame_end": float(action.frame_range[1]),
+                    "catalog_id": str(getattr(action.asset_data, "catalog_id", "")) or None,
+                }
+            )
+        return {"assets": assets, "count": len(assets)}
+
+    @staticmethod
+    def _activate_pose_armature(armature_name):
+        obj = bpy.data.objects.get(str(armature_name))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        for selected in list(bpy.context.selected_objects):
+            selected.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if obj.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        return obj
+
+    def create_pose_asset(self, armature_name, pose_name, catalog_path=None):
+        """Create a native Pose Library asset from the active Rigify pose."""
+        pose_name = str(pose_name).strip()
+        catalog_path = "" if catalog_path is None else str(catalog_path).strip()
+        if not pose_name or len(pose_name) > 256:
+            raise ValueError("pose_name must be 1-256 characters")
+        if len(catalog_path) > 1024:
+            raise ValueError("catalog_path must not exceed 1024 characters")
+        self._activate_pose_armature(armature_name)
+        kwargs = {"pose_name": pose_name}
+        if catalog_path:
+            kwargs["catalog_path"] = catalog_path
+        bpy.ops.poselib.create_pose_asset(**kwargs)
+        action = bpy.data.actions.get(pose_name)
+        if action is None:
+            candidates = [item for item in bpy.data.actions if item.asset_data is not None]
+            action = candidates[-1] if candidates else None
+        if action is None or action.asset_data is None:
+            raise RuntimeError("Pose asset creation did not produce a native asset Action")
+        return {
+            "name": action.name,
+            "is_pose_asset": True,
+            "frame_start": float(action.frame_range[0]),
+            "frame_end": float(action.frame_range[1]),
+            "catalog_id": str(getattr(action.asset_data, "catalog_id", "")) or None,
+        }
+
+    def apply_pose_asset(self, armature_name, asset_name, blend_factor=1.0, flipped=False):
+        """Apply a native pose asset, with optional Rigify left-right mirroring."""
+        return self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, False)
+
+    def blend_pose_asset(self, armature_name, asset_name, blend_factor, flipped=False):
+        """Blend a native pose asset, with optional Rigify left-right mirroring."""
+        return self._apply_pose_asset(armature_name, asset_name, blend_factor, flipped, True)
+
+    def _apply_pose_asset(self, armature_name, asset_name, blend_factor, flipped, blended):
+        factor = float(blend_factor)
+        if not 0.0 <= factor <= 1.0:
+            raise ValueError("blend_factor must be between 0.0 and 1.0")
+        asset = bpy.data.actions.get(str(asset_name))
+        if asset is None or asset.asset_data is None:
+            raise ValueError(f"Pose asset not found: {asset_name}")
+        obj = self._activate_pose_armature(armature_name)
+        operator = bpy.ops.poselib.blend_pose_asset if blended else bpy.ops.poselib.apply_pose_asset
+        try:
+            operator(
+                asset_library_type="LOCAL",
+                relative_asset_identifier=asset.name,
+                blend_factor=factor,
+                flipped=bool(flipped),
+            )
+        except RuntimeError as error:
+            if "No asset in context" not in str(error):
+                raise
+            self._apply_pose_asset_data(obj, asset, factor, bool(flipped))
+        return {
+            "armature_name": obj.name,
+            "asset_name": asset.name,
+            "blend_factor": factor,
+            "flipped": bool(flipped),
+            "changed": True,
+        }
+
+    @staticmethod
+    def _mirror_bone_name(name):
+        if name.endswith(".L"):
+            return name[:-2] + ".R"
+        if name.endswith(".R"):
+            return name[:-2] + ".L"
+        return name
+
+    @staticmethod
+    def _apply_pose_asset_data(obj, asset, blend_factor, flipped):
+        """Apply an Action-backed pose asset when Asset Browser context is unavailable."""
+        from mathutils import Matrix
+
+        frame = float(asset.frame_range[0])
+        curves = BlenderMCPServer._iter_action_fcurves(asset)
+        grouped = {}
+        for curve in curves:
+            path = str(curve.data_path)
+            if not path.startswith('pose.bones["') or '"].' not in path:
+                continue
+            bone_name, property_name = path[12:].split('"].', 1)
+            grouped.setdefault((bone_name, property_name), []).append(curve)
+        mirror_matrix = Matrix(((-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)))
+        for (source_name, property_name), property_curves in grouped.items():
+            target_name = BlenderMCPServer._mirror_bone_name(source_name) if flipped else source_name
+            bone = obj.pose.bones.get(target_name)
+            if bone is None:
+                continue
+            values = [curve.evaluate(frame) for curve in sorted(property_curves, key=lambda item: item.array_index)]
+            if property_name == "location" and flipped and values:
+                values[0] = -values[0]
+            if property_name == "rotation_euler" and flipped and len(values) >= 3:
+                values[0], values[2] = -values[0], -values[2]
+            if property_name == "rotation_quaternion" and flipped and len(values) >= 4:
+                source_quaternion = bone.rotation_quaternion.copy()
+                for index, value in enumerate(values[:4]):
+                    source_quaternion[index] = value
+                mirrored = source_quaternion.to_matrix()
+                mirrored = mirror_matrix @ mirrored @ mirror_matrix
+                values = list(mirrored.to_quaternion())
+            target = getattr(bone, property_name, None)
+            if target is None or not values:
+                continue
+            if hasattr(target, "__getitem__"):
+                for index, value in enumerate(values):
+                    target[index] = target[index] * (1.0 - blend_factor) + value * blend_factor
+            else:
+                blended_value = float(target) * (1.0 - blend_factor) + values[0] * blend_factor
+                setattr(bone, property_name, blended_value)
+
+    @staticmethod
+    def _animation_control_side(name):
+        return "left" if name.endswith(".L") else "right" if name.endswith(".R") else None
+
+    @staticmethod
+    def _is_face_control(name):
+        lowered = name.lower()
+        tokens = ("face", "jaw", "eye", "lip", "brow", "cheek", "forehead", "nose", "mouth", "chin")
+        return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
+
+    @staticmethod
+    def _is_hand_control(name):
+        lowered = name.lower()
+        tokens = ("hand", "thumb", "finger", "index", "middle", "ring", "pinky")
+        return not name.startswith(("DEF-", "MCH-", "ORG-")) and any(token in lowered for token in tokens)
+
+    @staticmethod
+    def _rigify_limb_parent_name(limb, side):
+        prefix = "upper_arm_parent" if limb == "arm" else "thigh_parent"
+        return prefix + (".L" if side == "left" else ".R")
+
+    def set_shape_key_keyframe(self, mesh_name, shape_key_name, value, frame):
+        """Set and keyframe a bounded mesh shape-key value."""
+        value = float(value)
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("value must be between 0.0 and 1.0")
+        frame = self._bounded_wave_two_frame(frame)
+        mesh = bpy.data.objects.get(str(mesh_name))
+        if mesh is None or mesh.type != "MESH" or mesh.data.shape_keys is None:
+            raise ValueError(f"Mesh with shape keys not found: {mesh_name}")
+        key = mesh.data.shape_keys.key_blocks.get(str(shape_key_name))
+        if key is None:
+            raise ValueError(f"Shape key not found: {shape_key_name}")
+        bpy.context.scene.frame_set(frame)
+        key.value = value
+        key.keyframe_insert(data_path="value", frame=frame)
+        return {
+            "mesh_name": mesh.name,
+            "shape_key_name": key.name,
+            "value": float(key.value),
+            "frame": frame,
+            "changed": True,
+        }
+
+    @staticmethod
+    def _nla_name(value, label):
+        name = str(value).strip()
+        if not name or len(name) > 256:
+            raise ValueError(f"{label} must be 1-256 characters")
+        return name
+
+    def _nla_armature(self, armature_name):
+        obj = bpy.data.objects.get(self._nla_name(armature_name, "armature_name"))
+        if obj is None or obj.type != "ARMATURE":
+            raise ValueError(f"Armature object not found: {armature_name}")
+        obj.animation_data_create()
+        return obj
+
+    @staticmethod
+    def _nla_track(obj, track_name):
+        name = BlenderMCPServer._nla_name(track_name, "track_name")
+        track = next((item for item in obj.animation_data.nla_tracks if item.name == name), None)
+        if track is None:
+            raise ValueError(f"NLA track not found: {name}")
+        return track
+
+    @staticmethod
+    def _nla_strip(track, strip_name):
+        name = BlenderMCPServer._nla_name(strip_name, "strip_name")
+        strip = next((item for item in track.strips if item.name == name), None)
+        if strip is None:
+            raise ValueError(f"NLA strip not found: {name}")
+        return strip
+
+    @staticmethod
+    def _nla_strip_result(obj, track, strip, changed=True):
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": strip.name,
+            "action_name": strip.action.name if strip.action else "",
+            "frame_start": float(strip.frame_start),
+            "frame_end": float(strip.frame_end),
+            "scale": float(strip.scale),
+            "repeat": float(strip.repeat),
+            "blend_in": float(strip.blend_in),
+            "blend_out": float(strip.blend_out),
+            "influence": float(strip.influence),
+            "blend_type": str(strip.blend_type),
+            "extrapolation": str(strip.extrapolation),
+            "reversed": bool(strip.use_reverse),
+            "changed": bool(changed),
+        }
+
+    def create_nla_track(self, armature_name, track_name, is_solo=False, is_muted=False):
+        obj = self._nla_armature(armature_name)
+        name = self._nla_name(track_name, "track_name")
+        track = next((item for item in obj.animation_data.nla_tracks if item.name == name), None)
+        changed = track is None
+        if track is None:
+            track = obj.animation_data.nla_tracks.new()
+            track.name = name
+        track.is_solo = bool(is_solo)
+        track.mute = bool(is_muted)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_count": len(track.strips),
+            "is_solo": bool(track.is_solo),
+            "is_muted": bool(track.mute),
+            "changed": changed,
+        }
+
+    def add_nla_strip(
+        self,
+        armature_name,
+        track_name,
+        action_name,
+        strip_name,
+        frame_start,
+        scale=1.0,
+        repeat=1.0,
+        blend_in=0.0,
+        blend_out=0.0,
+        influence=1.0,
+        blend_type="REPLACE",
+        extrapolation="HOLD",
+        reverse=False,
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        action = bpy.data.actions.get(self._nla_name(action_name, "action_name"))
+        if action is None:
+            raise ValueError(f"Action not found: {action_name}")
+        strip_name = self._nla_name(strip_name, "strip_name")
+        if any(item.name == strip_name for item in track.strips):
+            raise ValueError(f"NLA strip already exists: {strip_name}")
+        frame_start = int(float(frame_start))
+        scale = float(scale)
+        repeat = float(repeat)
+        blend_in = float(blend_in)
+        blend_out = float(blend_out)
+        influence = float(influence)
+        if not -100000.0 <= frame_start <= 100000.0:
+            raise ValueError("frame_start must be between -100000 and 100000")
+        if not 0.001 <= scale <= 1000.0 or not 0.001 <= repeat <= 1000.0:
+            raise ValueError("scale and repeat must be between 0.001 and 1000")
+        if not 0.0 <= blend_in <= 100000.0 or not 0.0 <= blend_out <= 100000.0:
+            raise ValueError("blend_in and blend_out must be between 0 and 100000")
+        if not 0.0 <= influence <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+            raise ValueError("unsupported NLA blend_type")
+        if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
+            raise ValueError("unsupported NLA extrapolation")
+        strip = track.strips.new(strip_name, frame_start, action)
+        strip.scale = scale
+        strip.repeat = repeat
+        strip.blend_in = blend_in
+        strip.blend_out = blend_out
+        strip.influence = influence
+        strip.blend_type = blend_type
+        strip.extrapolation = extrapolation
+        strip.use_reverse = bool(reverse)
+        return self._nla_strip_result(obj, track, strip)
+
+    def set_nla_strip(
+        self,
+        armature_name,
+        track_name,
+        strip_name,
+        frame_start=None,
+        scale=None,
+        repeat=None,
+        blend_in=None,
+        blend_out=None,
+        influence=None,
+        blend_type=None,
+        extrapolation=None,
+        reverse=None,
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        updates = {
+            "frame_start": frame_start,
+            "scale": scale,
+            "repeat": repeat,
+            "blend_in": blend_in,
+            "blend_out": blend_out,
+            "influence": influence,
+        }
+        if (
+            not any(value is not None for value in updates.values())
+            and blend_type is None
+            and extrapolation is None
+            and reverse is None
+        ):
+            raise ValueError("at least one NLA strip property must be provided")
+        for property_name, value in updates.items():
+            if value is not None:
+                setattr(strip, property_name, float(value))
+        if strip.scale < 0.001 or strip.repeat < 0.001:
+            raise ValueError("scale and repeat must be at least 0.001")
+        if not 0.0 <= strip.influence <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if blend_type is not None:
+            if blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+                raise ValueError("unsupported NLA blend_type")
+            strip.blend_type = blend_type
+        if extrapolation is not None:
+            if extrapolation not in {"NOTHING", "HOLD", "HOLD_FORWARD"}:
+                raise ValueError("unsupported NLA extrapolation")
+            strip.extrapolation = extrapolation
+        if reverse is not None:
+            strip.use_reverse = bool(reverse)
+        return self._nla_strip_result(obj, track, strip)
+
+    def set_animation_layer(
+        self, armature_name, track_name, blend_type=None, influence=None, is_solo=None, is_muted=None
+    ):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        if blend_type is None and influence is None and is_solo is None and is_muted is None:
+            raise ValueError("at least one NLA layer property must be provided")
+        if blend_type is not None and blend_type not in {"REPLACE", "ADD", "SUBTRACT", "MULTIPLY"}:
+            raise ValueError("unsupported NLA blend_type")
+        if influence is not None and not 0.0 <= float(influence) <= 1.0:
+            raise ValueError("influence must be between 0 and 1")
+        if is_solo is not None:
+            track.is_solo = bool(is_solo)
+        if is_muted is not None:
+            track.mute = bool(is_muted)
+        for strip in track.strips:
+            if blend_type is not None:
+                strip.blend_type = blend_type
+            if influence is not None:
+                strip.influence = float(influence)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "blend_type": blend_type,
+            "influence": float(influence) if influence is not None else None,
+            "is_solo": bool(track.is_solo) if is_solo is not None else None,
+            "is_muted": bool(track.mute) if is_muted is not None else None,
+            "changed": True,
+        }
+
+    def set_animation_mask(self, armature_name, track_name, strip_name, bone_names):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        if not isinstance(bone_names, list) or len(bone_names) > 1000:
+            raise ValueError("bone_names must be a list of no more than 1000 items")
+        normalized = []
+        for raw_name in bone_names:
+            name = self._nla_name(raw_name, "bone_name")
+            if name.startswith(("DEF-", "MCH-", "ORG-")):
+                raise ValueError("animation masks may only contain Rigify animator controls")
+            if obj.pose.bones.get(name) is None:
+                raise ValueError(f"Pose bone not found: {name}")
+            normalized.append(name)
+        metadata = json.loads(obj.get("arwaky_nla_masks", "{}"))
+        metadata[f"{track.name}:{strip.name}"] = normalized
+        obj["arwaky_nla_masks"] = json.dumps(metadata, separators=(",", ":"))
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": strip.name,
+            "bone_names": normalized,
+            "changed": True,
+        }
+
+    def remove_nla_strip(self, armature_name, track_name, strip_name):
+        obj = self._nla_armature(armature_name)
+        track = self._nla_track(obj, track_name)
+        strip = self._nla_strip(track, strip_name)
+        track.strips.remove(strip)
+        return {
+            "armature_name": obj.name,
+            "track_name": track.name,
+            "strip_name": str(strip_name),
+            "changed": True,
+            "removed": True,
+        }
+
+    def bake_nla_assembly(
+        self,
+        armature_name,
+        frame_start,
+        frame_end,
+        step=1,
+        output_action="Wave5_Baked_Action",
+        clear_constraints=False,
+        clear_nla=False,
+    ):
+        obj = self._nla_armature(armature_name)
+        frame_start = self._bounded_wave_two_frame(frame_start)
+        frame_end = self._bounded_wave_two_frame(frame_end)
+        step = int(step)
+        output_action = self._nla_name(output_action, "output_action")
+        if frame_end < frame_start or not 1 <= step <= 100:
+            raise ValueError("invalid NLA bake frame range or step")
+        existing = bpy.data.actions.get(output_action)
+        if existing is not None:
+            bpy.data.actions.remove(existing)
+        for candidate in list(bpy.context.selected_objects):
+            candidate.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        if obj.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        bpy.ops.pose.select_all(action="SELECT")
+        obj.animation_data.action = None
+        before_actions = set(bpy.data.actions.keys())
+        bpy.ops.nla.bake(
+            frame_start=frame_start,
+            frame_end=frame_end,
+            step=step,
+            only_selected=True,
+            visual_keying=True,
+            clear_constraints=bool(clear_constraints),
+            clear_parents=False,
+            use_current_action=False,
+            clean_curves=False,
+            bake_types={"POSE"},
+            channel_types={"LOCATION", "ROTATION", "SCALE", "PROPS"},
+        )
+        created = [action for action in bpy.data.actions if action.name not in before_actions]
+        baked = obj.animation_data.action or (created[-1] if created else None)
+        if baked is None:
+            raise RuntimeError("NLA bake did not create an Action")
+        baked.name = output_action
+        obj.animation_data.action = baked
+        if clear_nla:
+            for track in list(obj.animation_data.nla_tracks):
+                obj.animation_data.nla_tracks.remove(track)
+        return {
+            "armature_name": obj.name,
+            "output_action": baked.name,
+            "frame_start": frame_start,
+            "frame_end": frame_end,
+            "step": step,
+            "keyframe_count": sum(len(curve.keyframe_points) for curve in self._iter_action_fcurves(baked)),
+            "cleared_constraints": bool(clear_constraints),
+            "cleared_nla": bool(clear_nla),
+            "changed": True,
+        }
+
+    def validate_nla_assembly(self, armature_name, limit=100):
+        obj = self._nla_armature(armature_name)
+        limit = self._bounded_wave_two_limit(limit)
+        tracks = list(obj.animation_data.nla_tracks)[:limit]
+        strips = []
+        warnings = []
+        for track in tracks:
+            for strip in list(track.strips)[: max(1, limit - len(strips))]:
+                strips.append(strip)
+                if strip.action is None:
+                    warnings.append(f"NLA strip has no Action: {track.name}/{strip.name}")
+                if not 0.0 <= float(strip.influence) <= 1.0:
+                    warnings.append(f"NLA strip influence is out of bounds: {track.name}/{strip.name}")
+                if strip.frame_end < strip.frame_start:
+                    warnings.append(f"NLA strip frame range is invalid: {track.name}/{strip.name}")
+        frame_values = [value for strip in strips for value in (float(strip.frame_start), float(strip.frame_end))]
+        return {
+            "armature_name": obj.name,
+            "track_count": len(tracks),
+            "strip_count": len(strips),
+            "frame_start": min(frame_values) if frame_values else None,
+            "frame_end": max(frame_values) if frame_values else None,
+            "approved": bool(strips) and not warnings,
+            "warnings": warnings,
+        }
 
     def get_mesh_statistics(self, object_name):
         """Return bounded mesh topology and UV statistics."""

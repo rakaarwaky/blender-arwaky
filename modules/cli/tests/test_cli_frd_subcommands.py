@@ -84,9 +84,9 @@ def test_missing_required_argument_fails_before_dispatch() -> None:
     assert dispatcher.requests == []  # nosec B101
 
 
-def test_unknown_command_has_suggestion(capsys) -> None:
+def test_unknown_action_has_suggestion(capsys) -> None:
     with pytest.raises(SystemExit) as raised:
-        main(["get-runtime-statu"], dispatcher=RecordingDispatcher())
+        main(["action", "get-runtime-statu"], dispatcher=RecordingDispatcher())
     assert raised.value.code == EXIT_VALIDATION  # nosec B101
     assert "Did you mean 'get-runtime-status'?" in capsys.readouterr().err  # nosec B101
 
@@ -264,21 +264,23 @@ def test_help_surface_has_valid_examples_and_safety_metadata() -> None:
     root_help = parser.format_help()
     normalized_root_help = " ".join(root_help.split())
 
-    assert "get-scene-info" in normalized_root_help  # nosec B101
-    assert "[launcher] Start Blender with integration component active" in normalized_root_help  # nosec B101
-    assert "shutdown-blender" in normalized_root_help  # nosec B101
-    assert "cancel-task" in normalized_root_help  # nosec B101
-    assert "set-config" in normalized_root_help  # nosec B101
+    assert "animation" in normalized_root_help  # nosec B101
+    assert "launcher" in normalized_root_help  # nosec B101
+    assert "action" in normalized_root_help  # nosec B101
 
     subparsers = next(action for action in parser._actions if isinstance(getattr(action, "choices", None), dict))
-    action_help = subparsers.choices["get-scene-info"].format_help()
-    shutdown_help = subparsers.choices["shutdown-blender"].format_help()
-    set_config_help = subparsers.choices["set-config"].format_help()
+    module_help = subparsers.choices["launcher"].format_help()
+    normalized_module_help = " ".join(module_help.split())
+    assert "shutdown-blender" in normalized_module_help  # nosec B101
+    assert "get-runtime-status" in normalized_module_help  # nosec B101
 
-    assert "--filepath FILEPATH" in action_help  # nosec B101
-    assert "get-scene-info" in normalized_root_help  # nosec B101
-    assert "launcher" in shutdown_help  # nosec B101
-    assert "set-config" in set_config_help  # nosec B101
+    module_subparsers = next(
+        action
+        for action in subparsers.choices["launcher"]._actions
+        if isinstance(getattr(action, "choices", None), dict)
+    )
+    tool_help = module_subparsers.choices["shutdown-blender"].format_help()
+    assert "--force" in tool_help  # nosec B101
 
 
 def test_cli_exposes_every_canonical_action_once() -> None:
@@ -289,8 +291,42 @@ def test_cli_exposes_every_canonical_action_once() -> None:
     expected = {
         action.replace("_", "-") for owner_actions in DISPATCHER_ACTION_SCHEMAS.values() for action in owner_actions
     }
-    assert len(expected) == 91  # nosec B101
-    assert set(subparsers.choices) == expected  # nosec B101
-    assert "run" not in subparsers.choices  # nosec B101
-    assert "scene-info" not in subparsers.choices  # nosec B101
-    assert "execute-blender-code" in subparsers.choices  # nosec B101
+    assert len(expected) == 108  # nosec B101
+    expected_modules = {owner.replace("_", "-") for owner in DISPATCHER_ACTION_SCHEMAS}
+    assert set(subparsers.choices) == expected_modules | {"action"}  # nosec B101
+    action_parser = subparsers.choices["action"]
+    action_subparsers = next(
+        action for action in action_parser._actions if isinstance(getattr(action, "choices", None), dict)
+    )
+    assert set(action_subparsers.choices) == expected  # nosec B101
+    assert "run" not in action_subparsers.choices  # nosec B101
+    assert "scene-info" not in action_subparsers.choices  # nosec B101
+    assert "execute-blender-code" in action_subparsers.choices  # nosec B101
+
+
+def test_nested_module_tool_routes_to_canonical_action(capsys) -> None:
+    dispatcher = RecordingDispatcher()
+    assert (
+        main(
+            [
+                "--json",
+                "animation",
+                "insert-object-keyframe",
+                "--object-name",
+                "Cube",
+                "--frame",
+                "1",
+                "--data-path",
+                "location",
+            ],
+            dispatcher=dispatcher,
+        )
+        == 0
+    )  # nosec B101
+    assert dispatcher.requests[0].action_name == "insert_object_keyframe"  # nosec B101
+    assert dispatcher.requests[0].parameters == {
+        "object_name": "Cube",
+        "frame": 1,
+        "data_path": "location",
+    }  # nosec B101
+    assert _json(capsys)["success"] is True  # nosec B101
