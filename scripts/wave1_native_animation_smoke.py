@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 import bpy
@@ -11,7 +12,8 @@ from blender_mcp_addon.server import BlenderMCPServer
 
 
 EVIDENCE_BLEND = Path("/home/ubuntu/mpfb_native_rigify_evidence/native_mpfb2_rigify_character.blend")
-BVH_PATH = Path("/tmp/arwaky_wave1_test_motion.bvh")
+TEST_DIR = Path(tempfile.mkdtemp(prefix="arwaky-wave1-"))
+BVH_PATH = TEST_DIR / "arwaky_wave1_test_motion.bvh"
 
 
 bpy.ops.wm.open_mainfile(filepath=str(EVIDENCE_BLEND))
@@ -67,7 +69,7 @@ if import_response["result"].get("importer") != "bvh":
     raise RuntimeError(f"Unexpected importer result: {import_response}")
 
 invalid_response = server.execute_command(
-    {"type": "import_animation_file", "params": {"source_path": "/tmp/unsupported.glb"}}
+    {"type": "import_animation_file", "params": {"source_path": str(TEST_DIR / "unsupported.glb")}}
 )
 if invalid_response.get("status") != "error":
     raise RuntimeError(f"Unsupported importer was not rejected: {invalid_response}")

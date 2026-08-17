@@ -6,6 +6,11 @@ from modules.animation.src.capabilities_animation_executor import AnimationExecu
 from modules.animation.src.root_animation_container import create_animation_feature
 
 
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
 class FakeGateway:
     def __init__(self, result):
         self.result = result
@@ -37,9 +42,9 @@ async def test_animation_state_returns_curves_and_keyframes() -> None:
 
     result = await create_animation_feature(gateway).get_state("Cube")
 
-    assert result.action_name == "CubeAction"
-    assert result.curves[0].keyframes[0].frame == 1
-    assert '"Cube"' in gateway.codes[0]
+    _require(result.action_name == "CubeAction", "test assertion failed")
+    _require(result.curves[0].keyframes[0].frame == 1, "test assertion failed")
+    _require('"Cube"' in gateway.codes[0], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -49,7 +54,7 @@ async def test_animation_rejects_unsupported_path_before_gateway() -> None:
     with pytest.raises(ValueError, match="Unsupported animation data path"):
         await AnimationExecutor(gateway).insert_keyframe("Cube", 1, "location.x")
 
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -66,9 +71,9 @@ async def test_animation_keyframe_returns_typed_mutation() -> None:
 
     result = await create_animation_feature(gateway).insert_keyframe("Cube", 12, "scale")
 
-    assert result.object_name == "Cube"
-    assert result.data_path == "scale"
-    assert result.frame == 12
+    _require(result.object_name == "Cube", "test assertion failed")
+    _require(result.data_path == "scale", "test assertion failed")
+    _require(result.frame == 12, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -79,9 +84,9 @@ async def test_animation_lists_actions_with_typed_result() -> None:
 
     result = await create_animation_feature(gateway).list_actions("Rig")
 
-    assert result[0].name == "Walk"
-    assert result[0].curve_count == 6
-    assert '"Rig"' in gateway.codes[0]
+    _require(result[0].name == "Walk", "test assertion failed")
+    _require(result[0].curve_count == 6, "test assertion failed")
+    _require('"Rig"' in gateway.codes[0], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -93,7 +98,7 @@ async def test_animation_import_rejects_unsupported_format_before_gateway(tmp_pa
     with pytest.raises(ValueError, match="importer must be fbx or bvh"):
         await AnimationExecutor(gateway).import_animation_file(str(source_path))
 
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -110,8 +115,8 @@ async def test_animation_import_returns_created_actions(tmp_path) -> None:
 
     result = await create_animation_feature(gateway).import_animation_file(str(tmp_path / "walk.bvh"))
 
-    assert result.importer == "bvh"
-    assert result.action_names == ("Walk",)
+    _require(result.importer == "bvh", "test assertion failed")
+    _require(result.action_names == ("Walk",), "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -127,9 +132,9 @@ async def test_animation_links_action_to_armature() -> None:
 
     result = await create_animation_feature(gateway).link_action_to_armature("Rigify", "Walk")
 
-    assert result.action_name == "Walk"
-    assert result.previous_action_name == "Idle"
-    assert result.changed is True
+    _require(result.action_name == "Walk", "test assertion failed")
+    _require(result.previous_action_name == "Idle", "test assertion failed")
+    _require(result.changed is True, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -138,8 +143,8 @@ async def test_animation_lists_pose_assets_with_typed_result() -> None:
 
     result = await create_animation_feature(gateway).list_pose_assets()
 
-    assert result[0].name == "T-Pose"
-    assert result[0].is_pose_asset is True
+    _require(result[0].name == "T-Pose", "test assertion failed")
+    _require(result[0].is_pose_asset is True, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -156,8 +161,8 @@ async def test_animation_applies_flipped_pose_asset() -> None:
 
     result = await create_animation_feature(gateway).apply_pose_asset("Rigify", "T-Pose", flipped=True)
 
-    assert result.flipped is True
-    assert result.asset_name == "T-Pose"
+    _require(result.flipped is True, "test assertion failed")
+    _require(result.asset_name == "T-Pose", "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -167,7 +172,7 @@ async def test_animation_rejects_pose_blend_outside_bounds() -> None:
     with pytest.raises(ValueError, match="blend_factor"):
         await AnimationExecutor(gateway).apply_pose_asset("Rigify", "T-Pose", blend_factor=1.1)
 
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -182,8 +187,8 @@ async def test_animation_sets_shape_key_keyframe() -> None:
 
     result = await create_animation_feature(gateway).set_shape_key_keyframe("Body", "Smile", 0.8, 12)
 
-    assert result.shape_key_name == "Smile"
-    assert result.value == 0.8
+    _require(result.shape_key_name == "Smile", "test assertion failed")
+    _require(result.value == 0.8, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -194,7 +199,7 @@ async def test_animation_rejects_shape_key_value_outside_bounds() -> None:
     with pytest.raises(ValueError, match="value must be between"):
         await AnimationExecutor(gateway).set_shape_key_keyframe("Body", "Smile", 1.2, 1)
 
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -217,8 +222,8 @@ async def test_animation_creates_nla_track() -> None:
         }
     )
     result = await create_animation_feature(gateway).create_nla_track("Rigify", "Base")
-    assert result.track_name == "Base"
-    assert result.changed is True
+    _require(result.track_name == "Base", "test assertion failed")
+    _require(result.changed is True, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -245,8 +250,8 @@ async def test_animation_adds_nla_strip() -> None:
     result = await create_animation_feature(gateway).add_nla_strip(
         "Rigify", "Base", "Walk", "Walk", 1, blend_in=2, blend_out=2
     )
-    assert result.action_name == "Walk"
-    assert result.blend_in == 2.0
+    _require(result.action_name == "Walk", "test assertion failed")
+    _require(result.blend_in == 2.0, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -273,8 +278,8 @@ async def test_animation_updates_nla_strip() -> None:
     result = await create_animation_feature(gateway).set_nla_strip(
         "Rigify", "Base", "Walk", frame_start=5, influence=0.75, blend_type="ADD"
     )
-    assert result.influence == 0.75
-    assert result.blend_type == "ADD"
+    _require(result.influence == 0.75, "test assertion failed")
+    _require(result.blend_type == "ADD", "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -291,8 +296,8 @@ async def test_animation_sets_nla_layer() -> None:
         }
     )
     result = await create_animation_feature(gateway).set_animation_layer("Rigify", "UpperBody", "ADD", 0.5)
-    assert result.blend_type == "ADD"
-    assert result.influence == 0.5
+    _require(result.blend_type == "ADD", "test assertion failed")
+    _require(result.influence == 0.5, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -309,7 +314,7 @@ async def test_animation_sets_rigify_nla_mask() -> None:
     result = await create_animation_feature(gateway).set_animation_mask(
         "Rigify", "UpperBody", "Gesture", ["hand_ik.L", "hand_ik.R"]
     )
-    assert result.bone_names == ("hand_ik.L", "hand_ik.R")
+    _require(result.bone_names == ("hand_ik.L", "hand_ik.R"), "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -317,7 +322,7 @@ async def test_animation_rejects_deform_nla_mask() -> None:
     gateway = FakeGateway({})
     with pytest.raises(ValueError, match="animator controls"):
         await create_animation_feature(gateway).set_animation_mask("Rigify", "Base", "Walk", ["DEF-upper_arm.L"])
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -338,8 +343,8 @@ async def test_animation_bakes_nla_assembly() -> None:
     result = await create_animation_feature(gateway).bake_nla_assembly(
         "Rigify", 1, 24, output_action="Final", clear_nla=True
     )
-    assert result.output_action == "Final"
-    assert result.cleared_nla is True
+    _require(result.output_action == "Final", "test assertion failed")
+    _require(result.cleared_nla is True, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -356,8 +361,8 @@ async def test_animation_validates_nla_assembly() -> None:
         }
     )
     result = await create_animation_feature(gateway).validate_nla_assembly("Rigify")
-    assert result.approved is True
-    assert result.strip_count == 3
+    _require(result.approved is True, "test assertion failed")
+    _require(result.strip_count == 3, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -366,7 +371,7 @@ async def test_animation_removes_nla_strip() -> None:
         {"armature_name": "Rigify", "track_name": "Base", "strip_name": "Walk", "changed": True, "removed": True}
     )
     result = await create_animation_feature(gateway).remove_nla_strip("Rigify", "Base", "Walk")
-    assert result.removed is True
+    _require(result.removed is True, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -385,9 +390,9 @@ async def test_animation_pose_bone_keyframe_returns_typed_mutation() -> None:
         "Armature", "upper_arm.L", 12, "rotation_euler", 2
     )
 
-    assert result.object_name == "Armature"
-    assert result.frame == 12
-    assert "upper_arm.L" in result.data_path
+    _require(result.object_name == "Armature", "test assertion failed")
+    _require(result.frame == 12, "test assertion failed")
+    _require("upper_arm.L" in result.data_path, "test assertion failed")
 
 
 @pytest.mark.asyncio
@@ -397,4 +402,4 @@ async def test_animation_pose_bone_keyframe_rejects_unsupported_path() -> None:
     with pytest.raises(ValueError, match="Unsupported pose bone animation data path"):
         await AnimationExecutor(gateway).insert_pose_bone_keyframe("Armature", "Bone", 1, "location.x")
 
-    assert gateway.codes == []
+    _require(gateway.codes == [], "test assertion failed")
