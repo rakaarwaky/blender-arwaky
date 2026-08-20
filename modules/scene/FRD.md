@@ -1,129 +1,68 @@
 # FRD — Scene Management Feature
 
-## Purpose
-
-Scene-level inspection and bulk cleanup policy. Owns scene-wide awareness, summary, preservation decisions, and cleanup reports. Technical deletion of individual objects delegated to object feature. Policy-oriented and report-oriented — not low-level object manipulation.
-
-## Scope
-
-- Inspect scene state
-- Scene metadata summary
-- Object summary by type and visibility
-- Camera/light summary
-- Active camera + active object awareness
-- Render settings summary
-- Collection summary
-- Protected object awareness
-- Bulk cleanup (preservation policy, dry-run preview, reporting)
-- Deterministic filtering and ordering
-- Event emission for inspection and cleanup
-
-## Out of Scope
-
-Single object CRUD (object feature), material/modifier detail (object), render execution (render), asset import (asset), queue management (gateway), task tracking (job), network transport (gateway), licensing compliance.
-
-## Depends On
-
-gateway (Blender command execution + connection), object (single-object deletion primitives + ref resolution), config (preservation policy, dry-run default, inspection limits, protection rules), shared (taxonomy, result envelope, error categories).
-
-## Provides To
-
-dispatcher, higher-level workflow/agent orchestration layers.
+## System Overview
+The Scene module owns scene-level inspection, bulk cleanup policy, preservation decisions, and reporting. It is policy-oriented and report-oriented, delegating the technical deletion of individual objects to the Object module.
 
 ## Functional Requirements
 
-### FR-SCN-001: Inspect Scene State
+### FR-001: Scene Inspection and Hierarchy
+- **Description**: Retrieve structured summary of active scene and inspect object hierarchies.
+- **Input**: `detail_level`, `include_hidden`, `object_name`, `max_depth`.
+- **Output**: `UnifiedEnvelope` with scene state summary or bounded tree nodes.
+- **Business Rules**: Read-only, idempotent. Deterministic object ordering. Hidden objects excluded by default. Hierarchy depth bounded 1–64. Safe serialization (no cycles).
+- **Edge Cases**: Empty scene; missing active camera; large scene; cyclic parent references.
+- **Error Handling**: `connection_error` if Gateway unavailable; `scene_state_error` if unsafe to inspect.
 
-- **Description**: Retrieve structured summary of active scene
-- **Input**: Inspection request (detail level, object filter, include hidden flag)
-- **Output**: Scene inspection result (success, scene state summary)
-- **Rules**: Read-only, idempotent. Summary: scene name/ID, total object count, count by type, visible count, hidden count (if requested), camera list, light list, active camera ref, active object ref, render settings (resolution, engine, frame range), unit system, collection summary, world/environment summary, protected object summary. Deterministic object ordering (by stable ref or name). Hidden objects excluded by default; included if explicitly requested. Large scenes → summarized detail level to avoid oversized response. Missing active camera/object → empty ref (not failure). Safe serialization (no cycles). Capability flags for supported operations.
-- **Edge Cases**: Empty scene, no active object/camera, missing render engine info, large scene, hidden/linked/instanced/protected objects, stale refs, serialization limit, gateway not connected, timeout
-- **Error Handling**: Connection error (gateway unavailable); timeout error; scene state error (unsafe to inspect); delegated gateway error
+### FR-002: Bulk Cleanup and History Navigation
+- **Description**: Remove objects based on preservation policy and navigate Blender undo/redo history.
+- **Input**: `mode`, `preservation_list`, `dry_run`, `confirmation`.
+- **Output**: `UnifiedEnvelope` with cleanup report (removed/preserved/skipped) or history status.
+- **Business Rules**: Scene owns policy resolution. Object feature executes deletions. Dry-run previews without mutation. Protected objects (cameras, lights) respected. Undo/redo reports `unavailable` in headless context.
+- **Edge Cases**: Scene already empty; only protected objects remaining; missing confirmation; headless undo.
+- **Error Handling**: `protection_error`; `confirmation_error`; `delegated_deletion_error`.
 
-### FR-SCN-002: Cleanup Scene Objects
+## API Contract
 
-- **Description**: Remove objects based on preservation policy, cleanup filter, confirmation rules. Scene owns policy; object feature owns execution.
-- **Input**: Cleanup request (mode, preservation list, object filter, dry-run flag, confirmation flag, child/dependent handling policy, protected object policy)
-- **Output**: Cleanup report (success, removed/preserved/skipped counts + refs, dry-run indicator)
-- **Rules**: Scene: policy resolution (candidate vs preserved), dry-run preview, confirmation requirement. Object: deletion execution (ref resolution, low-level deletion, constraints). Preservation may protect: cameras, lights, active camera, sole camera, marked protected objects, protected collection contents. Default policy from config when request omits. Dry-run: report without mutation. Report structure identical for dry-run and actual. Deterministic + repeatable for identical state + policy. Reports removed/preserved/skipped refs. Never removes world, render settings, or scene metadata. Child policy: delete hierarchy/detach/reject. Dependent policy: ignore/reject/remove direct. Linked/instanced handled carefully (no unintended shared data removal). Undo-aware when Blender supports. No undo + destructive → confirmation required. Partial failure reported clearly. Emits completion event.
-- **Edge Cases**: Scene already empty, only camera/light/protected remaining, linked/instanced/multi-user objects, active camera, locked/protected/hidden objects, children, constraint targets, large scene, timeout, partial deletion failure, missing confirmation, dry-run with no removable objects
-- **Error Handling**: Scene state error; protection error; validation error; confirmation error; delegated deletion error; timeout error; connection error
+| Operation | Input | Output | Description |
+|---|---|---|---|
+| `get_scene_info` | None | `UnifiedEnvelope` | Full scene metadata summary |
+| `list_scene_objects` | `include_hidden`, `object_type`, `limit` | `UnifiedEnvelope` | Bounded object listing |
+| `get_object_hierarchy` | `object_name`, `max_depth` | `UnifiedEnvelope` | Parent-child tree |
+| `cleanup_scene` | `mode`, `dry_run`, `confirm` | `UnifiedEnvelope` | Bulk policy-based deletion |
+| `undo` | None | `UnifiedEnvelope` | Navigate history backward |
+| `redo` | None | `UnifiedEnvelope` | Navigate history forward |
 
-### FR-SCN-003: List Scene Objects
+## Integration Points
 
-- **Description**: Return a bounded, deterministic list of scene object summaries.
-- **Input**: Optional `include_hidden`, `object_type`, and bounded `limit`.
-- **Output**: Object summaries with name, type, parent, collections, visibility, location, total matching count, and truncation flag.
-- **Rules**: Read-only and idempotent. Hidden objects are excluded by default. Type filters are normalized to uppercase. The response is bounded to 1–1000 objects and ordered by Blender scene order; the server must report truncation instead of silently implying completeness.
+- **3rd Party**: No 3rd party integrations.
+- **Internal**: `gateway` (connection), `object` (deletion execution), `config` (preservation policies), `shared` (taxonomy).
 
-### FR-SCN-004: Inspect Object Hierarchy
+## Non-functional Requirements (Detailed)
 
-- **Description**: Return parent-child hierarchy for one named object or all visible scene roots.
-- **Input**: Optional `object_name`, `include_hidden`, and `max_depth`.
-- **Output**: Tree nodes containing object name, type, children, root count, and truncation markers.
-- **Rules**: Read-only, deterministic child ordering by name, bounded depth 1–64, safe handling of missing object references, and no cyclic serialization.
+- **Performance**: Large scenes summarized via `detail_level` to avoid oversized responses. Hierarchy bounded to depth 64.
+- **Security**: Destructive cleanup requires explicit confirmation if undo is unavailable.
+- **Scalability**: Dry-run operations prevent accidental mass deletion. Linked/instanced objects handled without unintended shared data removal.
 
-### FR-SCN-005: Blender History Navigation
+## Test Scenarios / QA Checklist
 
-- **Description**: Request undo or redo of the most recent Blender edit operation.
-- **Input**: No parameters.
-- **Output**: Operation and explicit status. `finished` means Blender accepted the operation; `unavailable` means the current context cannot execute the editor history operator.
-- **Rules**: Never synthesize success. UI context may execute the operation; Blender background context may return `unavailable` because editor undo/redo polling requires an initialized editor context. Destructive callers must inspect the status and retain confirmation semantics.
+- [ ] Verify `get_scene_info` handles empty scene and missing active camera gracefully.
+- [ ] Verify `cleanup_scene` respects preservation list (cameras, lights).
+- [ ] Verify `cleanup_scene` dry-run does not mutate the scene.
+- [ ] Verify `undo`/`redo` explicitly reports `unavailable` in headless background context.
+- [ ] Verify `list_scene_objects` reports truncation instead of silently implying completeness.
 
-## Boundary: Scene vs Object
+## Assumptions & Constraints
 
-Scene: bulk ops, scene-wide inspection, preservation policy, cleanup filtering, dry-run, reporting, protected object policy decisions. Object: single-object technical ops, deletion execution, ref resolution, low-level constraints, hierarchy handling per scene policy, linked/instanced safety at execution level. Scene decides what should happen; object executes the technical deletion safely.
+- Scene decides what should happen (policy); Object executes the technical deletion safely.
+- Scene never removes world, render settings, or scene metadata.
 
-## Error Categories
+## Glossary
 
-- scene state error — invalid state for operation
-- protection error — attempted delete of protected object without override
-- validation error — invalid mode/policy/filter
-- confirmation error — destructive without required confirmation
-- delegated deletion error — object feature failed deletion
-- timeout error — inspection/cleanup exceeded limit
-- connection error — gateway/Blender unavailable
+- **Preservation Policy**: Rules defining which objects (e.g., active camera, lights) are protected from bulk cleanup.
+- **Dry-Run**: A preview execution that calculates what would be deleted without actually mutating the scene.
+- **UnifiedEnvelope**: The standardized JSON response wrapper containing success indicator, data payload, error category, tracking ID, and warnings.
 
-## Events
+## Reference
 
-- scene inspection completed (state summary)
-- scene cleanup completed (report)
-- scene cleanup dry-run completed (preview report)
-- scene cleanup failed (partial/full failure)
-
-Payloads: operation type, success, summary counts, dry-run indicator, error category, correlation ID. Never: full object dumps (large scenes), sensitive data.
-
-## Configuration Keys
-
-| Key | Description | Default |
-|---|---|---|
-| default_preservation_list | Default protected categories | cameras + lights |
-| default_dry_run_mode | Cleanup defaults to preview only | Disabled |
-| include_hidden_in_inspection | Hidden objects in inspection by default | Disabled |
-| max_inspection_detail_limit | Object detail cap to avoid oversized response | Safe limit |
-| protected_object_policy | Active camera/sole camera/lights/protected | active camera protected |
-| cleanup_confirmation_required | Destructive cleanup confirmation | Enabled if undo unavailable |
-| child_handling_default | Behavior for orphaned children | detach or reject |
-| dependent_handling_default | Behavior for dependents | reject or handle only when safe |
-| cleanup_timeout | Max cleanup duration | Configured |
-
-## QA Checklist
-
-- [ ] Inspection returns: object/camera/light/render settings/active camera/collection summaries
-- [ ] Handles empty scene + missing active camera gracefully
-- [ ] Hidden objects excluded by default, included when requested
-- [ ] Deterministic ordering; summarized detail for large scenes
-- [ ] Cleanup uses preservation policy (cameras, lights, protected)
-- [ ] Dry-run doesn't mutate scene; same report structure as actual
-- [ ] Deletion delegated to object feature
-- [ ] Report: removed/preserved/skipped counts + refs
-- [ ] Linked/instanced objects handled without unintended shared data removal
-- [ ] Children + dependents handled per configured policies
-- [ ] Protected objects respected without override
-- [ ] Missing confirmation → confirmation error
-- [ ] Partial failure reported clearly
-- [ ] Scene object listing is bounded, filtered, deterministic, and reports truncation
-- [ ] Hierarchy inspection handles roots, missing refs, hidden objects, depth limits, and no cycles
-- [ ] Undo/redo reports `unavailable` explicitly when Blender context cannot poll the editor operator
-- [ ] No overlap: object (single ops), render (execution), asset (import), job (tracking)
+- PRD: `./PRD.md`
+- Depends On: `gateway`, `object`, `config`, `shared`, `dispatcher`

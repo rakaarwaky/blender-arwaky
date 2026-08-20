@@ -1,35 +1,78 @@
 # FRD — Physics Feature
 
-## Purpose
+## System Overview
+The Physics module provides bounded rigid body, cloth, particle, force-field, and fluid configuration, state inspection, and scene cache lifecycle. It routes operations through the Gateway and uses the shared Job lifecycle for long-running bakes.
 
-Provide bounded rigid body and cloth configuration, state inspection, and scene cache lifecycle through canonical dispatcher actions.
+## Functional Requirements
 
-## Canonical actions
+### FR-001: Rigid Body and Cloth Configuration
+- **Description**: Enable/disable and configure rigid body and cloth modifiers, and inspect physics state.
+- **Input**: `object_name`, `enabled`, `body_type`, `mass`, `quality`, `pin_group`.
+- **Output**: `UnifiedEnvelope` confirming mutation or state summary.
+- **Business Rules**: Mass, quality, and frame ranges are bounded. Actions require explicit object names.
+- **Edge Cases**: Non-mesh object for cloth; invalid body type; negative mass.
+- **Error Handling**: `validation_error` for out-of-bounds values; `not_found` for missing objects.
 
-| Action | Type | Contract |
-|---|---|---|
-| `get_physics_state` | Read-only | Rigid body, cloth, and modifier state for one object |
-| `configure_rigid_body` | Mutation | Enable/disable and configure active/passive rigid body settings |
-| `configure_cloth_simulation` | Mutation | Enable/disable and configure bounded cloth quality/pin group |
-| `bake_physics_simulation` | Long-running destructive mutation | Bake the active scene cache over a bounded frame range; background/job eligible |
-| `clear_physics_bake` | Destructive mutation | Remove active scene point-cache data |
+### FR-002: Simulation Cache Lifecycle
+- **Description**: Bake active scene cache over bounded frame range and clear point-cache data.
+- **Input**: `frame_start`, `frame_end`.
+- **Output**: `UnifiedEnvelope` or task reference for background bake.
+- **Business Rules**: Bake and clear are marked destructive. Long-running bake dispatch uses shared `job` lifecycle. Never creates a private physics queue.
+- **Edge Cases**: Frame range out of bounds; cache directory unwritable; bake interrupted.
+- **Error Handling**: `validation_error` for invalid ranges; `capacity_error` if job queue full; `execution_error` for Blender cache failures.
 
-## Invariants
+### FR-003: Advanced Simulation (Wave 4)
+- **Description**: Configure particle systems, force fields, and fluid domains, and inspect simulation state.
+- **Input**: `object_name`, `count`, `lifetime`, `field_type`, `strength`, `domain_type`, `resolution`.
+- **Output**: `UnifiedEnvelope` with modifier summary.
+- **Business Rules**: Bounded count, lifetime, and resolution. Fluid bake action not exposed; only configures real Blender modifiers.
+- **Edge Cases**: Particle count exceeds limits; fluid domain resolution too high for memory.
+- **Error Handling**: `validation_error` for numeric bounds; `unsupported` for missing modifiers.
 
-Physics actions are limited to rigid body and cloth in the Wave 3 baseline. Mass, quality, frame range, and cache operations are bounded. Bake and clear actions are marked destructive; long-running bake dispatch must use the shared `job` lifecycle and never a private physics queue.
+## API Contract
 
-## Wave 4 advanced simulation actions
+| Operation | Input | Output | Description |
+|---|---|---|---|
+| `get_physics_state` | `object_name` | `UnifiedEnvelope` | Rigid body/cloth state |
+| `configure_rigid_body` | `object_name`, `enabled`, `mass` | `UnifiedEnvelope` | Configure rigid body |
+| `configure_cloth_simulation`| `object_name`, `enabled`, `quality`| `UnifiedEnvelope` | Configure cloth modifier |
+| `bake_physics_simulation` | `frame_start`, `frame_end` | `UnifiedEnvelope` | Bake scene cache (job eligible) |
+| `clear_physics_bake` | None | `UnifiedEnvelope` | Remove point-cache data |
+| `get_simulation_state` | `object_name` | `UnifiedEnvelope` | Particle/force/fluid summary |
+| `configure_particle_system` | `object_name`, `count`, `lifetime` | `UnifiedEnvelope` | Configure particle system |
+| `configure_force_field` | `object_name`, `field_type`, `strength`| `UnifiedEnvelope` | Configure force field |
+| `configure_fluid_domain` | `object_name`, `domain_type`, `resolution`| `UnifiedEnvelope` | Configure fluid domain |
 
-| Action | Type | Contract |
-|---|---|---|
-| `get_simulation_state` | Read-only | Bounded particle, force-field, fluid, rigid body, and cloth modifier summary |
-| `get_simulation_cache_status` | Read-only | Active scene frame range and bounded cache/bake state |
-| `configure_particle_system` | Mutation | One particle system with bounded count, lifetime, frame range, and physics type |
-| `configure_force_field` | Mutation | Existing object force field with bounded type, strength, and noise |
-| `configure_fluid_domain` | Mutation | Baseline fluid domain modifier with bounded domain type, resolution, and cache mode |
+## Integration Points
 
-Wave 4 does not expose a fluid bake action or external solver. It only configures real Blender modifiers and reads their state. Particle, force-field, and fluid operations are routed through the existing Blender gateway and never create a private task registry.
+- **3rd Party**: No 3rd party integrations.
+- **Internal**: `gateway` (command transport), `dispatcher` (routing), `job` (background bake tracking).
 
-## Verification
+## Non-functional Requirements (Detailed)
 
-Unit tests cover numeric bounds, body-type allow-list, and orchestration. Blender smoke tests cover rigid body configuration, cloth modifier configuration, state inspection, invalid object errors, and cache lifecycle handler readiness. Full bake execution remains environment-sensitive and is tested through the real bounded handler contract.
+- **Performance**: Simulation state inspection bounded to prevent payload exhaustion.
+- **Security**: Destructive cache clear operations require confirmation.
+- **Scalability**: Long-running bakes offloaded to `job` feature to prevent blocking the main thread.
+
+## Test Scenarios / QA Checklist
+
+- [ ] Verify `configure_rigid_body` rejects negative mass values.
+- [ ] Verify `bake_physics_simulation` returns a task reference when submitted as background.
+- [ ] Verify `clear_physics_bake` requires confirmation flag.
+- [ ] Verify Wave 4 actions only configure real Blender modifiers and do not expose external solvers.
+
+## Assumptions & Constraints
+
+- Physics actions are limited to rigid body, cloth, particle, force-field, and fluid in the baseline.
+- External solvers and custom simulation code execution are out of scope.
+
+## Glossary
+
+- **Point-Cache**: Blender's system for storing baked simulation data on disk/memory.
+- **Domain**: The bounding box object that defines the volume for fluid or particle simulations.
+- **UnifiedEnvelope**: The standardized JSON response wrapper containing success indicator, data payload, error category, tracking ID, and warnings.
+
+## Reference
+
+- PRD: `./PRD.md`
+- Depends On: `gateway`, `dispatcher`, `job`

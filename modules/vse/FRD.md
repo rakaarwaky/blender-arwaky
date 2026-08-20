@@ -1,22 +1,65 @@
 # FRD — Video Sequence Editor Feature
 
-## Purpose
+## System Overview
+The VSE module provides bounded Video Sequence Editor strip inspection, validated local media strip creation, strip removal, and sequence rendering through canonical dispatcher actions.
 
-Provide bounded VSE strip inspection, validated local media strip creation, strip removal, and sequence rendering through canonical dispatcher actions.
+## Functional Requirements
 
-## Canonical actions
+### FR-001: Strip Inspection and Creation
+- **Description**: Inspect bounded strip metadata and create validated local media strips.
+- **Input**: `strip_type` (COLOR, IMAGE, MOVIE, SOUND), `strip_name`, `filepath`, `channel`, `frame_start`, `frame_end`.
+- **Output**: `UnifiedEnvelope` with bounded strip names/types or creation confirmation.
+- **Business Rules**: Channel numbers and frame ranges bounded. `IMAGE`, `MOVIE`, `SOUND` require existing local file. `COLOR` does not. Output paths restricted to regular local files.
+- **Edge Cases**: Channel overlap; missing local file; invalid frame range; unsupported strip type.
+- **Error Handling**: `validation_error` for bad ranges/missing files; `security_violation` for unsafe paths.
 
-| Action | Type | Contract |
-|---|---|---|
-| `inspect_sequence_editor` | Read-only | Bounded strip names, types, channels, and frame ranges |
-| `create_sequence_strip` | Mutation | Create `COLOR`, `IMAGE`, `MOVIE`, or `SOUND` strip with validated inputs |
-| `remove_sequence_strip` | Destructive mutation | Remove one exact strip name and require dispatcher confirmation |
-| `render_sequence` | Long-running mutation | Render bounded frame range to a validated local output path; eligible for shared job lifecycle |
+### FR-002: Strip Removal and Sequence Rendering
+- **Description**: Remove exact strip names and render bounded frame ranges to local output.
+- **Input**: `strip_name`, `output_path`, `frame_start`, `frame_end`.
+- **Output**: `UnifiedEnvelope` confirming removal or task reference for background render.
+- **Business Rules**: Removal requires dispatcher confirmation. Sequence rendering uses shared `job` metadata path for background-capable dispatch. Never creates VSE-specific job registry.
+- **Edge Cases**: Strip not found; output path unwritable; render frame range out of bounds.
+- **Error Handling**: `not_found` for missing strips; `render_output_error` for bad paths; `capacity_error` if job queue full.
 
-## Invariants
+## API Contract
 
-Channel numbers and frame ranges are bounded. `IMAGE`, `MOVIE`, and `SOUND` strips require an existing local file; `COLOR` strips do not. Output paths are resolved and restricted to regular local files by the server's path policy. Sequence rendering uses the shared `job` metadata path for background-capable dispatch and never creates a VSE-specific job registry.
+| Operation | Input | Output | Description |
+|---|---|---|---|
+| `inspect_sequence_editor` | `limit` | `UnifiedEnvelope` | Read-only bounded strip metadata |
+| `create_sequence_strip` | `strip_type`, `strip_name`, `channel` | `UnifiedEnvelope` | Create media or color strip |
+| `remove_sequence_strip` | `strip_name`, `confirm` | `UnifiedEnvelope` | Remove exact strip name |
+| `render_sequence` | `output_path`, `frame_start`, `frame_end` | `UnifiedEnvelope` | Render sequence (job eligible) |
 
-## Verification
+## Integration Points
 
-Unit tests cover strip type and range validation. Blender smoke tests cover color strip creation, bounded inspection, exact removal, and structured invalid-input errors. Media rendering is verified as a real handler but remains job-eligible for long-running dispatch.
+- **3rd Party**: No 3rd party integrations.
+- **Internal**: `gateway` (command transport), `dispatcher` (routing), `job` (background rendering), `security` (path validation).
+
+## Non-functional Requirements (Detailed)
+
+- **Performance**: Inspection bounded to prevent payload exhaustion.
+- **Security**: Media file paths and output paths validated by `security`.
+- **Scalability**: Long-running sequence renders offloaded to `job` feature.
+
+## Test Scenarios / QA Checklist
+
+- [ ] Verify `create_sequence_strip` rejects MOVIE strips without a valid local file path.
+- [ ] Verify `remove_sequence_strip` requires confirmation flag.
+- [ ] Verify `render_sequence` returns a task reference when submitted as background.
+- [ ] Verify channel numbers and frame ranges enforce bounds.
+
+## Assumptions & Constraints
+
+- Sequence rendering uses the shared `job` lifecycle; no private VSE job registry.
+- Complex video editing effects (transitions, color grading) are out of scope for the baseline.
+
+## Glossary
+
+- **Strip**: A discrete media or effect block on the VSE timeline.
+- **Channel**: The vertical track on the VSE timeline where strips reside.
+- **UnifiedEnvelope**: The standardized JSON response wrapper containing success indicator, data payload, error category, tracking ID, and warnings.
+
+## Reference
+
+- PRD: `./PRD.md`
+- Depends On: `gateway`, `dispatcher`, `job`, `security`

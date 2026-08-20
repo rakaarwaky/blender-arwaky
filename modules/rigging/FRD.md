@@ -1,25 +1,66 @@
 # FRD — Rigging and Deformation Feature
 
-## Purpose
+## System Overview
+The Rigging module provides bounded armature inspection, pose-bone control, allow-listed bone constraints, shape-key configuration, and deformation-state inspection. It delegates all Blender access through the Gateway and avoids automatic weighting or external rig formats.
 
-Provide bounded armature inspection, pose-bone control, allow-listed bone constraints, shape-key configuration, and deformation-state inspection through canonical dispatcher actions.
+## Functional Requirements
 
-## Canonical actions
+### FR-001: Armature Inspection and Pose Control
+- **Description**: Inspect armature hierarchy and set pose-bone transforms.
+- **Input**: `armature_name`, `bone_name`, `location`, `rotation_euler`, `scale`, `limit`.
+- **Output**: `UnifiedEnvelope` with bounded bone summary or transform confirmation.
+- **Business Rules**: Inspection limited to 1000 bones. Pose transforms use finite numeric vectors. Actions require explicit object names.
+- **Edge Cases**: Missing armature; non-existent bone; non-finite vectors; scale bounds exceeded.
+- **Error Handling**: `not_found` for missing armatures/bones; `validation_error` for invalid vectors.
 
-| Action | Type | Contract |
-|---|---|---|
-| `inspect_armature` | Read-only | Bounded armature bones, hierarchy, deform flags, and pose summary |
-| `set_pose_bone_transform` | Mutation | Set one named pose bone location, Euler rotation, and/or scale with bounds |
-| `configure_bone_constraint` | Mutation | Create/update/remove one allow-listed constraint with validated target references |
-| `configure_shape_key` | Mutation | Create/update/remove one named shape key with bounded value and slider limits |
-| `get_deformation_state` | Read-only | Bounded armature modifiers, constraints, and shape-key summary for one mesh |
+### FR-002: Constraints, Shape Keys, and Deformation State
+- **Description**: Configure allow-listed bone constraints, manage shape keys, and inspect deformation modifiers.
+- **Input**: `constraint_type`, `target_object`, `shape_key_name`, `value`, `slider_min`.
+- **Output**: `UnifiedEnvelope` confirming mutation or deformation summary.
+- **Business Rules**: Constraint types limited to `COPY_LOCATION`, `COPY_ROTATION`, `LIMIT_LOCATION`, `LIMIT_ROTATION`. Shape-key values bounded. No arbitrary drivers or Python expressions accepted.
+- **Edge Cases**: Invalid constraint target; shape-key value outside slider limits; cyclic constraint dependencies.
+- **Error Handling**: `validation_error` for disallowed constraints or out-of-bounds values; `execution_error` for Blender evaluation failures.
 
-## Invariants
+## API Contract
 
-Actions require explicit object names and never select arbitrary UI context. Armature inspection is limited to 1000 bones. Pose transforms use finite numeric vectors and bounded scale. Constraint types are limited to `COPY_LOCATION`, `COPY_ROTATION`, `LIMIT_LOCATION`, and `LIMIT_ROTATION`; arbitrary drivers, Python expressions, and full IK orchestration are not accepted. Shape-key values and slider limits are finite and bounded.
+| Operation | Input | Output | Description |
+|---|---|---|---|
+| `inspect_armature` | `object_name`, `limit` | `UnifiedEnvelope` | Bounded bone hierarchy |
+| `set_pose_bone_transform` | `armature_name`, `bone_name`, `location` | `UnifiedEnvelope` | Mutate pose bone |
+| `configure_bone_constraint` | `armature_name`, `bone_name`, `constraint_type`| `UnifiedEnvelope` | Add/Update constraint |
+| `configure_shape_key` | `object_name`, `shape_key_name`, `value` | `UnifiedEnvelope` | Mutate shape key |
+| `get_deformation_state` | `object_name` | `UnifiedEnvelope` | Armature modifiers summary |
 
-The feature does not implement automatic weighting, weight painting, retargeting, driver graph authoring, B-Bone authoring, or external rig formats. All Blender access is delegated through the injected gateway in the AES executor and the addon server handler; no direct MCP registration or private task registry is permitted.
+## Integration Points
 
-## Verification
+- **3rd Party**: No 3rd party integrations.
+- **Internal**: `gateway` (command transport), `dispatcher` (action routing).
 
-Unit tests cover vector bounds, constraint allow-list, shape-key bounds, and gateway delegation. Contract tests cover action ownership and read-only flags. Blender smoke tests cover armature creation and hierarchy inspection, pose-bone transform, copy-rotation constraint, shape-key configuration, deformation state, and structured invalid-input errors.
+## Non-functional Requirements (Detailed)
+
+- **Performance**: Armature inspection bounded to 1000 bones to prevent payload exhaustion.
+- **Security**: Constraint targets validated to prevent arbitrary object linkage. No Python drivers accepted.
+- **Scalability**: Pose mutations serialized via Gateway queue.
+
+## Test Scenarios / QA Checklist
+
+- [ ] Verify `inspect_armature` truncates safely at 1000 bones.
+- [ ] Verify `set_pose_bone_transform` rejects non-finite vectors.
+- [ ] Verify `configure_bone_constraint` rejects types not in the allow-list.
+- [ ] Verify `configure_shape_key` enforces slider min/max bounds.
+
+## Assumptions & Constraints
+
+- Automatic weighting, weight painting, and retargeting are out of scope.
+- Full IK orchestration and driver graph authoring are not supported.
+
+## Glossary
+
+- **Pose Bone**: The animatable representation of a bone in an armature, distinct from the edit bone.
+- **Allow-list**: Predefined set of safe constraint types permitted for configuration.
+- **UnifiedEnvelope**: The standardized JSON response wrapper containing success indicator, data payload, error category, tracking ID, and warnings.
+
+## Reference
+
+- PRD: `./PRD.md`
+- Depends On: `gateway`, `dispatcher`

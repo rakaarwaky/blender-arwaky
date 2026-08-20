@@ -1,7 +1,7 @@
 # PRD — blender-arwaky
 
-**Version:** 1.0.0
-**Date:** 2026-07-29
+**Version:** 1.1.0
+**Date:** 2026-08-21
 
 ---
 
@@ -27,7 +27,7 @@ Blender artists and pipeline engineers lack a unified, programmable interface to
 
 ## Feature Overview
 
-**blender-arwaky** consists of 14 interconnected feature modules:
+**blender-arwaky** consists of interconnected feature modules:
 
 
 | Module          | Summary                                                                                                                                                                                  |
@@ -155,8 +155,33 @@ flowchart TB
 
 ---
 
+## Priority Order & Dependency Chain
+
+To ensure stable incremental delivery, features are strictly prioritized based on dependency chains and persona unblocking.
+
+| Feature | Priority | Rationale & Dependency Chain | Risk if Delayed |
+| --- | --- | --- | --- |
+| **Shared Foundation** | **P0** | **Blocker.** Defines VOs, Errors, Events. Every other module imports from this. Cannot write P1/P2 code without it. | Complete development paralysis. |
+| **Config** | **P0** | **Blocker.** Provides workspace root, settings, and redaction rules. Security and Gateway cannot initialize without it. | Security bypasses, hardcoded paths. |
+| **Security** | **P0** | **Blocker.** Path traversal and code injection guards. Asset, Render, and Gateway delegate all safety checks here. | CVEs, remote code execution vulnerabilities. |
+| **Launcher** | **P1** | **Critical.** Spawns the Blender process. Gateway cannot connect if Blender isn't running. | System cannot start. |
+| **Gateway** | **P1** | **Critical.** The transport layer. All domain features (Object, Scene, Render) depend on Gateway to send commands to Blender. | No Blender interaction possible. |
+| **Dispatcher** | **P1** | **Critical.** The routing catalog. CLI and MCP cannot function without the Dispatcher to validate and route requests. | Surfaces are blind and unusable. |
+| **CLI & MCP** | **P1** | **Critical.** The user/agent interfaces. Depends on Dispatcher. Required for any external integration or testing. | No way to interact with the system. |
+| **Object & Scene** | **P2** | **High Value.** Core 3D manipulation. Depends on Gateway. Required for basic scene setup and cleanup. | Cannot modify or inspect 3D data. |
+| **Asset** | **P2** | **High Value.** Import/Export/HDRI. Depends on Security (paths) and Gateway. Essential for populating scenes. | Empty scenes, manual file management. |
+| **Render** | **P2** | **High Value.** Image production. Depends on Asset (HDRI), Object (Cameras), and Gateway. Primary output mechanism. | No visual output or verification. |
+| **Job** | **P3** | **Operational.** Background tracking. Depends on Config. Required for long renders/downloads to prevent timeouts. | Blocking calls, pipeline timeouts. |
+| **Diagnostics** | **P3** | **Operational.** Health and logs. Depends on all modules. Required for debugging and production monitoring. | Blind failures, impossible to support. |
+| **Advanced Domains** | **P4** | **Enhancement.** Animation, Mesh, Physics, Rigging, VSE, Compositor, Geometry Nodes. Can be added iteratively once core P2 workflows are stable. | Limited to basic static scene assembly. |
+| **Telemetry** | **P5** | **Nice-to-have.** Anonymous analytics. Strictly opt-in, zero impact on core functionality. | Lack of product usage insights. |
+| **Plugin (MPFB2)** | **P5** | **Speculative.** External provider integration. High maintenance burden, depends on external Blender addon compatibility. | Brittle external dependencies block core releases. |
+
+---
+
 ## Open Questions / Risks
 
 - **Blender addon dependency**: Gateway requires a Blender-side bridge addon — version compatibility must be maintained across Blender releases.
 - **MCP protocol stability**: MCP is evolving — the server layer may need adaptation as the protocol specification changes.
-- **Headless rendering limitations**: Some Blender features (viewport preview, certain modifiers) may not be available in headless mode.
+- **Headless rendering limitations**: Some Blender features (viewport preview, certain modifiers, and editor-specific undo/redo history) may not be available in headless mode. CLI/MCP surfaces must gracefully handle `unavailable` states without treating them as fatal crashes.
+- **Export Logic Ownership**: CLI maps `export-model` to Asset, but export is technically a scene/object serialization task. Needs strict boundary enforcement in the Gateway addon.
