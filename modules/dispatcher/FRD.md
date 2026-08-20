@@ -30,12 +30,10 @@ The Dispatcher is the single routing and catalog authority between consumers (CL
 - **Error Handling**: `capacity_error`; `unsupported` for non-eligible action; `execution_error` for job creation failure.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `list_commands` | `domain`, `format` | `UnifiedEnvelope` | Discover available actions and schemas |
-| `execute_command` | `action`, `args` | `UnifiedEnvelope` | Universal action executor |
-
+| `list_commands` | `domain`, `format` | `ActionCatalog` | Discover available actions and schemas in deterministic order; degraded features marked; raises `validation_error` on malformed filters |
+| `execute_command` | `action`, `args` | `ActionOutcome | TaskRecord` | Universal action executor: synchronous mode returns owning aggregate's typed result; background mode creates Job record and returns it; raises `not_found` for unknown action, `validation_error` with field detail, `confirmation_error` for destructive actions without flag, `timeout_error`, `capacity_error`, `unsupported` for non-background-eligible actions |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

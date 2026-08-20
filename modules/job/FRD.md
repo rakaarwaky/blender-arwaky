@@ -30,15 +30,13 @@ The Job module is the single authority for background task records. Domain featu
 - **Error Handling**: Warnings for corrupt records; `task_not_found` for purged IDs.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `submit_task` | `operation_type`, `metadata` | `UnifiedEnvelope` | Create background task record |
-| `list_tasks` | None | `UnifiedEnvelope` | List pending, running, terminal tasks |
-| `get_capacity_status` | None | `UnifiedEnvelope` | Read active count and limits |
-| `get_task_status` | `task_id` | `UnifiedEnvelope` | Query task progress and state |
-| `cancel_task` | `task_id` | `UnifiedEnvelope` | Cancel running/pending task |
-
+| `submit_task` | `operation_type`, `metadata` | `TaskRecord` | Create background task record after capacity check; raises `capacity_error` with active count context, `validation_error` for malformed metadata |
+| `list_tasks` | None | `TaskRecord[]` | List pending, running, and terminal tasks |
+| `get_capacity_status` | None | `CapacityStatus` | Read active count and configured limits |
+| `get_task_status` | `task_id` | `TaskStatus` | Query task progress and state; raises `task_not_found` for unknown or purged ID |
+| `cancel_task` | `task_id` | `task_cancelled` | Cancel running/pending task via executor hook; raises `state_error` for terminal tasks, `unsupported` if executor lacks cancellation hook |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

@@ -22,16 +22,14 @@ The Scene module owns scene-level inspection, bulk cleanup policy, preservation 
 - **Error Handling**: `protection_error`; `confirmation_error`; `delegated_deletion_error`.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_scene_info` | None | `UnifiedEnvelope` | Full scene metadata summary |
-| `list_scene_objects` | `include_hidden`, `object_type`, `limit` | `UnifiedEnvelope` | Bounded object listing |
-| `get_object_hierarchy` | `object_name`, `max_depth` | `UnifiedEnvelope` | Parent-child tree |
-| `cleanup_scene` | `mode`, `dry_run`, `confirm` | `UnifiedEnvelope` | Bulk policy-based deletion |
-| `undo` | None | `UnifiedEnvelope` | Navigate history backward |
-| `redo` | None | `UnifiedEnvelope` | Navigate history forward |
-
+| `get_scene_info` | None | `SceneSummary` | Full scene metadata summary (read-only, deterministic ordering); raises `connection_error` if Gateway unavailable, `scene_state_error` if unsafe to inspect |
+| `list_scene_objects` | `include_hidden`, `object_type`, `limit` | `SceneObjectInfo[]` | Bounded object listing; truncation reported explicitly, never implied completeness; raises `connection_error` |
+| `get_object_hierarchy` | `object_name`, `max_depth` | `ObjectHierarchy` | Parent-child tree bounded to depth 64 with cycle-safe serialization; raises `not_found`, `serialization_error` |
+| `cleanup_scene` | `mode`, `dry_run`, `confirm` | `CleanupReport` | Bulk policy-based deletion with dry-run preview (removed/preserved/skipped); deletions executed via Object module; raises `protection_error`, `confirmation_error`, `delegated_deletion_error` |
+| `undo` | None | `undo_applied` | Navigate history backward; reports `unavailable` status in headless context without crashing |
+| `redo` | None | `redo_applied` | Navigate history forward; reports `unavailable` status in headless context without crashing |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

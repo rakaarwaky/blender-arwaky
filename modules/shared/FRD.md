@@ -30,14 +30,12 @@ The Shared Foundation module provides the core taxonomy (VOs, entities, errors, 
 - **Error Handling**: `validation_error` for helper constraint violations.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `create_timestamp` | `iso_string` | `Timestamp` | Internal: Immutable time VO |
-| `create_workspace_path`| `raw_path` | `WorkspacePath` | Internal: Normalized path VO |
-| `create_tracking_id` | `uuid_string` | `TrackingID` | Internal: Correlation ID VO |
-| `map_error_category` | `exception` | `ErrorCategory` | Internal: Canonical error mapping |
-
+| `create_timestamp` | `iso_string` | `Timestamp` | Internal: immutable time VO; raises `validation_error` on malformed ISO8601 |
+| `create_workspace_path` | `raw_path` | `WorkspacePath` | Internal: absolute, normalized path VO; raises `validation_error` on relative paths |
+| `create_tracking_id` | `uuid_string` | `TrackingID` | Internal: UUIDv4 correlation ID VO; raises `validation_error` on malformed UUID |
+| `map_error_category` | `exception` | `ErrorCategory` | Internal: canonical error mapping; unmapped Blender exceptions fall back to `execution_error` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

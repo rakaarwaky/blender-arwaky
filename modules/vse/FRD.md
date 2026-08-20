@@ -22,14 +22,12 @@ The VSE module provides bounded Video Sequence Editor strip inspection, validate
 - **Error Handling**: `not_found` for missing strips; `render_output_error` for bad paths; `capacity_error` if job queue full.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `inspect_sequence_editor` | `limit` | `UnifiedEnvelope` | Read-only bounded strip metadata |
-| `create_sequence_strip` | `strip_type`, `strip_name`, `channel` | `UnifiedEnvelope` | Create media or color strip |
-| `remove_sequence_strip` | `strip_name`, `confirm` | `UnifiedEnvelope` | Remove exact strip name |
-| `render_sequence` | `output_path`, `frame_start`, `frame_end` | `UnifiedEnvelope` | Render sequence (job eligible) |
-
+| `inspect_sequence_editor` | `limit` | `SequenceStripInfo[]` | Read-only bounded strip metadata; raises `validation_error` on invalid limit |
+| `create_sequence_strip` | `strip_type`, `strip_name`, `channel` | `sequence_strip_created` | Create media or color strip; IMAGE/MOVIE/SOUND require existing Security-validated local file; raises `validation_error` on bad ranges or missing file, `security_violation` on unsafe path |
+| `remove_sequence_strip` | `strip_name`, `confirm` | `sequence_strip_removed` | Remove exact strip name; requires dispatcher confirmation; raises `not_found`, `confirmation_error` |
+| `render_sequence` | `output_path`, `frame_start`, `frame_end` | `RenderArtifact | TaskRef` | Render bounded frame range via shared Job lifecycle (job-eligible); raises `render_output_error`, `capacity_error`, `security_violation` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

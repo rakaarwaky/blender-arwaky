@@ -30,18 +30,16 @@ The CLI Surface is the terminal interface for blender-arwaky. It parses user inp
 - **Error Handling**: Display failure degrades to generic categorized message; hint absence degrades to category + message.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `execute_blender_code` | `--code` | `UnifiedEnvelope` | Execute raw Python via Gateway |
-| `get_scene_info` | None | `UnifiedEnvelope` | Retrieve scene summary |
-| `cleanup_scene` | `--mode` | `UnifiedEnvelope` | Bulk scene cleanup |
-| `create_primitive` | `--primitive-type`, `--location` | `UnifiedEnvelope` | Create basic 3D object |
-| `render` | `--output-path`, `--resolution-x` | `UnifiedEnvelope` | Execute scene render |
-| `search_assets` | `--query`, `--limit` | `UnifiedEnvelope` | Search external providers |
-| `launch_blender` | `--filepath`, `--mode` | `UnifiedEnvelope` | Start Blender process |
-| `submit_task` | `--operation-type` | `UnifiedEnvelope` | Create background job |
-
+| `execute_blender_code` | `--code` | `CodeExecutionResult` | Execute raw Python via Gateway; raises `security_violation`, `execution_error`, `connection_error` |
+| `get_scene_info` | None | `SceneSummary` | Retrieve scene summary via Scene module; raises `connection_error`, `scene_state_error` |
+| `cleanup_scene` | `--mode` | `CleanupReport` | Bulk scene cleanup via Scene policy; raises `protection_error`, `confirmation_error`, `delegated_deletion_error` |
+| `create_primitive` | `--primitive-type`, `--location` | `BlenderObjectRef` | Create basic 3D object via Object module; raises `validation_error`, `execution_error` |
+| `render` | `--output-path`, `--resolution-x` | `RenderArtifact | TaskRef` | Execute scene render via Render module; long renders auto-submit to Job and return `TaskRef`; raises `render_output_error`, `security_violation`, `capacity_error`, `scene_state_error` |
+| `search_assets` | `--query`, `--limit` | `AssetSearchResult[]` | Search external providers via Asset module; raises `provider_error`, `validation_error`, `authentication_error` |
+| `launch_blender` | `--filepath`, `--mode` | `LaunchResult` | Start Blender process via Launcher; raises `configuration_error`, `validation_error`, `timeout_error` |
+| `submit_task` | `--operation-type` | `TaskRecord` | Create background job via Job module; raises `capacity_error`, `validation_error` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

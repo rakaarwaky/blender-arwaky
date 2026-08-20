@@ -22,12 +22,10 @@ The Telemetry module collects anonymous usage analytics on an opt-in basis only.
 - **Error Handling**: `session_state_error` triggers fresh session; `transmission_error` discards batch after retries.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `record_event` | `action_type`, `outcome` | `InternalAck` | Internal: Buffer anonymous event |
-| `transmit_batch` | None | `InternalAck` | Internal: Send batch to backend |
-
+| `record_event` | `action_type`, `outcome` | `void` | Internal: buffer anonymous event only when consent active; invalid records silently dropped with internal counter; never blocks product operations |
+| `transmit_batch` | None | `void` | Internal: send batch to analytics backend; raises `transmission_error` (batch discarded after bounded retries) |
 ## Integration Points
 
 - **3rd Party**: Product Analytics Backend (Vendor-operated).

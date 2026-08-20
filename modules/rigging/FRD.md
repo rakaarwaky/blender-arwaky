@@ -22,15 +22,13 @@ The Rigging module provides bounded armature inspection, pose-bone control, allo
 - **Error Handling**: `validation_error` for disallowed constraints or out-of-bounds values; `execution_error` for Blender evaluation failures.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `inspect_armature` | `object_name`, `limit` | `UnifiedEnvelope` | Bounded bone hierarchy |
-| `set_pose_bone_transform` | `armature_name`, `bone_name`, `location` | `UnifiedEnvelope` | Mutate pose bone |
-| `configure_bone_constraint` | `armature_name`, `bone_name`, `constraint_type`| `UnifiedEnvelope` | Add/Update constraint |
-| `configure_shape_key` | `object_name`, `shape_key_name`, `value` | `UnifiedEnvelope` | Mutate shape key |
-| `get_deformation_state` | `object_name` | `UnifiedEnvelope` | Armature modifiers summary |
-
+| `inspect_armature` | `object_name`, `limit` | `ArmatureHierarchy` | Bounded bone hierarchy (max 1000 bones); raises `not_found` on missing armature, `validation_error` on invalid limit |
+| `set_pose_bone_transform` | `armature_name`, `bone_name`, `location` | `pose_bone_transform_updated` | Mutate pose bone with finite numeric vectors; raises `not_found` on missing armature/bone, `validation_error` for non-finite vectors |
+| `configure_bone_constraint` | `armature_name`, `bone_name`, `constraint_type` | `bone_constraint_configured` | Add/update allow-listed constraint (COPY_LOCATION, COPY_ROTATION, LIMIT_LOCATION, LIMIT_ROTATION); raises `validation_error` for disallowed types or invalid targets |
+| `configure_shape_key` | `object_name`, `shape_key_name`, `value` | `shape_key_configured` | Mutate shape key within slider bounds; raises `not_found`, `validation_error` for out-of-bounds value |
+| `get_deformation_state` | `object_name` | `DeformationState` | Read-only armature modifiers summary; raises `not_found` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

@@ -30,15 +30,13 @@ The Render module is the single authority for image production and camera optics
 - **Error Handling**: `validation_error` for invalid bounds/engine.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_viewport_screenshot` | `filepath`, `max_size`, `view_angle` | `UnifiedEnvelope` | AI-optimized viewport capture |
-| `render` | `output_path`, `resolution_x`, `samples` | `UnifiedEnvelope` | Full frame render (job eligible) |
-| `configure_camera` | `camera_ref`, `focal_length`, `framing_target`| `UnifiedEnvelope` | Setup camera optics/DoF |
-| `setup_environment` | `hdri_id`, `strength` | `UnifiedEnvelope` | Apply HDRI lighting |
-| `set_render_settings` | `engine`, `resolution_x`, `samples` | `UnifiedEnvelope` | Update scene render bounds |
-
+| `get_viewport_screenshot` | `filepath`, `max_size`, `view_angle` | `RenderArtifact` | AI-optimized viewport capture; returns file ref with dimensions and capture time, never raw image payload (recommend rename to `capture_viewport_screenshot`: produces a filesystem artifact); raises `render_output_error`, `scene_state_error` |
+| `render` | `output_path`, `resolution_x`, `samples` | `RenderArtifact | TaskRef` | Full-frame render to Security-validated output; long renders auto-submit to Job and return `TaskRef`; raises `render_output_error`, `security_violation`, `capacity_error`, `scene_state_error` |
+| `configure_camera` | `camera_ref`, `focal_length`, `framing_target` | `CameraRef` | Setup camera optics/DoF with deterministic camera resolution (explicit → active → first); raises `camera_setup_error`, `validation_error` |
+| `setup_environment` | `hdri_id`, `strength` | `EnvironmentRef` | Apply HDRI lighting from local `ArtifactRef` supplied by Asset (never a provider ID); raises `asset_not_found` when HDRI missing locally, `validation_error` for out-of-range strength |
+| `set_render_settings` | `engine`, `resolution_x`, `samples` | `RenderSettings` | Update scene render bounds without starting a render (dimensions 1–16384, percentage 1–100, samples 1–65536); raises `validation_error` for invalid bounds or unknown engine |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

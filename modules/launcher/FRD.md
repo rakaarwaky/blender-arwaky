@@ -30,14 +30,12 @@ The Launcher is the single authority for operating on the Blender process itself
 - **Error Handling**: `state_error` triggers empty-state fallback + warning.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `launch_blender` | `filepath`, `mode`, `port` | `UnifiedEnvelope` | Start Blender with integration active |
-| `shutdown_blender` | `force` | `UnifiedEnvelope` | Graceful shutdown with force fallback |
-| `get_runtime_status` | None | `UnifiedEnvelope` | Verify true process liveness |
-| `register_executable` | `path` | `UnifiedEnvelope` | Locate and register Blender executable |
-
+| `launch_blender` | `filepath`, `mode`, `port` | `LaunchResult` | Start Blender with integration bridge active (idempotent when verified instance exists); returns process ref, readiness state, endpoint summary; raises `configuration_error` when no executable found, `validation_error` on failed checks, `timeout_error` on readiness |
+| `shutdown_blender` | `force` | `blender_shutdown` | Graceful shutdown with force-termination fallback per policy; raises `timeout_error`, `termination_error`, `state_error` on persisted vs observed conflict |
+| `get_runtime_status` | None | `RuntimeStatus` | Verify true process liveness with PID-reuse guard; raises `state_error` on persisted vs observed conflict |
+| `register_executable` | `path` | `executable_registered` | Locate and register Blender executable (discovery order: explicit > registered > env > platform > PATH); raises `configuration_error`, `validation_error` for non-Blender executables |
 ## Integration Points
 
 - **3rd Party**: OS Process Management (spawn/kill signals).

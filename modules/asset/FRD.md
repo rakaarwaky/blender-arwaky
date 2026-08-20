@@ -38,18 +38,16 @@ The Asset module is the single authority for everything entering blender-arwaky 
 - **Error Handling**: `asset_import_error` (Blender-side); `asset_not_found` with download guidance; `validation_error`.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `search_assets` | `query`, `providers`, `limit`, `page_token` | `UnifiedEnvelope` | Unified provider search |
-| `get_provider_metadata` | `provider`, `asset_id` | `UnifiedEnvelope` | Raw provider asset description |
-| `download_asset` | `provider`, `asset_id`, `cache_dir`, `background` | `UnifiedEnvelope` | Download to local cache |
-| `extract_asset` | `artifact_path`, `destination`, `max_entries` | `UnifiedEnvelope` | Safe archive extraction |
-| `import_asset` | `file_path`, `asset_type`, `target_collection` | `UnifiedEnvelope` | Import local file to Blender |
-| `import_glb` | `file_path`, `object_name` | `UnifiedEnvelope` | Specific GLB/GLTF import |
-| `export_model` | `object_name`, `file_path`, `export_format` | `UnifiedEnvelope` | Export scene object to file |
-| `place_asset` | `asset_id`, `location`, `rotation`, `scale` | `UnifiedEnvelope` | Position existing asset in scene |
-
+| `search_assets` | `query`, `providers`, `limit`, `page_token` | `AssetSearchResult[]` | Unified provider search with normalized, deduplicated results and pagination metadata; partial results on provider failure; raises `provider_error` when all providers fail, `validation_error` on malformed params, `authentication_error` on missing credentials |
+| `get_provider_metadata` | `provider`, `asset_id` | `ProviderAssetMetadata` | Raw provider asset description; raises `asset_not_found`, `authentication_error` |
+| `download_asset` | `provider`, `asset_id`, `cache_dir`, `background` | `ArtifactRef | TaskRef` | Download to local cache with atomic write (temp → final); large downloads routed to Job and return `TaskRef`; raises `asset_not_found`, `security_violation`, `capacity_error`, `cache_error` |
+| `extract_asset` | `artifact_path`, `destination`, `max_entries` | `ExtractedFileRef[]` | Safe archive extraction under Security supervision; rejected entries reported without exposing unsafe paths; raises `archive_safety_error`, `security_violation`, `validation_error` |
+| `import_asset` | `file_path`, `asset_type`, `target_collection` | `AssetImportReport` | Import local file to Blender; returns object refs and metadata including license attribution; raises `asset_import_error`, `asset_not_found` with download guidance, `validation_error` |
+| `import_glb` | `file_path`, `object_name` | `BlenderObjectRef` | Specific GLB/GLTF import; raises `asset_not_found`, `validation_error` for unsupported format, `execution_error` on Blender-side failure |
+| `export_model` | `object_name`, `file_path`, `export_format` | `ArtifactRef` | Export scene object to validated file path; raises `not_found`, `security_violation` on unsafe path, `execution_error` |
+| `place_asset` | `asset_id`, `location`, `rotation`, `scale` | `BlenderObjectRef` | Position existing asset in scene; raises `not_found`, `validation_error` on non-finite coordinates |
 ## Integration Points
 
 - **3rd Party**: External Asset Providers (Polyhaven, Sketchfab, etc.) via HTTPS APIs.

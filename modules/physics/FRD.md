@@ -30,19 +30,17 @@ The Physics module provides bounded rigid body, cloth, particle, force-field, an
 - **Error Handling**: `validation_error` for numeric bounds; `unsupported` for missing modifiers.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_physics_state` | `object_name` | `UnifiedEnvelope` | Rigid body/cloth state |
-| `configure_rigid_body` | `object_name`, `enabled`, `mass` | `UnifiedEnvelope` | Configure rigid body |
-| `configure_cloth_simulation`| `object_name`, `enabled`, `quality`| `UnifiedEnvelope` | Configure cloth modifier |
-| `bake_physics_simulation` | `frame_start`, `frame_end` | `UnifiedEnvelope` | Bake scene cache (job eligible) |
-| `clear_physics_bake` | None | `UnifiedEnvelope` | Remove point-cache data |
-| `get_simulation_state` | `object_name` | `UnifiedEnvelope` | Particle/force/fluid summary |
-| `configure_particle_system` | `object_name`, `count`, `lifetime` | `UnifiedEnvelope` | Configure particle system |
-| `configure_force_field` | `object_name`, `field_type`, `strength`| `UnifiedEnvelope` | Configure force field |
-| `configure_fluid_domain` | `object_name`, `domain_type`, `resolution`| `UnifiedEnvelope` | Configure fluid domain |
-
+| `get_physics_state` | `object_name` | `PhysicsState` | Read-only rigid body/cloth state; raises `not_found` on missing object |
+| `configure_rigid_body` | `object_name`, `enabled`, `mass` | `rigid_body_configured` | Configure rigid body; raises `validation_error` for negative mass or invalid body type, `not_found` |
+| `configure_cloth_simulation` | `object_name`, `enabled`, `quality` | `cloth_configured` | Configure cloth modifier; raises `validation_error`, `not_found` for non-mesh objects |
+| `bake_physics_simulation` | `frame_start`, `frame_end` | `TaskRef` | Bake scene cache via shared Job lifecycle (job-eligible); raises `validation_error` on invalid frame range, `capacity_error` if job queue full, `execution_error` on Blender cache failure |
+| `clear_physics_bake` | None | `physics_bake_cleared` | Remove point-cache data; destructive, requires confirmation; raises `confirmation_error` |
+| `get_simulation_state` | `object_name` | `SimulationState` | Read-only particle/force-field/fluid summary; raises `not_found` |
+| `configure_particle_system` | `object_name`, `count`, `lifetime` | `particle_system_configured` | Configure particle system within bounded count/lifetime; raises `validation_error` |
+| `configure_force_field` | `object_name`, `field_type`, `strength` | `force_field_configured` | Configure force field; raises `validation_error`, `unsupported` for missing modifiers |
+| `configure_fluid_domain` | `object_name`, `domain_type`, `resolution` | `fluid_domain_configured` | Configure fluid domain within bounded resolution; raises `validation_error`, `unsupported` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

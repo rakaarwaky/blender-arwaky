@@ -30,11 +30,9 @@ The Gateway is the single transport authority between application features and t
 - **Error Handling**: `security_violation` (delegated); `execution_error`; `connection_error`.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `execute_blender_code` | `code` | `UnifiedEnvelope` | Run Python in Blender via Gateway |
-
+| `execute_blender_code` | `code` | `CodeExecutionResult` | Run Python in Blender via Gateway after Security code validation; bounded, structured, truncated output with indicator; raises `security_violation`, `execution_error`, `connection_error`, `timeout_error` |
 ## Integration Points
 
 - **3rd Party**: Blender Process (via socket/pipe bridge addon).

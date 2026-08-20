@@ -22,17 +22,15 @@ The Plugin module is the single authority for managing external Blender addon li
 - **Error Handling**: `state_error` for duplicate enablement; `execution_error` for addon crashes; `unsupported` for incompatible plugins.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `list_plugins` | None | `UnifiedEnvelope` | List known plugins and states |
-| `download_plugin` | `plugin_id`, `source_url`, `sha256` | `UnifiedEnvelope` | Download and verify archive |
-| `install_plugin` | `plugin_id`, `cache_path`, `blender_path` | `UnifiedEnvelope` | Extract and register extension |
-| `enable_plugin` | `plugin_id`, `extension_id` | `UnifiedEnvelope` | Activate via Blender API |
-| `disable_plugin` | `plugin_id`, `extension_id` | `UnifiedEnvelope` | Deactivate via Blender API |
-| `create_character` | `plugin_id`, `name` | `UnifiedEnvelope` | Invoke provider character generator |
-| `randomize_character` | `plugin_id`, `name`, `seed` | `UnifiedEnvelope` | Invoke provider randomization |
-
+| `list_plugins` | None | `PluginInfo[]` | List known plugins and lifecycle states |
+| `download_plugin` | `plugin_id`, `source_url`, `sha256` | `ArtifactRef` | Download and SHA256-verify archive; raises `security_violation` on hash mismatch, `validation_error` for missing URL |
+| `install_plugin` | `plugin_id`, `cache_path`, `blender_path` | `plugin_installed` | Extract and register extension under Blender extension path policies; raises `execution_error`, `validation_error` |
+| `enable_plugin` | `plugin_id`, `extension_id` | `plugin_enabled` | Activate via Blender API after compatibility check; raises `state_error` on duplicate enablement, `unsupported` on incompatible plugin |
+| `disable_plugin` | `plugin_id`, `extension_id` | `plugin_disabled` | Deactivate via Blender API; raises `state_error` |
+| `create_character` | `plugin_id`, `name` | `BlenderObjectRef` | Invoke provider character generator mapped to explicit catalog entry; raises `execution_error` on addon crash, `unsupported` |
+| `randomize_character` | `plugin_id`, `name`, `seed` | `character_randomized` | Invoke provider randomization; raises `execution_error`, `validation_error` |
 ## Integration Points
 
 - **3rd Party**: External Addon APIs (e.g., MPFB2 Python API).

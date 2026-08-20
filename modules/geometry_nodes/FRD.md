@@ -22,14 +22,12 @@ The Geometry Nodes module provides bounded inspection and mutation of Blender Ge
 - **Error Handling**: `validation_error` for socket mismatches or cycles; `not_found` for missing sockets.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `inspect_geometry_node_group` | `node_group_name` | `UnifiedEnvelope` | Read-only bounded topology |
-| `create_geometry_node_group` | `node_group_name`, `object_name` | `UnifiedEnvelope` | Create basic node group |
-| `set_geometry_node_link` | `node_group_name`, `from_node`, `to_node` | `UnifiedEnvelope` | Link exact sockets |
-| `set_geometry_node_modifier` | `object_name`, `node_group_name` | `UnifiedEnvelope` | Add/Remove modifier on object |
-
+| `inspect_geometry_node_group` | `node_group_name` | `NodeGroupTopology` | Read-only bounded topology (max 1000 nodes/links per group); raises `not_found` on missing group, `validation_error` on invalid name |
+| `create_geometry_node_group` | `node_group_name`, `object_name` | `geometry_node_group_created` | Create basic allow-listed node group; raises `unsupported` for incompatible objects, `validation_error` on invalid names |
+| `set_geometry_node_link` | `node_group_name`, `from_node`, `to_node` | `geometry_node_link_set` | Link exact sockets with socket-type validation and cyclic dependency detection (idempotent); raises `validation_error` on mismatch/cycle, `not_found` on missing sockets |
+| `set_geometry_node_modifier` | `object_name`, `node_group_name` | `geometry_node_modifier_set` | Add/Remove geometry node modifier on object; raises `not_found`, `unsupported` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

@@ -30,12 +30,10 @@ The Config module is the single owner for loading, validating, and providing set
 - **Error Handling**: `workspace_resolution_error` when all strategies fail and CWD is inaccessible.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_config` | `key` (opt) | `UnifiedEnvelope` | Retrieve config value or all settings |
-| `set_config` | `key`, `value` | `UnifiedEnvelope` | Update and persist config setting |
-
+| `get_config` | `key` (opt) | `ConfigSnapshot` | Retrieve config value by dot-separated path or full immutable settings snapshot; raises `validation_error` on malformed path |
+| `set_config` | `key`, `value` | `config_updated` | Update and atomically persist config setting after schema validation; raises `validation_error` for secret-like keys or schema violations, `type_conversion_error` in strict mode |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

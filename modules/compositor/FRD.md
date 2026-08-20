@@ -22,14 +22,12 @@ The Compositor module provides bounded compositor node graph inspection and muta
 - **Error Handling**: `validation_error` for socket mismatches; `not_found` for missing nodes; `unsupported` for disallowed node types.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `inspect_compositor_nodes` | `limit` | `UnifiedEnvelope` | Read-only bounded node graph |
-| `configure_compositor` | `use_nodes` | `UnifiedEnvelope` | Enable/disable compositor |
-| `create_compositor_node` | `node_type`, `node_name` | `UnifiedEnvelope` | Create allow-listed node |
-| `set_compositor_link` | `from_node`, `from_socket`, `to_node`, `to_socket` | `UnifiedEnvelope` | Link exact sockets |
-
+| `inspect_compositor_nodes` | `limit` | `CompositorNodeGraph` | Read-only bounded node graph (max 1000 nodes and links); raises `validation_error` on invalid limit, `state_error` if compositor context unavailable |
+| `configure_compositor` | `use_nodes` | `compositor_configured` | Enable/disable compositor node usage; raises `state_error` if context unavailable |
+| `create_compositor_node` | `node_type`, `node_name` | `compositor_node_created` | Create allow-listed node; raises `unsupported` for disallowed node types, `validation_error` on invalid names |
+| `set_compositor_link` | `from_node`, `from_socket`, `to_node`, `to_socket` | `compositor_link_set` | Link exact existing sockets (idempotent); raises `validation_error` on socket type mismatch, `not_found` on missing node/socket |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

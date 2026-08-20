@@ -22,15 +22,13 @@ The MCP Surface provides Model Context Protocol tools for AI clients. It is the 
 - **Error Handling**: Serialization failure falls back to safe summarized envelope; masking failure suppresses fragment.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `execute_command` | `action`, `args` | `MCPResponse` | Universal action executor |
-| `list_commands` | `domain`, `format` | `MCPResponse` | Discover available actions |
-| `health_check` | None | `MCPResponse` | Verify system health |
-| `get_config` | `key` | `MCPResponse` | Retrieve configuration |
-| `help` | `topic` | `MCPResponse` | Embedded documentation |
-
+| `execute_command` | `action`, `args` | `ActionOutcome | TaskRecord` | Universal action executor routed via Dispatcher; 1:1 parity with CLI; raises `validation_error` on malformed payload, upstream errors passed through unchanged |
+| `list_commands` | `domain`, `format` | `ActionCatalog` | Discover available actions; degraded owning features indicated in schema, not hidden |
+| `health_check` | None | `HealthSnapshot` | Verify system health via Diagnostics |
+| `get_config` | `key` | `ConfigSnapshot` | Retrieve configuration; raises `validation_error` on malformed key |
+| `help` | `topic` | `HelpContent` | Embedded documentation (no runtime filesystem reads); raises `unsupported` on unknown topic |
 ## Integration Points
 
 - **3rd Party**: AI Clients (via Model Context Protocol).

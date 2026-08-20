@@ -30,11 +30,9 @@ The Diagnostics module is the single observability authority. Every other featur
 - **Error Handling**: `emission_error` engages fallback buffer; `log_redaction_failure` masks entire payload.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `health_check` | None | `UnifiedEnvelope` | Verify connectivity and system health snapshot |
-
+| `health_check` | None | `HealthSnapshot` | Composed system health with bounded per-subsystem probes (launcher, gateway, config, job capacity); timed-out probe yields `degraded` status, never stalls composition |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

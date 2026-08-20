@@ -30,14 +30,12 @@ The Security module is the central owner for file access, archive safety, untrus
 - **Error Handling**: `audit_emission_error` triggers fallback record; original violation remains primary error.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `validate_path` | `path`, `access_mode` | `SecurityResult` | Internal: Path traversal check |
-| `validate_archive` | `entry_metadata`, `destination` | `SecurityResult` | Internal: Archive safety check |
-| `validate_code` | `code_text` | `SecurityResult` | Internal: Syntax-tree analysis |
-| `redact_data` | `data`, `policy` | `RedactedData` | Internal: Secret masking |
-
+| `validate_path` | `path`, `access_mode` | `SecurityResult` | Internal: path traversal check returning allow/deny plus canonical path; rejects traversal, symlink escape, out-of-bounds paths; violations emit audit events |
+| `validate_archive` | `entry_metadata`, `destination` | `SecurityResult` | Internal: archive safety check with normalized entries, rejected absolute paths, and max depth/size/count enforcement; violations emit audit events |
+| `validate_code` | `code_text` | `SecurityResult` | Internal: AST-based analysis rejecting dynamic execution, system/subprocess, and unsafe file access; raw code never logged by default |
+| `redact_data` | `data`, `policy` | `RedactedData` | Internal: secret masking with stable placeholders at ingestion; raises `redaction_error` on masking failure (entire payload masked as fallback) |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

@@ -30,19 +30,17 @@ The Object module is the single authority for single-object technical operations
 - **Error Handling**: `deletion_protection`; `scene_state`; `serialization_error`.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_object_info` | `object_name` | `UnifiedEnvelope` | Detailed object state |
-| `create_primitive` | `primitive_type`, `location` | `UnifiedEnvelope` | Create basic 3D object |
-| `set_object_transform` | `object_name`, `location`, `rotation` | `UnifiedEnvelope` | Update transform |
-| `delete_object` | `object_name`, `confirm` | `UnifiedEnvelope` | Remove single object |
-| `set_material` | `object_name`, `material_name` | `UnifiedEnvelope` | Assign material |
-| `create_material` | `material_name`, `base_color` | `UnifiedEnvelope` | Create PBR material |
-| `set_material_properties`| `material_name`, `metallic` | `UnifiedEnvelope` | Update PBR properties |
-| `set_material_texture` | `material_name`, `file_path` | `UnifiedEnvelope` | Attach image texture |
-| `apply_modifier` | `object_name`, `modifier_name` | `UnifiedEnvelope` | Apply/Configure modifier |
-
+| `get_object_info` | `object_name` | `ObjectInfo` | Detailed object state with safe serialization (no cyclic refs); raises `not_found`, `serialization_error` |
+| `create_primitive` | `primitive_type`, `location` | `BlenderObjectRef` | Create basic 3D object; raises `validation_error` on invalid type or non-finite coordinates |
+| `set_object_transform` | `object_name`, `location`, `rotation` | `transform_updated` | Update transform (CLI degrees converted to radians at addon boundary); idempotent for identical absolute values; raises `not_found`, `ambiguous_reference`, `validation_error`, `transform_lock` |
+| `delete_object` | `object_name`, `confirm` | `object_deleted` | Remove single object honoring protection policies; raises `deletion_protection`, `confirmation_error`, `scene_state_error` |
+| `set_material` | `object_name`, `material_name` | `MaterialRef` | Assign material and return resolved ref; raises `material_assignment`, `not_found` |
+| `create_material` | `material_name`, `base_color` | `MaterialRef` | Create PBR material with properties bounded 0–1; raises `validation_error` for out-of-range values |
+| `set_material_properties` | `material_name`, `metallic` | `material_properties_updated` | Update PBR properties; shared materials untouched unless explicitly allowed; raises `validation_error` for out-of-range values |
+| `set_material_texture` | `material_name`, `file_path` | `TextureRef` | Attach image texture; path validated by Security; raises `security_violation`, `not_found` |
+| `apply_modifier` | `object_name`, `modifier_name` | `modifier_applied` | Apply/configure modifier; destructive application requires confirmation; raises `confirmation_error`, `modifier_compatibility` |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

@@ -22,14 +22,12 @@ The Mesh module exposes bounded mesh statistics, topology validation, edit-mode-
 - **Error Handling**: `validation_error` for invalid operations/lengths; `execution_error` for bmesh failures.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_mesh_statistics` | `object_name` | `UnifiedEnvelope` | Read-only vertex/edge/polygon summary |
-| `validate_mesh` | `object_name`, `limit` | `UnifiedEnvelope` | Topology validation findings |
-| `perform_mesh_edit_operation` | `object_name`, `operation` | `UnifiedEnvelope` | Recalculate normals, triangulate, etc. |
-| `ensure_mesh_uv_layer` | `object_name`, `uv_layer_name` | `UnifiedEnvelope` | Create or reuse UV layer |
-
+| `get_mesh_statistics` | `object_name` | `MeshStatistics` | Read-only vertex/edge/polygon summary; raises `not_found` on missing object, `validation_error` for non-mesh types |
+| `validate_mesh` | `object_name`, `limit` | `MeshValidationReport` | Topology validation findings (loose vertices, degenerate faces, non-manifold edges) bounded to 1000 records; raises `not_found`, `serialization_error` for cyclic data |
+| `perform_mesh_edit_operation` | `object_name`, `operation` | `mesh_edit_applied` | Recalculate normals, triangulate, or remove doubles via bmesh without UI edit-mode; raises `validation_error` for operations outside allow-list, `execution_error` on bmesh failure |
+| `ensure_mesh_uv_layer` | `object_name`, `uv_layer_name` | `uv_layer_ensured` | Create or reuse named UV layer (idempotent); raises `validation_error` for names exceeding 64 characters |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.

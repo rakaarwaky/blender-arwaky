@@ -38,30 +38,28 @@ The Animation module exposes bounded native Blender animation primitives through
 - **Error Handling**: `asset_not_found` for missing files; `validation_error` for unsupported formats; `execution_error` for import failures.
 
 ## API Contract
-
 | Operation | Input | Output | Description |
 |---|---|---|---|
-| `get_animation_state` | `object_name`, `limit` | `UnifiedEnvelope` | Read-only bounded F-curve and Action state |
-| `insert_object_keyframe` | `object_name`, `frame`, `data_path`, `index` | `UnifiedEnvelope` | Mutate native object keyframe |
-| `set_timeline_range` | `frame_start`, `frame_end`, `current_frame` | `UnifiedEnvelope` | Mutate scene timeline bounds |
-| `list_object_keyframes` | `object_name`, `limit` | `UnifiedEnvelope` | Read-only bounded keyframe listing |
-| `list_animation_actions` | `armature_name` (opt) | `UnifiedEnvelope` | Read-only native Actions |
-| `import_animation_file` | `file_path` | `UnifiedEnvelope` | Native FBX/BVH import |
-| `link_action_to_armature` | `armature_name`, `action_name` | `UnifiedEnvelope` | Assign Action to armature |
-| `list_pose_assets` | None | `UnifiedEnvelope` | List native pose assets |
-| `create_pose_asset` | `armature_name`, `asset_name` | `UnifiedEnvelope` | Create pose from active armature |
-| `apply_pose_asset` | `asset_name`, `mirror` | `UnifiedEnvelope` | Apply native pose asset |
-| `blend_pose_asset` | `asset_name`, `mirror` | `UnifiedEnvelope` | Blend native pose asset |
-| `set_shape_key_keyframe` | `object_name`, `shape_key`, `value` | `UnifiedEnvelope` | Keyframe mesh shape-key |
-| `create_nla_track` | `track_name` | `UnifiedEnvelope` | Create native NLA track |
-| `add_nla_strip` | `track_name`, `action_name` | `UnifiedEnvelope` | Add Action to NLA track |
-| `set_nla_strip` | `strip_name`, `timing`, `blend` | `UnifiedEnvelope` | Update NLA strip properties |
-| `set_animation_layer` | `track_name`, `mute`, `solo` | `UnifiedEnvelope` | Set NLA track layer properties |
-| `set_animation_mask` | `strip_name`, `bone_mask` | `UnifiedEnvelope` | Set NLA strip bone mask |
-| `remove_nla_strip` | `strip_name` | `UnifiedEnvelope` | Remove native NLA strip |
-| `bake_nla_assembly` | `armature_name` | `UnifiedEnvelope` | Bake NLA layers to Action |
-| `validate_nla_assembly` | `armature_name` | `UnifiedEnvelope` | Validate NLA tracks and linkage |
-
+| `get_animation_state` | `object_name`, `limit` | `AnimationState` | Read-only bounded F-curve and Action state; raises `not_found` on missing object, `validation_error` on invalid limit |
+| `insert_object_keyframe` | `object_name`, `frame`, `data_path`, `index` | `keyframe_inserted` | Mutate native object keyframe (location/rotation_euler/scale only); raises `not_found`, `validation_error` for out-of-bounds frame, `execution_error` on Blender failure |
+| `set_timeline_range` | `frame_start`, `frame_end`, `current_frame` | `timeline_range_updated` | Mutate scene timeline bounds; raises `validation_error` if `frame_end` < `frame_start` |
+| `list_object_keyframes` | `object_name`, `limit` | `KeyframeInfo[]` | Read-only bounded keyframe listing (max 1000 records); raises `not_found` on missing object |
+| `list_animation_actions` | `armature_name` (opt) | `ActionRef[]` | Read-only native Actions; raises `not_found` on missing armature |
+| `import_animation_file` | `file_path` | `AnimationImportReport` | Native FBX/BVH import with imported object and Action report; raises `asset_not_found` for missing file, `validation_error` for unsupported format, `execution_error` on import failure |
+| `link_action_to_armature` | `armature_name`, `action_name` | `action_linked` | Assign Action to armature; raises `not_found` on missing armature/Action, `execution_error` on incompatible bone structure |
+| `list_pose_assets` | None | `PoseAssetInfo[]` | List native pose assets |
+| `create_pose_asset` | `armature_name`, `asset_name` | `pose_asset_created` | Create pose from active armature; raises `not_found` on missing armature |
+| `apply_pose_asset` | `asset_name`, `mirror` | `pose_asset_applied` | Apply native pose asset; raises `not_found` on missing asset |
+| `blend_pose_asset` | `asset_name`, `mirror` | `pose_asset_blended` | Blend native pose asset; raises `not_found` on missing asset |
+| `set_shape_key_keyframe` | `object_name`, `shape_key`, `value` | `shape_key_keyframed` | Keyframe mesh shape-key within slider bounds; raises `not_found`, `validation_error` for out-of-bounds value |
+| `create_nla_track` | `track_name` | `nla_track_created` | Create native NLA track; raises `validation_error` on invalid name |
+| `add_nla_strip` | `track_name`, `action_name` | `nla_strip_added` | Add Action to NLA track; raises `not_found` on missing track/Action, `validation_error` on timing overlap |
+| `set_nla_strip` | `strip_name`, `timing`, `blend` | `nla_strip_updated` | Update NLA strip properties; raises `not_found`, `validation_error` on invalid blend/timing |
+| `set_animation_layer` | `track_name`, `mute`, `solo` | `animation_layer_updated` | Set NLA track layer properties; raises `not_found` on missing track |
+| `set_animation_mask` | `strip_name`, `bone_mask` | `animation_mask_updated` | Set NLA strip bone mask; raises `not_found`, `validation_error` on invalid bone mask names |
+| `remove_nla_strip` | `strip_name` | `nla_strip_removed` | Remove native NLA strip; raises `not_found` on missing strip |
+| `bake_nla_assembly` | `armature_name` | `ActionRef` | Bake NLA layers to a single editable Action; raises `not_found`, `state_error` for corrupt tracks, `execution_error` on bake failure |
+| `validate_nla_assembly` | `armature_name` | `NLAValidationReport` | Read-only validation of NLA tracks and linkage; raises `not_found`, `validation_error` on invalid parameters |
 ## Integration Points
 
 - **3rd Party**: No 3rd party integrations.
