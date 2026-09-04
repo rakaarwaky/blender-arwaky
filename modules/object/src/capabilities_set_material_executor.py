@@ -10,10 +10,8 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import Prompt, SuccessFlag
-from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_set_material_protocol import SetMaterialProtocol
 from modules.shared.src.object.taxonomy_object_vo import SetMaterialVO
 
@@ -29,7 +27,7 @@ class SetMaterialExecutor(SetMaterialProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -88,8 +86,8 @@ class SetMaterialExecutor(SetMaterialProtocol):
         with optional index selection (FR-OBJ-004). Applies base_color, metallic,
         roughness, alpha to Principled BSDF node when provided.
         """
-        object_safe = quote_string(str(request.object_name))
-        material_safe = quote_string(str(request.material_name))
+        object_safe = repr(str(request.object_name))
+        material_safe = repr(str(request.material_name))
 
         lines = [
             "import bpy",

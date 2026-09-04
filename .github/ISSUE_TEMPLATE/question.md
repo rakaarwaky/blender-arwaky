@@ -13,7 +13,7 @@ What would you like to know?
 ## What I've Tried
 
 - [ ] Read the [README](README.md)
-- [ ] Read the [SKILL.md](SKILL.md)
+- [ ] Read the embedded `help` guidance from MCP or `blender-arwaky help`
 - [ ] Read the [AGENT.md](AGENT.md)
 - [ ] Searched [existing issues](https://github.com/rakaarwaky/blender-arwaky/issues)
 - [ ] Searched [discussions](https://github.com/rakaarwaky/blender-arwaky/discussions)

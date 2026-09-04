@@ -1,17 +1,16 @@
 """CLI init command — Start Blender with a file."""
 
 import os
-from typing import Any
 
-from .utility_cli_process import launch_blender
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import launch_blender
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle init command: start Blender with the given file."""
     registry = Registry()
 
@@ -21,11 +20,14 @@ def handle(args: Any) -> dict[str, Any]:
 
     filepath = os.path.abspath(args.filepath)
     try:
-        pid = launch_blender(filepath, mode=args.mode, port=args.port)
+        res = launch_blender(filepath, mode=args.mode, port=args.port)
+        if not res.success or not res.data:
+            return _mask_error(res.category or "launch_failed", res.ref or "cli-500", res.error or "Failed to launch")
+        pid = int(res.data.get("pid", 0))
         registry.set_active(filepath, pid, args.port)
         return {
             "success": True,
-            "message": "Blender session started",
+            "message": res.message,
             "filepath": filepath,
             "pid": pid,
             "port": args.port,

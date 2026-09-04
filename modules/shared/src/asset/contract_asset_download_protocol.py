@@ -10,7 +10,6 @@ AES Contract layer — pure ABC definitions, no implementation.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetId,
@@ -21,8 +20,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ProviderName,
     ResolutionPreference,
 )
-
-_DEFAULT_OVERWRITE_POLICY = DuplicatePolicy("reuse")
 
 
 class AssetDownloadProtocol(ABC):
@@ -42,10 +39,10 @@ class AssetDownloadProtocol(ABC):
         asset_type: AssetType,
         cache_dir: FilePath,
         resolution: ResolutionPreference | None = None,
-        overwrite_policy: DuplicatePolicy = _DEFAULT_OVERWRITE_POLICY,
+        overwrite_policy: DuplicatePolicy | None = None,
         max_size: MaxSize | None = None,
         background: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Download asset file from provider into local cache.
 
         FR-AST-002: Cache location from configuration; paths validated

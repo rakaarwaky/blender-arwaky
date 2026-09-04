@@ -8,6 +8,8 @@ requirements (FR-MCP-003+). Remove if/when events become orphaned permanently.
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
+from ..common.taxonomy_core_vo import Details
+
 
 class McpEventKind(StrEnum):
     """MCP event type enumeration."""
@@ -31,4 +33,4 @@ class McpEvent:
     kind: McpEventKind
     tool: str | None = None
     detail: str | None = None
-    extra: dict[str, str] = field(default_factory=dict)
+    extra: Details = field(default_factory=dict)

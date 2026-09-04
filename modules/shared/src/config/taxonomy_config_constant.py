@@ -6,7 +6,10 @@ No classes, no functions — only ALL_CAPS declarations.
 
 from __future__ import annotations
 
-from typing import Any
+import os
+from pathlib import Path
+
+from .taxonomy_config_vo import SettingsValue
 
 # ─── Sensitive Key Patterns (FR-CFG-005) ──────────────────────
 
@@ -30,15 +33,13 @@ SENSITIVE_KEY_PATTERNS: tuple[str, ...] = (
 # ─── Environment Variable Names (FR-CFG-001 / FR-CFG-003) ────
 
 CONFIG_PATH_ENV: str = "BLENDERMCP_CONFIG_PATH"
-WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"  # replaces both legacy+product root lookup
-STRICT_MODE_FLAG_ENV: str = "BLENDERMCP_STRICT"
+WORKSPACE_ROOT_ENV: str = "BLENDERMCP_ROOT"
 DEFAULT_CONFIG_FILENAME: str = "config.yaml"
 
 # Environment keys that are control signals, never settings overrides.
 RESERVED_ENV_KEYS: tuple[str, ...] = (
     "BLENDERMCP_CONFIG_PATH",
     "BLENDERMCP_ROOT",
-    "BLENDERMCP_STRICT",
 )
 
 # ─── Event Sink (FR-CFG-001 / T-09) ──────────────────────────
@@ -60,7 +61,7 @@ PROJECT_MARKERS: tuple[str, ...] = (
 
 # ─── Compile-Time Defaults (FR-CFG-001, Q4) ──────────────────
 
-DEFAULT_SETTINGS: dict[str, Any] = {
+DEFAULT_SETTINGS: dict[str, SettingsValue] = {
     "blender": {"executable_path": "blender", "host": "localhost", "port": 9876},
     "server": {"transport": "stdio", "log_dir": "log"},
 }
@@ -68,7 +69,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
 # ─── Settings Schema (FR-CFG-001, Q3) ───────────────────────
 # Python-native schema: node = {"type", "required", "children"}.
 
-SETTINGS_SCHEMA: dict[str, Any] = {
+SETTINGS_SCHEMA: dict[str, SettingsValue] = {
     "blender": {
         "type": "dict",
         "required": False,
@@ -94,7 +95,7 @@ MAX_CONFIG_SIZE_BYTES: int = 1024 * 1024  # 1 MiB
 
 # ─── Environment Override Prefix (FR-CFG-001) ───────────────
 
-ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"  # legacy BLENDER_MCP_ prefix removed (v1.7.0 BREAKING)
+ENV_PREFIX_PRODUCT: str = "BLENDERMCP_"
 
 # ─── Redaction Placeholder (FR-CFG-005) ──────────────────────
 
@@ -106,3 +107,15 @@ POLICY_MODE_STRICT: str = "strict"
 POLICY_MODE_PERMISSIVE: str = "permissive"
 
 DEFAULT_POLICY_MODE: str = "strict"
+
+# ─── Sentinel (FR-CFG-002) ──────────────────────────────────
+# Used by the retriever to distinguish "key missing" from a value that
+# happens to be None.
+
+SENTINEL_MISSING: str = "__SENTINEL_MISSING__"
+
+# ─── XDG Config Location ────────────────────────────────────
+# Default per-user config directory follows XDG Base Directory when
+# XDG_CONFIG_HOME is set; otherwise ~/.config.
+
+XDG_CONFIG_DIR: Path = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "blender-arwaky"

@@ -1,12 +1,10 @@
 """CLI status command — Show active Blender status."""
 
-from typing import Any
-
-from .utility_cli_process import is_running
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.cli.utility_cli_process import is_running
 
 
-def handle(_args: Any) -> dict[str, Any]:
+def handle(_args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle status command: show active Blender instance status."""
     registry = Registry()
 
@@ -16,7 +14,7 @@ def handle(_args: Any) -> dict[str, Any]:
     return {
         "success": True,
         "active": True,
-        "running": registry.get_pid() is not None and is_running(registry.get_pid()),
+        "running": registry.get_pid() is not None and is_running(registry.get_pid()).success,
         "filepath": registry.get_active(),
         "pid": registry.get_pid(),
         "port": registry.get_port(),

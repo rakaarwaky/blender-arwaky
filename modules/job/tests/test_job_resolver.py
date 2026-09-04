@@ -36,19 +36,19 @@ def _make_policy(**overrides: object) -> JobPolicy:
 
 
 def _make_snapshot(
-    job_id: JobId = JobId("test-1"),
+    job_id: JobId | None = None,
     state: JobState = JOB_STATE_COMPLETED,
     finished_at: Timestamp | None = None,
-    updated_at: Timestamp = Timestamp(1000.0),
+    updated_at: Timestamp | None = None,
     started_at: Timestamp | None = None,
 ) -> JobStatusSnapshot:
     """Build a JobStatusSnapshot with minimal fields for cleanup tests."""
     return JobStatusSnapshot(
-        job_id=job_id,
+        job_id=job_id or JobId("test-1"),
         state=state,
         operation_type=OperationType("render"),
         created_at=Timestamp(900.0),
-        updated_at=updated_at,
+        updated_at=updated_at or Timestamp(1000.0),
         finished_at=finished_at,
         started_at=started_at,
     )
@@ -251,8 +251,10 @@ def test_fr_job_004_max_enforced_after_expired(resolver: JobCleanupResolver) -> 
     policy = _make_policy(max_records=1, retention_seconds=500)
     terminal = (
         _make_snapshot(job_id=JobId("expired-1"), state=JOB_STATE_COMPLETED, finished_at=Timestamp(500.0)),  # expired
-        _make_snapshot(job_id=JobId("old-but-ok"), state=JOB_STATE_COMPLETED, finished_at=Timestamp(1800.0)),  # not expired
-        _make_snapshot(job_id= JobId("new"), state=JOB_STATE_COMPLETED, finished_at=Timestamp(1900.0)),  # not expired
+        _make_snapshot(
+            job_id=JobId("old-but-ok"), state=JOB_STATE_COMPLETED, finished_at=Timestamp(1800.0)
+        ),  # not expired
+        _make_snapshot(job_id=JobId("new"), state=JOB_STATE_COMPLETED, finished_at=Timestamp(1900.0)),  # not expired
     )
     decision = resolver.resolve(terminal, (), now, policy)
 

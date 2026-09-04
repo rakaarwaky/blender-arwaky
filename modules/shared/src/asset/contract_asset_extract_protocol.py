@@ -10,7 +10,6 @@ AES Contract layer — pure ABC definitions, no implementation.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 
@@ -32,11 +31,12 @@ class AssetExtractProtocol(ABC):
         max_entries: int = 1000,
         max_extracted_size: int = 1073741824,
         allow_symlinks: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Extract downloaded archive under security policy supervision.
 
         FR-AST-003: Extraction destination validated through security
-        policy before any entry is written. Rejected entries reported
+        policy before entry writing. Rejected entries reported
+
         without exposing unsafe target paths in raw form. Partial
         extraction cleaned up on failure. Nested archives follow same
         security supervision.

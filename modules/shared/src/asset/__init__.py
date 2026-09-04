@@ -57,5 +57,6 @@ __all__ = [
     "AssetExtractProtocol",
     "AssetImportProtocol",
     "AssetProviderProtocol",
+    "IAssetProviderConnection",
     "IAssetAggregate",
 ]

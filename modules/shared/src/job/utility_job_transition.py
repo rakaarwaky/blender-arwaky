@@ -80,8 +80,8 @@ def transition_record(
     now = Timestamp(float(clock()))
     record = _get_or_raise(records, job_id)
     validate_transition(record.state, target)
-    del policy  # Reserved for capacity accounting owned by the repository.
 
+    _counts_toward_capacity(record.state, policy)
     record.state = target
     record.updated_at = now
 

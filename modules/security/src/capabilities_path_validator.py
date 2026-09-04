@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from typing import Protocol
+from urllib.parse import unquote
 
 from modules.shared.src.security.contract_validate_path_protocol import ValidatePathProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -17,6 +18,7 @@ from modules.shared.src.security.taxonomy_security_vo import (
 from modules.shared.src.security.utility_security_path import (
     is_within_allowed_dirs,
     normalize_path,
+    redact_path,
     resolve_path,
 )
 
@@ -32,13 +34,6 @@ class _OsPathResolver:
 
     def resolve(self, path: str) -> str:
         return resolve_path(path)
-
-
-def _redact_path(path: str) -> str:
-    parts = path.replace("\\", "/").split("/")
-    if len(parts) <= 2:
-        return "***"
-    return "/" + "/".join(["***"] + list(parts[-2:]))
 
 
 class PathValidator(ValidatePathProtocol):
@@ -67,6 +62,10 @@ class PathValidator(ValidatePathProtocol):
                 denial_reason="Empty path",
                 audit_metadata={"rule": "empty_path"},
             )
+
+        # Decode URL-escaped separators/dots before traversal detection.
+        # This prevents encoded paths from bypassing the segment check.
+        target = unquote(target)
 
         # Check for path traversal BEFORE normalization
         if ".." in target.replace("\\", "/").split("/"):
@@ -109,7 +108,7 @@ class PathValidator(ValidatePathProtocol):
                 access_mode=request.access_mode,
                 allowed=False,
                 denial_reason="Symbolic link escape",
-                audit_metadata={"rule": "symlink_escape", "path": _redact_path(resolved)},
+                audit_metadata={"rule": "symlink_escape", "path": redact_path(resolved)},
             )
 
         allowed_dirs = self._policy.allowed_directories
@@ -121,7 +120,7 @@ class PathValidator(ValidatePathProtocol):
                 operation_context=request.operation_context,
                 allowed=False,
                 denial_reason="Path outside allowed directories",
-                audit_metadata={"rule": "unauthorized_access", "path": _redact_path(resolved)},
+                audit_metadata={"rule": "unauthorized_access", "path": redact_path(resolved)},
             )
 
         return PathValidationVO(
@@ -131,9 +130,25 @@ class PathValidator(ValidatePathProtocol):
             operation_context=request.operation_context,
             allowed=True,
             canonical_path=resolved,
-            audit_metadata={"path": _redact_path(resolved), "mode": request.access_mode.value},
+            audit_metadata={"path": redact_path(resolved), "mode": request.access_mode.value},
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
+    def validate_path_sync(self, request: PathValidationVO) -> PathValidationVO:
+        """Synchronous wrapper for async validate_path (for use in sync contexts)."""
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(self.validate_path(request))
+
+        # A synchronous caller may still be running inside an event loop.
+        # Execute the coroutine in a short-lived worker loop instead of
+        # nesting or reusing the active loop.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, self.validate_path(request)).result()
+
     def __repr__(self) -> str:
         return "PathValidator()"

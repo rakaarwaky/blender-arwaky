@@ -6,10 +6,6 @@ Stateless technical functions that generate Blender Python code.
 from __future__ import annotations
 
 from ..common.taxonomy_core_vo import PythonCode
-from .taxonomy_render_constant import (
-    RENDER_ENGINE_CYCLES,
-    RENDER_ENGINE_EEVEE,
-)
 from .taxonomy_render_vo import (
     CameraConfigVO,
     HdriConfigVO,
@@ -77,11 +73,11 @@ def build_scene_render_code(request: RenderSceneVO) -> PythonCode:
         "scene.render.resolution_x = resolution_x",
         "scene.render.resolution_y = resolution_y",
         "",
-        f"if engine == {RENDER_ENGINE_CYCLES!r}:",
+        "if engine == 'CYCLES':",
         "    scene.render.engine = 'CYCLES'",
         "    scene.cycles.samples = samples",
         "    scene.cycles.use_denoising = use_denoising",
-        f"elif engine == {RENDER_ENGINE_EEVEE!r}:",
+        "elif engine == 'BLENDER_EEVEE':",
         "    scene.render.engine = 'BLENDER_EEVEE'",
         "    if hasattr(scene, 'eevee'):",
         "        scene.eevee.taa_render_samples = samples",

@@ -10,7 +10,6 @@ AES Contract layer — pure ABC definitions, no implementation.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetCollectionName,
@@ -20,9 +19,6 @@ from modules.shared.src.common.taxonomy_core_vo import (
     FilePath,
     ScaleNormalization,
 )
-
-_DEFAULT_SCALE_NORMALIZATION = ScaleNormalization(False)
-_DEFAULT_DUPLICATE_POLICY = DuplicatePolicy("rename")
 
 
 class AssetImportProtocol(ABC):
@@ -40,10 +36,10 @@ class AssetImportProtocol(ABC):
         file_path: FilePath,
         asset_type: AssetType,
         target_collection: AssetCollectionName | None = None,
-        scale_normalization: ScaleNormalization = _DEFAULT_SCALE_NORMALIZATION,
-        duplicate_policy: DuplicatePolicy = _DEFAULT_DUPLICATE_POLICY,
+        scale_normalization: ScaleNormalization | None = None,
+        duplicate_policy: DuplicatePolicy | None = None,
         format_hint: AssetFormatHint | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Import a locally available asset file into Blender.
 
         FR-AST-004: File must exist locally before import. Import command

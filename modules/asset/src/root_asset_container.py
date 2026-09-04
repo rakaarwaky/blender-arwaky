@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from modules.shared.src.asset.contract_asset_provider_connection import IAssetProviderConnection
+from modules.asset.src.capabilities_asset_provider_connection import AssetProviderConnectionImpl
+from modules.shared.src.asset.contract_asset_provider_connection_protocol import (
+    IAssetProviderConnection,
+)
 
 if TYPE_CHECKING:
     from .agent_asset_orchestrator import AssetOrchestrator
@@ -46,7 +49,7 @@ class AssetContainer:
         self._lock = threading.Lock()
         self._orchestrator: AssetOrchestrator | None = None
 
-    def _get_config_value(self, key: str, default: Any) -> Any:
+    def _get_config_value(self, key: str, default: object) -> object:
         """Read a config key from config_getter, falling back to default."""
         if self._config_getter is None:
             return default
@@ -76,16 +79,7 @@ class AssetContainer:
             from .capabilities_asset_search_handler import AssetSearchHandler
 
             # CE02: Read FRD config keys (wired per capability's own config_getter)
-            overwrite_policy = self._get_config_value("overwrite_policy", "reuse")
             enabled_providers = self._get_config_value("enabled_providers", None)
-
-            # Normalize overwrite_policy to DuplicatePolicy
-            from modules.shared.src.common.taxonomy_core_vo import DuplicatePolicy
-
-            if isinstance(overwrite_policy, DuplicatePolicy):
-                overwrite_policy_vo = overwrite_policy
-            else:
-                overwrite_policy_vo = DuplicatePolicy(str(overwrite_policy))
 
             search = AssetSearchHandler(
                 self._connection,
@@ -94,8 +88,8 @@ class AssetContainer:
             download = AssetDownloadCapability(
                 security_validator=self._security_validator,
                 job_scheduler=self._job_scheduler,
-                config_getter=self._config_getter,
-                overwrite_policy=overwrite_policy_vo,
+                config_aggregate=self._config_getter,
+                provider_connection=self._connection,
             )
             extract = AssetExtractCapability(
                 security_supervisor=self._security_supervisor,
@@ -127,7 +121,21 @@ class AssetContainer:
 
 
 def create_asset_container(
-    connection: IAssetProviderConnection,
+    connection: IAssetProviderConnection | None = None,
+    security_validator: object | None = None,
+    security_supervisor: object | None = None,
+    job_scheduler: object | None = None,
+    config_getter: object | None = None,
+    gateway_client: object | None = None,
     event_publisher: object | None = None,
 ) -> AssetContainer:
-    return AssetContainer(connection=connection, event_publisher=event_publisher)
+    """Create an asset container with production defaults and explicit dependencies."""
+    return AssetContainer(
+        connection=connection or AssetProviderConnectionImpl(),
+        security_validator=security_validator,
+        security_supervisor=security_supervisor,
+        job_scheduler=job_scheduler,
+        config_getter=config_getter,
+        gateway_client=gateway_client,
+        event_publisher=event_publisher,
+    )

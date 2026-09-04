@@ -1,3 +1,0 @@
-[console_scripts]
-blender-arwaky = modules.cli.src.root_cli_main_entry:main
-blender-mcp = modules.root_mcp_entry:main

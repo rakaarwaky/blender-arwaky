@@ -16,7 +16,7 @@ The architecture supports multi-language workspaces.
 | Workspace Member   | One self-contained crate, package, or module inside the workspace |
 | Crates directory   | Rust workspace members                                            |
 | Packages directory | TypeScript or JavaScript packages                                 |
-| Modules directory  | Python modules or sub-projects                                    |
+| Modules directory  | Python modules                                                    |
 
 ---
 
@@ -36,7 +36,9 @@ The parts are joined by underscores, followed by the normal file extension for t
 
 ## 4. Vertical Slicing Folder Structure
 
-The recommended folder structure follows this order:
+AI agents frequently make this mistake. Do NOT create `surface/`, `taxonomy/`,
+`contract/`, `capabilities/`, `utility/`, `agent/` folders. The correct structure
+groups files by feature, with layers as filenames, not directories.
 
 #### Features member
 
@@ -44,6 +46,7 @@ _Example feature crate `crates|packages|modules/<name-features>/`_
 
 ```text
 surface_<concern>_<role>.rs/py/ts                ← surface layer
+utility_<concern>_<role>.rs/py/ts                ← utility layer
 capabilities_<concern>_<role>.rs/py/ts           ← capabilities layer
 agent_<concern>_orchestrator.rs/py/ts            ← agent layer
 ```
@@ -61,10 +64,56 @@ taxonomy_<concern>_vo.rs/py/ts                   ← taxonomy layer
 taxonomy_<concern>_event.rs/py/ts                ← taxonomy layer
 taxonomy_<concern>_entity.rs/py/ts               ← taxonomy layer
 taxonomy_<concern>_constant.rs/py/ts             ← taxonomy layer
-utility_<concern>_<role>.rs/py/ts                ← utility layer
 ```
 
 `shared` folder groups by domain. Use `shared/common/` for generic files.
+
+### General Workspace Layout
+
+```
+project-root/                             <- Project workspace root
+│
+├── crates|packages|modules/              <- workspace members
+│   ├── shared/                           <- SHARED: Taxonomy + Contract (all features)
+│   │   └── src/
+│   │       ├── taxonomy_<domain>_vo.rs/py/ts 
+│   │       ├── taxonomy_<domain>_entity.rs/py/ts 
+│   │       ├── taxonomy_<domain>_event.rs/py/ts 
+│   │       ├── taxonomy_<domain>_error.rs/py/ts 
+│   │       ├── taxonomy_<domain>_constant.rs/py/ts 
+│   │       ├── contract_<domain>_protocol.rs/py/ts 
+│   │       └── contract_<domain>_aggregate.rs/py/ts 
+│   │
+│   ├── <feature-a>/                      <- FEATURE: <feature-a description>
+│   │   └── src/
+│   │       ├── agent_<feature-a>_orchestrator.rs/py/ts         <- Agent
+│   │       ├── capabilities_<feature-a>_<role>.rs/py/ts        <- Capabilities
+│   │       ├── capabilities_<feature-a>_<role>.rs/py/ts        <- Capabilities
+│   │       ├── utility_<feature-a>_<role>.rs/py/ts             <- Utility
+│   │       ├── utility_<feature-a>_<role>.rs/py/ts             <- Utility
+│   │       ├── root_<feature-a>_container.rs/py/ts            <- Root
+│   │       └── lib.rs
+│   │
+│   ├── <feature-b>/                      <- FEATURE: <feature-b description>
+│   │   └── src/
+│   │       ├── agent_<feature-b>_orchestrator.rs/py/ts         <- Agent
+│   │       ├── capabilities_<feature-b>_<role>.rs/py/ts        <- Capabilities
+│   │       ├── utility_<feature-b>_<role>.rs/py/ts             <- Utility
+│   │       ├── root_<feature-b>_container.rs/py/ts             <- Root
+│   │       └── lib.rs
+│   │
+│   ├── <feature-c>/                      <- FEATURE: <feature-c description>
+│   │   └── src/
+│   │       ├── surface_<feature-c>_<role>.rs/py/ts             <- Surface
+│   │       └── lib.rs
+│   │
+│   └── ...
+│
+│
+├── Cargo.toml                    
+├── package.json
+└── pyproject.toml
+```
 
 ---
 
@@ -125,44 +174,11 @@ Contract may depend on Taxonomy only.
 
 ### Purpose
 
-Utility contains low-level technical mechanics. It exists so that Capabilities can remain clean and expressive.
+Utility contains reusable low-level mechanics that can be shared cross capabilities. It exists so that Capabilities can remain clean.
 
 ### Role Naming
 
 Utility role suffixes are unlimited. The role name is chosen based on demand and must describe the technical responsibility and concern of the file.
-
-parser
-splitter
-trimmer
-slugifier
-sanitizer
-normalizer
-extractor
-replacer
-converter
-counter
-resolver
-detector
-builder
-joiner
-serializer
-deserializer
-encoder
-decoder
-hasher
-generator
-formatter
-comparator
-differ
-matcher
-checker
-calculator
-mapper
-merger
-grouper
-sorter
-deduplicator
-printer
 
 ### Dependencies
 
@@ -198,51 +214,7 @@ Capabilities contain the concrete implementation of the system's behavior. This 
 
 ### Role Naming
 
-#### Internal Examples
-
-validator
-assessor
-calculator
-resolver
-classifier
-selector
-mapper
-transformer
-policy
-enricher
-evaluator
-analyzer
-scorer
-grader
-ranker
-filter
-checker
-reviewer
-approver
-rejector
-
-#### External Examples
-
-repository
-gateway
-client
-provider
-fetcher
-reader
-writer
-scanner
-executor
-publisher
-subscriber
-adapter
-connector
-uploader
-downloader
-sender
-receiver
-dispatcher
-watcher
-monitor
+Capabilities role suffixes are unlimited. The role name is chosen based on demand and must describe the technical responsibility and concern of the file.
 
 ### Dependencies
 
@@ -253,16 +225,16 @@ monitor
 
 Capabilities generally handle two types of concerns:
 
-| Category                | Concern        | Responsibility                                 |
-| ----------------------- | -------------- | ---------------------------------------------- |
+| Category                      | Concern        | Responsibility                                 |
+| ----------------------------- | -------------- | ---------------------------------------------- |
 | **Business Logic**      | Validation     | Check domain conditions or input correctness   |
-|                         | Computation    | Calculate scores, totals, or derived values    |
-|                         | Transformation | Map, filter, reduce, or reshape data           |
-|                         | Resolution     | Apply rules and decide outcomes                |
-|                         | Assessment     | Judge severity, compliance, grade, or quality  |
+|                               | Computation    | Calculate scores, totals, or derived values    |
+|                               | Transformation | Map, filter, reduce, or reshape data           |
+|                               | Resolution     | Apply rules and decide outcomes                |
+|                               | Assessment     | Judge severity, compliance, grade, or quality  |
 | **External Adaptation** | Repository     | Fetch or persist domain entities to a database |
-|                         | Integration    | Communicate with third-party services or APIs  |
-|                         | Provider       | Generate data from external systems            |
+|                               | Integration    | Communicate with third-party services or APIs  |
+|                               | Provider       | Generate data from external systems            |
 
 ### Special Rules
 
@@ -271,9 +243,7 @@ Capabilities generally handle two types of concerns:
 - **Shared Logic Extraction (DRY):** If multiple Capabilities require the same technical mechanics or functions, that logic must be extracted into a reusable standalone function in the **Utility Layer**. Capabilities must not duplicate technical code (Don't Repeat Yourself).
 - **Contract Implementation:** Capabilities must implement the `protocol_` defined in the Contract Layer.
 - **State Ownership:** Capabilities are the owners of business and technical state within their execution scope.
-- **Utility Delegation:** Capabilities must call Utility standalone functions when low-level technical operations are required, passing their state/data as arguments.
-- **No Orchestration:** Capabilities must not contain flow control (looping across capabilities, branching between capabilities, or error escalation policy). They execute their single responsibility and return a result.
-- **No Domain Definition:** Capabilities must not define domain models (Entities, Value Objects); they only consume and produce Taxonomy.
+- **No Domain Definition:** Capabilities must not define domain models (Entities, Value Objects); they only consume Taxonomy.
 
 ---
 
@@ -334,16 +304,17 @@ Surface roles include:
 
 ### Surface Groups
 
-| Group            | Roles                             | Dependencies                          | Rule                                            |
-| ---------------- | --------------------------------- | ------------------------------------- | ----------------------------------------------- |
-| Smart surfaces   | command, controller, page, router | Taxonomy, Contract Aggregate, Utility | May initiate feature behavior through aggregate |
-| Utility surfaces | hook, store, action, screen       | Taxonomy, Contract Aggregate, Utility | Support smart surfaces but must not import smart surfaces |
-| Passive surfaces | component, view, layout           | Taxonomy only                         | Presentation-only, no logic or orchestration    |
+| Group            | Roles                             | Allowed Dependencies                | Forbidden Dependencies                                     | Rule                                           |
+| ---------------- | --------------------------------- | ----------------------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| Smart surfaces   | command, controller, page, router | Taxonomy, Contract Aggregate, Utility | Agent, Capabilities, Contract Protocol, Root              | May initiate feature behavior through aggregate |
+| Utility surfaces | hook, store, action, screen       | Taxonomy                            | Agent, Capabilities, Contract, Utility, Other surfaces, Root | Support smart surfaces, data/state only         |
+| Passive surfaces | component, view, layout           | Taxonomy                            | Agent, Contract, Capabilities, Other surfaces, Root        | Presentation-only, no logic or orchestration    |
 
 ### Special Rules
 
-- Smart surfaces must consume Contract Aggregates.
-- Surfaces must not import Capabilities, Utility, or Agent directly.
+- Smart surfaces must consume Contract Aggregates to reach capabilities/agent.
+- Only smart surfaces may import Utility layer files.
+- Utility and passive surfaces must not import Capabilities, Contract, or Agent directly.
 - Surfaces must not contain business calculation or orchestration.
 
 ---

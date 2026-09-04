@@ -6,22 +6,16 @@ Single composition root for the config module.
 
 from __future__ import annotations
 
-import os
-
 from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.config.contract_settings_loader_protocol import ISettingsLoaderProtocol
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
-from modules.shared.src.config.taxonomy_config_constant import (
-    DEFAULT_POLICY_MODE,
-    STRICT_MODE_FLAG_ENV,
-)
+from modules.shared.src.config.taxonomy_config_constant import DEFAULT_POLICY_MODE
 from modules.shared.src.config.taxonomy_config_vo import ConfigFileLoader
 from modules.shared.src.config.utility_config_helpers import (
     load_yaml_safe,
-    parse_env_value,
     resolve_default_config_path,
 )
 
@@ -46,24 +40,15 @@ class ConfigContainer:
         policy_mode: str = DEFAULT_POLICY_MODE,
         explicit_workspace: str | None = None,
         extra_redaction_patterns: tuple[str, ...] = (),
-        strict_mode_enabled: bool | None = None,
     ) -> None:
-        # Flag read once at construction (None → resolve via env truthiness).
-        if strict_mode_enabled is None:
-            strict_mode_enabled = bool(parse_env_value(os.environ.get(STRICT_MODE_FLAG_ENV, "")))
-        else:
-            strict_mode_enabled = bool(strict_mode_enabled)
-
         default_config_path = resolve_default_config_path(None)
 
         self._loader: ISettingsLoaderProtocol = SettingsLoaderCapability(
             config_file_loader=config_file_loader or load_yaml_safe,
             policy_mode=policy_mode,
-            strict_mode_enabled=strict_mode_enabled,
         )
         self._retriever: ISettingsRetrieverProtocol = SettingsRetrieverCapability(
             policy_mode=policy_mode,
-            escape_enabled=strict_mode_enabled,
         )
         self._workspace_resolver: IWorkspaceResolverProtocol = WorkspaceResolverCapability(
             explicit_override=explicit_workspace,

@@ -9,7 +9,6 @@ AES Contract layer — pure ABC definitions, no implementation.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     AssetTypeFilter,
@@ -35,7 +34,7 @@ class AssetSearchProtocol(ABC):
         asset_type_filter: AssetTypeFilter | None = None,
         limit: ResultLimit | None = None,
         page_token: NextPageToken | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Search across all enabled providers with unified response.
 
         FR-AST-001: Each enabled provider queried independently.

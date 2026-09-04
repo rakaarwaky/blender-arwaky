@@ -11,10 +11,8 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import ObjectName, Prompt, SuccessFlag
-from modules.shared.src.common.utility_code_builder import quote_string
 from modules.shared.src.object.contract_get_object_info_protocol import GetObjectInfoProtocol
 from modules.shared.src.object.taxonomy_object_vo import GetObjectInfoVO
 
@@ -30,7 +28,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -85,7 +83,7 @@ class GetObjectInfoExecutor(GetObjectInfoProtocol):
         Collects comprehensive data. Avoids cyclic references.
         Includes mesh statistics for mesh objects.
         """
-        object_ref = quote_string(str(request.object_name))
+        object_ref = repr(str(request.object_name))
         lines = [
             "import bpy",
             f"obj = bpy.data.objects.get({object_ref})",

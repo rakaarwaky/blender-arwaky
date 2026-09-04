@@ -12,6 +12,8 @@ from dataclasses import field as dc_field
 from enum import Enum
 from typing import NewType
 
+from modules.shared.src.common.taxonomy_core_vo import FilePath, Host, PortNumber
+
 TimeoutSeconds = NewType("TimeoutSeconds", float)
 
 # ============================================================
@@ -191,6 +193,14 @@ class RuntimeStateVO:
     bridge_endpoint: str | None = None
     last_status: RuntimeState = RuntimeState.NOT_RUNNING
 
+    def contains_secret(self) -> bool:
+        from dataclasses import fields
+
+        from .taxonomy_launcher_constant import SECRET_KEYS
+
+        field_names = {f.name for f in fields(self)}
+        return not field_names.isdisjoint(SECRET_KEYS)
+
 
 @dataclass(frozen=True)
 class PersistenceOutcomeVO:
@@ -199,6 +209,19 @@ class PersistenceOutcomeVO:
     success: bool = False
     warnings: tuple[str, ...] = dc_field(default_factory=tuple)
     reconciled: bool = False
+
+
+@dataclass(frozen=True)
+class LoadOutcomeVO:
+    """FR-LAU-005 (Finding #14): Load result with corruption differentiation.
+
+    Differentiates between corrupt/unreadable content and missing/empty state file.
+    Returns the loaded state when available, plus warnings for corruption events.
+    """
+
+    state: RuntimeStateVO | None = None
+    warnings: tuple[str, ...] = dc_field(default_factory=tuple)
+    corrupted: bool = False
 
 
 @dataclass(frozen=True)
@@ -229,3 +252,26 @@ class LauncherConfigVO:
     state_persistence_location: str | None = None
     default_launch_mode: LaunchMode = LaunchMode.INTERFACE
     stale_reconciliation_enabled: bool = True
+
+
+# ============================================================
+# FR-LAU-002: Launch Request (shared integration contract)
+# ============================================================
+
+
+@dataclass(frozen=True)
+class BridgeEndpointVO:
+    """Bridge endpoint settings for Blender addon communication."""
+
+    host: Host = Host("localhost")
+    port: PortNumber = PortNumber(9876)
+
+
+@dataclass(frozen=True)
+class LaunchRequestVO:
+    """Unified launch request — input and output in one frozen VO."""
+
+    filepath: FilePath | None = None
+    mode: LaunchMode = LaunchMode.INTERFACE
+    bridge_endpoint: BridgeEndpointVO | None = None
+    readiness_timeout_seconds: TimeoutSeconds | None = None

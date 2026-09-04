@@ -10,12 +10,12 @@ FR-DSP-004: Dispatch Synchronous Action
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 
 from modules.shared.src.dispatcher.contract_sync_dispatch_protocol import (
     SyncDispatchProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_dispatch_error import DispatchErrorCategory
 from modules.shared.src.dispatcher.taxonomy_unified_result_envelope_vo import UnifiedResultEnvelopeVO
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -77,7 +77,7 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
                 future = self._pool.submit(self._execute.execute_action, action_name, params)
                 try:
                     result = future.result(timeout=applied_timeout)
-                except FuturesTimeoutError:
+                except TimeoutError:
                     raise TimeoutError(f"Action '{action_name}' exceeded timeout {applied_timeout}s") from None
             else:
                 result = self._execute.execute_action(action_name, params)
@@ -124,21 +124,27 @@ class SyncDispatchExecutor(SyncDispatchProtocol):
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
     def _map_error_category(self, error: Exception) -> str:
-        """Map domain error to unified error category (FR-DSP-004)."""
+        """Map domain error to unified error category (FR-DSP-004).
+
+        Uses DispatchErrorCategory constants instead of raw strings to prevent
+        silent breakage if taxonomy values change.
+        """
         error_type = type(error).__name__
 
         if error_type == "TimeoutError" or "Timeout" in error_type:
-            return "timeout_error"
+            return DispatchErrorCategory.TIMEOUT
         if "Timeout" in str(error).lower():
-            return "timeout_error"
+            return DispatchErrorCategory.TIMEOUT
+        if "blocked" in str(error).lower() or "Blocked" in error_type:
+            return DispatchErrorCategory.BLOCKED
         if "Connection" in error_type or "connection" in str(error).lower():
-            return "connection_error"
+            return DispatchErrorCategory.CONNECTION
         if "NotFound" in error_type or "not found" in str(error).lower():
-            return "not_found_error"
+            return DispatchErrorCategory.NOT_FOUND
         if "ValidationError" in error_type or "validation" in str(error).lower():
-            return "validation_error"
+            return DispatchErrorCategory.VALIDATION
 
-        return "execution_error"
+        return DispatchErrorCategory.EXECUTION
 
     def __repr__(self) -> str:
         return f"SyncDispatchExecutor(execute={self._execute is not None})"

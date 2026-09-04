@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import pathlib
-from typing import Any
 
 import pytest
 
@@ -30,6 +29,16 @@ class MockSecurityValidator:
         if not self.validate:
             raise Exception("path denied")
         self._validated_paths.append(path)
+
+
+class MockProviderConnection:
+    """Deterministic provider transport that writes requested cache artifacts."""
+
+    async def send_command(self, _action: str, payload: dict[str, object], provider=None) -> dict[str, object]:
+        destination = pathlib.Path(str(payload["destination_path"]))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(b"provider-fixture")
+        return {"success": True, "path": str(destination), "provider": str(provider)}
 
 
 class MockJobScheduler:
@@ -60,7 +69,8 @@ def capability_with_security(cache_dir: str) -> AssetDownloadCapability:
     cap = AssetDownloadCapability(
         security_validator=sec,
         job_scheduler=job,
-        config_getter=None,
+        config_aggregate=None,
+        provider_connection=MockProviderConnection(),
     )
     cap._cache_dir = FilePath(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)
@@ -285,24 +295,20 @@ async def test_fr_ast_002_credentials_not_logged():
 
 
 @pytest.mark.asyncio
-async def test_fr_ast_005_metadata_staleness_check_when_config_getter_available(
+async def test_fr_ast_005_metadata_staleness_check_when_config_aggregate_available(
     capability_with_security: AssetDownloadCapability, cache_dir: str
 ):
-    """Test FR-AST-005: metadata staleness check runs before download when config getter is wired."""
+    """Test FR-AST-005: metadata staleness check runs before download when config aggregate is wired."""
 
-    class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+    class MockConfigAggregate:
+        def get_int(self, _path: str, _default: int = 0) -> int:
             return 1000000  # Under max size limit
 
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
-            return True  # Fresh metadata
-
-    class MockConfigGetter:
-        async def get_entrypoint(self) -> MockEntrypoint:
-            return MockEntrypoint()
+        def get_bool(self, _path: str, _default: bool = False) -> bool:
+            return False  # Fresh metadata (not stale)
 
     cap = capability_with_security
-    cap.config_getter = MockConfigGetter()
+    cap.config_aggregate = MockConfigAggregate()
 
     result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
@@ -320,19 +326,15 @@ async def test_fr_ast_005_metadata_staleness_defaults_to_stale_when_check_fails(
 ):
     """Test FR-AST-005: stale check defaults to True when freshness cannot be determined."""
 
-    class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
+    class MockConfigAggregate:
+        def get_int(self, _path: str, _default: int = 0) -> int:
             return 1000000
 
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+        def get_bool(self, _path: str, _default: bool = False) -> bool:
             raise Exception("adapter unreachable")
 
-    class MockConfigGetter:
-        async def get_entrypoint(self) -> MockEntrypoint:
-            return MockEntrypoint()
-
     cap = capability_with_security
-    cap.config_getter = MockConfigGetter()
+    cap.config_aggregate = MockConfigAggregate()
 
     result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
@@ -346,12 +348,12 @@ async def test_fr_ast_005_metadata_staleness_defaults_to_stale_when_check_fails(
 
 
 @pytest.mark.asyncio
-async def test_fr_ast_005_staleness_check_skipped_without_config_getter(
+async def test_fr_ast_005_staleness_check_skipped_without_config_aggregate(
     capability_with_security: AssetDownloadCapability, cache_dir: str
 ):
-    """Test FR-AST-005: staleness check gracefully skipped when config getter not wired."""
+    """Test FR-AST-005: staleness check gracefully skipped when config aggregate not wired."""
     cap = capability_with_security
-    # config_getter is None by default from fixture
+    # config_aggregate is None by default from fixture
 
     result = await cap.download_to_cache(
         provider=ProviderName("polyhaven"),
@@ -363,46 +365,34 @@ async def test_fr_ast_005_staleness_check_skipped_without_config_getter(
     assert result["success"] is True
 
 
-def test_fr_ast_005_check_metadata_staleness_fresh(cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_fresh():
     """Test _check_metadata_staleness returns False when metadata is fresh."""
     import asyncio as _asyncio
 
-    class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
-            return 0
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
-            return True
+    class MockConfigAggregate:
+        def get_bool(self, _path: str, _default: bool = False) -> bool:
+            return True  # Fresh metadata
 
-    class MockConfigGetter:
-        async def get_entrypoint(self) -> MockEntrypoint:
-            return MockEntrypoint()
-
-    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    cap = AssetDownloadCapability(config_aggregate=MockConfigAggregate())
     result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
     assert result is False
 
 
-def test_fr_ast_005_check_metadata_staleness_stale(cache_dir: str):
+def test_fr_ast_005_check_metadata_staleness_stale():
     """Test _check_metadata_staleness returns True when metadata is stale."""
     import asyncio as _asyncio
 
-    class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
-            return 0
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
-            return False
+    class MockConfigAggregate:
+        def get_bool(self, _path: str, _default: bool = False) -> bool:
+            return False  # Stale metadata
 
-    class MockConfigGetter:
-        async def get_entrypoint(self) -> MockEntrypoint:
-            return MockEntrypoint()
-
-    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    cap = AssetDownloadCapability(config_aggregate=MockConfigAggregate())
     result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
     assert result is True
 
 
-def test_fr_ast_005_check_metadata_staleness_no_config_getter():
-    """Test _check_metadata_staleness defaults to True when config getter not wired."""
+def test_fr_ast_005_check_metadata_staleness_no_config_aggregate():
+    """Test _check_metadata_staleness defaults to True when config aggregate not wired."""
     import asyncio as _asyncio
 
     cap = AssetDownloadCapability()
@@ -414,16 +404,10 @@ def test_fr_ast_005_check_metadata_staleness_exception_defaults_to_stale():
     """Test _check_metadata_staleness defaults to True when freshness check raises."""
     import asyncio as _asyncio
 
-    class MockEntrypoint:
-        async def get_download_size(self, *args: Any) -> int | None:
-            raise Exception("broken")
-        async def is_metadata_fresh(self, provider: str, asset_id: str) -> bool | None:
+    class MockConfigAggregate:
+        def get_bool(self, _path: str, _default: bool = False) -> bool:
             raise Exception("adapter down")
 
-    class MockConfigGetter:
-        async def get_entrypoint(self) -> MockEntrypoint:
-            return MockEntrypoint()
-
-    cap = AssetDownloadCapability(config_getter=MockConfigGetter())
+    cap = AssetDownloadCapability(config_aggregate=MockConfigAggregate())
     result = _asyncio.run(cap._check_metadata_staleness(ProviderName("polyhaven"), AssetId("test")))
     assert result is True

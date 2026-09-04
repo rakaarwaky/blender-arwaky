@@ -14,6 +14,13 @@ from abc import ABC, abstractmethod
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
 from .taxonomy_config_vo import (
+    DEFAULT_CONFIG_FLOAT,
+    DEFAULT_CONFIG_INT,
+    DEFAULT_CONFIG_STRING,
+    ConfigEventLimit,
+    ConfigFloatValue,
+    ConfigIntValue,
+    ConfigStringValue,
     EventPayload,
     RedactionRule,
     SettingsData,
@@ -22,6 +29,8 @@ from .taxonomy_config_vo import (
     SettingsValue,
     WorkspacePath,
 )
+
+DEFAULT_CONFIG_EVENT_LIMIT: ConfigEventLimit = ConfigEventLimit(EVENT_RING_BUFFER_SIZE)
 
 
 class IConfigAggregate(ABC):
@@ -59,17 +68,22 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
+    def set_config(self, path: ConfigPath, value: SettingsValue) -> SettingsSnapshot:
+        """Atomically persist a typed value and return the new snapshot."""
+        ...
+
+    @abstractmethod
     def has(self, path: ConfigPath) -> bool:
         """Check if a dot-separated path exists in the current snapshot."""
         ...
 
     @abstractmethod
-    def get_string(self, path: ConfigPath, default: str = "") -> str:
+    def get_string(self, path: ConfigPath, default: ConfigStringValue = DEFAULT_CONFIG_STRING) -> ConfigStringValue:
         """Retrieve string value."""
         ...
 
     @abstractmethod
-    def get_int(self, path: ConfigPath, default: int = 0) -> int:
+    def get_int(self, path: ConfigPath, default: ConfigIntValue = DEFAULT_CONFIG_INT) -> ConfigIntValue:
         """Retrieve integer value."""
         ...
 
@@ -79,7 +93,7 @@ class IConfigAggregate(ABC):
         ...
 
     @abstractmethod
-    def get_float(self, path: ConfigPath, default: float = 0.0) -> float:
+    def get_float(self, path: ConfigPath, default: ConfigFloatValue = DEFAULT_CONFIG_FLOAT) -> ConfigFloatValue:
         """Retrieve float value."""
         ...
 
@@ -100,7 +114,10 @@ class IConfigAggregate(ABC):
     # ─── Events (T-09) ─────────────────────────────────────────
 
     @abstractmethod
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
+    def recent_events(
+        self,
+        limit: ConfigEventLimit = DEFAULT_CONFIG_EVENT_LIMIT,
+    ) -> tuple[EventPayload, ...]:
         """Return recent config domain events, oldest → newest."""
         ...
 

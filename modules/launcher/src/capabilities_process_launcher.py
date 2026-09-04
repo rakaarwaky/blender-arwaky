@@ -3,6 +3,10 @@
 Spawns Blender, enforces idempotency, waits for readiness, and emits a
 lifecycle event. Implements LaunchProtocol.
 
+Security integration (per PRD + FR-SEC-004/005):
+  - Emits SecurityAuditEventVO on launch failures
+  - Redacts bridge endpoints in events using security module's redact utility
+
 The actual spawn and readiness probe are injected (DI boundaries) so the
 logic is testable without launching a real Blender process.
 """
@@ -21,25 +25,43 @@ from modules.shared.src.launcher.taxonomy_launcher_constant import (
 )
 from modules.shared.src.launcher.taxonomy_launcher_event import LauncherLifecycleEvent
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
+    BridgeEndpointVO,
     LaunchMethod,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     ProbeDepth,
     RuntimeState,
-    TimeoutSeconds,
 )
+from modules.shared.src.security.contract_emit_audit_protocol import EmitAuditProtocol
+from modules.shared.src.security.taxonomy_security_vo import AuditSeverity, SecurityAuditEventVO, ViolationCategory
+from modules.shared.src.security.utility_security_path import redact_path
+
+from .utility_audit_dispatch import emit_audit_sync
 
 
 class _ProcessSpawner(Protocol):
     """Spawns Blender; returns a process id. DI boundary."""
 
-    def __call__(self, executable: str, mode: str, readiness_timeout_seconds: float) -> int: ...
+    def __call__(
+        self,
+        executable: str,
+        mode: str,
+        readiness_timeout_seconds: float,
+        bridge_host: str,
+        bridge_port: int,
+    ) -> int: ...
 
 
 class _ReadinessProbe(Protocol):
     """Probes bridge readiness; returns True when ready. DI boundary."""
 
-    def __call__(self, process_id: int, timeout_seconds: float) -> bool: ...
+    def __call__(
+        self,
+        process_id: int,
+        bridge_host: str,
+        bridge_port: int,
+        timeout_seconds: float,
+    ) -> bool: ...
 
 
 class ProcessLauncher(LaunchProtocol):
@@ -52,20 +74,25 @@ class ProcessLauncher(LaunchProtocol):
         status_protocol: RuntimeStatusProtocol,
         spawner: _ProcessSpawner | None = None,
         readiness_probe: _ReadinessProbe | None = None,
+        audit_event_sink: EmitAuditProtocol | None = None,
         event_sink: Callable[[LauncherLifecycleEvent], None] | None = None,
     ) -> None:
         self._resolve_executable = executable_resolver
         self._status = status_protocol
         self._spawner = spawner
         self._probe = readiness_probe
+        self._audit_events = audit_event_sink
         self._events = event_sink
 
     # ─── Block 2: Public Contract ────────────────────────────
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Start Blender and confirm readiness within the configured timeout."""
-        timeout = readiness_timeout_seconds if readiness_timeout_seconds is not None else 30.0
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """Start Blender using the request mode and bridge endpoint."""
+        launch_request = request or LaunchRequestVO()
+        mode = launch_request.mode
+        timeout = (
+            launch_request.readiness_timeout_seconds if launch_request.readiness_timeout_seconds is not None else 30.0
+        )
+        endpoint = launch_request.bridge_endpoint or BridgeEndpointVO()
 
         current = self._status.check_status(depth=ProbeDepth.LIGHTWEIGHT)
         if current.state in (RuntimeState.RUNNING_READY, RuntimeState.RUNNING_UNRESPONSIVE, RuntimeState.STARTING):
@@ -78,15 +105,19 @@ class ProcessLauncher(LaunchProtocol):
 
         executable = self._resolve_executable()
         if not executable:
+            self._emit_security_audit(ViolationCategory.UNAUTHORIZED_ACCESS, "no_executable_path")
             return LaunchOutcomeVO(success=False, error="No registered executable path")
 
         if self._spawner is None:
+            self._emit_security_audit(ViolationCategory.PERMISSION_DENIED, "spawner_not_configured")
             return LaunchOutcomeVO(success=False, error="Process spawner not configured")
 
         start = time.monotonic()
         try:
-            pid = self._spawner(executable, mode.value, timeout)
+            mode_str = mode.value if hasattr(mode, "value") else str(mode)
+            pid = self._spawner(executable, mode_str, timeout, endpoint.host, endpoint.port)
         except Exception as exc:
+            self._emit_security_audit(ViolationCategory.UNAUTHORIZED_ACCESS, str(exc))
             self._emit(
                 LAUNCHER_EVENT_LAUNCH_FAILED, RuntimeState.NOT_RUNNING, RuntimeState.NOT_RUNNING, reason=str(exc)
             )
@@ -94,7 +125,7 @@ class ProcessLauncher(LaunchProtocol):
 
         ready = False
         if self._probe is not None:
-            ready = self._probe(pid, timeout)
+            ready = self._probe(pid, endpoint.host, endpoint.port, timeout)
 
         duration_ms = (time.monotonic() - start) * 1000.0
         if not ready:
@@ -116,7 +147,12 @@ class ProcessLauncher(LaunchProtocol):
             process_reference=str(pid),
         )
         return LaunchOutcomeVO(
-            success=True, process_id=pid, ready=True, launch_method=LaunchMethod.SPAWN, duration_ms=duration_ms
+            success=True,
+            process_id=pid,
+            ready=True,
+            bridge_endpoint=f"{endpoint.host}:{endpoint.port}",
+            launch_method=LaunchMethod.SPAWN,
+            duration_ms=duration_ms,
         )
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ─────
@@ -124,12 +160,28 @@ class ProcessLauncher(LaunchProtocol):
         self, category: str, before: RuntimeState, after: RuntimeState, process_reference: str = "", reason: str = ""
     ) -> None:
         if self._events is not None:
+            redacted_ref = redact_path(process_reference)
+            redacted_reason = redact_path(reason) if reason else ""
             self._events(
                 LauncherLifecycleEvent(
                     event_category=category,
                     state_before=before,
                     state_after=after,
-                    process_reference=process_reference,
-                    reason_summary=reason,
+                    process_reference=redacted_ref,
+                    reason_summary=redacted_reason,
                 )
+            )
+
+    def _emit_security_audit(self, violation: ViolationCategory, reason: str = "") -> None:
+        """FR-SEC-005: emit security audit event for launcher operations."""
+        if self._audit_events is not None:
+            emit_audit_sync(
+                self._audit_events,
+                SecurityAuditEventVO(
+                    violation_category=violation,
+                    operation_type="launcher_operation",
+                    source_feature="launcher",
+                    target_metadata={"reason": redact_path(reason)},
+                    severity=AuditSeverity.WARNING,
+                ),
             )

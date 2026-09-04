@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from modules.shared.src.common.taxonomy_core_vo import ConfigPath
+from modules.shared.src.common.taxonomy_core_vo import ConfigPath, Timestamp
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import (
     PROJECT_MARKERS,
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
     """FR-CFG-003: Resolve project workspace directory.
 
-    Resolution order (per FRD minus legacy per Q8):
+    Resolution order (per FRD configuration policy):
       explicit override > env BLENDERMCP_ROOT > settings-file parent >
       marker search > platform config > cwd fallback.
     Result is cached for process lifetime.
@@ -62,7 +62,7 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
             source_summary=workspace.strategy,
             override_count=0,
             warning_count=0,
-            timestamp=time.time(),
+            timestamp=Timestamp(time.time()),
         )
 
     # ─── Block 3: Resolution Strategy ─────────────────────────
@@ -78,17 +78,19 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
                 self._explicit_override,
             )
 
-        # 2. Environment signal (BLENDERMCP_ROOT only — legacy removed, Q8)
+        # 2. Environment signal (BLENDERMCP_ROOT only)
         env_root = os.environ.get(WORKSPACE_ROOT_ENV)
         if env_root:
             try:
                 candidate = Path(env_root).resolve()
                 if candidate.is_dir():
                     return WorkspacePath(path=str(candidate), strategy="env_signal")
+                # FR-CFG-003: "Invalid env path logs warning, falls through"
+                logger.warning("BLENDERMCP_ROOT path is not a directory: %s", env_root)
             except (OSError, ValueError) as exc:
                 logger.warning("Invalid BLENDERMCP_ROOT path '%s': %s", env_root, exc)
 
-        # 3. Settings file parent (NEW)
+        # 3. Settings file parent
         if self._config_path:
             candidate = Path(str(self._config_path)).resolve().parent
             if candidate.is_dir():
@@ -102,12 +104,21 @@ class WorkspaceResolverCapability(IWorkspaceResolverProtocol):
         marker_path = search_project_root(PROJECT_MARKERS)
         if marker_path:
             return WorkspacePath(path=str(marker_path), strategy="marker_search")
+        logger.debug("No workspace markers found in search path")
 
         # 5. Platform config
-        xdg_config = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        try:
+            home_dir = Path.home()
+        except RuntimeError:
+            home_dir = None
+        if home_dir is not None:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME", str(home_dir / ".config"))
+        else:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME", "")
         prod_path = Path(xdg_config) / "blender-arwaky"
         if prod_path.is_dir():
             return WorkspacePath(path=str(prod_path), strategy="platform_config")
+        logger.debug("Platform config directory not found: %s", prod_path)
 
         # 6. CWD fallback
         try:

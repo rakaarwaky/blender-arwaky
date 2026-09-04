@@ -115,6 +115,17 @@ class JobOrchestrator(IJobAggregate):
         raw = self._lifecycle.get_record(job_id)
         return self._monitor.project(raw)
 
+    def list_tasks(self) -> tuple[JobStatusSnapshot, ...]:
+        """Return a stable read-only view of active and retained tasks."""
+        snapshots: dict[str, JobStatusSnapshot] = {}
+        for snapshot in (
+            *self._lifecycle.list_pending(),
+            *self._lifecycle.list_running(),
+            *self._lifecycle.list_terminal(),
+        ):
+            snapshots[str(snapshot.job_id)] = snapshot
+        return tuple(snapshots.values())
+
     def cleanup_expired_tasks(self) -> CleanupSummary:
         now = self._clock()
         terminal = self._lifecycle.list_terminal()

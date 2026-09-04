@@ -28,9 +28,11 @@ ProviderName = NewType("ProviderName", str)
 MaterialName = NewType("MaterialName", str)
 ModifierName = NewType("ModifierName", str)
 ActionName = NewType("ActionName", str)
+ChannelName = NewType("ChannelName", str)
 WorkflowName = NewType("WorkflowName", str)
 RuleName = NewType("RuleName", str)
 SceneRuleSetName = NewType("SceneRuleSetName", str)
+ProtectedCategory = NewType("ProtectedCategory", str)
 
 # ============================================================
 # TYPE & ENUM TYPES
@@ -108,6 +110,10 @@ CapabilityRef = NewType("CapabilityRef", str)
 
 # Exit code for CLI main() return codes
 ExitCode = NewType("ExitCode", int)
+
+# Queue / retry limits for error payloads
+QueueDepth = NewType("QueueDepth", int)
+ReconnectAttempt = NewType("ReconnectAttempt", int)
 
 # Pathing
 FilePath = NewType("FilePath", str)

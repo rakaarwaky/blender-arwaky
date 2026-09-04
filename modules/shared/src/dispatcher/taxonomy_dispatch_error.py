@@ -11,6 +11,7 @@ from typing import Final
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.dispatcher.taxonomy_dispatch_constant import (
+    DISPATCH_ERROR_CATEGORY_BLOCKED,
     DISPATCH_ERROR_CATEGORY_CAPACITY,
     DISPATCH_ERROR_CATEGORY_CONFIRMATION,
     DISPATCH_ERROR_CATEGORY_CONNECTION,
@@ -30,6 +31,7 @@ class DispatchErrorCategory:
     NOT_FOUND: Final[str] = DISPATCH_ERROR_CATEGORY_NOT_FOUND
     EXECUTION: Final[str] = DISPATCH_ERROR_CATEGORY_EXECUTION
     CAPACITY: Final[str] = DISPATCH_ERROR_CATEGORY_CAPACITY
+    BLOCKED: Final[str] = DISPATCH_ERROR_CATEGORY_BLOCKED
     UNSUPPORTED: Final[str] = DISPATCH_ERROR_CATEGORY_UNSUPPORTED
     TIMEOUT: Final[str] = DISPATCH_ERROR_CATEGORY_TIMEOUT
     CONNECTION: Final[str] = DISPATCH_ERROR_CATEGORY_CONNECTION

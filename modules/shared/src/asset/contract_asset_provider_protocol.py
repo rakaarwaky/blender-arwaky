@@ -10,7 +10,6 @@ AES Contract layer — pure ABC definitions, no implementation.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.asset.taxonomy_asset_metadata_vo import ProviderMetadataVO
 from modules.shared.src.common.taxonomy_core_vo import (
@@ -31,7 +30,7 @@ class AssetProviderProtocol(ABC):
     @abstractmethod
     async def normalize_metadata(
         self,
-        raw_provider_data: dict[str, Any],
+        raw_provider_data: dict[str, object],
         provider_name: ProviderName,
         asset_id: AssetId,
     ) -> ProviderMetadataVO:
@@ -50,7 +49,7 @@ class AssetProviderProtocol(ABC):
         Returns:
             Dict with normalized metadata including name, provider, type,
             categories, thumbnail_url, license_summary, download_available,
-            and any preserved provider-specific extra fields.
+            and preserved provider-specific extra fields.
         """
         ...
 
@@ -58,7 +57,7 @@ class AssetProviderProtocol(ABC):
     async def get_provider_capabilities(
         self,
         provider_name: ProviderName,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Get normalized provider capability metadata.
 
         FR-AST-005: Describes supported asset types, pagination behavior,

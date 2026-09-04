@@ -29,6 +29,10 @@ LAUNCHER_TERMINATION_GRACEFUL: str = "graceful"
 LAUNCHER_TERMINATION_FORCE: str = "force"
 LAUNCHER_TERMINATION_NONE: str = "none"
 
+# ─── Secret Key Detection ────────────────────────────────────
+
+SECRET_KEYS: tuple[str, ...] = ("secret", "token", "password", "credential", "auth")
+
 # ─── Event Categories ───────────────────────────────────────
 
 LAUNCHER_EVENT_APPLICATION_STARTED: str = "application_started"
@@ -38,7 +42,9 @@ LAUNCHER_EVENT_SHUTDOWN_ESCALATION: str = "shutdown_escalation"
 LAUNCHER_EVENT_STATUS_CHECKED: str = "runtime_status_checked"
 LAUNCHER_EVENT_STALE_STATE_DETECTED: str = "stale_state_detected"
 LAUNCHER_EVENT_EXECUTABLE_REGISTERED: str = "executable_registered"
+LAUNCHER_EVENT_CORRUPT_STATE_DETECTED: str = "corrupt_state_detected"
 
 # ─── Source Feature Name ────────────────────────────────────
-# REMOVED: LAUNCHER_SOURCE_FEATURE is never imported by any consumer.
+# REMOVED: LAUNCHER_SOURCE_FEATURE is unused.
+
 # If needed in the future, document its intended use before re-adding.

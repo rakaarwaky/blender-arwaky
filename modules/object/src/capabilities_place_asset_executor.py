@@ -11,14 +11,12 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ObjectName,
     Prompt,
     SuccessFlag,
 )
-from modules.shared.src.common.utility_code_builder import quote_string, tuple_str, validate_scale
 from modules.shared.src.object.contract_place_asset_protocol import PlaceAssetProtocol
 from modules.shared.src.object.taxonomy_object_error import ObjectAmbiguityError, ObjectNotFoundError
 from modules.shared.src.object.taxonomy_object_vo import PlaceAssetVO
@@ -35,7 +33,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -53,7 +51,10 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
 
         # Validate scale (non-zero unless explicitly allowed)
         if request.scale is not None:
-            validate_scale(request.scale)
+            # Validate scale values are finite and non-zero
+            for i, val in enumerate(request.scale):
+                if not isinstance(val, (int, float)) or val == 0:
+                    raise ValueError(f"Scale component {i} is zero — non-zero scale is required")
 
         # Generate and execute placement code
         code = self._generate_placement_code(resolved_name, request)
@@ -84,7 +85,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
         if request.object_name:
             code = (
                 "import bpy\n"
-                f"obj = bpy.data.objects.get({quote_string(str(request.object_name))})\n"
+                f"obj = bpy.data.objects.get({repr(str(request.object_name))})\n"
                 "if obj is None:\n"
                 '    raise ValueError("Object not found in scene.")\n'
                 "result = [obj.name]\n"
@@ -108,7 +109,7 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
                 # Fallback: try to find by name pattern
                 fallback_code = (
                     "import bpy\n"
-                    f"matches = [obj.name for obj in bpy.data.objects if {quote_string(str(request.object_name))} in obj.name]\n"
+                    f"matches = [obj.name for obj in bpy.data.objects if {repr(str(request.object_name))} in obj.name]\n"
                     "result = matches\n"
                 )
                 try:
@@ -137,18 +138,18 @@ class PlaceAssetExecutor(PlaceAssetProtocol):
         """
         lines = [
             "import bpy",
-            f"obj = bpy.data.objects.get({quote_string(object_name)})",
+            f"obj = bpy.data.objects.get({repr(object_name)})",
             'if obj is None:\n    raise ValueError("Object not found in scene.")',
         ]
 
         if request.location is not None:
-            lines.append(f"obj.location = {tuple_str(request.location)}")
+            lines.append(f"obj.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})")
 
         if request.rotation is not None:
-            lines.append(f"obj.rotation_euler = {tuple_str(request.rotation)}")
+            lines.append(f"obj.rotation_euler = ({request.rotation[0]}, {request.rotation[1]}, {request.rotation[2]})")
 
         if request.scale is not None:
-            lines.append(f"obj.scale = {tuple_str(request.scale)}")
+            lines.append(f"obj.scale = ({request.scale[0]}, {request.scale[1]}, {request.scale[2]})")
 
         return "\n".join(lines)
 

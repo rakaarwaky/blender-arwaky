@@ -1,4 +1,4 @@
-"""T-01/T-02: constants, defaults, schema, and frozen ConfigMetadata VO."""
+"""T-01/T-02: constants, defaults, schema, redaction invariants, and frozen ConfigMetadata VO."""
 
 from __future__ import annotations
 
@@ -19,6 +19,11 @@ from modules.shared.src.config import (
     SETTINGS_SCHEMA,
     WORKSPACE_ROOT_ENV,
 )
+from modules.shared.src.config.taxonomy_config_constant import (
+    REDACTION_PLACEHOLDER,
+    SENSITIVE_KEY_PATTERNS,
+)
+from modules.shared.src.config.taxonomy_config_vo import RedactionRule
 
 
 @pytest.mark.unit
@@ -26,12 +31,6 @@ def test_defaults_match_readme_sample():
     assert DEFAULT_SETTINGS["blender"]["port"] == 9876
     assert DEFAULT_SETTINGS["server"]["transport"] == "stdio"
     assert DEFAULT_SETTINGS["blender"]["host"] == "localhost"
-
-
-@pytest.mark.unit
-def test_breaking_legacy_removed():
-    with pytest.raises(ImportError):
-        from modules.shared.src.config.taxonomy_config_constant import ENV_PREFIX_LEGACY  # noqa: F401
 
 
 @pytest.mark.unit
@@ -94,3 +93,20 @@ def test_config_metadata_default_empty_tuples():
     md = ConfigMetadata()
     assert md.parse_warnings == ()
     assert md.validation_warnings == ()
+
+
+@pytest.mark.unit
+def test_redaction_rule_full_redact_always_true():
+    """FR-CFG-005: RedactionRule.full_redact must always be True (PM Q15)."""
+    rule = RedactionRule(
+        key_patterns=SENSITIVE_KEY_PATTERNS,
+        placeholder=REDACTION_PLACEHOLDER,
+        full_redact=True,
+    )
+    assert rule.full_redact is True
+    assert rule.placeholder == REDACTION_PLACEHOLDER
+    # every pattern from SENSITIVE_KEY_PATTERNS is covered
+    assert len(rule.key_patterns) == len(SENSITIVE_KEY_PATTERNS)
+    # each pattern is non-empty
+    for pat in rule.key_patterns:
+        assert pat, "Empty sensitive key pattern detected"

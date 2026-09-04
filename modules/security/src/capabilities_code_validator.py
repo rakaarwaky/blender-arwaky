@@ -176,10 +176,14 @@ class CodeValidator(ValidateCodeProtocol):
                 }:
                     modules.add(construct)
                 else:
+                    # Custom policy entries may name either an importable module
+                    # or a callable. Keep them in both sets so a new module is
+                    # never silently downgraded to a function-only check.
+                    modules.add(construct)
                     functions.add(construct)
             return frozenset(modules), frozenset(functions)
 
-        # Defaults (preserved for backward compatibility)
+        # Secure defaults apply when no explicit policy is configured.
         return (
             frozenset(
                 {

@@ -10,11 +10,15 @@ runtime overrides, thread-safe single-load caching.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import os
+import tempfile
 import threading
 import time
 from pathlib import Path
+
+import yaml
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ConfigMetadata,
@@ -53,6 +57,7 @@ from modules.shared.src.config.taxonomy_config_vo import (
     SettingsOverrides,
     SettingsSchema,
     SettingsSnapshot,
+    SettingsValue,
 )
 from modules.shared.src.config.utility_config_helpers import (
     apply_env_overrides,
@@ -65,7 +70,9 @@ from modules.shared.src.config.utility_config_helpers import (
 
 # ─── Module-Level Constants ────────────────────────────────
 # Cached defaults and schema copies to avoid per-instantiation deepcopy overhead.
-# Only deep-copied when the caller provides custom defaults/schema.
+# Thread-safety: CPython's GIL makes dict assignment atomic. Under concurrent
+# first-access, one extra deepcopy may execute — benign since the result is
+# identical. On non-CPython interpreters, add a threading.Lock if needed.
 _DEFAULTS_CACHE: SettingsOverrides | None = None
 _SCHEMA_CACHE: SettingsSchema | None = None
 
@@ -102,14 +109,12 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
         policy_mode: str = DEFAULT_POLICY_MODE,
         defaults: SettingsOverrides | None = None,
         schema: SettingsSchema | None = None,
-        strict_mode_enabled: bool = False,
     ) -> None:
         self._file_loader = config_file_loader or load_yaml_safe
         self._policy_mode = policy_mode
         # Use cached copies when no custom defaults/schema provided (Finding #2/#14)
         self._defaults = dict(defaults) if defaults is not None else _get_defaults_cache()
         self._schema = dict(schema) if schema is not None else _get_schema_cache()
-        self._strict_mode_enabled = strict_mode_enabled
         self._lock = threading.Lock()
         # cached state
         self._cached: SettingsSnapshot | None = None
@@ -135,29 +140,17 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                 self._cached = SettingsSnapshot(_data=merged)
                 self._last_metadata = metadata
 
-            # Runtime overrides are caller-scoped — never cached (A5).
             # FR-CFG-001 precedence: runtime overrides > environment > file > built-in defaults
-            # Therefore overrides must be applied to the fully merged snapshot, not raw file data.
-            if overrides is not None and self._strict_mode_enabled:
+            # Overrides are applied unconditionally (independent of strict mode) and
+            # the enriched snapshot is cached so get_snapshot() stays consistent.
+            if overrides is not None:
                 base = self._cached.to_dict() if self._cached is not None else {}
                 structured: SettingsData = {}
                 for dotted_key, value in overrides.items():
                     segments = tuple(dotted_key.split("."))
                     set_nested_value(structured, segments, value)
                 final = deep_merge_dicts(base, structured)
-                return SettingsSnapshot(_data=final)
-
-            if overrides is not None and not self._strict_mode_enabled:
-                self._last_metadata = ConfigMetadata(
-                    source=self._last_metadata.source,
-                    exists=self._last_metadata.exists,
-                    overrides=self._last_metadata.overrides,
-                    parse_warnings=(
-                        *self._last_metadata.parse_warnings,
-                        ParseWarning("runtime overrides ignored; strict mode off"),
-                    ),
-                    validation_warnings=self._last_metadata.validation_warnings,
-                )
+                self._cached = SettingsSnapshot(_data=final)
 
             return self._cached
 
@@ -176,43 +169,81 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                     return self._cached
                 raise
 
+    def set_value(
+        self,
+        path: ConfigPath,
+        value: SettingsValue,
+        config_path: ConfigPath | None = None,
+    ) -> SettingsSnapshot:
+        """Validate and atomically persist one typed dotted-path setting."""
+        segments = tuple(str(path).split(".")) if str(path) else ()
+        if not segments or any(not segment for segment in segments):
+            raise ConfigPathError("Configuration key must be a non-empty dotted path")
+
+        target = Path(str(resolve_default_config_path(config_path)))
+        with self._lock:
+            if target.is_file():
+                base = load_yaml_safe(ConfigPath(str(target)))
+            else:
+                base = copy.deepcopy(self._cached_data or _get_defaults_cache())
+            set_nested_value(base, segments, value)
+            errors, _warnings = validate_settings_schema(base, self._schema)
+            if errors:
+                raise ConfigValidationError("; ".join(errors))
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, temporary = tempfile.mkstemp(dir=str(target.parent), suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    yaml.safe_dump(base, handle, sort_keys=True)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, target)
+            except BaseException:
+                with contextlib.suppress(OSError):
+                    os.unlink(temporary)
+                raise
+
+            merged, filedata, metadata = self._build_core(ConfigPath(str(target)))
+            self._cached_data = filedata
+            self._cached = SettingsSnapshot(_data=merged)
+            self._last_metadata = metadata
+            return self._cached
+
     def get_last_metadata(self) -> ConfigMetadata:
         """Return metadata from the most recent successful load."""
         return self._last_metadata
 
-    def emit_loaded_event(self) -> SettingsLoadedEvent:
-        """Build a settings-loaded event from the most recent load metadata."""
-        metadata = self._last_metadata
-        return SettingsLoadedEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
+    def _build_event(self, cls: type, metadata: ConfigMetadata | None = None) -> object:
+        """Build an event dataclass from load metadata."""
+        md = metadata or self._last_metadata
+        return cls(
+            source_summary=str(md.source) if md.source is not None else "",
+            override_count=int(md.overrides),
+            warning_count=len(md.parse_warnings) + len(md.validation_warnings),
             policy_mode=self._policy_mode,
             timestamp=Timestamp(time.time()),
         )
 
+    def emit_loaded_event(self) -> SettingsLoadedEvent:
+        """Build a settings-loaded event from the most recent load metadata."""
+        return self._build_event(SettingsLoadedEvent)
+
     def emit_reload_event(self) -> SettingsReloadEvent:
         """Build a settings-reload event from the most recent load metadata."""
-        metadata = self._last_metadata
-        return SettingsReloadEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.parse_warnings) + len(metadata.validation_warnings),
-            policy_mode=self._policy_mode,
-            timestamp=Timestamp(time.time()),
-        )
+        return self._build_event(SettingsReloadEvent)
 
     def emit_validation_warning_event(self) -> SettingsValidationWarningEvent | None:
         """Return warning event iff permissive mode and validation warnings exist."""
         if self._policy_mode != POLICY_MODE_PERMISSIVE:
             return None
-        metadata = self._last_metadata
-        if not metadata.validation_warnings:
+        if not self._last_metadata.validation_warnings:
             return None
+        md = self._last_metadata
         return SettingsValidationWarningEvent(
-            source_summary=str(metadata.source) if metadata.source is not None else "",
-            override_count=int(metadata.overrides),
-            warning_count=len(metadata.validation_warnings),
+            source_summary=str(md.source) if md.source is not None else "",
+            override_count=int(md.overrides),
+            warning_count=len(md.validation_warnings),
             policy_mode=self._policy_mode,
             timestamp=Timestamp(time.time()),
         )
@@ -240,8 +271,9 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
             # Missing file: never fatal (Q6).
             parse_warnings.append(ParseWarning(f"settings file not found: {resolved}; using defaults"))
         else:
-            # Size limit (strict-mode gated)
-            if self._strict_mode_enabled and p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
+            # The 1 MiB limit is always enforced; policy mode controls whether
+            # an oversized file raises or becomes a warning with defaults.
+            if p.stat().st_size > MAX_CONFIG_SIZE_BYTES:
                 if self._policy_mode == POLICY_MODE_STRICT:
                     raise ConfigLoadError(f"settings file too large: {resolved} exceeds {MAX_CONFIG_SIZE_BYTES} bytes")
                 parse_warnings.append(ParseWarning(f"settings file too large: {resolved}; skipped"))
@@ -258,25 +290,19 @@ class SettingsLoaderCapability(ISettingsLoaderProtocol):
                         raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
                     parse_warnings.append(ParseWarning(f"failed to load {resolved}; using defaults"))
                     file_data = {}
-                except Exception as exc:
-                    # Catch-all for unexpected errors — re-raise in strict mode
-                    if self._policy_mode == POLICY_MODE_STRICT:
-                        raise ConfigLoadError(f"Failed to load settings: {exc}") from exc
-                    parse_warnings.append(ParseWarning(f"unexpected error loading {resolved}; using defaults"))
-                    file_data = {}
 
         # Merge precedence: defaults < file < env
         merged = deep_merge_dicts(dict(self._defaults), file_data)
         merged, env_count = apply_env_overrides(merged, os.environ, ENV_PREFIX_PRODUCT, RESERVED_ENV_KEYS)
 
-        # Schema (strict-mode gated)
+        # Schema validation is always performed; policy mode controls whether
+        # validation errors raise or are retained as warnings.
         validation_warnings: list[ValidationWarning] = []
-        if self._strict_mode_enabled:
-            errors, warnings = validate_settings_schema(merged, self._schema)
-            if errors and self._policy_mode == POLICY_MODE_STRICT:
-                raise ConfigValidationError("; ".join(errors))
-            validation_warnings.extend(warnings)
-            validation_warnings.extend(errors)
+        errors, warnings = validate_settings_schema(merged, self._schema)
+        if errors and self._policy_mode == POLICY_MODE_STRICT:
+            raise ConfigValidationError("; ".join(errors))
+        validation_warnings.extend(warnings)
+        validation_warnings.extend(errors)
 
         metadata = ConfigMetadata(
             source=SourceLocation(str(resolved)),

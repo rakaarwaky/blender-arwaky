@@ -13,4 +13,4 @@ class ExecuteActionProtocol(ABC):
     @abstractmethod
     async def execute(self, action: ActionName, args: Details | None = None) -> Prompt:
         """Dispatch an action to the orchestrator."""
-        pass
+        ...

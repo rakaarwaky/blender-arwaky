@@ -10,7 +10,9 @@ Main entry point that runs the MCP server.
 import logging
 import sys
 
-from modules.mcp.src.capabilities_mcp_bootstrap import ServerBootstrapManager
+from modules.shared.src.mcp.utility_mcp_bootstrap import (
+    resolve_bootstrap_config,
+)
 
 from .surface_server_instance import ServerInstanceSurface
 
@@ -22,9 +24,8 @@ class ServerStartSurface:
     """Surface for server startup sequence and entry point."""
 
     @staticmethod
-    def _setup_logging() -> None:
-        """Set up logging with config via capability layer."""
-        log_file = ServerBootstrapManager.resolve_log_file()
+    def _setup_logging(log_file: str) -> None:
+        """Set up logging with log file path from bootstrap VO."""
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -32,21 +33,22 @@ class ServerStartSurface:
         )
 
     @staticmethod
-    def main() -> None:
-        """Run the MCP server (stdio or SSE). Register all surfaces."""
-        ServerStartSurface._setup_logging()
-        mcp = ServerInstanceSurface.get_mcp_instance()
+    def main(container: object | None = None) -> None:
+        """Run the MCP server (stdio or SSE). Register all surfaces.
 
-        # NOTE: Tools and prompts are already registered inside
-        # get_mcp_instance() — do NOT re-register here.
+        Args:
+            container: DI container wired by the composition root
+                (see root_mcp_main_entry). Required on first startup.
+        """
+        config = resolve_bootstrap_config()
+        ServerStartSurface._setup_logging(config.log_file)
+        mcp = ServerInstanceSurface.get_mcp_instance(container=container)
 
-        transport, host, port_str = ServerBootstrapManager.resolve_transport_config()
-
-        if transport == "sse":
-            mcp.settings.host = host
-            mcp.settings.port = int(port_str) if port_str.isdigit() else 8000
+        if config.is_sse():
+            mcp.settings.host = config.host
+            mcp.settings.port = config.port
             mcp.settings.log_level = "INFO"
-            logger.info(f"Starting BlenderArwaky SSE server on {host}:{port_str}")
+            logger.info(f"Starting BlenderArwaky SSE server on {config.host}:{config.port}")
             mcp.run(transport="sse")
         else:
             mcp.run()

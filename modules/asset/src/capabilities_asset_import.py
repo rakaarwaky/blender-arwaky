@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_import_protocol import AssetImportProtocol
 from modules.shared.src.asset.taxonomy_asset_constant import (
@@ -40,8 +39,8 @@ class AssetImportCapability(AssetImportProtocol):
     def __init__(
         self,
         gateway_client: GatewayClientProtocol | None = None,
-        config_getter: Any | None = None,
-        event_publisher: Any | None = None,
+        config_getter: object | None = None,
+        event_publisher: object | None = None,
     ) -> None:
         """Initialize with dependencies.
 
@@ -62,7 +61,7 @@ class AssetImportCapability(AssetImportProtocol):
         scale_normalization: bool = False,
         duplicate_policy: str = DEFAULT_DUPLICATE_POLICY,
         format_hint: AssetFormatHint | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Import a locally available asset file into Blender.
 
         FR-AST-004: File must exist locally before import. Import command
@@ -123,13 +122,20 @@ class AssetImportCapability(AssetImportProtocol):
             file_path, asset_type, target_collection, scale_normalization, duplicate_policy, format_hint
         )
 
-        # Transport through gateway
-        try:
-            if self.gateway_client is not None:
-                result = await self.gateway_client.execute_command(import_command)
-            else:
-                result = {"object_names": [], "asset_name": Path(file_path).stem, "license_summary": None}
+        # Transport through gateway; never claim import success without a real Blender boundary.
+        if self.gateway_client is None:
+            return {
+                "success": False,
+                "object_names": [],
+                "asset_name": None,
+                "license_summary": None,
+                "message": "Blender gateway is not configured; import_asset is unavailable in this process",
+                "error": "gateway_unavailable",
+                "error_summary": "Blender gateway is not configured",
+            }
 
+        try:
+            result = await self.gateway_client.execute_command(import_command)
             res_dict = {
                 "success": True,
                 "object_names": result.get("object_names", []),
@@ -205,7 +211,7 @@ class AssetImportCapability(AssetImportProtocol):
         scale_normalization: bool,
         duplicate_policy: str,
         format_hint: AssetFormatHint | None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Build import command for gateway transport."""
         command = {
             "type": "import",

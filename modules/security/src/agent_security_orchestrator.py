@@ -104,6 +104,17 @@ class SecurityOrchestrator(ISecurityOperateAggregate):
                     redacted_reason="Code validation denied",
                 )
             )
+        elif result.audit_metadata and result.audit_metadata.get("rule") == "validation_disabled_override":
+            await self._emit_audit.emit_audit(
+                SecurityAuditEventVO(
+                    violation_category=ViolationCategory.POLICY_OVERRIDE,
+                    operation_type="validate_code",
+                    source_feature=SECURITY_SOURCE_FEATURE,
+                    target_metadata=result.audit_metadata,
+                    severity=AuditSeverity.WARNING,
+                    redacted_reason="Code validation disabled by policy",
+                )
+            )
 
         return result
 

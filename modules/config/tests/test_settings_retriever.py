@@ -9,8 +9,8 @@ from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
 from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot
 
 
-def _retriever(mode="strict", escape=False):
-    return SettingsRetrieverCapability(policy_mode=mode, escape_enabled=escape)
+def _retriever(mode="strict"):
+    return SettingsRetrieverCapability(policy_mode=mode)
 
 
 def _snap():
@@ -60,23 +60,15 @@ def test_get_string_returns_value():
 
 
 @pytest.mark.unit
-def test_escape_on_resolves_literal_dot():
+def test_escaped_dot_is_always_supported():
     snap = SettingsSnapshot(_data={"a.b": 1})
-    r = _retriever("strict", escape=True)
+    r = _retriever("strict")
     assert r.get_value(snap, "a\\.b") == 1
 
 
 @pytest.mark.unit
-def test_escape_off_literal_split():
-    snap = SettingsSnapshot(_data={"a.b": 1})
-    r = _retriever("strict", escape=False)
-    assert r.get_value(snap, "a\\.b") is None  # split into ("a\\", "b")
-
-
-@pytest.mark.unit
-def test_flag_off_parity_with_v1():
-    # escape disabled → behavior identical to prior dotted split
-    r = _retriever("strict", escape=False)
+def test_dotted_path_still_splits_unescaped_separator():
+    r = _retriever("strict")
     assert r.get_value(_snap(), "a.b") == 1
 
 

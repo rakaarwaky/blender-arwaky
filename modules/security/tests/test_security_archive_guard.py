@@ -24,9 +24,12 @@ def _make_guard() -> ArchiveGuard:
     return ArchiveGuard()
 
 
-def _extract(guard: ArchiveGuard, entries: list[ArchiveEntryVO], options: ArchiveExtractionOptionsVO | None = None) -> ArchiveExtractionVO:
+def _extract(
+    guard: ArchiveGuard, entries: list[ArchiveEntryVO], options: ArchiveExtractionOptionsVO | None = None
+) -> ArchiveExtractionVO:
     """Helper to run validate_extraction synchronously via asyncio."""
     import asyncio
+
     request = ArchiveExtractionVO(
         destination_directory="/safe/out",
         entries=tuple(entries),
@@ -52,10 +55,13 @@ class TestAbsoluteEntryPath:
     def test_multiple_absolute_entries_all_rejected(self) -> None:
         """FR-SEC-002: multiple absolute entries are all rejected."""
         guard = _make_guard()
-        res = _extract(guard, [
-            ArchiveEntryVO(entry_path="/etc/passwd"),
-            ArchiveEntryVO(entry_path="/usr/bin/python"),
-        ])
+        res = _extract(
+            guard,
+            [
+                ArchiveEntryVO(entry_path="/etc/passwd"),
+                ArchiveEntryVO(entry_path="/usr/bin/python"),
+            ],
+        )
         assert res.allowed is False
         assert len(res.rejected_entries) >= 2
 
@@ -73,6 +79,13 @@ class TestPathTraversalInEntries:
         """FR-SEC-002: entries with ../ are rejected."""
         guard = _make_guard()
         res = _extract(guard, [ArchiveEntryVO(entry_path="../escape.blend")])
+        assert res.allowed is False
+        assert any("traversal" in r.reason.lower() for r in res.rejected_entries)
+
+    def test_encoded_traversal_rejected(self) -> None:
+        """FR-SEC-002: URL-encoded traversal in an archive entry is rejected."""
+        guard = _make_guard()
+        res = _extract(guard, [ArchiveEntryVO(entry_path="safe/%2e%2e/%65tc/passwd")])
         assert res.allowed is False
         assert any("traversal" in r.reason.lower() for r in res.rejected_entries)
 
@@ -129,10 +142,13 @@ class TestSymlinkAndHardLinkEntries:
     def test_both_symlink_and_hard_link_rejected_default(self) -> None:
         """FR-SEC-002: both symlink and hard link rejected when neither is allowed."""
         guard = _make_guard()
-        res = _extract(guard, [
-            ArchiveEntryVO(entry_path="link", is_symbolic_link=True),
-            ArchiveEntryVO(entry_path="hardlink", is_hard_link=True),
-        ])
+        res = _extract(
+            guard,
+            [
+                ArchiveEntryVO(entry_path="link", is_symbolic_link=True),
+                ArchiveEntryVO(entry_path="hardlink", is_hard_link=True),
+            ],
+        )
         assert res.allowed is False
         assert len(res.rejected_entries) >= 2
 
@@ -247,11 +263,14 @@ class TestCleanExtraction:
     def test_clean_entries_allowed(self) -> None:
         """FR-SEC-002: clean entries with no violations are allowed."""
         guard = _make_guard()
-        res = _extract(guard, [
-            ArchiveEntryVO(entry_path="a.txt"),
-            ArchiveEntryVO(entry_path="sub/b.txt"),
-            ArchiveEntryVO(entry_path="deep/c.txt"),
-        ])
+        res = _extract(
+            guard,
+            [
+                ArchiveEntryVO(entry_path="a.txt"),
+                ArchiveEntryVO(entry_path="sub/b.txt"),
+                ArchiveEntryVO(entry_path="deep/c.txt"),
+            ],
+        )
         assert res.allowed is True
         assert len(res.rejected_entries) == 0
 
@@ -275,10 +294,13 @@ class TestEdgeCases:
     def test_duplicate_entry_names(self) -> None:
         """FR-SEC-002: duplicate entry names are handled."""
         guard = _make_guard()
-        res = _extract(guard, [
-            ArchiveEntryVO(entry_path="file.txt"),
-            ArchiveEntryVO(entry_path="file.txt"),
-        ])
+        res = _extract(
+            guard,
+            [
+                ArchiveEntryVO(entry_path="file.txt"),
+                ArchiveEntryVO(entry_path="file.txt"),
+            ],
+        )
         # Both allowed if within limits
         assert res.allowed is True
 
@@ -292,17 +314,21 @@ class TestEdgeCases:
     def test_mixed_safe_and_unsafe_entries(self) -> None:
         """FR-SEC-002: mixed safe and unsafe entries — unsafe rejected, safe counted."""
         guard = _make_guard()
-        res = _extract(guard, [
-            ArchiveEntryVO(entry_path="safe.txt"),
-            ArchiveEntryVO(entry_path="/etc/passwd"),  # absolute → rejected
-            ArchiveEntryVO(entry_path="also_safe.txt"),
-        ])
+        res = _extract(
+            guard,
+            [
+                ArchiveEntryVO(entry_path="safe.txt"),
+                ArchiveEntryVO(entry_path="/etc/passwd"),  # absolute → rejected
+                ArchiveEntryVO(entry_path="also_safe.txt"),
+            ],
+        )
         assert res.allowed is False
         assert len(res.rejected_entries) >= 1
 
     def test_destination_empty_string(self) -> None:
         """FR-SEC-002: empty destination directory is handled."""
         import asyncio
+
         guard = _make_guard()
         request = ArchiveExtractionVO(
             destination_directory="",

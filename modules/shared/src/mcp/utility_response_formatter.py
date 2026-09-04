@@ -61,12 +61,32 @@ def truncate_oversized(
     }
 
 
+_SENSITIVE_PATTERNS: tuple[str, ...] = (
+    "api_key",
+    "secret",
+    "token",
+    "password",
+    "credential",
+    "authorization",
+    "bearer",
+    "private_key",
+)
+
+
 def mask_secrets(response: dict[str, Any]) -> dict[str, Any]:
     """Redact secrets/tokens/credentials/paths from response.
 
-    AES304 compliance: No bypass patterns. Uses proper redaction
-    via security policy before any response leaves the surface.
+    AES304 compliance: No bypass patterns. Uses pattern-based redaction
+    for sensitive keys before any response leaves the surface.
     """
-    # Placeholder for security policy integration.
-    # In production, integrate with actual redaction patterns.
-    return response
+    if not isinstance(response, dict):
+        return response
+    masked = dict(response)
+    data = masked.get("data")
+    if isinstance(data, dict):
+        masked_data = dict(data)
+        for key in list(masked_data.keys()):
+            if any(pattern in key.lower() for pattern in _SENSITIVE_PATTERNS):
+                masked_data[key] = "[REDACTED]"
+        masked["data"] = masked_data
+    return masked

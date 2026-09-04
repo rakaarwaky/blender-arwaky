@@ -82,9 +82,7 @@ async def test_fr_rnd_003_lens_too_large(
 async def test_fr_rnd_003_lens_boundary_min(
     executor: RenderCameraConfigExecutor,
 ) -> None:
-    result = await executor.configure_camera(
-        CameraConfigVO(focal_length=FocalLength(MIN_FOCAL_LENGTH))
-    )
+    result = await executor.configure_camera(CameraConfigVO(focal_length=FocalLength(MIN_FOCAL_LENGTH)))
     assert bool(result.success) is True
 
 
@@ -92,9 +90,7 @@ async def test_fr_rnd_003_lens_boundary_min(
 async def test_fr_rnd_003_lens_boundary_max(
     executor: RenderCameraConfigExecutor,
 ) -> None:
-    result = await executor.configure_camera(
-        CameraConfigVO(focal_length=FocalLength(MAX_FOCAL_LENGTH))
-    )
+    result = await executor.configure_camera(CameraConfigVO(focal_length=FocalLength(MAX_FOCAL_LENGTH)))
     assert bool(result.success) is True
 
 
@@ -102,9 +98,7 @@ async def test_fr_rnd_003_lens_boundary_max(
 async def test_fr_rnd_003_invalid_sensor_fit(
     executor: RenderCameraConfigExecutor,
 ) -> None:
-    result = await executor.configure_camera(
-        CameraConfigVO(focal_length=FocalLength(50.0), sensor_fit="DIAGONAL")
-    )
+    result = await executor.configure_camera(CameraConfigVO(focal_length=FocalLength(50.0), sensor_fit="DIAGONAL"))
     assert bool(result.success) is False
 
 
@@ -128,9 +122,7 @@ async def test_fr_rnd_003_execution_failure() -> None:
 @pytest.mark.asyncio
 async def test_fr_rnd_003_missing_camera_reference() -> None:
     """FR-RND-003: Camera not resolved returns error with camera_setup category."""
-    bad = RenderCameraConfigExecutor(
-        code_executor=MockCodeExecutor(payload={"camera_reference": ""})
-    )
+    bad = RenderCameraConfigExecutor(code_executor=MockCodeExecutor(payload={"camera_reference": ""}))
     result = await bad.configure_camera(CameraConfigVO(focal_length=FocalLength(50.0)))
     assert bool(result.success) is False
     assert "camera_setup" in str(result.message).lower()
@@ -140,7 +132,5 @@ async def test_fr_rnd_003_missing_camera_reference() -> None:
 async def test_fr_rnd_003_default_sensor_fit(executor: RenderCameraConfigExecutor) -> None:
     """FR-RND-003: Valid sensor_fit values pass validation."""
     # sensor_fit uses AUTO/HORIZONTAL/VERTICAL — AUTO is a common default
-    result = await executor.configure_camera(
-        CameraConfigVO(focal_length=FocalLength(50.0), sensor_fit="AUTO")
-    )
+    result = await executor.configure_camera(CameraConfigVO(focal_length=FocalLength(50.0), sensor_fit="AUTO"))
     assert bool(result.success) is True

@@ -44,7 +44,7 @@ class InvalidStateTransitionError(JobError):
         self.to_state = to_state
 
 
-class ValidationError(JobError):
+class JobValidationError(JobError):
     """Raised when job validation fails."""
 
     def __init__(self, message: ErrorString) -> None:
@@ -54,7 +54,7 @@ class ValidationError(JobError):
 class RecordNotFoundError(JobError):
     """Raised when a requested record ID is not found."""
 
-    def __init__(self, record_id: str) -> None:
+    def __init__(self, record_id: JobId) -> None:
         message = ErrorString(f"Record {record_id} not found")
         super().__init__(message)
         self.record_id = record_id
@@ -63,7 +63,7 @@ class RecordNotFoundError(JobError):
 class RecordCountError(JobError):
     """Raised when record count exceeds limits."""
 
-    def __init__(self, max_records: int, current_records: int) -> None:
+    def __init__(self, max_records: ActiveCount, current_records: ActiveCount) -> None:
         message = ErrorString(f"Record count exceeded: {current_records}/{max_records} records")
         super().__init__(message)
         self.max_records = max_records

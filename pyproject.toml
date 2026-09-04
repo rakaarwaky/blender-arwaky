@@ -45,8 +45,8 @@ lint = ["blender-arwaky[lint]"]
 dev = ["blender-arwaky[dev]"]
 
 [project.scripts]
-blender-arwaky = "modules.cli.src.root_cli_main_entry:main"
-blender-mcp = "modules.root_mcp_entry:main"
+blender-arwaky = "modules.root_cli_main_entry:main"
+blender-mcp = "modules.root_mcp_main_entry:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -78,8 +78,6 @@ ignore = ["E501"]
 "blender_mcp_addon/polyhaven.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/sketchfab.py"  = ["B007"]  # `dirs` is required by os.walk contract
 "blender_mcp_addon/properties.py" = []  # noqa already used inline
-"modules/shared/src/gateway/taxonomy_gateway_error.py" = ["N818"]  # BlenderConnectionExhausted/BlenderConnectionFailure are intentional names
-"modules/scene/src/__init__.py" = ["N813"]  # Lazy __getattr__ import needs lowercase alias for forward refs
 
 [tool.ruff.format]
 quote-style = "double"
@@ -89,7 +87,7 @@ line-ending = "auto"
 # ─── Pytest configuration ───────────────────────────────────────────────────
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["tests"]
+testpaths = ["modules", "blender_mcp_addon", "plugin"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -108,7 +106,7 @@ markers = [
     "unit: Pure logic tests, no external dependencies",
     "integration: Layer interaction tests with real DI, mocked I/O",
     "functional: End-to-end command flows within project boundaries",
-    "addon: Blender addon tests using bpy mock (tests/addon/)",
+    "addon: Blender addon tests using bpy mock",
     "slow: Tests that take >1s to run",
     "asyncio: Async test marker (pytest-asyncio)",
 ]
@@ -116,7 +114,7 @@ asyncio_mode = "auto"
 
 # ─── Coverage configuration ────────────────────────────────────────────────
 [tool.coverage.run]
-source = ["src", "modules", "blender_mcp_addon"]
+source = ["modules", "blender_mcp_addon"]
 branch = true
 parallel = true
 omit = [

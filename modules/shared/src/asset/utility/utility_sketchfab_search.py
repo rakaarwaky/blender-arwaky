@@ -35,6 +35,8 @@ async def sketchfab_search(
             ActionName("search_sketchfab_models"),
             {"query": str(query), "count": 20, "downloadable": True},
         )
+        if result.get("error"):
+            raise ProviderError(f"[{result.get('error')}] {result.get('message', 'Sketchfab request failed')}")
         items = [
             AssetMetadataItem(
                 id=AssetId(model.get("uid", "")),

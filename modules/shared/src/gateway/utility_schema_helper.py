@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from modules.shared.src.gateway.taxonomy_gateway_error import ValidationError
+from modules.shared.src.gateway.taxonomy_gateway_error import GatewayValidationError
 from modules.shared.src.gateway.taxonomy_gateway_vo import ServerCommandSpec
 
 _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
@@ -98,8 +98,8 @@ _GATEWAY_COMMAND_CATALOG: dict[str, ServerCommandSpec] = {
         mutates_scene=False,
         background_allowed=False,
     ),
-    "execute_code": ServerCommandSpec(
-        name="execute_code",
+    "execute_blender_code": ServerCommandSpec(
+        name="execute_blender_code",
         required_params=("code",),
         optional_params=("timeout_ms",),
         param_types=ServerCommandSpec._make_param_types({"code": "str", "timeout_ms": "int"}),
@@ -128,17 +128,17 @@ _command_spec_map: dict[str, ServerCommandSpec] = {spec.name: spec for spec in _
 def get_command_spec(command: str) -> ServerCommandSpec:
     """Get command specification by name.
 
-    Raises ValidationError if command is unknown.
+    Raises GatewayValidationError if command is unknown.
     """
     if command not in _command_spec_map:
-        raise ValidationError(message=f"Unknown command: {command}", code="unknown_command")
+        raise GatewayValidationError(message=f"Unknown command: {command}", code="unknown_command")
     return _command_spec_map[command]
 
 
 def validate_command_args(command: str, params: dict[str, Any] | None) -> None:
     """Validate command arguments against catalog schema.
 
-    Raises ValidationError if:
+    Raises GatewayValidationError if:
     - Command is unknown
     - Params contain keys not in schema
     - Required parameters are missing
@@ -148,7 +148,7 @@ def validate_command_args(command: str, params: dict[str, Any] | None) -> None:
 
     if params is None:
         if spec.required_params:
-            raise ValidationError(
+            raise GatewayValidationError(
                 message=f"Missing required parameter(s): {', '.join(spec.required_params)}",
                 code="validation_error",
                 details={"missing": list(spec.required_params)},
@@ -156,18 +156,18 @@ def validate_command_args(command: str, params: dict[str, Any] | None) -> None:
         return
 
     if not isinstance(params, dict):
-        raise ValidationError(message="Command arguments must be a dictionary")
+        raise GatewayValidationError(message="Command arguments must be a dictionary")
 
     for key in params:
         if key not in allowed_keys:
-            raise ValidationError(
+            raise GatewayValidationError(
                 message=f"Unknown parameter '{key}' for command '{command}'",
                 code="validation_error",
             )
 
     missing = [p for p in spec.required_params if p not in params]
     if missing:
-        raise ValidationError(
+        raise GatewayValidationError(
             message=f"Missing required parameter(s): {', '.join(missing)}",
             code="validation_error",
             details={"missing": missing},
@@ -178,7 +178,7 @@ def is_scene_mutating(command: str) -> bool:
     """Check if a command mutates Blender scene state."""
     try:
         return get_command_spec(command).mutates_scene
-    except ValidationError:
+    except GatewayValidationError:
         return False
 
 
@@ -192,14 +192,8 @@ def effective_command_timeout_ms(command: str, requested_timeout_ms: float | Non
     if requested_timeout_ms is None:
         return spec.default_timeout_ms
     if requested_timeout_ms > spec.max_timeout_ms:
-        raise ValidationError(
+        raise GatewayValidationError(
             message=f"Requested timeout {requested_timeout_ms}ms exceeds max {spec.max_timeout_ms}ms",
             code="validation_error",
         )
     return requested_timeout_ms
-
-
-def get_command_schema(command: str) -> list[str]:
-    """Get allowed parameters for a command (legacy alias)."""
-    spec = get_command_spec(command)
-    return list(spec.required_params) + list(spec.optional_params)

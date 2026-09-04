@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 from modules.shared.src.asset.taxonomy_asset_data_vo import AssetMetadata
 from modules.shared.src.asset.taxonomy_asset_vo import (
@@ -29,4 +28,4 @@ class IAssetAggregate(ABC):
     async def import_asset(self, request: AssetImportBlenderVO) -> AssetImportBlenderVO: ...
 
     @abstractmethod
-    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, Any]: ...
+    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, object]: ...

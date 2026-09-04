@@ -32,11 +32,11 @@ from modules.shared.src.gateway.contract_transport_protocol import (
 )
 from modules.shared.src.gateway.taxonomy_gateway_error import (
     CommandTimeoutError,
+    GatewayProviderError,
+    GatewayValidationError,
     PayloadLimitError,
-    ProviderError,
     TimeoutError,
     TransportParseError,
-    ValidationError,
 )
 from modules.shared.src.gateway.taxonomy_gateway_event import (
     CommandDispatched,
@@ -58,7 +58,7 @@ logger = logging.getLogger("BlenderMCPServer")
 class BlenderCommandAdapter(IBlenderCommandProtocol):
     """Command dispatch capability for Blender TCP/stdio operations.
 
-    Implements FR-SRV-003 (v2.0.0): dispatches named commands with
+    Implements FR-GWY-003: dispatches named commands with
     catalog-driven validation, timeout enforcement, and response
     truncation. No queue management — queued by orchestrator.
     """
@@ -83,7 +83,7 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         get_command_spec(action)
         try:
             validate_command_args(action, params)
-        except ValidationError:
+        except GatewayValidationError:
             raise
         effective_timeout = effective_command_timeout_ms(action, timeout_ms)
         timeout_s = effective_timeout / 1000.0
@@ -113,14 +113,14 @@ class BlenderCommandAdapter(IBlenderCommandProtocol):
         except asyncio.TimeoutError:
             logger.warning("Command %s timed out after %.1fms", action, timeout_s * 1000)
             raise CommandTimeoutError(action=action, timeout_ms=effective_timeout) from None
-        except ValidationError:
+        except GatewayValidationError:
             raise
-        except ProviderError:
+        except GatewayProviderError:
             raise
         except Exception as exc:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.error("Command %s failed: %s", action, exc)
-            raise ProviderError(
+            raise GatewayProviderError(
                 message=f"Command '{action}' failed: {exc}",
                 details={"action": action},
             ) from None
@@ -161,8 +161,7 @@ class TransportExecutor(TransportProtocol):
             response_data = self._receive_response(timeout)
             duration_ms = (time.time() - start_time) * 1000
             response = self._parse_response(response_data, request.tracking_id)
-            response.duration_ms = duration_ms
-            response.request_size_bytes = len(frame)
+            response = replace(response, duration_ms=duration_ms, request_size_bytes=len(frame))
             logger.debug(
                 "Transport complete: tracking_id=%s, status=%s, %.1fms",
                 request.tracking_id,
@@ -176,7 +175,7 @@ class TransportExecutor(TransportProtocol):
             raise
         except Exception as e:
             logger.error("Transport error: %s", e)
-            raise ProviderError(
+            raise GatewayProviderError(
                 message=f"Transport failed: {e}",
                 details={"tracking_id": request.tracking_id},
             ) from e
@@ -195,6 +194,7 @@ class TransportExecutor(TransportProtocol):
     def _receive_response(self, _timeout_seconds: float) -> bytes:
         if not self._socket:
             raise TimeoutError("No socket connection")
+        self._socket.settimeout(_timeout_seconds)
         # Header is only 4 bytes — simple concatenation is fine here
         header = b""
         while len(header) < 4:
@@ -203,7 +203,9 @@ class TransportExecutor(TransportProtocol):
                 raise TimeoutError("Connection closed during header read")
             header += chunk
         length = int.from_bytes(header, "big")
-        # Use bytearray to avoid O(n²) memory copies on large payloads
+        if length > self._max_payload_bytes:
+            raise PayloadLimitError(f"Response length {length} exceeds max payload {self._max_payload_bytes}")
+        # Use bytearray to avoid O(n2) memory copies on large payloads
         data = bytearray()
         while len(data) < length:
             chunk = self._socket.recv(length - len(data))
@@ -218,8 +220,8 @@ class TransportExecutor(TransportProtocol):
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise TransportParseError(f"Failed to parse response: {exc}") from None
         actual_tracking_id = message.get("tracking_id", "")
+        self._pending_tracking_ids.pop(actual_tracking_id, None)
         if actual_tracking_id != expected_tracking_id:
-            self._pending_tracking_ids.pop(expected_tracking_id, None)
             logger.warning(
                 "Orphan response discarded: expected=%s, got=%s",
                 expected_tracking_id,

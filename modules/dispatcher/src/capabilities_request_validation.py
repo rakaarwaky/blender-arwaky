@@ -10,12 +10,12 @@ FR-DSP-003: Validate Action Request
 
 import json
 import logging
-from typing import Any
 
 from modules.shared.src.dispatcher.contract_request_validation_protocol import (
     RequestValidationProtocol,
 )
 from modules.shared.src.dispatcher.taxonomy_action_command_vo import ActionCommandVO
+from modules.shared.src.dispatcher.taxonomy_action_metadata_vo import ActionMetadataVO
 from modules.shared.src.dispatcher.taxonomy_dispatch_error import (
     DispatchError,
     DispatchErrorCategory,
@@ -44,13 +44,13 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
     def __init__(
         self,
-        catalog: dict[str, Any] | None = None,
+        catalog: dict[str, ActionMetadataVO] | None = None,
         unknown_parameter_policy: str = "strict",
         max_payload_size: int = MAX_PAYLOAD_SIZE,
         max_timeout_override: float = MAX_TIMEOUT_OVERRIDE,
         destructive_confirmation_enforced: bool = DESTRUCTIVE_CONFIRMATION_ENFORCED,
     ) -> None:
-        self._catalog: dict[str, Any] = catalog if catalog is not None else {}
+        self._catalog: dict[str, ActionMetadataVO] = catalog if catalog is not None else {}
         self._unknown_parameter_policy = unknown_parameter_policy
         self._max_payload_size = max_payload_size
         self._max_timeout_override = max_timeout_override
@@ -132,7 +132,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _validate_parameters(self, request: ActionCommandVO, metadata: Any, warnings: list[str]) -> None:
+    def _validate_parameters(self, request: ActionCommandVO, metadata: ActionMetadataVO, warnings: list[str]) -> None:
         """Validate parameters against the registered schema (FR-DSP-003)."""
         schema = getattr(metadata, "parameter_schema", {}) or {}
         properties = schema.get("properties", {}) or {}
@@ -172,7 +172,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
                 DispatchErrorCategory.VALIDATION,
             )
 
-    def _validate_field(self, field_name: str, value: Any, field_def: dict[str, Any]) -> None:
+    def _validate_field(self, field_name: str, value: object, field_def: dict[str, object]) -> None:
         """Validate a single parameter value against its schema definition."""
         declared_type = field_def.get("type")
         if declared_type:
@@ -211,7 +211,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
                 DispatchErrorCategory.VALIDATION,
             )
 
-    def _check_type(self, field_name: str, value: Any, declared_type: str) -> None:
+    def _check_type(self, field_name: str, value: object, declared_type: str) -> None:
         """Check a parameter value against its declared primitive type."""
         if isinstance(value, bool) and declared_type != "boolean":
             raise DispatchError(
@@ -219,7 +219,7 @@ class RequestValidationExecutor(RequestValidationProtocol):
                 DispatchErrorCategory.VALIDATION,
             )
 
-        type_map: dict[str, Any] = {
+        type_map: dict[str, object] = {
             "string": str,
             "integer": int,
             "number": (int, float),
@@ -235,6 +235,10 @@ class RequestValidationExecutor(RequestValidationProtocol):
                 f"Parameter '{field_name}' must be {declared_type}, got {type(value).__name__}",
                 DispatchErrorCategory.VALIDATION,
             )
+
+    def get_action(self, action_name: str) -> ActionMetadataVO | None:
+        """Retrieve a specific action from the catalog by name."""
+        return self._catalog.get(action_name)
 
     def __repr__(self) -> str:
         return f"RequestValidationExecutor(catalog={len(self._catalog)})"

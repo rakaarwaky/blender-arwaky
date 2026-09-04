@@ -16,7 +16,6 @@ Usage:
 """
 
 import argparse
-import os
 import re
 import sys
 from pathlib import Path
@@ -169,7 +168,7 @@ def resolve_dependency_path(dep: dict, file_path: Path, project_root: Path) -> s
 
         for segs in candidates:
             base = shared_src
-            for i, seg in enumerate(segs):
+            for _i, seg in enumerate(segs):
                 # Try both underscore and dash variants for directory names
                 dir_candidates = [seg]
                 if "_" in seg:
@@ -212,7 +211,7 @@ def resolve_dependency_path(dep: dict, file_path: Path, project_root: Path) -> s
 
         for segs in candidates:
             base = module_dir
-            for i, seg in enumerate(segs):
+            for _i, seg in enumerate(segs):
                 # First: try as .py file (individual module)
                 candidate_file = base / f"{seg}.py"
                 if candidate_file.is_file():
@@ -426,7 +425,7 @@ def write_markdown(
 
         # File list
         out.write("## File List\n\n")
-        out.write(f"**Selected file:**\n")
+        out.write("**Selected file:**\n")
         out.write(f"- [{rel}]({selected_file.as_uri()})\n\n")
 
         if all_files:

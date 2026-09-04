@@ -19,7 +19,6 @@ import tarfile
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from modules.shared.src.asset.contract_asset_extract_protocol import AssetExtractProtocol
 from modules.shared.src.asset.taxonomy_asset_vo import (
@@ -50,7 +49,7 @@ class AssetExtractCapability(AssetExtractProtocol):
 
     FR-AST-003: All archive safety decisions delegated to security policy
     feature. Never implements path traversal protection locally. Extraction
-    destination is validated through security policy before any entry is
+    destination is validated through security policy before an entry is
     written. Rejected entries are reported without exposing unsafe target
     paths in raw form.
     """
@@ -74,16 +73,16 @@ class AssetExtractCapability(AssetExtractProtocol):
         max_entries: int | None = None,
         max_extracted_size: int | None = None,
         allow_symlinks: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Extract downloaded archive under security policy supervision.
 
         FR-AST-003: All archive safety decisions delegated to security
         policy feature. Limits (max_entries, max_extracted_size) come
         from the caller or config; the security supervisor enforces its own
         limits. Extraction destination validated through security policy
-        before any entry is written. Rejected entries reported without
+        before an entry is written. Rejected entries reported without
         exposing unsafe target paths in raw form. Partial extraction is
-        avoided because approval is obtained before any entry is written.
+        avoided because approval is obtained before an entry is written.
 
         Args:
             artifact_path: Path to the archive file to extract.

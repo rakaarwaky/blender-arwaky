@@ -5,7 +5,7 @@ Immutable domain types for configuration management:
 - WorkspacePath: resolved project workspace directory
 - RedactionRule: pattern-based sensitive value masking rule
 
-Domain type aliases (replaces all `Any` usages in capabilities/agent):
+Domain type aliases for YAML-parsed configuration values:
 - SettingsValue: recursive YAML-parsed value type
 - SettingsData: top-level parsed YAML dict
 - SettingsOverrides: caller-supplied dot-path key=value overrides
@@ -19,14 +19,15 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import NewType
 
 from ..common.taxonomy_core_vo import ConfigPath
 
 # ─── Domain Type Aliases ──────────────────────────────────────────────────────
-# These replace every `Any` usage across capabilities and agent layers.
+# Typed aliases for YAML-parsed configuration values.
 # Defined here so all layers import from taxonomy, not from typing.
 
-# Recursive YAML value — any primitive or nested container YAML can produce.
+# Recursive YAML value — a primitive or nested container YAML can produce.
 # Use this wherever raw YAML data flows through the system.
 SettingsValue = str | int | float | bool | None | list["SettingsValue"] | dict[str, "SettingsValue"]
 
@@ -46,7 +47,16 @@ EventPayload = dict[str, str | int | float | bool | None]
 # YAML file loader callable — receives a config path, returns parsed data.
 ConfigFileLoader = Callable[[ConfigPath], SettingsData]
 
-_MISSING = object()  # module-private sentinel for "no value"
+# Strongly-typed accessor values (AES402: no raw primitives in contract signatures)
+ConfigStringValue = NewType("ConfigStringValue", str)
+ConfigIntValue = NewType("ConfigIntValue", int)
+ConfigFloatValue = NewType("ConfigFloatValue", float)
+ConfigEventLimit = NewType("ConfigEventLimit", int)
+
+# Singleton defaults for contract signatures (B008-safe: no calls in defaults)
+DEFAULT_CONFIG_STRING: ConfigStringValue = ConfigStringValue("")
+DEFAULT_CONFIG_INT: ConfigIntValue = ConfigIntValue(0)
+DEFAULT_CONFIG_FLOAT: ConfigFloatValue = ConfigFloatValue(0.0)
 
 
 @dataclass(frozen=True)
@@ -60,7 +70,7 @@ class SettingsSnapshot:
     _data: SettingsData = field(repr=False, default_factory=dict)
 
     # ─── Segment traversal (T-04) ───────────────────────────────
-    # These operate on pre-split segment tuples so the retriever can pass
+    # These operate on pre-split segment tuples so the retriever can forward
     # escape-aware segments. get()/has() delegate to them.
 
     def get_segments(self, segments: tuple[str, ...], default: SettingsValue = None) -> SettingsValue:
@@ -154,7 +164,7 @@ class RedactionRule:
     full_redact: bool = True
 
     def matches_key(self, key: str) -> bool:
-        """Check if a key matches any of the sensitive patterns.
+        """Check if a key matches one of the sensitive patterns.
 
         Substring semantics are intentional (PM Q14): e.g. ``auth`` also
         matches ``author`` — an accepted false positive.

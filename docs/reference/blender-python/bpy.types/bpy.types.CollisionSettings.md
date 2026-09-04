@@ -1,0 +1,192 @@
+# bpy.types.CollisionSettings
+
+# CollisionSettings(bpy_struct)
+
+ 
+
+base class — [`bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)
+
+   class bpy.types.CollisionSettings(bpy_struct) 
+
+Collision settings for object in physics simulation
+
+   absorption 
+
+How much of effector force gets lost during collision with this object (in percent) (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      cloth_friction 
+
+Friction for cloth collisions (in [0, 80], default 0.0)
+
+  Type: 
+
+float
+
+      damping 
+
+Amount of damping during collision (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      damping_factor 
+
+Amount of damping during particle collision (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      damping_random 
+
+Random variation of damping (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      friction_factor 
+
+Amount of friction during particle collision (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      friction_random 
+
+Random variation of friction (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      permeability 
+
+Chance that the particle will pass through the mesh (in [0, 1], default 0.0)
+
+  Type: 
+
+float
+
+      stickiness 
+
+Amount of stickiness to surface collision (in [0, 10], default 0.0)
+
+  Type: 
+
+float
+
+      thickness_inner 
+
+Inner face thickness (only used by softbodies) (in [0.001, 1], default 0.0)
+
+  Type: 
+
+float
+
+      thickness_outer 
+
+Outer face thickness (in [0.001, 1], default 0.0)
+
+  Type: 
+
+float
+
+      use 
+
+Enable this object as a collider for physics systems (default False)
+
+  Type: 
+
+bool
+
+      use_culling 
+
+Cloth collision acts with respect to the collider normals (improves penetration recovery) (default False)
+
+  Type: 
+
+bool
+
+      use_normal 
+
+Cloth collision impulses act in the direction of the collider normals (more reliable in some cases) (default False)
+
+  Type: 
+
+bool
+
+      use_particle_kill 
+
+Kill collided particles (default False)
+
+  Type: 
+
+bool
+
+      classmethod bl_rna_get_subclass(id, default=None, /)  Parameters:  
+- id (str) – The RNA type identifier. 
+- default ([`bpy.types.Struct`](bpy.types.Struct.html#bpy.types.Struct) | None) – The value to return when not found.   Returns: 
+
+The RNA type or default when not found.
+
+  Return type: 
+
+[`bpy.types.Struct`](bpy.types.Struct.html#bpy.types.Struct)
+
+      classmethod bl_rna_get_subclass_py(id, default=None, /)  Parameters:  
+- id (str) – The RNA type identifier. 
+- default (type | None) – The value to return when not found.   Returns: 
+
+The class or default when not found.
+
+  Return type: 
+
+type
+
+      
+
+## Inherited Properties
+
+  
+- [`bpy_struct.id_data`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_data)       
+
+## Inherited Functions
+
+  
+- [`bpy_struct.as_pointer`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.as_pointer) 
+- [`bpy_struct.driver_add`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_add) 
+- [`bpy_struct.driver_remove`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.driver_remove) 
+- [`bpy_struct.get`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.get) 
+- [`bpy_struct.id_properties_clear`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_clear) 
+- [`bpy_struct.id_properties_ensure`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ensure) 
+- [`bpy_struct.id_properties_ui`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.id_properties_ui) 
+- [`bpy_struct.is_property_hidden`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_hidden) 
+- [`bpy_struct.is_property_overridable_library`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_overridable_library) 
+- [`bpy_struct.is_property_readonly`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_readonly) 
+- [`bpy_struct.is_property_set`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.is_property_set) 
+- [`bpy_struct.items`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.items)   
+- [`bpy_struct.keyframe_delete`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_delete) 
+- [`bpy_struct.keyframe_insert`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keyframe_insert) 
+- [`bpy_struct.keys`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.keys) 
+- [`bpy_struct.path_from_id`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_id) 
+- [`bpy_struct.path_from_module`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_from_module) 
+- [`bpy_struct.path_resolve`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.path_resolve) 
+- [`bpy_struct.pop`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.pop) 
+- [`bpy_struct.property_overridable_library_set`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_overridable_library_set) 
+- [`bpy_struct.property_unset`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.property_unset) 
+- [`bpy_struct.rna_ancestors`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.rna_ancestors) 
+- [`bpy_struct.type_recast`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.type_recast) 
+- [`bpy_struct.values`](bpy.types.bpy_struct.html#bpy.types.bpy_struct.values)     
+
+## References
+
+  
+- [`CollisionModifier.settings`](bpy.types.CollisionModifier.html#bpy.types.CollisionModifier.settings)   
+- [`Object.collision`](bpy.types.Object.html#bpy.types.Object.collision)

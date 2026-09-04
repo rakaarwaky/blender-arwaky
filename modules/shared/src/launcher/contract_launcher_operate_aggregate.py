@@ -13,15 +13,14 @@ from modules.shared.src.common.taxonomy_core_vo import FilePath
 
 from .taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
 )
 
 
@@ -37,10 +36,8 @@ class ILauncherOperateAggregate(ABC):
         ...
 
     @abstractmethod
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """FR-LAU-002: Launch Blender and confirm readiness."""
+    def launch(self, request: LaunchRequestVO) -> LaunchOutcomeVO:
+        """FR-LAU-002: Launch Blender and confirm readiness. Accepts filepath, mode, bridge endpoint, and readiness timeout."""
         ...
 
     @abstractmethod

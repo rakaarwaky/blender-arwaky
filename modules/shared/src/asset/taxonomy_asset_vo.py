@@ -9,9 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from modules.shared.src.common.taxonomy_core_vo import (
-    AssetCollectionName,
     AssetCount,
-    AssetFormatHint,
     AssetId,
     AssetName,
     AssetType,
@@ -21,18 +19,11 @@ from modules.shared.src.common.taxonomy_core_vo import (
     ObjectName,
     ProviderName,
     ResolutionPreference,
-    ScaleNormalization,
     SearchQuery,
     SuccessFlag,
     TagList,
     ThumbnailUrl,
 )
-
-__all__ = [
-    "AssetCollectionName",
-    "AssetFormatHint",
-    "ScaleNormalization",
-]
 
 
 @dataclass(frozen=True)
@@ -233,7 +224,8 @@ class ArchiveEntryVO:
 class ArchiveExtractionOptionsVO:
     """Options for archive extraction validation.
 
-    FR-AST-003: Passed to security supervisor via ArchiveExtractionVO.
+    FR-AST-003: Provided to security supervisor via ArchiveExtractionVO.
+
     Fields match security taxonomy to ensure protocol compatibility.
     """
 

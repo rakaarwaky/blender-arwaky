@@ -30,9 +30,7 @@ def test_reconnect_success_transitions_to_connected():
 
 
 def test_reconnect_failure_transitions_to_failed():
-    executor = MaintenanceExecutor(
-        reconnect_fn=lambda: _FakeOutcome(ConnectionState.FAILED, "connection refused")
-    )
+    executor = MaintenanceExecutor(reconnect_fn=lambda: _FakeOutcome(ConnectionState.FAILED, "connection refused"))
     status = executor.attempt_reconnect()
     assert status.state == ConnectionState.FAILED
     assert status.reconnect_attempts == 1
@@ -80,10 +78,11 @@ def test_reconnect_none_outcome_treated_as_failure():
     assert status.state == ConnectionState.FAILED
 
 
-def test_reconnect_without_hook_keeps_legacy_connected_behavior():
+def test_reconnect_without_hook_transitions_to_failed():
     executor = MaintenanceExecutor()
     status = executor.attempt_reconnect()
-    assert status.state == ConnectionState.CONNECTED
+    assert status.state == ConnectionState.FAILED
+    assert "No reconnect function configured" in (status.last_failure_reason or "")
 
 
 def test_reconnect_counter_resets_after_exhaustion():
@@ -111,5 +110,5 @@ def test_reconnect_counter_resets_after_recovery():
     )
     assert executor.attempt_reconnect().reconnect_attempts == 1  # FAILED
     assert executor.attempt_reconnect().reconnect_attempts == 2  # recovered
-    # Connection drops again — new session must restart at 1, not inherit 2.
-    assert executor.attempt_reconnect().reconnect_attempts == 1
+    # After recovery, state is CONNECTED — early return resets counter.
+    assert executor.attempt_reconnect().reconnect_attempts == 0

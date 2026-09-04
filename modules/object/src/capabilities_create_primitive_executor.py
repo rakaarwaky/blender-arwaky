@@ -11,17 +11,14 @@ Structure:
 """
 
 import logging
-from typing import Any
 
 from modules.shared.src.common.taxonomy_core_vo import (
     ObjectName,
     Prompt,
     SuccessFlag,
 )
-from modules.shared.src.common.utility_code_builder import (
-    quote_string,
-    tuple_str,
-)
+
+# No utility imports needed — all string formatting done inline
 from modules.shared.src.object.contract_create_primitive_protocol import CreatePrimitiveProtocol
 from modules.shared.src.object.taxonomy_object_constant import NON_MESH_PRIMITIVES, PRIMITIVE_OPS_MAP
 from modules.shared.src.object.taxonomy_object_error import InvalidPrimitiveTypeError
@@ -41,7 +38,7 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
-    def __init__(self, code_executor: Any = None) -> None:
+    def __init__(self, code_executor: object | None = None) -> None:
         self._executor = code_executor
 
     # ─── Block 2: Protocol Method Implementation ─────────────
@@ -96,7 +93,7 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         # Generate code to check existence and find first available suffix
         check_code = (
             "import bpy\n"
-            f"base = {quote_string(base_name)}\n"
+            f"base = {repr(base_name)}\n"
             "existing = set(bpy.data.objects.keys())\n"
             "candidate = base\n"
             "suffix = 1\n"
@@ -118,7 +115,7 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
         # Generate code to check existence and find first available suffix
         check_code = (
             "import bpy\n"
-            f"base = {quote_string(base_name)}\n"
+            f"base = {repr(base_name)}\n"
             "existing = set(bpy.data.objects.keys())\n"
             "candidate = base\n"
             "suffix = 1\n"
@@ -147,19 +144,23 @@ class CreatePrimitiveExecutor(CreatePrimitiveProtocol):
 
         # Add size/parameter adjustments for specific primitives
         if request.scale is not None:
-            lines.append(f"bpy.context.active_object.scale = {tuple_str(request.scale)}")
+            lines.append(
+                f"bpy.context.active_object.scale = ({request.scale[0]}, {request.scale[1]}, {request.scale[2]})"
+            )
 
         if request.location is not None:
-            lines.append(f"bpy.context.active_object.location = {tuple_str(request.location)}")
+            lines.append(
+                f"bpy.context.active_object.location = ({request.location[0]}, {request.location[1]}, {request.location[2]})"
+            )
 
         rotation = getattr(request, "rotation", None)
         if rotation is not None:
-            lines.append(f"bpy.context.active_object.rotation_euler = {tuple_str(rotation)}")
+            lines.append(f"bpy.context.active_object.rotation_euler = ({rotation[0]}, {rotation[1]}, {rotation[2]})")
 
         # Set object name
         lines.append("created_obj = bpy.context.active_object")
         lines.append("if created_obj:")
-        lines.append(f"    created_obj.name = {quote_string(resolved_name)}")
+        lines.append(f"    created_obj.name = {repr(resolved_name)}")
 
         return "\n".join(lines)
 

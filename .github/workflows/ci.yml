@@ -2,24 +2,35 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
-    branches: [main]
+    branches: [develop, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_LOCKED: "1"
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   lint:
-    name: Lint
+    name: Lint and syntax validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,27 +38,58 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --locked --all-extras
 
-      - name: Ruff check
-        run: uv run ruff check modules/*/src blender_mcp_addon/
+      - name: Ruff lint (modules only)
+        run: uv run ruff check modules
 
-      - name: Ruff format check
-        run: uv run ruff format --check modules/*/src blender_mcp_addon/
+      - name: Ruff format check (modules only)
+        run: uv run ruff format --check modules
+
+      - name: Python syntax compilation
+        run: python -m compileall -q modules blender_mcp_addon
+
+      - name: Bandit security scan (modules only)
+        run: uv run bandit -r modules -x '*/tests/*' -ll -ii
+
+  aes-architecture:
+    name: AES architecture (lint-arwaky)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install pinned lint-arwaky-cli
+        env:
+          LINT_ARWAKY_VERSION: v3.6.1
+          LINT_ARWAKY_SHA256: 1dc8f3fe98cfb7b8cfaf7e42635fa94051277f95f096867794727d37b4788550
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/rakaarwaky/lint-arwaky/releases/download/${LINT_ARWAKY_VERSION}/lint-arwaky-cli" \
+            --output "$RUNNER_TEMP/lint-arwaky-cli"
+          printf '%s  %s\n' "$LINT_ARWAKY_SHA256" "$RUNNER_TEMP/lint-arwaky-cli" \
+            | sha256sum --check --status
+          chmod +x "$RUNNER_TEMP/lint-arwaky-cli"
+          "$RUNNER_TEMP/lint-arwaky-cli" version
+      - name: AES full architecture scan (must be zero violations)
+        run: "$RUNNER_TEMP/lint-arwaky-cli scan ."
 
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: true
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -55,21 +97,92 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --locked --all-extras
 
-      - name: Run tests
-        run: |
-          uv run pytest \
-            --cov=modules \
-            --cov=blender_mcp_addon \
-            --cov-report=term \
-            --cov-report=xml:coverage.xml \
-            -q --tb=short
+      - name: Run full test suite
+        run: uv run pytest -q --tb=short
 
-      - name: Upload coverage
+      - name: Upload coverage report
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.xml
+          path: |
+            coverage.xml
+            htmlcov/
+          if-no-files-found: error
+          retention-days: 30
+
+  integration:
+    name: Integration contract tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Run cross-feature contract tests
+        run: >-
+          uv run pytest --no-cov -q --tb=short
+          modules/cli/tests/test_cli_dispatch_integration.py
+          modules/cli/tests/test_cli_frd_subcommands.py
+          modules/mcp/tests/test_issue198_runtime.py
+          modules/asset/tests/test_asset_provider_connection.py
+          modules/launcher/tests/test_launcher_business_logic_fixes.py
+
+  package:
+    name: Build and verify distributable artifacts
+    runs-on: ubuntu-latest
+    needs: [lint, test, integration]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Build Blender addon package
+        run: uv run python scripts/build/build_addon_package.py
+
+      - name: Build Python distributions
+        run: uv build --out-dir dist/python
+
+      - name: Verify artifact integrity
+        run: |
+          unzip -t dist/blender_mcp_addon.zip
+          test -n "$(find dist/python -maxdepth 1 -type f -print -quit)"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-arwaky-distributions
+          path: |
+            dist/blender_mcp_addon.zip
+            dist/python/*
+          if-no-files-found: error
           retention-days: 30

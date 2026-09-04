@@ -1,32 +1,22 @@
-"""MCP value objects — tool definitions, server config, response envelope.
+"""MCP value objects — tool definitions, server config, response envelope."""
 
-NOTE: These VOs are defined per FRD schema but not currently consumed by any
-contract protocol or capability. Kept as placeholder for future MCP contract
-protocols (FR-MCP-001+). Remove if/when they become orphaned permanently.
-"""
+from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
 class McpToolDef:
-    """MCP tool definition for schema exposure.
-
-    NOTE: Currently unused — kept as placeholder for future schema requirements.
-    """
+    """MCP tool definition for schema exposure."""
 
     name: str
     description: str
-    parameters: dict[str, Any] | None = None
+    parameters: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
 class McpServerConfig:
-    """MCP server configuration defaults.
-
-    NOTE: Currently unused — kept as placeholder for future config requirements.
-    """
+    """MCP server configuration defaults."""
 
     name: str = "blender-arwaky"
     host: str = "127.0.0.1"
@@ -34,14 +24,28 @@ class McpServerConfig:
 
 
 @dataclass(frozen=True)
-class McpResponse:
-    """MCP response envelope structure.
+class McpServerBootstrapVO:
+    """MCP server bootstrap configuration Value Object (Taxonomy layer)."""
 
-    NOTE: Currently unused — kept as placeholder for future response requirements.
-    Actual MCP responses use McpResponseImpl in mcp_response_formatter.py.
-    """
+    transport: str = "stdio"
+    host: str = "127.0.0.1"
+    port: int = 8080
+    log_file: str = ""
+
+    def is_sse(self) -> bool:
+        """Check if transport mode is SSE."""
+        return self.transport == "sse"
+
+    def to_host_port(self) -> tuple[str, int]:
+        """Return (host, port) tuple."""
+        return (self.host, self.port)
+
+
+@dataclass(frozen=True)
+class McpResponse:
+    """MCP response envelope structure."""
 
     success: bool
-    data: Any = None
+    data: object = None
     error: str | None = None
     tool: str | None = None

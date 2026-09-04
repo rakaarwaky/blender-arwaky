@@ -1,18 +1,16 @@
 """CLI render command — Execute full frame render."""
 
 import os
-from typing import Any
 
-from modules.shared.src.gateway.utility_socket_client import BlenderSocketClient
-
-from .utility_cli_registry import Registry
+from modules.shared.src.cli.capabilities_cli_registry import Registry
+from modules.shared.src.gateway.capabilities_socket_client import BlenderSocketClient
 
 
-def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, Any]:
+def _mask_error(category: str, ref: str, message: str = "Operation failed") -> dict[str, object]:
     return {"success": False, "error": message, "category": category, "ref": ref}
 
 
-def handle(args: Any) -> dict[str, Any]:
+def handle(args: object, _dispatcher: object | None = None) -> dict[str, object]:
     """Handle render command: execute full frame render."""
     registry = Registry()
     error = registry.assert_active(args.filepath)
@@ -25,7 +23,6 @@ def handle(args: Any) -> dict[str, Any]:
         "resolution_x": args.resolution_x,
         "resolution_y": args.resolution_y,
     }
-
     try:
         with BlenderSocketClient(port=port) as client:
             response = client.send_command("render", params)

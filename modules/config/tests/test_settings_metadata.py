@@ -1,4 +1,4 @@
-"""T-08: SettingsMetadataCapability — supplier wiring, None supplier, to_safe_dict."""
+"""T-08: SettingsMetadataCapability — supplier wiring, None supplier, to_safe_dict, secret leak."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import pytest
 
 from modules.config.src.capabilities_settings_metadata import SettingsMetadataCapability
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata
+from modules.shared.src.config.taxonomy_config_constant import SENSITIVE_KEY_PATTERNS
 
 
 @pytest.mark.unit
@@ -47,3 +48,14 @@ def test_no_secret_values_in_safe_dict():
     d = SettingsMetadataCapability().to_safe_dict(md)
     # structural: only counts + source path, never raw values
     assert "password" not in str(d)
+
+
+@pytest.mark.unit
+def test_safe_dict_no_sensitive_pattern_leakage():
+    """to_safe_dict output must not contain any literal sensitive key pattern
+    from SENSITIVE_KEY_PATTERNS — verifying all patterns, not just 'password'."""
+    md = ConfigMetadata(source="config.yaml", exists=True, overrides=3)
+    d = SettingsMetadataCapability().to_safe_dict(md)
+    serialized = str(d).lower()
+    for pattern in SENSITIVE_KEY_PATTERNS:
+        assert pattern.lower() not in serialized, f"Sensitive pattern '{pattern}' leaked in safe_dict output: {d}"

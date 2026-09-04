@@ -55,12 +55,12 @@ blender --background --python scripts/blender/run_server_headless.py
 
 | Script                       | Purpose                                              |
 | ---------------------------- | ---------------------------------------------------- |
-| `install_cli_wrappers.py`    | Install `blender-cli` and `blender-arwaky` globally. |
+| `install.sh`                 | Install `blender-arwaky` and `blender-mcp` globally. |
 
 ```bash
-uv run python scripts/install/install_cli_wrappers.py
+bash scripts/install/install.sh
 blender-arwaky --help
-blender-cli --help
+blender-mcp --help
 ```
 
 ## Conventions
@@ -73,4 +73,4 @@ blender-cli --help
 - **Cross-platform:** Prefer Python stdlib over `os.system` or shell-isms.
   Detect platform with `sys.platform` and use `pathlib.Path` for I/O.
 - **No business logic:** Scripts orchestrate the project; domain code lives
-  under `src/`.
+  under `modules/` and the Blender runtime addon lives under `blender_mcp_addon/`.

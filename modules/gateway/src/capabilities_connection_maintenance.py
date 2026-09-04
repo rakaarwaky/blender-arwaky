@@ -7,6 +7,7 @@ and configurable retry with exponential backoff and jitter.
 from __future__ import annotations
 
 import logging
+import random
 import time
 from collections.abc import Callable
 
@@ -24,7 +25,7 @@ logger = logging.getLogger("BlenderMCPServer")
 class MaintenanceExecutor(ConnectionMaintenanceProtocol):
     """Concrete capability executor for gateway connection maintenance."""
 
-    # ─── Block 1: Class Definition & Constructor ──────────────
+    # --- Block 1: Class Definition & Constructor ---
 
     def __init__(
         self,
@@ -43,7 +44,7 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         self._base_backoff: float = base_backoff_seconds
         self._max_backoff: float = max_backoff_seconds
 
-    # ─── Block 2: Protocol Method Implementation ─────────────
+    # --- Block 2: Protocol Method Implementation ---
 
     def get_connection_status(self) -> ConnectionStatusVO:
         return ConnectionStatusVO(
@@ -56,13 +57,16 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
 
     def send_heartbeat(self) -> None:
         if self._state not in (ConnectionState.CONNECTED, ConnectionState.RECONNECTING):
-            logger.debug("Cannot send heartbeat — not connected")
+            logger.debug("Cannot send heartbeat -- not connected")
             return
         self._last_heartbeat_timestamp = time.time()
         logger.debug("Heartbeat sent")
 
     def attempt_reconnect(self) -> ConnectionStatusVO:
-        if self._state == ConnectionState.CONNECTED or self._reconnect_attempts >= self._max_retries:
+        if self._state == ConnectionState.CONNECTED:
+            self._reconnect_attempts = 0
+            return self.get_connection_status()
+        if self._reconnect_attempts >= self._max_retries:
             self._reconnect_attempts = 0
         self._reconnect_attempts += 1
         self._state = ConnectionState.RECONNECTING
@@ -78,11 +82,15 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
         if threading.current_thread().name != "MainThread":
             time.sleep(min(backoff, 0.1))
         try:
-            if self._reconnect_fn is not None:
-                outcome = self._reconnect_fn()
-                if outcome is None or getattr(outcome, "state", None) != ConnectionState.CONNECTED:
-                    reason = getattr(outcome, "error", None) if outcome is not None else "reconnect returned None"
-                    raise RuntimeError(f"Reconnect attempt did not establish a connection: {reason}")
+            if self._reconnect_fn is None:
+                self._last_failure_reason = "No reconnect function configured"
+                self._state = ConnectionState.FAILED
+                logger.error("Reconnect attempted but no reconnect function configured")
+                return self.get_connection_status()
+            outcome = self._reconnect_fn()
+            if outcome is None or getattr(outcome, "state", None) != ConnectionState.CONNECTED:
+                reason = getattr(outcome, "error", None) if outcome is not None else "reconnect returned None"
+                raise RuntimeError(f"Reconnect attempt did not establish a connection: {reason}")
             self._state = ConnectionState.CONNECTED
             self._last_failure_reason = None
             logger.info("Reconnection successful on attempt %d", self._reconnect_attempts)
@@ -92,15 +100,19 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
             logger.warning("Reconnection failed: %s", e)
             if self._reconnect_attempts >= self._max_retries:
                 logger.error(
-                    "Retry exhaustion after %d attempts — connection in failed state",
+                    "Retry exhaustion after %d attempts -- connection in failed state",
                     self._reconnect_attempts,
                 )
         return self.get_connection_status()
 
-    def set_state(self, state: ConnectionState | None) -> None:
-        self._state = state if state is not None else ConnectionState.CLOSED
+    def set_state(self, state: ConnectionState) -> None:
+        self._state = state
 
-    # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
+    def set_reconnect_fn(self, reconnect_fn: Callable[[], object] | None) -> None:
+        """Wire the reconnect callback after composition (setter injection)."""
+        self._reconnect_fn = reconnect_fn
+
+    # --- Block 3: Dunder Methods, Factories & Helpers ---
 
     def set_active_operation(self, active: bool) -> None:
         self._active_operation = active
@@ -108,7 +120,7 @@ class MaintenanceExecutor(ConnectionMaintenanceProtocol):
     def _calculate_backoff(self) -> float:
         exponential = self._base_backoff * (2 ** (self._reconnect_attempts - 1))
         capped = min(exponential, self._max_backoff)
-        jitter = ((time.time_ns() % 1000) / 1000.0) * (capped * 0.5)
+        jitter = random.uniform(0, capped * 0.5)
         return capped + jitter
 
     def __repr__(self) -> str:

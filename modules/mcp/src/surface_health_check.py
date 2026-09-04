@@ -6,8 +6,10 @@ FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
 import logging
-from typing import Any
 
+from modules.shared.src.diagnostics.contract_diagnostics_aggregate import (
+    IDiagnosticsAggregate,
+)
 from modules.shared.src.mcp.contract_mcp_protocol import (
     McpResponseProtocol,
     McpRoutingProtocol,
@@ -25,15 +27,21 @@ class HealthCheckSurface:
     Delegates all logic to contract protocols — zero business logic.
     """
 
-    def __init__(self, routing: McpRoutingProtocol, response: McpResponseProtocol) -> None:
+    def __init__(
+        self,
+        routing: McpRoutingProtocol,
+        response: McpResponseProtocol,
+        diagnostics: IDiagnosticsAggregate | None = None,
+    ) -> None:
         self._routing = routing
         self._response = response
+        self._diagnostics = diagnostics
 
     @staticmethod
     def register(mcp, container) -> None:
         """Register the health_check tool (MCP Tool #3)."""
 
-        async def health_check() -> dict[str, Any]:
+        async def health_check() -> dict[str, object]:
             """Check the health and connectivity of BlenderArwaky."""
             try:
                 result = await container.routing.route_tool_call(

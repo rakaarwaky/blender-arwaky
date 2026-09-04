@@ -16,14 +16,28 @@ from collections import deque
 from dataclasses import asdict
 
 from modules.shared.src.common.taxonomy_core_vo import ConfigMetadata, ConfigPath
-from modules.shared.src.config.contract_config_aggregate import IConfigAggregate
+from modules.shared.src.config.contract_config_aggregate import DEFAULT_CONFIG_EVENT_LIMIT, IConfigAggregate
 from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.config.contract_settings_loader_protocol import ISettingsLoaderProtocol
 from modules.shared.src.config.contract_settings_metadata_protocol import ISettingsMetadataProtocol
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
 from modules.shared.src.config.contract_workspace_resolver_protocol import IWorkspaceResolverProtocol
 from modules.shared.src.config.taxonomy_config_constant import EVENT_RING_BUFFER_SIZE
+from modules.shared.src.config.taxonomy_config_error import ConfigValidationError
+from modules.shared.src.config.taxonomy_config_event import (
+    SettingsLoadedEvent,
+    SettingsReloadEvent,
+    SettingsValidationWarningEvent,
+    WorkspaceResolvedEvent,
+)
 from modules.shared.src.config.taxonomy_config_vo import (
+    DEFAULT_CONFIG_FLOAT,
+    DEFAULT_CONFIG_INT,
+    DEFAULT_CONFIG_STRING,
+    ConfigEventLimit,
+    ConfigFloatValue,
+    ConfigIntValue,
+    ConfigStringValue,
     EventPayload,
     RedactionRule,
     SettingsData,
@@ -62,6 +76,16 @@ class ConfigOrchestrator(IConfigAggregate):
 
     # ─── Block 2: Aggregate Method Implementation ─────────────
 
+    def _ensure_loaded(self) -> SettingsSnapshot:
+        """Lazy-load: populate snapshot + events if not yet loaded."""
+        if self._snapshot is None:
+            self._snapshot = self._loader.load_settings()
+            self._record_event(self._loader.emit_loaded_event())
+            validation_ev = self._loader.emit_validation_warning_event()
+            if validation_ev is not None:
+                self._record_event(validation_ev)
+        return self._snapshot
+
     def load(
         self,
         path: ConfigPath | None = None,
@@ -82,14 +106,8 @@ class ConfigOrchestrator(IConfigAggregate):
         return self._snapshot
 
     def get_snapshot(self) -> SettingsSnapshot:
-        """Return cached snapshot, lazy-loading if needed (now safe — loader locked)."""
-        if self._snapshot is None:
-            self._snapshot = self._loader.load_settings()
-            self._record_event(self._loader.emit_loaded_event())
-            validation_ev = self._loader.emit_validation_warning_event()
-            if validation_ev is not None:
-                self._record_event(validation_ev)
-        return self._snapshot
+        """Return cached snapshot, lazy-loading if needed."""
+        return self._ensure_loaded()
 
     def get(self, path: ConfigPath = "", default: SettingsValue = None) -> SettingsValue:
         """Retrieve value by dot-separated path."""
@@ -99,11 +117,18 @@ class ConfigOrchestrator(IConfigAggregate):
         """Check if a path exists in settings."""
         return self._retriever.has_value(self.get_snapshot(), path)
 
-    def get_string(self, path: ConfigPath, default: str = "") -> str:
+    def set_config(self, path: ConfigPath, value: SettingsValue) -> SettingsSnapshot:
+        """Persist a typed config value through the loader mutation contract."""
+        if self._redaction_rules.get_redaction_rule().matches_key(str(path)):
+            raise ConfigValidationError("Secret-like configuration keys cannot be mutated through the CLI")
+        self._snapshot = self._loader.set_value(path, value)
+        return self._snapshot
+
+    def get_string(self, path: ConfigPath, default: ConfigStringValue = DEFAULT_CONFIG_STRING) -> ConfigStringValue:
         """Retrieve string value."""
         return self._retriever.get_string(self.get_snapshot(), path, default)
 
-    def get_int(self, path: ConfigPath, default: int = 0) -> int:
+    def get_int(self, path: ConfigPath, default: ConfigIntValue = DEFAULT_CONFIG_INT) -> ConfigIntValue:
         """Retrieve integer value."""
         return self._retriever.get_int(self.get_snapshot(), path, default)
 
@@ -111,7 +136,7 @@ class ConfigOrchestrator(IConfigAggregate):
         """Retrieve boolean value."""
         return self._retriever.get_bool(self.get_snapshot(), path, default)
 
-    def get_float(self, path: ConfigPath, default: float = 0.0) -> float:
+    def get_float(self, path: ConfigPath, default: ConfigFloatValue = DEFAULT_CONFIG_FLOAT) -> ConfigFloatValue:
         """Retrieve float value."""
         return self._retriever.get_float(self.get_snapshot(), path, default)
 
@@ -125,8 +150,13 @@ class ConfigOrchestrator(IConfigAggregate):
         """Delegate metadata retrieval (reflects latest load)."""
         return self._metadata_provider.get_metadata()
 
-    def recent_events(self, limit: int = EVENT_RING_BUFFER_SIZE) -> tuple[EventPayload, ...]:
-        """Return the most recent config domain events, oldest → newest."""
+    def recent_events(self, limit: ConfigEventLimit = DEFAULT_CONFIG_EVENT_LIMIT) -> tuple[EventPayload, ...]:
+        """Return the most recent config domain events, oldest → newest.
+
+        GIL assumption: CPython's GIL makes ``deque.append`` and
+        ``list(deque)`` atomic enough for single-writer / single-reader
+        patterns.  No external lock is needed for the bounded ring buffer.
+        """
         if limit <= 0:
             return ()
         items = list(self._event_buffer)
@@ -142,8 +172,14 @@ class ConfigOrchestrator(IConfigAggregate):
 
     # ─── Block 3: Event Recording ─────────────────────────────
 
-    def _record_event(self, event: object) -> None:
+    def _record_event(
+        self,
+        event: SettingsLoadedEvent | SettingsReloadEvent | SettingsValidationWarningEvent | WorkspaceResolvedEvent,
+    ) -> None:
         """Serialize and store a domain event into the bounded ring buffer."""
+        if not hasattr(event, "__dataclass_fields__"):
+            logger.warning("Skipping non-dataclass event: %s", type(event).__name__)
+            return
         payload = asdict(event)
         # Apply redaction to prevent secret leakage in event logs
         redacted_payload = self._redaction_rules.redact_dict(payload) if isinstance(payload, dict) else payload

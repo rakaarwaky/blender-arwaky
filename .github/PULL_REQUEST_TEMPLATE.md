@@ -88,17 +88,16 @@ Key improvements include:
 
 ```bash
 # Commands run to verify
-uv run pytest tests/modules/test_security.py -v
-uv run pytest tests/modules/test_security_archive.py -v
-uv run ruff check src/modules/security/
-uv run mypy src/modules/security/
+bash scripts/ci.sh
+uv run pytest modules/security/tests -v
+uv run ruff check modules
 ```
 
 ## Documentation
 
 - [ ]  I have updated `README.md` (if user-facing change)
 - [ ]  I have updated `AGENT.md` (if agent command change)
-- [x]  I have updated `SKILL.md` (if MCP / CLI tool change)
+- [ ]  I have verified embedded `help` guidance and canonical command catalog (if MCP / CLI tool change)
 - [ ]  I have updated `TEST.md` (if test pattern change)
 - [x]  I have added an entry to `CHANGELOG.md` under `[Unreleased]`
 

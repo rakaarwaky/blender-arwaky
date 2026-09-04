@@ -9,6 +9,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .taxonomy_gateway_vo import CommandResult
+
 
 class GatewayClientProtocol(ABC):
     """Protocol for gateway transport layer.
@@ -18,6 +20,6 @@ class GatewayClientProtocol(ABC):
     """
 
     @abstractmethod
-    async def execute_command(self, command: dict[str, Any]) -> dict[str, Any]:
-        """Execute a command through the gateway and return the result."""
+    async def execute_command(self, command: dict[str, Any], request_id: str | None = None) -> CommandResult:
+        """Execute a command through the gateway and return the typed result."""
         ...  # pragma: no cover

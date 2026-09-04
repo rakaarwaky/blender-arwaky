@@ -39,6 +39,7 @@ def test_parse_env_value_scalar(raw, expected):
 
 # ─── apply_env_overrides ─────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_apply_env_overrides_basic():
     config = {"blender": {"host": "localhost"}}
@@ -46,11 +47,9 @@ def test_apply_env_overrides_basic():
         "BLENDERMCP_BLENDER.PORT": "9999",
         "BLENDERMCP_SERVER.TRANSPORT": "ws",
         "BLENDERMCP_CONFIG_PATH": "/x",  # reserved, skipped
-        "BLENDER_MCP_OLD": "1",  # legacy, not matched
+        "BLENDER_MCP_OLD": "1",  # unsupported, not matched
     }
-    result, count = apply_env_overrides(
-        config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",)
-    )
+    result, count = apply_env_overrides(config, environ, "BLENDERMCP_", ("BLENDERMCP_CONFIG_PATH",))
     assert result["blender"]["port"] == 9999
     assert result["server"]["transport"] == "ws"
     assert "config_path" not in result
@@ -72,14 +71,13 @@ def test_apply_env_overrides_deterministic_and_no_mutation():
 @pytest.mark.unit
 def test_apply_env_overrides_introduces_new_keys():
     config: dict = {}
-    result, count = apply_env_overrides(
-        config, {"BLENDERMCP_NEW.KEY": "v"}, "BLENDERMCP_", ()
-    )
+    result, count = apply_env_overrides(config, {"BLENDERMCP_NEW.KEY": "v"}, "BLENDERMCP_", ())
     assert result["new"]["key"] == "v"
     assert count == 1
 
 
 # ─── load_yaml_safe ──────────────────────────────────────────
+
 
 @pytest.mark.unit
 def test_load_yaml_safe_valid():
@@ -139,11 +137,10 @@ def test_load_yaml_safe_utf16_raises():
 
 # ─── validate_settings_schema ───────────────────────────────
 
+
 @pytest.mark.unit
 def test_schema_unknown_key_warning():
-    errors, warnings = validate_settings_schema(
-        {"unknown": 1}, {"unknown": {"type": "int", "required": False}}
-    )
+    errors, warnings = validate_settings_schema({"unknown": 1}, {"unknown": {"type": "int", "required": False}})
     # 'unknown' IS in schema here; test real unknown:
     errors, warnings = validate_settings_schema({"foo": 1}, {})
     assert any("foo" in w for w in warnings)
@@ -173,28 +170,24 @@ def test_schema_clean_passes():
 
 # ─── parse_settings_path ─────────────────────────────────────
 
+
 @pytest.mark.unit
 def test_parse_settings_path_basic():
-    assert parse_settings_path("a.b", False) == ("a", "b")
-    assert parse_settings_path("a.b", True) == ("a", "b")
+    assert parse_settings_path("a.b") == ("a", "b")
 
 
 @pytest.mark.unit
-def test_parse_settings_path_escape_on():
-    assert parse_settings_path("a\\.b", True) == ("a.b",)
-
-
-@pytest.mark.unit
-def test_parse_settings_path_escape_off_literal_split():
-    assert parse_settings_path("a\\.b", False) == ("a\\", "b")
+def test_parse_settings_path_escaped_dot():
+    assert parse_settings_path("a\\.b") == ("a.b",)
 
 
 @pytest.mark.unit
 def test_parse_settings_path_empty():
-    assert parse_settings_path("", True) == ()
+    assert parse_settings_path("") == ()
 
 
 # ─── deep_merge / set_nested ─────────────────────────────────
+
 
 @pytest.mark.unit
 def test_deep_merge_dicts():
@@ -220,6 +213,7 @@ def test_set_nested_value_creates_intermediates():
 
 # ─── resolve_default_config_path ─────────────────────────────
 
+
 @pytest.mark.unit
 def test_resolve_default_config_path_explicit(monkeypatch):
     monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
@@ -236,3 +230,28 @@ def test_resolve_default_config_path_env(monkeypatch):
 def test_resolve_default_config_path_cwd(monkeypatch):
     monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
     assert resolve_default_config_path(None).endswith("config.yaml")
+
+
+@pytest.mark.unit
+def test_resolve_default_config_path_xdg(monkeypatch, tmp_path):
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
+    xdg = tmp_path / "config"
+    xdg.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    target = xdg / "blender-arwaky" / "config.yaml"
+    target.parent.mkdir(parents=True)
+    target.write_text("server:\n  transport: sse\n")
+    monkeypatch.chdir(tmp_path)
+    assert resolve_default_config_path(None) == str(target)
+
+
+@pytest.mark.unit
+def test_resolve_default_config_path_fallback_when_xdg_missing(monkeypatch, tmp_path):
+    monkeypatch.delenv("BLENDERMCP_CONFIG_PATH", raising=False)
+    xdg = tmp_path / "empty-config"
+    xdg.mkdir()
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    cwd_cfg = tmp_path / "config.yaml"
+    cwd_cfg.write_text("server:\n  transport: sse\n")
+    monkeypatch.chdir(tmp_path)
+    assert resolve_default_config_path(None) == str(cwd_cfg)

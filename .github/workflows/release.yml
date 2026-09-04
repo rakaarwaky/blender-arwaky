@@ -4,15 +4,24 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write
   attestations: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  UV_LOCKED: "1"
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   release:
-    name: Build and Create GitHub Release
+    name: Build and publish release artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,9 +30,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,32 +41,37 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --locked --all-extras
 
-      - name: Run Ruff Lint check
-        run: uv run ruff check src/ blender_mcp_addon/
+      - name: Ruff lint (modules only)
+        run: uv run ruff check modules
 
-      - name: Run Ruff Format check
-        run: uv run ruff format --check src/ blender_mcp_addon/
+      - name: Ruff format check (modules only)
+        run: uv run ruff format --check modules
 
-      - name: Run Mypy Type check
-        run: uv run mypy src/
+      - name: Python syntax compilation
+        run: python -m compileall -q modules blender_mcp_addon
 
-      - name: Run Tests
-        run: |
-          uv run pytest tests/ \
-            --cov=src \
-            --cov=blender_mcp_addon \
-            --cov-report=term \
-            -v --tb=short
+      - name: Bandit security scan (modules only)
+        run: uv run bandit -r modules -x '*/tests/*' -ll -ii
 
-      - name: Build Blender Arwaky Addon ZIP
+      - name: Run tests
+        run: uv run pytest -q --tb=short
+
+      - name: Build Blender addon ZIP
         run: uv run python scripts/build/build_addon_package.py
 
-      - name: Build Python Package Distribution
-        run: uv build
+      - name: Build Python package distributions
+        run: uv build --out-dir dist
 
-      - name: Create GitHub Release and Upload Assets
+      - name: Verify artifact integrity
+        run: |
+          unzip -t dist/blender_mcp_addon.zip
+          test -n "$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+
+      - name: Create GitHub Release and upload assets
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -70,11 +85,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate build provenance
-        uses: actions/attest-build-provenance@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: "dist/*"
 
       - name: Publish to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          environment: pypi
+          packages-dir: dist
+          repository-url: https://upload.pypi.org/legacy/

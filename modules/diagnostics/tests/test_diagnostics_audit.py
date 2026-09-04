@@ -20,7 +20,6 @@ def _make_emitter(**kwargs: Any) -> AuditEmitter:
     return AuditEmitter(**kwargs)
 
 
-
 class TestAuditEventEmission:
     """Test immutable audit record creation and emission."""
 

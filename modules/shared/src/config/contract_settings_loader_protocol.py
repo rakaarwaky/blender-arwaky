@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any
 
 from ..common.taxonomy_core_vo import ConfigMetadata, ConfigPath
 from .taxonomy_config_event import (
@@ -16,7 +15,7 @@ from .taxonomy_config_event import (
     SettingsReloadEvent,
     SettingsValidationWarningEvent,
 )
-from .taxonomy_config_vo import SettingsSnapshot
+from .taxonomy_config_vo import SettingsSnapshot, SettingsValue
 
 
 class ISettingsLoaderProtocol(ABC):
@@ -26,7 +25,7 @@ class ISettingsLoaderProtocol(ABC):
     def load_settings(
         self,
         path: ConfigPath | None = None,
-        overrides: Mapping[str, Any] | None = None,
+        overrides: Mapping[str, SettingsValue] | None = None,
     ) -> SettingsSnapshot:
         """Load settings from all sources, apply precedence, validate, return immutable snapshot."""
         ...
@@ -34,6 +33,16 @@ class ISettingsLoaderProtocol(ABC):
     @abstractmethod
     def reload_settings(self, path: ConfigPath | None = None) -> SettingsSnapshot:
         """Atomically replace cached snapshot. Retains previous valid snapshot on failure (permissive)."""
+        ...
+
+    @abstractmethod
+    def set_value(
+        self,
+        path: ConfigPath,
+        value: SettingsValue,
+        config_path: ConfigPath | None = None,
+    ) -> SettingsSnapshot:
+        """Validate and atomically persist a typed dotted-path value."""
         ...
 
     @abstractmethod

@@ -22,6 +22,7 @@ class SceneContainer:
         event_emitter: object | None = None,
     ) -> None:
         self._code_executor = code_executor
+
         self._event_emitter = event_emitter
         self._aggregate: ISceneAggregate | None = None
         self._lock = threading.Lock()

@@ -6,13 +6,16 @@ FR-DSP-006: Normalize Operation Result
 - Truncates oversized data with indicator
 - Falls back to safe error envelope on construction failure
 - Identical shape for CLI and MCP consumers
+
+FR-INT-008: Integrates with ConfigContainer redaction rules for standardized
+security compliance.
 """
 
 import json
 import logging
 import sys
-from typing import Any
 
+from modules.shared.src.config.contract_redaction_rules_protocol import IRedactionRulesProtocol
 from modules.shared.src.dispatcher.contract_result_normalization_protocol import (
     ResultNormalizationProtocol,
 )
@@ -27,12 +30,20 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
 
     FR-DSP-006: Normalizes all outcomes into unified envelope.
     Never leaks secrets; truncates oversized data; falls back to safe error.
+
+    FR-INT-008: Uses IRedactionRulesProtocol for standardized redaction.
+    Falls back to built-in sanitization when no rules provided.
     """
 
     # ─── Block 1: Class Definition & Constructor ──────────────
 
-    def __init__(self, max_result_data_size: int = 1_000_000):
+    def __init__(
+        self,
+        max_result_data_size: int = 1_000_000,
+        redaction_rules: IRedactionRulesProtocol | None = None,
+    ):
         self._max_size = max_result_data_size
+        self._redaction_rules = redaction_rules
 
     # ─── Block 2: Protocol Method Implementation ─────────────
 
@@ -107,15 +118,23 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
 
     # ─── Block 3: Dunder Methods, Factories & Helpers ──────────
 
-    def _sanitize_data(self, data: Any) -> Any:
+    def _sanitize_data(self, data: object) -> object:
         """Sanitize data payload — redact secrets, paths, raw code.
 
         FR-DSP-006: Envelope must never include secrets, raw code, or sensitive paths.
         Handles all types: dicts, lists, strings, and nested structures.
         Non-serializable values converted to safe textual representation.
 
-        Uses iterative approach with depth limit to avoid stack overflow on deeply nested data.
+        FR-INT-008: Uses IRedactionRulesProtocol when available for standardized
+        redaction; falls back to built-in sanitization otherwise.
         """
+        # FR-INT-008: Use shared redaction rules if configured
+        if self._redaction_rules is not None and isinstance(data, dict):
+            try:
+                return self._redaction_rules.redact_dict(data)
+            except Exception:
+                logger.warning("Redaction rules failed, falling back to built-in sanitization")
+
         redacted_keys = {"password", "secret", "token", "api_key", "private", "code"}
         secret_patterns = ["password", "secret", "token", "api_key", "credential", "private_key"]
         max_depth = 50
@@ -151,8 +170,8 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
             return str(data)
 
     def _sanitize_dict(
-        self, d: dict[str, Any], redacted_keys: set[str], max_depth: int, _depth: int = 0
-    ) -> dict[str, Any]:
+        self, d: dict[str, object], redacted_keys: set[str], max_depth: int, _depth: int = 0
+    ) -> dict[str, object]:
         """Recursively sanitize a dict for secret keys and nested structures.
 
         Uses recursion with depth limit to avoid stack overflow on deeply nested data.
@@ -160,10 +179,15 @@ class ResultNormalizationExecutor(ResultNormalizationProtocol):
         if _depth >= max_depth:
             return {"_truncated": True, "_size_exceeded": max_depth}
 
-        result: dict[str, Any] = {}
+        result: dict[str, object] = {}
         for k, v in d.items():
             k_lower = k.lower()
-            if any(pattern in k_lower for pattern in redacted_keys):
+            _is_redacted = False
+            for _pattern in redacted_keys:
+                if _pattern in k_lower:
+                    _is_redacted = True
+                    break
+            if _is_redacted:
                 result[k] = "***REDACTED***"
             elif isinstance(v, dict):
                 result[k] = self._sanitize_dict(v, redacted_keys, max_depth, _depth + 1)

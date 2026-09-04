@@ -140,10 +140,13 @@ class BackgroundSubmitExecutor(BackgroundSubmitProtocol):
 
     def _get_active_job_count(self) -> int:
         tracker = self._job_tracker
-        active_fn = getattr(tracker, f"{'active_count'}", None)
+        active_fn = getattr(tracker, "active_count", None)
         if callable(active_fn):
             return int(active_fn())
-        return 0
+        raise RuntimeError(
+            "Job tracker does not expose active_count — cannot enforce capacity. "
+            "Fail-closed: refusing to submit without capacity visibility."
+        )
 
     def __repr__(self) -> str:
         return f"BackgroundSubmitExecutor(capacity={self._capacity})"

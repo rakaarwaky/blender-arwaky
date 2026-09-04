@@ -23,13 +23,13 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
         "returns": "CleanupSceneResponseIO",
     },
     "setup_environment": {
-        "description": "Setup scene environment (HDRI, lighting)",
-        "capability": "SceneOperateProtocol.setup_environment",
+        "description": "Configure HDRI lighting from an already cached local file",
+        "capability": "RenderOperateProtocol.configure_hdri",
         "parameters": {
-            "hdri_id": "HDR image identifier from polyhaven",
+            "hdri_id": "Local path to an already cached .hdr or .exr asset",
             "strength": "Environment light strength",
         },
-        "domain": "scene",
+        "domain": "render",
         "returns": "SetupEnvironmentResponseIO",
     },
     # Object Domain
@@ -44,7 +44,7 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
         "description": "Place an imported asset into the scene",
         "capability": "ObjectOperateProtocol.place_asset",
         "parameters": {
-            "asset_id": "Asset identifier",
+            "asset_id": "Exact Blender object name resolved from an imported asset",
             "location": "[x, y, z] coordinates",
             "rotation": "[x, y, z] Euler angles",
             "scale": "[x, y, z] scale factors",
@@ -143,7 +143,7 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
     # Infrastructure
     "execute_blender_code": {
         "description": "Execute arbitrary Python code in Blender",
-        "capability": "BlenderPort.execute_code",
+        "capability": "BlenderPort.execute_blender_code",
         "parameters": {"code": "The Python code to execute"},
         "domain": "infrastructure",
         "returns": "Execution output string",
@@ -151,13 +151,3 @@ COMMAND_CATALOG: Final[dict[str, CommandSpec]] = {
 }
 
 ACTION_NAMES: Final[list[str]] = list(COMMAND_CATALOG.keys())
-
-
-class CommandCatalog:
-    """Canonical command catalog wrapper for backward compatibility."""
-
-    COMMAND_CATALOG = COMMAND_CATALOG
-
-    @staticmethod
-    def list_actions() -> list[str]:
-        return ACTION_NAMES

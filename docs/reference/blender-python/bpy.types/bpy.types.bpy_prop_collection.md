@@ -1,0 +1,178 @@
+# bpy.types.bpy_prop_collection
+
+# bpy_prop_collection
+
+ 
+
+base classes — [`bpy_prop`](bpy.types.bpy_prop.html#bpy.types.bpy_prop)
+
+   class bpy.types.bpy_prop_collection(bpy_prop) 
+
+built-in class used for all collections.
+
+   find(key) 
+
+Returns the index of a key in a collection or -1 when not found (matches Python’s string find function of the same name).
+
+  Parameters: 
+
+key (str) – The identifier for the collection member.
+
+  Returns: 
+
+index of the key.
+
+  Return type: 
+
+int
+
+      foreach_get(attr, seq) 
+
+Fast access to a basic-type attribute within a collection.
+
+  Parameters:  
+- attr (str) – 
+
+Name of the item attribute to read (for example `co`, `normal` or `select`). The attribute must be a basic type (bool, int or float).
+
+ 
+
+For geometry attribute types, see [`Attribute.data_type`](bpy.types.Attribute.html#bpy.types.Attribute.data_type). 
+- seq (MutableSequence[bool | int | float] | buffer) – Writable sequence or buffer receiving flattened values. For array attributes, the length must be `len(collection) * array_length`.    
+
+Only works for ‘basic type’ properties (bool, int and float)! Multi-dimensional arrays (like array of vectors) will be flattened into seq.
+
+ 
+
+```python
+import bpy
+
+mesh = bpy.context.object.data
+collection = mesh.vertices
+
+# Allocate a flat list for the `co` property (X, Y, Z per vertex).
+coords = [0.0] * len(collection) * 3
+
+# Fast access.
+collection.foreach_get("co", coords)
+
+# Python equivalent (per-element iteration is much slower).
+for i, vert in enumerate(collection):
+    coords[i * 3], coords[i * 3 + 1], coords[i * 3 + 2] = vert.co
+```
+
+     foreach_set(attr, seq) 
+
+Fast access to a basic-type attribute within a collection.
+
+  Parameters:  
+- attr (str) – 
+
+Name of the item attribute to write (for example `co` or `select`). The attribute must be a basic type (bool, int or float).
+
+ 
+
+For geometry attribute types, see [`Attribute.data_type`](bpy.types.Attribute.html#bpy.types.Attribute.data_type). 
+- seq (Sequence[bool | int | float] | buffer) – Sequence or buffer containing flattened values. For array attributes, the length must be `len(collection) * array_length`.    
+
+Only works for ‘basic type’ properties (bool, int and float)! seq must be uni-dimensional, multi-dimensional arrays (like array of vectors) will be re-created from it.
+
+ 
+
+```python
+import bpy
+
+mesh = bpy.context.object.data
+collection = mesh.vertices
+
+# Flatten all Z coordinates to zero (X, Y, Z per vertex).
+coords = [0.0] * len(collection) * 3
+collection.foreach_get("co", coords)
+for i in range(2, len(coords), 3):
+    coords[i] = 0.0
+
+# Fast assignment.
+collection.foreach_set("co", coords)
+
+# Python equivalent (per-element iteration is much slower).
+for i, vert in enumerate(collection):
+    vert.co = (coords[i * 3], coords[i * 3 + 1], coords[i * 3 + 2])
+```
+
+     get(key, default=None) 
+
+Returns the value of the item assigned to key or default when not found (matches Python’s dictionary function of the same name).
+
+  Parameters:  
+- key (str) – The identifier for the collection member. 
+- default (Any) – Optional argument for the value to return if key is not found.   Returns: 
+
+The collection member or default.
+
+  Return type: 
+
+[`bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)
+
+      items() 
+
+Return the identifiers of collection members (matching Python’s dict.items() functionality).
+
+  Returns: 
+
+(key, value) pairs for each member of this collection.
+
+  Return type: 
+
+list[tuple[str, [`bpy.types.bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)]]
+
+      keys() 
+
+Return the identifiers of collection members (matching Python’s dict.keys() functionality).
+
+  Returns: 
+
+the identifiers for each member of this collection.
+
+  Return type: 
+
+list[str]
+
+      values() 
+
+Return the values of collection (matching Python’s dict.values() functionality).
+
+  Returns: 
+
+The members of this collection.
+
+  Return type: 
+
+list[[`bpy.types.bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct) | None]
+
+    Special Methods  __contains__(item)  Parameters: 
+
+item (object) – Item to test for membership.
+
+  Return type: 
+
+bool
+
+      __getitem__(key)  Parameters: 
+
+key (int) – Index or key.
+
+  Return type: 
+
+[`bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)
+
+      __iter__()  Return type: 
+
+typing.Iterator[[`bpy_struct`](bpy.types.bpy_struct.html#bpy.types.bpy_struct)]
+
+      __len__()  Return type: 
+
+int
+
+      __setitem__(key, value)  Parameters:  
+- key (int) – Index or key. 
+- value (object) – Value to assign.

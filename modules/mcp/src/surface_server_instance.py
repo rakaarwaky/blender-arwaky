@@ -1,7 +1,7 @@
 """Handler: MCP server instance lifecycle (FastMCP).
 
 FR-MCP-001: Expose MCP Tools — get_mcp_instance() creates FastMCP with lifespan for tool registration
-FR-MCP-002: Route Tool Calls — ToolRegistryHandler.register_tools() wires all tools to MCP router
+FR-MCP-002: Route Tool Calls — ToolRegistrySurface.register_tools() wires all tools to MCP router
 FR-MCP-003: Format MCP Responses — FastMCP wraps all tool responses in standard format
 FR-MCP-004: Protocol Negotiation — server lifespan validates client protocol version
 
@@ -15,7 +15,8 @@ Responsibilities:
 
 AES Compliance (Handler Layer):
 - Imports from: agent, contract, taxonomy (allowed)
-- NO direct imports from capabilities or infrastructure
+- NO direct imports from root containers or infrastructure
+- McpContainer is injected by the composition root (root_mcp_main_entry)
 - Delegates all logic to AgentOrchestrator
 """
 
@@ -25,11 +26,21 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.server import Settings as FastMcpSettings
 
-from modules.mcp.src.capabilities_mcp_bootstrap import (
+from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
+from modules.shared.src.mcp.utility_mcp_bootstrap import (
     record_startup,
 )
-from modules.shared.src.common.taxonomy_core_vo import Details, ServerName
+
+# Module-level imports for AES506 linter traceability — ensures the linter's
+# static import graph can trace from this surface to tool registry and prompts.
+# These are imported inside get_mcp_instance() at runtime but must be at module
+# level for the static import graph resolver to detect them.
+from .surface_prompt_register import PromptRegistrationModule
+from .surface_tool_registry import ToolRegistrySurface
+
+_surface_references = (PromptRegistrationModule, ToolRegistrySurface)
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -84,7 +95,7 @@ class ServerInstanceSurface:
             record_startup()
 
             # Protocol version negotiation (FR-MCP-004)
-            # FastMCP passes version info via request context;
+            # FastMCP handles version info via request context;
             # here we validate that the server supports the requested version.
             # Incompatible versions are rejected with an unsupported error.
             # NOTE: FastMCP handles version internally; we validate at lifespan
@@ -112,14 +123,21 @@ class ServerInstanceSurface:
             logger.info("BlenderArwaky server shut down")
 
     @staticmethod
-    def get_mcp_instance(name: ServerName | None = None) -> FastMCP:
+    def get_mcp_instance(name: ServerName | None = None, container: object | None = None) -> FastMCP:
         """Return the singleton MCP instance, creating it lazily on first call.
 
         Args:
             name: Server name displayed in MCP clients
+            container: McpContainer (or compatible DI composition object)
+                supplied by the composition root. Required when the singleton
+                has not been created yet.
 
         Returns:
             Configured FastMCP instance with lifespan and instructions
+
+        Raises:
+            RuntimeError: If container is None on first creation — the surface
+                layer must not import root composition directly (AES205).
         """
         name = name or ServerName("BlenderArwaky")
         global _mcp_instance
@@ -127,22 +145,27 @@ class ServerInstanceSurface:
             if _mcp_instance is not None:
                 return _mcp_instance
 
+            if container is None:
+                raise RuntimeError(
+                    "McpContainer is required to create the MCP server instance — "
+                    "wire it in the composition root (root_mcp_main_entry) and pass it in."
+                )
+
+            # FastMCP's generic Settings model contains a forward reference for
+            # lifespan. Rebuild it before Pydantic validates the instance so
+            # Python 3.13 startup remains warning-free.
+            FastMcpSettings.model_rebuild()
             _mcp_instance = FastMCP(
                 name=name,
                 instructions="Blender Arwaky Server — 3D asset search, AI generation, scene assembly via standardized tool pipelines.",
                 lifespan=ServerInstanceSurface.server_lifespan,
             )
 
-            # Wire MCP container before registering tools
-            from modules.mcp.src.root_mcp_container import create_mcp_feature
-
-            mcp_container = create_mcp_feature()
-
             # Register tools and prompts (Handler layer delegation)
             from .surface_prompt_register import PromptRegistrationModule
-            from .surface_tool_registry import ToolRegistryHandler
+            from .surface_tool_registry import ToolRegistrySurface
 
-            ToolRegistryHandler.register_tools(_mcp_instance, mcp_container)
+            ToolRegistrySurface.register_tools(_mcp_instance, container)
             PromptRegistrationModule.register_prompts(_mcp_instance)
 
             return _mcp_instance

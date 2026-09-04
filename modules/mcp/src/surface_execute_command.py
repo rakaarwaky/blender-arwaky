@@ -5,13 +5,9 @@ FR-MCP-002: Route Tool Calls — dispatcher aggregate via routing protocol
 FR-MCP-003: Format MCP Responses — unified envelope via response protocol
 """
 
-import logging
-from typing import Any
+from __future__ import annotations
 
-from modules.shared.src.mcp.contract_mcp_protocol import (
-    McpResponseProtocol,
-    McpRoutingProtocol,
-)
+import logging
 
 logger = logging.getLogger("BlenderMCPServer")
 
@@ -27,8 +23,8 @@ class ExecuteCommandSurface:
 
     def __init__(
         self,
-        routing: McpRoutingProtocol,
-        response: McpResponseProtocol,
+        routing: object,
+        response: object,
     ) -> None:
         self._routing = routing
         self._response = response
@@ -39,8 +35,8 @@ class ExecuteCommandSurface:
 
         async def execute_command(
             action: str,
-            args: dict[str, Any] | None = None,
-        ) -> dict[str, Any]:
+            args: dict[str, object] | None = None,
+        ) -> dict[str, object]:
             """Execute ANY BlenderArwaky action via dispatcher aggregate."""
             if args is None:
                 args = {}

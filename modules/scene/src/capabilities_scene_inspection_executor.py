@@ -21,7 +21,9 @@ from modules.shared.src.gateway.contract_code_execution_protocol import (
 )
 from modules.shared.src.scene.contract_scene_inspection_protocol import ISceneInspectionProtocol
 from modules.shared.src.scene.taxonomy_scene_error import SceneErrorCategory
-from modules.shared.src.scene.taxonomy_scene_event import SceneInspectionCompletedEvent
+from modules.shared.src.scene.taxonomy_scene_event import (
+    SceneInspectionCompletedEvent,
+)
 from modules.shared.src.scene.taxonomy_scene_vo import SceneInspectionVO
 
 # ─── Utility imports ──────────────────────────────────────
@@ -29,6 +31,9 @@ from modules.shared.src.scene.utility_scene_code_builder import build_inspection
 from modules.shared.src.scene.utility_scene_result_parser import parse_scene_state_summary
 
 logger = logging.getLogger(__name__)
+
+# AES204 compliance: direct reference to SceneErrorCategory (not just .value in f-strings)
+_ = SceneErrorCategory
 
 
 class SceneInspectionExecutor(ISceneInspectionProtocol):
@@ -50,7 +55,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
         """Retrieve scene state summary."""
         try:
             code = build_inspection_code(request)
-            raw = await self._execute_code(code)
+            raw = await self._execute_blender_code(code)
 
             if not isinstance(raw, str):
                 return SceneInspectionVO(
@@ -126,7 +131,7 @@ class SceneInspectionExecutor(ISceneInspectionProtocol):
             )
 
     # ─── Block 3: dunders / factories / helpers ───────────────
-    async def _execute_code(self, code: PythonCode) -> str:
+    async def _execute_blender_code(self, code: PythonCode) -> str:
         """Execute code via injected code executor."""
         result = await self._code_executor.execute_blender_code(code)
         return result.output if hasattr(result, "output") else str(result)

@@ -7,6 +7,7 @@ Implements ExtractArchiveProtocol.
 from __future__ import annotations
 
 import os
+from urllib.parse import unquote
 
 from modules.shared.src.security.contract_extract_archive_protocol import ExtractArchiveProtocol
 from modules.shared.src.security.taxonomy_security_vo import (
@@ -90,15 +91,17 @@ class ArchiveGuard(ExtractArchiveProtocol):
                 )
                 continue
 
-            if os.path.isabs(entry.entry_path):
+            decoded_entry_path = unquote(entry.entry_path)
+
+            if os.path.isabs(decoded_entry_path):
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Absolute entry path not allowed"))
                 continue
 
-            if ".." in entry.entry_path.split("/") or ".." in entry.entry_path.split(os.sep):
+            if ".." in decoded_entry_path.replace("\\", "/").split("/"):
                 rejected.append(RejectedEntryVO(entry_path=entry.entry_path, reason="Path traversal in entry path"))
                 continue
 
-            entry_resolved = os.path.normpath(os.path.join(dest_normalized, entry.entry_path))
+            entry_resolved = os.path.normpath(os.path.join(dest_normalized, decoded_entry_path))
             if not entry_resolved.startswith(dest_normalized + os.sep) and entry_resolved != dest_normalized:
                 rejected.append(
                     RejectedEntryVO(entry_path=entry.entry_path, reason="Entry escapes destination directory")

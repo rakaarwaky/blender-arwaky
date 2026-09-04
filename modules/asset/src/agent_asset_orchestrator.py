@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import cast
 
 from modules.shared.src.asset.contract_asset_aggregate import IAssetAggregate
 from modules.shared.src.asset.contract_asset_download_protocol import AssetDownloadProtocol
@@ -34,7 +34,7 @@ from modules.shared.src.common.taxonomy_domain_error import ValidationError
 logger = logging.getLogger("BlenderMCPServer")
 
 
-def _emit_event(event_name: str, **kwargs: Any) -> None:
+def _emit_event(event_name: str, **kwargs: object) -> None:
     """Emit FRD-specified telemetry event via diagnostics logging.
 
     FRD Events: asset_searched, asset_downloaded, asset_cached,
@@ -87,7 +87,7 @@ class AssetOrchestrator(IAssetAggregate):
 
     async def search(self, query: SearchQuery, providers: StringList | None = None) -> list[AssetMetadata]:
         result = await self._search.search_all(query, providers)
-        assets: list[dict[str, Any]] = result.get("assets", [])
+        assets: list[dict[str, object]] = result.get("assets", [])
 
         _emit_event("asset_searched", result_count=len(assets), providers=providers or [])
 
@@ -208,7 +208,7 @@ class AssetOrchestrator(IAssetAggregate):
             message=raw.get("message", ""),
         )
 
-    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, Any]:
+    async def get_provider_metadata(self, provider_name: ProviderName, asset_id: AssetId) -> dict[str, object]:
         if self._metadata is None:
             raise ValidationError("Provider metadata capability not configured in container")
 

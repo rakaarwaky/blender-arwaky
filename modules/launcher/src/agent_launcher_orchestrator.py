@@ -17,6 +17,7 @@ shutdown capabilities so status is consistent across operations.
 from __future__ import annotations
 
 import logging
+import time
 
 from modules.shared.src.common.taxonomy_core_vo import FilePath
 from modules.shared.src.launcher.contract_launch_protocol import LaunchProtocol
@@ -27,15 +28,15 @@ from modules.shared.src.launcher.contract_runtime_status_protocol import Runtime
 from modules.shared.src.launcher.contract_shutdown_protocol import ShutdownProtocol
 from modules.shared.src.launcher.taxonomy_launcher_vo import (
     LauncherConfigVO,
-    LaunchMode,
     LaunchOutcomeVO,
+    LaunchRequestVO,
     PersistenceOutcomeVO,
     ProbeDepth,
     RegistrationOutcomeVO,
+    RuntimeState,
     RuntimeStateVO,
     RuntimeStatusVO,
     ShutdownOutcomeVO,
-    TimeoutSeconds,
 )
 
 logger = logging.getLogger("BlenderMCPServer")
@@ -65,17 +66,40 @@ class LauncherOrchestrator(ILauncherOperateAggregate):
         logger.info("Orchestrating locate_and_register")
         return self._locate.locate_and_register(config, override)
 
-    def launch(
-        self, mode: LaunchMode = LaunchMode.INTERFACE, readiness_timeout_seconds: TimeoutSeconds | None = None
-    ) -> LaunchOutcomeVO:
-        """Delegate launch to the capabilities layer."""
-        logger.info("Orchestrating launch (mode=%s)", mode.value)
-        return self._launch.launch(mode, readiness_timeout_seconds)
+    def launch(self, request: LaunchRequestVO | None = None) -> LaunchOutcomeVO:
+        """Delegate launch and persist process state for later status/shutdown calls."""
+        req = request or LaunchRequestVO()
+        logger.info("Orchestrating launch (mode=%s)", req.mode.value)
+        outcome = self._launch.launch(req)
+        if outcome.success and outcome.process_id is not None:
+            previous = self._persist.load()
+            self._persist.persist(
+                RuntimeStateVO(
+                    executable_path=previous.executable_path if previous is not None else "",
+                    process_id=outcome.process_id,
+                    launch_timestamp=time.time(),
+                    bridge_endpoint=outcome.bridge_endpoint,
+                    last_status=RuntimeState.RUNNING_READY if outcome.ready else RuntimeState.STARTING,
+                )
+            )
+        return outcome
 
     def shutdown(self, force: bool = False, allow_escalation: bool = True) -> ShutdownOutcomeVO:
-        """Delegate shutdown to the capabilities layer."""
+        """Delegate shutdown and persist the terminal runtime state."""
         logger.info("Orchestrating shutdown (force=%s)", force)
-        return self._shutdown.shutdown(force, allow_escalation)
+        outcome = self._shutdown.shutdown(force, allow_escalation)
+        if outcome.success:
+            previous = self._persist.load()
+            self._persist.persist(
+                RuntimeStateVO(
+                    executable_path=previous.executable_path if previous is not None else "",
+                    process_id=None,
+                    launch_timestamp=previous.launch_timestamp if previous is not None else 0.0,
+                    bridge_endpoint=previous.bridge_endpoint if previous is not None else None,
+                    last_status=outcome.final_state,
+                )
+            )
+        return outcome
 
     def check_status(self, depth: ProbeDepth = ProbeDepth.LIGHTWEIGHT) -> RuntimeStatusVO:
         """Delegate status check to the capabilities layer."""

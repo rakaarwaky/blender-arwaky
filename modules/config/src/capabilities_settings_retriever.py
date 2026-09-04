@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from modules.shared.src.common.taxonomy_core_vo import ErrorString
 from modules.shared.src.config.contract_settings_retriever_protocol import ISettingsRetrieverProtocol
-from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT
+from modules.shared.src.config.taxonomy_config_constant import POLICY_MODE_STRICT, SENTINEL_MISSING
 from modules.shared.src.config.taxonomy_config_error import ConfigTypeError
-from modules.shared.src.config.taxonomy_config_vo import _MISSING, SettingsSnapshot, SettingsValue
+from modules.shared.src.config.taxonomy_config_vo import SettingsSnapshot, SettingsValue
 from modules.shared.src.config.utility_config_helpers import parse_settings_path
 
 
@@ -24,9 +24,8 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
     No I/O. No file or environment reads per request.
     """
 
-    def __init__(self, policy_mode: str = POLICY_MODE_STRICT, escape_enabled: bool = False) -> None:
+    def __init__(self, policy_mode: str = POLICY_MODE_STRICT) -> None:
         self._policy_mode = policy_mode
-        self._escape_enabled = escape_enabled
 
     # ─── Block 2: Protocol Method Implementation ──────────────
 
@@ -37,12 +36,12 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         default: SettingsValue = None,
     ) -> SettingsValue:
         """Retrieve value by dot-separated path. Returns deep copy."""
-        segments = parse_settings_path(path, self._escape_enabled)
+        segments = parse_settings_path(path)
         return snapshot.get_segments(segments, default)
 
     def has_value(self, snapshot: SettingsSnapshot, path: str) -> bool:
         """Check if a dot-separated path exists."""
-        segments = parse_settings_path(path, self._escape_enabled)
+        segments = parse_settings_path(path)
         return snapshot.has_segments(segments)
 
     def get_string(self, snapshot: SettingsSnapshot, path: str, default: str = "") -> str:
@@ -72,9 +71,9 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
         exclude_bool: bool = False,
         coerce_int: bool = False,
     ) -> SettingsValue:
-        segments = parse_settings_path(path, self._escape_enabled)
-        raw = snapshot.get_segments(segments, _MISSING)
-        if raw is _MISSING:
+        segments = parse_settings_path(path)
+        raw = snapshot.get_segments(segments, SENTINEL_MISSING)
+        if raw is SENTINEL_MISSING:
             return default  # missing key never raises in either mode
 
         if expected is int:
@@ -90,7 +89,9 @@ class SettingsRetrieverCapability(ISettingsRetrieverProtocol):
             return raw
 
         if self._policy_mode == POLICY_MODE_STRICT:
-            raise ConfigTypeError(ErrorString(f"{path}: expected {expected.__name__}, got {type(raw).__name__}"))
+            # Sanitize path — use only final segment to avoid leaking structure
+            safe_ref = path.rsplit(".", maxsplit=1)[-1] if "." in path else path
+            raise ConfigTypeError(ErrorString(f"{safe_ref}: expected {expected.__name__}, got {type(raw).__name__}"))
         return default
 
     def __repr__(self) -> str:
