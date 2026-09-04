@@ -99,6 +99,7 @@ class InMemoryJobLifecycleRepository(IJobLifecycle):
         self._records: dict[str, JobRecord] = {}
         self._active_count: int = 0
         self._event_publisher = event_publisher
+        self._id_generator = id_generator
 
     # ─── Block 2: Domain Protocol Method Implementation ──────────────────────
 

@@ -154,6 +154,14 @@ class PendingOpsLimitError(ServerError):
         )
 
 
+class TooManyPendingOperationsError(PendingOpsLimitError):
+    """Backward-compatible public name for the queue depth limit error.
+
+    The canonical v2 name is :class:`PendingOpsLimitError`; this alias keeps
+    the queue protocol and existing integrations source-compatible.
+    """
+
+
 class OperationWaitTimeoutError(ServerError):
     """Raised when a queued operation exceeds the configured wait timeout.
 

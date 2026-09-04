@@ -93,6 +93,15 @@ main() {
     write_wrapper "${cmd}"
   done
 
+  # Ensure IDE auto-symlink to XDG venv
+  for symlink_name in ".venv" "venv"; do
+    local link_target="${PROJECT_ROOT}/${symlink_name}"
+    if [[ -L "${link_target}" ]] || [[ ! -e "${link_target}" ]]; then
+      ln -sfn "${VENV_DIR}" "${link_target}"
+      echo "[+] IDE symlink created: ${link_target} -> ${VENV_DIR}"
+    fi
+  done
+
   echo
   echo "=== Installation Complete ==="
   echo "You can now run:"
