@@ -43,8 +43,12 @@ Sections: `tools`, `commands` (all actions with CLI↔MCP mapping), `workflows`,
 
 Setiap aksi punya sub-command sendiri dengan argument khusus:
 
-**Launcher**
+**Workspace Setup & Lifecycle**
 ```
+blender-arwaky init [--dir <path>] [--force]
+blender-arwaky launch --filepath <path> [--mode gui|headless] [--port <port>]
+blender-arwaky close --filepath <path> [--force]
+blender-arwaky status
 blender-arwaky launch-blender --filepath <path> [--mode interface|headless] [--port <port>]
 blender-arwaky shutdown-blender [--force]
 blender-arwaky get-runtime-status

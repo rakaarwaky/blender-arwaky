@@ -5,6 +5,7 @@ from __future__ import annotations
 from . import (
     surface_close_command,
     surface_init_command,
+    surface_launch_command,
     surface_render_command,
     surface_run_command,
     surface_screenshot_command,
@@ -14,6 +15,7 @@ from . import (
 _handles = (
     surface_close_command.handle,
     surface_init_command.handle,
+    surface_launch_command.handle,
     surface_render_command.handle,
     surface_run_command.handle,
     surface_screenshot_command.handle,

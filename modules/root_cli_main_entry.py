@@ -18,6 +18,7 @@ from modules.cli.src import (
     surface_action_command,
     surface_close_command,
     surface_init_command,
+    surface_launch_command,
     surface_render_command,
     surface_screenshot_command,
     surface_status_command,
@@ -236,6 +237,58 @@ def _build_parser() -> CliArgumentParser:
         dest="command", title="modules or compatibility commands", metavar="COMMAND", required=True
     )
 
+    # ── Top-level workspace init command ────────────────────────────────────
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Initialize workspace directory structure, configuration, and agent skills",
+        description="Initialize workspace directory structure, configuration, and agent skills",
+    )
+    init_parser.add_argument("--dir", dest="target_dir", default=None, help="Target workspace directory (default: cwd)")
+    init_parser.add_argument(
+        "--force", action="store_true", default=False, help="Overwrite existing configuration and skills"
+    )
+    init_parser.add_argument("--filepath", default=None, help="[Deprecated] Path to .blend file (redirects to launch)")
+    init_parser.add_argument(
+        "--mode", choices=["gui", "headless"], default="headless", help="Blender mode (if redirecting to launch)"
+    )
+    init_parser.add_argument("--port", type=int, default=9876, help="TCP port (if redirecting to launch)")
+    init_parser.set_defaults(action_name="workspace_init", module_owner="cli")
+    _add_common_flags(init_parser)
+
+    # ── Top-level launch command ────────────────────────────────────────────
+    launch_parser = subparsers.add_parser(
+        "launch",
+        help="Start Blender session with a .blend file",
+        description="Start Blender session with a .blend file",
+    )
+    launch_parser.add_argument("--filepath", required=True, help="Path to the .blend file")
+    launch_parser.add_argument(
+        "--mode", choices=["gui", "headless"], default="headless", help="Blender mode (default: headless)"
+    )
+    launch_parser.add_argument("--port", type=int, default=9876, help="TCP port for addon server (default: 9876)")
+    launch_parser.set_defaults(action_name="launch_session", module_owner="cli")
+    _add_common_flags(launch_parser)
+
+    # ── Top-level close shortcut ────────────────────────────────────────────
+    close_parser = subparsers.add_parser(
+        "close",
+        help="Close active Blender session",
+        description="Close active Blender session",
+    )
+    close_parser.add_argument("--filepath", required=True, help="Path to active .blend file")
+    close_parser.add_argument("--force", action="store_true", default=False, help="Force process termination")
+    close_parser.set_defaults(action_name="close_session", module_owner="cli")
+    _add_common_flags(close_parser)
+
+    # ── Top-level status shortcut ───────────────────────────────────────────
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Get status of active Blender session",
+        description="Get status of active Blender session",
+    )
+    status_parser.set_defaults(action_name="status_session", module_owner="cli")
+    _add_common_flags(status_parser)
+
     for owner, actions in DISPATCHER_ACTION_SCHEMAS.items():
         _add_module_parser(subparsers, owner, actions)
 
@@ -269,8 +322,9 @@ def _normalize_legacy_argv(argv: list[str] | None) -> list[str] | None:
         for action_name in owner_actions
     }
     modules = {_snake_to_kebab(owner) for owner in DISPATCHER_ACTION_SCHEMAS}
+    top_level_commands = {"init", "launch", "close", "status"}
     normalized = list(argv)
-    value_flags = {"--color"}
+    value_flags = {"--color", "--dir", "--filepath", "--mode", "--port"}
     index = 0
     while index < len(normalized):
         token = normalized[index]
@@ -280,6 +334,8 @@ def _normalize_legacy_argv(argv: list[str] | None) -> list[str] | None:
         if token.startswith("--"):
             index += 1
             continue
+        if token in top_level_commands or token in modules:
+            break
         if token in actions and token not in modules:
             normalized[index : index + 1] = ["action", token]
         break
@@ -392,16 +448,18 @@ def main(argv: list[str] | None = None, *, dispatcher: IDispatcherAggregate | No
     try:
         action_name = args.action_name
         params = _collect_params(args)
-        if action_name == "launch_blender" and dispatcher is None:
+        if action_name == "workspace_init":
             result = surface_init_command.handle(args, dispatcher)
+        elif action_name in ("launch_session", "launch_blender"):
+            result = surface_launch_command.handle(args, dispatcher)
+        elif action_name in ("close_session", "shutdown_blender") and dispatcher is None:
+            result = surface_close_command.handle(args, dispatcher)
+        elif action_name in ("status_session", "get_runtime_status") and dispatcher is None:
+            result = surface_status_command.handle(args, dispatcher)
         elif action_name == "get_viewport_screenshot" and dispatcher is None:
             result = surface_screenshot_command.handle(args, dispatcher)
         elif action_name == "render" and dispatcher is None:
             result = surface_render_command.handle(args, dispatcher)
-        elif action_name == "shutdown_blender" and dispatcher is None:
-            result = surface_close_command.handle(args, dispatcher)
-        elif action_name == "get_runtime_status" and dispatcher is None:
-            result = surface_status_command.handle(args, dispatcher)
         else:
             result = surface_action_command.handle(action_name, params, args, dispatcher)
     except Exception:
