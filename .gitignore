@@ -125,3 +125,8 @@ serviceAccountKey
 **/.repowise/*
 !**/.repowise/bot.yaml
 !**/.repowise/health-rules.json
+
+# Runtime registry and state
+registry.json
+launcher_state.json
+coverage.xml

@@ -293,7 +293,7 @@ def test_cli_exposes_every_canonical_action_once() -> None:
     }
     assert len(expected) == 108  # nosec B101
     expected_modules = {owner.replace("_", "-") for owner in DISPATCHER_ACTION_SCHEMAS}
-    assert set(subparsers.choices) == expected_modules | {"action"}  # nosec B101
+    assert set(subparsers.choices) == expected_modules | {"action", "init", "launch", "close", "status"}  # nosec B101
     action_parser = subparsers.choices["action"]
     action_subparsers = next(
         action for action in action_parser._actions if isinstance(getattr(action, "choices", None), dict)

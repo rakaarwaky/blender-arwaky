@@ -18,6 +18,7 @@ __all__ = [
     "is_running",
     "kill_blender",
     "launch_blender",
+    "launch_handle",
     "render_handle",
     "run_handle",
     "screenshot_handle",
@@ -28,6 +29,7 @@ __all__ = [
 from . import (
     surface_close_command,
     surface_init_command,
+    surface_launch_command,
     surface_render_command,
     surface_run_command,
     surface_screenshot_command,
@@ -36,6 +38,7 @@ from . import (
 
 close_handle = surface_close_command.handle
 init_handle = surface_init_command.handle
+launch_handle = surface_launch_command.handle
 render_handle = surface_render_command.handle
 run_handle = surface_run_command.handle
 screenshot_handle = surface_screenshot_command.handle
