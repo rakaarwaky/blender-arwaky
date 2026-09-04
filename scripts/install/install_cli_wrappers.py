@@ -22,23 +22,53 @@ from typing import Final
 
 IS_WINDOWS: Final[bool] = sys.platform.startswith("win")
 PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent
-VENV_DIR: Final[Path] = PROJECT_ROOT / ".venv"
-WRAPPER_COMMANDS: Final[tuple[str, ...]] = ("blender-arwaky", "blender-cli")
-VENV_NAMES: Final[tuple[str, ...]] = (".venv", ".env")
+WRAPPER_COMMANDS: Final[tuple[str, ...]] = ("blender-arwaky", "blender-cli", "blender-mcp")
+
+
+def get_xdg_venv_dir() -> Path:
+    """Return physical XDG virtual environment directory."""
+    if os.environ.get("XDG_DATA_HOME"):
+        return Path(os.environ["XDG_DATA_HOME"]) / "blender-arwaky" / "venv"
+    return Path.home() / ".local" / "share" / "blender-arwaky" / "venv"
 
 
 def detect_or_create_venv() -> Path:
-    """Return the project virtualenv, creating one if it doesn't exist."""
-    for name in VENV_NAMES:
-        candidate = PROJECT_ROOT / name
-        if candidate.exists():
-            return candidate
-    print("[*] No virtual environment found — creating .venv ...")
-    import venv  # local import to avoid pulling venv at module import
+    """Return the physical XDG virtualenv and ensure project root symlinks exist for IDEs."""
+    venv_dir = get_xdg_venv_dir()
+    bin_dir = "Scripts" if IS_WINDOWS else "bin"
+    py_exe = "python.exe" if IS_WINDOWS else "python"
+    
+    if not (venv_dir / bin_dir / py_exe).exists():
+        print(f"[*] Creating physical virtual environment at {venv_dir} ...")
+        venv_dir.parent.mkdir(parents=True, exist_ok=True)
+        import venv
 
-    builder = venv.EnvBuilder(with_pip=True, clear=False, symlinks=not IS_WINDOWS)
-    builder.create(str(VENV_DIR))
-    return VENV_DIR
+        builder = venv.EnvBuilder(with_pip=True, clear=False, symlinks=not IS_WINDOWS)
+        builder.create(str(venv_dir))
+
+    # Setup project root symlinks for IDEs/agents
+    if not IS_WINDOWS:
+        for name in (".venv", "venv"):
+            target = PROJECT_ROOT / name
+            if target.is_symlink():
+                try:
+                    if target.resolve() == venv_dir.resolve():
+                        continue
+                    target.unlink()
+                except OSError:
+                    target.unlink(missing_ok=True)
+            elif target.exists():
+                if target.is_dir():
+                    shutil.rmtree(target, ignore_errors=True)
+                else:
+                    target.unlink(missing_ok=True)
+            try:
+                target.symlink_to(venv_dir)
+                print(f"[+] Created IDE symlink: {target} -> {venv_dir}")
+            except OSError as err:
+                print(f"[!] Warning: Could not create {target} symlink: {err}")
+
+    return venv_dir
 
 
 def venv_python(venv: Path) -> Path:
@@ -76,6 +106,8 @@ def install_package_editable(venv: Path) -> None:
 
 def local_bin_dir() -> Path:
     """Return the platform-appropriate user-local bin directory."""
+    if os.environ.get("XDG_BIN_HOME"):
+        return Path(os.environ["XDG_BIN_HOME"])
     return Path.home() / ".local" / "bin"
 
 
