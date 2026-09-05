@@ -46,6 +46,7 @@ dev = ["blender-arwaky[dev]"]
 
 [project.scripts]
 blender-arwaky = "modules.root_cli_main_entry:main"
+ba = "modules.root_cli_main_entry:main"
 blender-mcp = "modules.root_mcp_main_entry:main"
 
 [build-system]
