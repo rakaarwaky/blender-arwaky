@@ -10,7 +10,7 @@ APP_ID="blender-arwaky"
 VENV_DIR="${XDG_DATA_HOME}/${APP_ID}/venv"
 CONFIG_DIR="${XDG_CONFIG_HOME}/${APP_ID}"
 
-cmds=(blender-arwaky blender-mcp)
+cmds=(blender-arwaky ba blender-mcp)
 
 ensure_uv_or_pip() {
   if [[ -d "${VENV_DIR}" && ! -x "${VENV_DIR}/bin/python3" ]]; then
