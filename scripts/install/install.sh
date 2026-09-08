@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
+# scripts/install/install.sh — XDG compliant installer for blender-arwaky
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-XDG_BIN_HOME="${XDG_BIN_HOME:-${HOME}/.local/bin}"
-XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
-XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
-INSTALL_DIR="${XDG_BIN_HOME}"
 APP_ID="blender-arwaky"
-VENV_DIR="${XDG_DATA_HOME}/${APP_ID}/venv"
-CONFIG_DIR="${XDG_CONFIG_HOME}/${APP_ID}"
+
+# XDG Base Directory paths (consistent with lint, qwen-web, vision)
+XDG_BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
+XDG_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/$APP_ID"
+XDG_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/$APP_ID"
+XDG_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/$APP_ID"
+XDG_STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/$APP_ID"
+VENV_DIR="$XDG_DATA_DIR/venv"
 
 cmds=(blender-arwaky ba blender-mcp)
 
-ensure_uv_or_pip() {
+ensure_venv() {
   if [[ -d "${VENV_DIR}" && ! -x "${VENV_DIR}/bin/python3" ]]; then
     echo "[!] Detected broken venv at ${VENV_DIR}; recreating..."
     rm -rf "${VENV_DIR}"
@@ -20,7 +23,7 @@ ensure_uv_or_pip() {
 
   if [[ ! -d "${VENV_DIR}" ]]; then
     echo "[*] Creating virtual environment at ${VENV_DIR} ..."
-    mkdir -p "$(dirname "${VENV_DIR}")"
+    mkdir -p "${VENV_DIR}"
     python3 -m venv "${VENV_DIR}"
   fi
 
@@ -38,18 +41,17 @@ ensure_uv_or_pip() {
   return 1
 }
 
-ensure_install_dir() {
-  mkdir -p "${INSTALL_DIR}"
-}
-
-ensure_config_dir() {
-  mkdir -p "${CONFIG_DIR}"
+ensure_xdg_dirs() {
+  mkdir -p "${XDG_BIN_DIR}"
+  mkdir -p "${XDG_CONFIG_DIR}"
+  mkdir -p "${XDG_CACHE_DIR}"
+  mkdir -p "${XDG_STATE_DIR}/log"
 }
 
 write_wrapper() {
   local name="$1"
   local target="${VENV_DIR}/bin/${name}"
-  local wrapper="${INSTALL_DIR}/${name}"
+  local wrapper="${XDG_BIN_DIR}/${name}"
 
   if [[ ! -x "${target}" ]]; then
     echo "[!] Missing entrypoint: ${target}"
@@ -66,46 +68,40 @@ EOF
 
 warn_path() {
   case ":${PATH}:" in
-    *:${INSTALL_DIR}:*)
+    *:${XDG_BIN_DIR}:*)
       ;;
     *)
-      echo "[!] ${INSTALL_DIR} is not on PATH."
+      echo "[!] ${XDG_BIN_DIR} is not on PATH."
       echo "    Add this to ~/.bashrc or ~/.zshrc:"
-      echo "    export PATH=\"${INSTALL_DIR}:\$PATH\""
+      echo "    export PATH=\"${XDG_BIN_DIR}:\$PATH\""
       ;;
   esac
 }
 
 main() {
-  echo "=== Blender Arwaky Installer ==="
+  echo "=== Blender Arwaky Installer (XDG) ==="
   echo "Project Root: ${PROJECT_ROOT}"
-  echo "Install Dir:  ${INSTALL_DIR}"
+  echo "Bin Dir:      ${XDG_BIN_DIR}"
+  echo "Data Dir:     ${XDG_DATA_DIR}"
+  echo "Config Dir:   ${XDG_CONFIG_DIR}"
+  echo "Cache Dir:    ${XDG_CACHE_DIR}"
+  echo "State Dir:    ${XDG_STATE_DIR}"
   echo "Venv Dir:     ${VENV_DIR}"
-  echo "Config Dir:   ${CONFIG_DIR}"
-  echo "XDG Data:     ${XDG_DATA_HOME}"
   echo
 
-  ensure_uv_or_pip
-  ensure_install_dir
-  ensure_config_dir
+  ensure_venv
+  ensure_xdg_dirs
 
   for cmd in "${cmds[@]}"; do
     write_wrapper "${cmd}"
-  done
-
-  # Ensure IDE auto-symlink to XDG venv
-  for symlink_name in ".venv" "venv"; do
-    local link_target="${PROJECT_ROOT}/${symlink_name}"
-    if [[ -L "${link_target}" ]] || [[ ! -e "${link_target}" ]]; then
-      ln -sfn "${VENV_DIR}" "${link_target}"
-      echo "[+] IDE symlink created: ${link_target} -> ${VENV_DIR}"
-    fi
   done
 
   echo
   echo "=== Installation Complete ==="
   echo "You can now run:"
   printf '  %s --help\n' "${cmds[@]}"
+  echo
+  echo "Run 'blender-arwaky init' to setup workspace symlinks."
   warn_path
 }
 
